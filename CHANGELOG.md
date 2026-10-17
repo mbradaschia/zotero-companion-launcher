@@ -7,6 +7,8 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-17
+
 ### Added
 
 - **One repository, three projects, a new name:** `oma-zotero-launcher` is now
@@ -597,7 +599,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mbradaschia/oma-zotero-launcher/releases/tag/v0.1.0
