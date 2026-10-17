@@ -1,8 +1,8 @@
 #!/bin/bash
 # Build the Zotero bridge for release:
-#   dist/oma-zotero-launcher-<version>.xpi the add-on (install it in Zotero: Tools → Plugins →
+#   dist/zotero-companion-bridge-<version>.xpi the add-on (install it in Zotero: Tools → Plugins →
 #                                         ⚙ → Install Plugin From File…); dev routes left out
-#   dist/oma-zotero-launcher-<version>.xpi.sha256
+#   dist/zotero-companion-bridge-<version>.xpi.sha256
 #   zotero-bridge/updates.json            the update manifest Zotero polls (manifest.json's
 #                                         update_url), pointing at the GitHub release asset
 # The zip is reproducible: fixed file order, timestamps and modes, so the same sources give
@@ -17,7 +17,7 @@ ID=$(jq -r .applications.zotero.id "$SRC/manifest.in.json")
 MIN=$(jq -r .applications.zotero.strict_min_version "$SRC/manifest.in.json")
 MAX=$(jq -r .applications.zotero.strict_max_version "$SRC/manifest.in.json")
 REPO_URL=${OMA_ZOTERO_REPO_URL:-https://github.com/mbradaschia/zotero-companion-launcher}
-NAME="oma-zotero-launcher-$VERSION.xpi"
+NAME="zotero-companion-bridge-$VERSION.xpi"
 OUT="$ROOT/dist/$NAME"
 
 stage=$(mktemp -d)
