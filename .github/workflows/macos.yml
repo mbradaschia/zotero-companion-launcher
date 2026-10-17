@@ -112,5 +112,16 @@ jobs:
           sed -e "s|^TAG=\${ZL_TAG:-macos-nightly}|TAG=\${ZL_TAG:-$GITHUB_REF_NAME}|" -e "s|releases/download/macos-nightly/|releases/download/$GITHUB_REF_NAME/|" \
             scripts/install.sh > "$RUNNER_TEMP/release/install.sh"
           grep -q "^TAG=\${ZL_TAG:-$GITHUB_REF_NAME}" "$RUNNER_TEMP/release/install.sh"
-          gh release create "$GITHUB_REF_NAME" ZoteroLauncher.zip "$RUNNER_TEMP/release/install.sh" --verify-tag \
-            --title "macOS app ${GITHUB_REF_NAME#macos-v}" --notes-file "$notes"
+          # The app needs the bridge, and this release becomes GitHub's "latest", where the READMEs send you for
+          # the .xpi: the newest bridge release's .xpi and .sha256 go here too, the same files, untouched.
+          bridge=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=50" --jq '[.[] | select((.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+            and (.draft | not) and (.prerelease | not) and any(.assets[]; .name | endswith(".xpi")))] | .[].tag_name' | sort -V | tail -1)
+          [[ -n $bridge ]] || { echo "no bridge release (vX.Y.Z) to attach" >&2; exit 1; }
+          gh release download "$bridge" -p '*.xpi' -p '*.xpi.sha256' -D "$RUNNER_TEMP/release"
+          xpi=$(cd "$RUNNER_TEMP/release" && ls *.xpi)
+          (cd "$RUNNER_TEMP/release" && shasum -a 256 -c "$xpi.sha256")
+          { cat "$notes"; printf '\n**The Zotero plugin (the bridge):** `%s` below, the same file as its own release ([%s](https://github.com/%s/releases/tag/%s)). In Zotero, *Tools → Plugins → ⚙ → Install Plugin From File…*; installed bridges update themselves.\n' \
+            "$xpi" "$bridge" "$GITHUB_REPOSITORY" "$bridge"; } > "$RUNNER_TEMP/release/notes.md"
+          gh release create "$GITHUB_REF_NAME" ZoteroLauncher.zip "$RUNNER_TEMP/release/install.sh" \
+            "$RUNNER_TEMP/release/$xpi" "$RUNNER_TEMP/release/$xpi.sha256" --verify-tag \
+            --title "macOS app ${GITHUB_REF_NAME#macos-v}" --notes-file "$RUNNER_TEMP/release/notes.md"

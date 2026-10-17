@@ -7,6 +7,12 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The Mac app's release has the Zotero plugin too**: the READMEs send you to the latest release for the `.xpi`,
+  and that is now a Mac app release, which had only the app. Each Mac release now carries the newest bridge's `.xpi`
+  and its `.sha256`, the same files as the bridge's own release, with a line in its notes.
+
 ### The Mac app (`macos-v0.3.6`)
 
 - **The one-line install stopped at once in a UTF-8 Terminal** (`TAG?: unbound variable`): macOS's bash read the "…"
