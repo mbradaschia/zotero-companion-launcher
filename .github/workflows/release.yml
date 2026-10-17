@@ -48,7 +48,7 @@ jobs:
           cat >>notes.md <<NOTES
 
           ### Install
-          - **Zotero bridge:** download \`oma-zotero-launcher-$v.xpi\` below, then in Zotero: *Tools → Plugins → ⚙ → Install Plugin From File…* (installed bridges update themselves).
+          - **Zotero bridge:** download \`zotero-companion-bridge-$v.xpi\` below, then in Zotero: *Tools → Plugins → ⚙ → Install Plugin From File…* (installed bridges update themselves).
           - **Omarchy plugin:** \`omarchy plugin add https://github.com/${GITHUB_REPOSITORY} --enable\`, or \`omarchy plugin update io.github.mbradaschia.oma-zotero\`.
 
           See the [README](https://github.com/${GITHUB_REPOSITORY}#install) for the keybinding and the optional prompts.
@@ -60,5 +60,5 @@ jobs:
         run: |
           v="${GITHUB_REF_NAME#v}"
           gh release create "$GITHUB_REF_NAME" \
-            "dist/oma-zotero-launcher-$v.xpi" "dist/oma-zotero-launcher-$v.xpi.sha256" \
+            "dist/zotero-companion-bridge-$v.xpi" "dist/zotero-companion-bridge-$v.xpi.sha256" \
             --title "v$v" --notes-file notes.md --verify-tag

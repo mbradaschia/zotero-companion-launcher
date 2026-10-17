@@ -7,6 +7,72 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Added
+
+- **One repository, three projects, a new name:** `oma-zotero-launcher` is now
+  `zotero-companion-launcher`, holding the Omarchy launcher (at the root, installed as before), the
+  Zotero bridge (`zotero-bridge/`), the sync format both launchers share (`contracts/`: `Paths.js`
+  and `SYNC-FORMAT.md`), and the Mac app (`macos/`, from zotero-launcher-macos with its history).
+  GitHub redirects the old links (`omarchy plugin add` with the old URL still works); the next bridge
+  release checks for updates at the new name.
+- **Sync between machines**: *Settings › General › Sync folder* puts your pins, saved searches, to-dos,
+  layout, prompts, taxonomies, rules, chats and artifacts in a folder you sync yourself (Syncthing, Dropbox).
+  Setting it copies your files there, or, when the folder has data already, adopts it and backs yours up;
+  clearing it brings the files back. Read-only, never a second copy, while the folder is missing. API keys and
+  the addresses they are sent to stay on each machine. See [Sync between machines](README.md#sync-between-machines).
+- **This machine's name** and **Automation runs on**, in *Settings › General › Sync*: only the machine the
+  second names handles new papers (empty: every machine).
+- **25 more theories** in the bundled Theories taxonomy: absorptive capacity, resource dependence, conservation of
+  resources, paradox, sensemaking, bricolage, practice and process theory, actor-network and assemblage theory,
+  sociomateriality, socio-technical systems, the multi-level perspective, path dependence, punctuated equilibrium,
+  coevolution, complex adaptive systems, game theory, ecosystems, platforms, service-dominant and public service
+  logic, critical theory, cliodynamics, integral theory. Papers tagged before are out of date with it: Settings ›
+  Defaults › Tag again where a taxonomy changed.
+
+- **Delete a note**, yours too: `Delete` on a note (a paper's menu, Notes, the reader) or *Delete this note* on a
+  note's menu asks first, then sends it to Zotero's trash, where you can restore it. The bridge's new
+  `/notes/delete` does it (`/notes/trash` still trashes only the notes the launcher wrote). Update the plugin for it.
+- **Scans read by OCR**: with Tesseract installed, the pages of a PDF with no text layer are read by OCR when its
+  text is extracted (pdftoppm draws each page, tesseract reads it, in English and your system's language when it's
+  installed), and the note says which pages OCR read. A page OCR can't read keeps what pdftotext found; a paper's OCR
+  stops after 10 minutes. *Settings › Setup* offers Tesseract (optional); *Read the N skipped scans by OCR* reads the
+  scans left alone before, just those, a few at a time.
+
+### Changed
+
+- **The plugin's file is `zotero-companion-bridge-<version>.xpi`** (it was `oma-zotero-launcher-<version>.xpi`). The
+  plugin itself is the same add-on: installed bridges update to it on their own.
+- **Turning off a bundled taxonomy you changed asks first** (your changes to it go), and **a taxonomy changed with
+  AI keeps whether it's shown and its Suggested from** unless the proposal changes them (accepting one made a hidden
+  taxonomy shown again and put Suggested from back to 30%).
+- **Deleting a chat or an artifact asks first**, as deleting a note or a tag does: *Delete the chat “T”?* (its
+  answers saved as notes stay in Zotero), *Delete the artifact “T”?* (all its versions).
+- **Every path from one place**: the launcher and the prompt runner find every file through `lib/Paths.js`
+  (an installed runner gets a copy). The launcher now follows `XDG_CONFIG_HOME` for its settings file, as the
+  runner always did.
+- The runner writes prompts, taxonomies, chats and artifacts atomically (a temporary file renamed over the old one).
+- **What waits its turn shows**: the footer's processes say how many are pending (a catch-up's jobs, papers left to
+  extract or tag), and Processes lists them under Pending, in the order they'll run.
+- **No failed extraction for a PDF that isn't on this disk** (not synced here): a run skips extracting it first.
+- **The Zotero plugin is the Zotero Omarchy Bridge**, in the launcher's menus and in Zotero's add-on list (with a
+  link to the repository). `scripts/bridge-dev-link.sh` clears Zotero's cached copy of a linked bridge, so a new
+  version or name shows after a restart.
+
+### Fixed
+
+- **Prompt version numbers**: a number is taken by the first note a text writes, not when the prompt list is
+  read, so a new prompt's first note is v1 (its placeholder text no longer took v1, nor every saved edit a number).
+  The numbers come from the notes themselves, which sync: another machine running a prompt continues from the
+  numbers its notes carry. A second note of the same version on a paper says so ("Findings v2 (2): …").
+- **Note titles Zotero takes as they are**: a paper's rich-text title (`<i>…</i>`, `<sub>`) gives its words, not
+  its tags; control and invisible characters (line breaks, zero-width and bidi marks) are left out; and a title stays
+  within Zotero's 120 characters, the paper's title shortened first, so the prompt's name and version always show.
+  The citation and the paper's title are joined by " · ".
+- **A scan's menu** no longer tries to extract it at every opening (with *Extract a paper's text when you open it*
+  on), each time with a "Couldn't extract the text" notification: it's tried once, then left alone like the others.
+- A scan behind a cover sheet (one page of text, the rest scanned) was extracted almost empty without a word; its
+  scanned pages are now read by OCR (with Tesseract installed).
+
 ### The Mac app (next)
 
 - **The Mac app's release has the Zotero plugin too**: the READMEs send you to the latest release for the `.xpi`,
@@ -153,70 +219,6 @@ bridge and the prompt runner share one version.
 - **Smooth moves between lists**: the next one slides in (from the left going back), none with Reduce Motion.
 - **Rankings take less room in the results**: on the second line, abbreviated as on Omarchy (ABS 4* → A 4*, ABDC A →
   D A, FT50 → F, UTD24 → U), each with its full name on hover; the title keeps the whole first line.
-
-### Added
-
-- **One repository, three projects, a new name:** `oma-zotero-launcher` is now
-  `zotero-companion-launcher`, holding the Omarchy launcher (at the root, installed as before), the
-  Zotero bridge (`zotero-bridge/`), the sync format both launchers share (`contracts/`: `Paths.js`
-  and `SYNC-FORMAT.md`), and the Mac app (`macos/`, from zotero-launcher-macos with its history).
-  GitHub redirects the old links (`omarchy plugin add` with the old URL still works); the next bridge
-  release checks for updates at the new name.
-- **Sync between machines**: *Settings › General › Sync folder* puts your pins, saved searches, to-dos,
-  layout, prompts, taxonomies, rules, chats and artifacts in a folder you sync yourself (Syncthing, Dropbox).
-  Setting it copies your files there, or, when the folder has data already, adopts it and backs yours up;
-  clearing it brings the files back. Read-only, never a second copy, while the folder is missing. API keys and
-  the addresses they are sent to stay on each machine. See [Sync between machines](README.md#sync-between-machines).
-- **This machine's name** and **Automation runs on**, in *Settings › General › Sync*: only the machine the
-  second names handles new papers (empty: every machine).
-- **25 more theories** in the bundled Theories taxonomy: absorptive capacity, resource dependence, conservation of
-  resources, paradox, sensemaking, bricolage, practice and process theory, actor-network and assemblage theory,
-  sociomateriality, socio-technical systems, the multi-level perspective, path dependence, punctuated equilibrium,
-  coevolution, complex adaptive systems, game theory, ecosystems, platforms, service-dominant and public service
-  logic, critical theory, cliodynamics, integral theory. Papers tagged before are out of date with it: Settings ›
-  Defaults › Tag again where a taxonomy changed.
-
-- **Delete a note**, yours too: `Delete` on a note (a paper's menu, Notes, the reader) or *Delete this note* on a
-  note's menu asks first, then sends it to Zotero's trash, where you can restore it. The bridge's new
-  `/notes/delete` does it (`/notes/trash` still trashes only the notes the launcher wrote). Update the plugin for it.
-- **Scans read by OCR**: with Tesseract installed, the pages of a PDF with no text layer are read by OCR when its
-  text is extracted (pdftoppm draws each page, tesseract reads it, in English and your system's language when it's
-  installed), and the note says which pages OCR read. A page OCR can't read keeps what pdftotext found; a paper's OCR
-  stops after 10 minutes. *Settings › Setup* offers Tesseract (optional); *Read the N skipped scans by OCR* reads the
-  scans left alone before, just those, a few at a time.
-
-### Changed
-
-- **Turning off a bundled taxonomy you changed asks first** (your changes to it go), and **a taxonomy changed with
-  AI keeps whether it's shown and its Suggested from** unless the proposal changes them (accepting one made a hidden
-  taxonomy shown again and put Suggested from back to 30%).
-- **Deleting a chat or an artifact asks first**, as deleting a note or a tag does: *Delete the chat “T”?* (its
-  answers saved as notes stay in Zotero), *Delete the artifact “T”?* (all its versions).
-- **Every path from one place**: the launcher and the prompt runner find every file through `lib/Paths.js`
-  (an installed runner gets a copy). The launcher now follows `XDG_CONFIG_HOME` for its settings file, as the
-  runner always did.
-- The runner writes prompts, taxonomies, chats and artifacts atomically (a temporary file renamed over the old one).
-- **What waits its turn shows**: the footer's processes say how many are pending (a catch-up's jobs, papers left to
-  extract or tag), and Processes lists them under Pending, in the order they'll run.
-- **No failed extraction for a PDF that isn't on this disk** (not synced here): a run skips extracting it first.
-- **The Zotero plugin is the Zotero Omarchy Bridge**, in the launcher's menus and in Zotero's add-on list (with a
-  link to the repository). `scripts/bridge-dev-link.sh` clears Zotero's cached copy of a linked bridge, so a new
-  version or name shows after a restart.
-
-### Fixed
-
-- **Prompt version numbers**: a number is taken by the first note a text writes, not when the prompt list is
-  read, so a new prompt's first note is v1 (its placeholder text no longer took v1, nor every saved edit a number).
-  The numbers come from the notes themselves, which sync: another machine running a prompt continues from the
-  numbers its notes carry. A second note of the same version on a paper says so ("Findings v2 (2): …").
-- **Note titles Zotero takes as they are**: a paper's rich-text title (`<i>…</i>`, `<sub>`) gives its words, not
-  its tags; control and invisible characters (line breaks, zero-width and bidi marks) are left out; and a title stays
-  within Zotero's 120 characters, the paper's title shortened first, so the prompt's name and version always show.
-  The citation and the paper's title are joined by " · ".
-- **A scan's menu** no longer tries to extract it at every opening (with *Extract a paper's text when you open it*
-  on), each time with a "Couldn't extract the text" notification: it's tried once, then left alone like the others.
-- A scan behind a cover sheet (one page of text, the rest scanned) was extracted almost empty without a word; its
-  scanned pages are now read by OCR (with Tesseract installed).
 
 ### The Mac app (`macos-v0.3.0`)
 
