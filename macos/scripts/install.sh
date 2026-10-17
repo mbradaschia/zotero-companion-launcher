@@ -26,7 +26,7 @@ if [[ $# -ge 1 ]]; then
   zip=$1
   [[ -f $zip ]] || fail "no such file: $zip"
 else
-  echo "Downloading $TAG…"
+  echo "Downloading ${TAG}…"
   zip=$work/ZoteroLauncher.zip
   curl -fsSL --retry 2 -o "$zip" "https://github.com/$REPO/releases/download/$TAG/ZoteroLauncher.zip" ||
     fail "couldn't download it (no network, or no $TAG release yet)"
