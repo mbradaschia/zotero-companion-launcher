@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.3.6`)
 
 - **The one-line install stopped at once in a UTF-8 Terminal** (`TAG?: unbound variable`): macOS's bash read the "…"
   after `$TAG` as part of the variable's name. Written `${TAG}` now, and a test keeps every script's variables clear of
