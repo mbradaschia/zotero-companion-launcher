@@ -19,7 +19,7 @@ live() { grep -hE "$1" "${conf[@]}" 2>/dev/null | grep -vE '^[[:space:]]*--' | g
 add=""
 if [[ ${1:-} != --rule ]] && ! live "panel *= *\"$ID\""; then
   taken=$(hyprctl binds -j | jq -r '.[] | select(.modmask == 65 and (.key | ascii_upcase) == "Z") | (.description // .dispatcher)' | head -1)
-  [[ -n $taken ]] && fail "SUPER+SHIFT+Z already does “$taken”: pick another key and add o.bind(\"…\", \"Zotero launcher\", { panel = \"$ID\" }) yourself"
+  [[ -n $taken ]] && fail "SUPER+SHIFT+Z already does “${taken}”: pick another key and add o.bind(\"…\", \"Zotero launcher\", { panel = \"$ID\" }) yourself"
   add+=$'-- Zotero launcher (oma-zotero-launcher): SUPER+SHIFT+Z opens it\n'
   add+="o.bind(\"SUPER + SHIFT + Z\", \"Zotero launcher\", { panel = \"$ID\" })"$'\n'
 fi

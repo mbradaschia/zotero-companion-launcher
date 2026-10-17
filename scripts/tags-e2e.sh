@@ -96,7 +96,7 @@ check "…the filter was cleared for the next tag" '""' "$(jq .filterText <<<"$s
 tagOn=$(jq -r '.[0]' <<<"$before")
 ipc type "$tagOn" >/dev/null
 ipc key ctrl+enter >/dev/null
-check "Ctrl+Enter on a tag the item has → says so" "“$tagOn” is already on this item" "$(wait_for '.flash != ""' 3 | jq -r .flash)"
+check "Ctrl+Enter on a tag the item has → says so" "“${tagOn}” is already on this item" "$(wait_for '.flash != ""' 3 | jq -r .flash)"
 ipc key escape >/dev/null
 
 echo "== real keys: Alt+T, type, Esc"
@@ -136,14 +136,14 @@ if [[ ${OMA_ZOTERO_WRITE_TESTS:-} == 1 ]]; then
   check "a new name offers Create" "create" "$(jq -r '.actionRows[-1].rowId' <<<"$s")"
   ipc key ctrl+enter >/dev/null
   s=$(wait_for '.tags.pending == 0 and (.flash | startswith("Added"))' 6)
-  check "Ctrl+Enter adds it and confirms" "Added “$TEST_TAG”" "$(jq -r .flash <<<"$s")"
+  check "Ctrl+Enter adds it and confirms" "Added “${TEST_TAG}”" "$(jq -r .flash <<<"$s")"
   check "…filter cleared, cursor on the new tag, checked" "\"\" $TEST_TAG true" "$(jq -r '"\(.filterText | tojson) \(.actionRows[.selectedIndex].tag) \(.actionRows[.selectedIndex].checked)"' <<<"$s")"
   check "…Zotero has it" true "$(item_tags "$w" | jq --arg t "$TEST_TAG" 'index($t) != null')"
   pause 0.5 # the search index follows Zotero's notifier (debounced)
   check "…and search finds the item by it" "$w" "$(post /search "$(jq -nc --arg q "#^$TEST_TAG\$" '{query: $q}')" | jq -r '[.results[].key] | join(",")')"
   ipc key enter >/dev/null
   s=$(wait_for '.tags.pending == 0 and (.flash | startswith("Removed"))' 6)
-  check "Enter on it removes it" "Removed “$TEST_TAG”" "$(jq -r .flash <<<"$s")"
+  check "Enter on it removes it" "Removed “${TEST_TAG}”" "$(jq -r .flash <<<"$s")"
   check "…Zotero agrees" "$orig" "$(item_tags "$w")"
   if real_open; then
     # real keys on the same item: Alt+T, find the test tag's row, real Enter adds it back
