@@ -48,7 +48,24 @@ mkdir -p "$RUNNER_DIR" "$HOME/.local/bin"
 rsync -a --delete --exclude node_modules "$ROOT/runner/" "$RUNNER_DIR/"
 "$ROOT/scripts/copy-shared-paths.sh" "$RUNNER_DIR" # contracts/Paths.js: the paths the launcher uses
 # --ignore-scripts: no package's own install script runs (none needs one; a new one can't slip in)
-(cd "$RUNNER_DIR" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=error)
+packages() { (cd "$RUNNER_DIR" && npm ci --omit=dev --ignore-scripts --no-audit --no-fund --loglevel=error); }
+# This machine's Claude and Codex binaries npm left out (a failed download of an optional package
+# is skipped, and npm ci still succeeds): lib/native.mjs reads the lockfile.
+missing() { node --input-type=module -e 'const m = await import(process.argv[1]); process.stdout.write(m.missingIn(process.argv[2]).join(" "))' "$RUNNER_DIR/lib/native.mjs" "$RUNNER_DIR"; }
+packages
+gone=$(missing)
+if [[ -n $gone ]]; then
+  # Most often a slow IPv6 route to the registry: once more, IPv4 first (the rest comes from npm's cache).
+  echo "install-runner: npm didn't download ${gone}: trying again over IPv4" >&2
+  NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--dns-result-order=ipv4first" packages
+  gone=$(missing)
+  if [[ -n $gone ]]; then
+    echo "install-runner: npm didn't download ${gone} (check the connection, then install again)" >&2
+    trap - ERR
+    task fail "$TASK" "npm didn't download ${gone}: check the connection, then install again"
+    exit 1
+  fi
+fi
 ln -sfn "$RUNNER_DIR/bin/oma-zotero-prompt.mjs" "$BIN"
 "$BIN" list >/dev/null
 
