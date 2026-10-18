@@ -171,6 +171,8 @@ says so.
 - **A chat's window** opens at most 960 by 760 (70% of the screen's width, 85% of its height on a laptop) and keeps the
   size last given one. esc there: the keys hidden, else the answer stopped, else (nothing typed) back to the paper's
   menu in the launcher, the window closed; a question being typed stays.
+- **The launcher resizes** from its edges (the panel and the window alike), never below 560 by 360, and opens at the
+  size last given it.
 - **The launcher moves** by its background. **The pin** keeps it open while other apps are used; esc then stops at
   the top level and the hint says `⌘W close`.
 
@@ -179,6 +181,11 @@ says so.
 - **Stop all** heads the list while anything runs or waits (the cursor starts past it, on the first process); it asks
   first. **Pills** above the list show one state at a time, each with its count; a click picks one.
 - **Catching up** asks Zotero what's there (another computer's notes and tags count) unless *Replace them* is chosen.
+- **A catch-up checks before it starts** (`Checking which papers need it…`), then says what it started: `Started: 5 jobs
+  on 3 papers, in the background (in Processes)`, or `Nothing to do: every paper is up to date`.
+- **The question when the app opens** is the confirm view: `Bring N papers up to date?`, the yes row's detail what it
+  found, `Not now` saying where to turn the question off. Asked once a run of the app, only where automation runs;
+  unanswered when the launcher closes, it is asked when it opens next; esc is Not now.
 
 ## Counts and clicks
 

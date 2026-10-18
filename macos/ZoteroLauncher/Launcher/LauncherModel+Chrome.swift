@@ -70,6 +70,7 @@ extension LauncherModel {
         case "settings-providers": return "‹ Settings › Models & providers"
         case "settings-rules": return "‹ Settings › Rules"
         case "settings-auto-prompts": return "‹ Settings › Defaults › Prompts to run on new papers"
+        case "settings-launch-catchup": return "‹ Settings › Defaults › What it checks"
         case "settings-taxonomies": return "‹ Settings › Taxonomies"
         case "settings-tax-review": return "‹ Settings › Taxonomies › Review"
         case "settings-taxonomy": return "‹ Settings › Taxonomies › " + (tax.edit?["name"] as? String ?? "…")

@@ -14905,7 +14905,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15005,7 +15007,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15090,7 +15094,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15119,7 +15125,7 @@
     }
    }
   ],
-  "expect": "{\"artifactsDir\":null,\"syncDir\":null,\"machineName\":null,\"automationHost\":null,\"enterAction\":\"reader\",\"maxResults\":60,\"port\":23119,\"externalPdfCommand\":null,\"accelerators\":true,\"emptyQuery\":null,\"promptCommand\":null,\"zoteroCommand\":null,\"keys\":\"alt\",\"keysStart\":\"list\",\"keyDelay\":300,\"citationStyle\":\"apa\",\"providers\":{\"claude\":{\"enabled\":true},\"chatgpt\":{\"enabled\":false},\"openai\":{\"enabled\":false},\"anthropic\":{\"enabled\":false},\"google\":{\"enabled\":false},\"openrouter\":{\"enabled\":false},\"ollama\":{\"enabled\":false}},\"endpoints\":[],\"defaults\":{\"prompts\":{\"model\":\"\",\"effort\":\"high\"},\"chat\":{\"model\":\"\",\"effort\":\"high\"},\"fallback\":\"\",\"autoExtract\":false,\"autoExtractNew\":false,\"extractMaxMB\":40,\"autoTagNew\":false,\"extractOnOpen\":false,\"tagOnOpen\":false,\"autoPrompts\":[],\"catchUpDays\":30,\"processesAtOnce\":1,\"catchUpPrompts\":\"missing\",\"catchUpTaxonomies\":\"missing\"},\"rules\":{},\"tasks\":null,\"paperStatuses\":[\"to read\",\"reading\",\"read\"],\"configured\":false}"
+  "expect": "{\"artifactsDir\":null,\"syncDir\":null,\"machineName\":null,\"automationHost\":null,\"enterAction\":\"reader\",\"maxResults\":60,\"port\":23119,\"externalPdfCommand\":null,\"accelerators\":true,\"emptyQuery\":null,\"promptCommand\":null,\"zoteroCommand\":null,\"keys\":\"alt\",\"keysStart\":\"list\",\"keyDelay\":300,\"citationStyle\":\"apa\",\"providers\":{\"claude\":{\"enabled\":true},\"chatgpt\":{\"enabled\":false},\"openai\":{\"enabled\":false},\"anthropic\":{\"enabled\":false},\"google\":{\"enabled\":false},\"openrouter\":{\"enabled\":false},\"ollama\":{\"enabled\":false}},\"endpoints\":[],\"defaults\":{\"prompts\":{\"model\":\"\",\"effort\":\"high\"},\"chat\":{\"model\":\"\",\"effort\":\"high\"},\"fallback\":\"\",\"autoExtract\":false,\"autoExtractNew\":false,\"extractMaxMB\":40,\"autoTagNew\":false,\"extractOnOpen\":false,\"tagOnOpen\":false,\"autoPrompts\":[],\"catchUpDays\":30,\"processesAtOnce\":1,\"catchUpPrompts\":\"missing\",\"catchUpTaxonomies\":\"missing\",\"launchCatchUp\":true,\"launchCatchUpWhat\":{}},\"rules\":{},\"tasks\":null,\"paperStatuses\":[\"to read\",\"reading\",\"read\"],\"configured\":false}"
  },
  {
   "name": "searchBody/empty-with-pins",
@@ -15190,7 +15196,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15327,7 +15335,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15449,7 +15459,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15575,7 +15587,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15683,7 +15697,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -22028,7 +22044,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -33419,7 +33437,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -33696,7 +33716,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -33809,7 +33831,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34122,7 +34146,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34210,7 +34236,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34294,7 +34322,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34912,7 +34942,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -35641,7 +35673,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -35963,7 +35997,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -36174,7 +36210,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -36913,7 +36951,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37163,7 +37203,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37339,7 +37381,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37533,7 +37577,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37653,7 +37699,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37841,7 +37889,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37938,7 +37988,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38057,7 +38109,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38137,7 +38191,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38257,7 +38313,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38379,7 +38437,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38496,7 +38556,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -39942,7 +40004,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40189,7 +40253,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40366,7 +40432,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40577,7 +40645,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40992,7 +41062,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -41091,7 +41163,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -41607,7 +41681,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -42799,7 +42875,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -43895,7 +43973,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44341,7 +44421,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44426,7 +44508,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44535,7 +44619,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44622,7 +44708,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44717,7 +44805,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45130,7 +45220,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45438,7 +45530,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45627,7 +45721,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45893,7 +45989,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46147,7 +46245,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46272,7 +46372,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46415,7 +46517,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46512,7 +46616,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46652,7 +46758,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46771,7 +46879,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46885,7 +46995,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47002,7 +47114,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47133,7 +47247,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47300,7 +47416,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47460,7 +47578,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47583,7 +47703,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47709,7 +47831,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47890,7 +48014,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -48102,7 +48228,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -48314,7 +48442,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -48488,7 +48618,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": {
@@ -55720,7 +55852,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -55992,7 +56126,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -58421,7 +58557,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -59041,7 +59179,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -59956,7 +60096,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -60874,7 +61016,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -61419,7 +61563,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -61558,7 +61704,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -62260,7 +62408,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -62918,7 +63068,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -63354,7 +63506,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -63717,7 +63871,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -64639,6 +64795,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Nothing: turn something on",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -64817,7 +65047,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -66155,7 +66387,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -66974,6 +67208,24 @@
     "section": "Bring papers up to date",
     "rowId": "set-catchup",
     "value": "recent"
+   },
+   {
+    "page": "defaults",
+    "pageTitle": "Defaults",
+    "label": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "section": "When the app opens",
+    "rowId": "set-toggle",
+    "value": "defaults.launchCatchUp"
+   },
+   {
+    "page": "launch-catchup",
+    "pageTitle": "What it checks",
+    "label": "What it checks",
+    "detail": "Nothing: turn something on",
+    "section": "When the app opens",
+    "rowId": "",
+    "value": ""
    },
    {
     "page": "defaults",
@@ -67805,6 +68057,24 @@
     {
      "page": "defaults",
      "pageTitle": "Defaults",
+     "label": "Ask to catch up when the app opens",
+     "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+     "section": "When the app opens",
+     "rowId": "set-toggle",
+     "value": "defaults.launchCatchUp"
+    },
+    {
+     "page": "launch-catchup",
+     "pageTitle": "What it checks",
+     "label": "What it checks",
+     "detail": "Nothing: turn something on",
+     "section": "When the app opens",
+     "rowId": "",
+     "value": ""
+    },
+    {
+     "page": "defaults",
+     "pageTitle": "Defaults",
      "label": "Fallback model",
      "detail": "None: the error is shown",
      "section": "When a model fails",
@@ -68177,7 +68447,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68297,7 +68569,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68416,7 +68690,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68543,7 +68819,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68670,7 +68948,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68790,7 +69070,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68917,7 +69199,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69010,7 +69294,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69103,7 +69389,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69229,7 +69517,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69309,7 +69599,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69389,7 +69681,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69479,7 +69773,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69567,7 +69863,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69666,7 +69964,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -70055,7 +70355,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -73304,7 +73606,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {
      "ground-paper": false
@@ -74364,7 +74668,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -75350,6 +75656,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Nothing: turn something on",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -75527,7 +75907,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -75765,7 +76147,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -76743,6 +77127,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -76923,7 +77381,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -77939,6 +78399,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -78119,7 +78653,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -79106,6 +79642,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked · on “lab-mac”, the machine automation runs on",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -79286,7 +79896,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -80273,6 +80885,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -80453,7 +81139,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -81440,6 +82128,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -81618,7 +82380,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -82643,6 +83407,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Nothing: turn something on",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -82823,7 +83661,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -83744,6 +84584,80 @@
     "decision": ""
    },
    {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What it checks",
+    "labelHtml": "What it checks",
+    "detail": "Their text and “summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
     "rowId": "set-models",
     "icon": "",
     "label": "Fallback model",
@@ -83922,7 +84836,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -84880,7 +85796,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -85301,7 +86219,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -85637,6 +86557,2434 @@
     "section": "",
     "promptId": "",
     "value": "concept-map",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/all",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "all",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--stale-taxonomies",
+   "--stale-prompts",
+   "--since",
+   "2026-09-18 10:00:00",
+   "--extract",
+   "--prompts",
+   "summary",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/taxonomies",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "taxonomies",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--stale-taxonomies",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/prompts",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "prompts",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--stale-prompts",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/recent",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "recent",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--since",
+   "2026-09-18 10:00:00",
+   "--extract",
+   "--prompts",
+   "summary",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/launch",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "launch",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--since",
+   "2026-09-18 10:00:00",
+   "--extract",
+   "--prompts",
+   "summary",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/launch-nothing",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": false,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "launch",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": []
+ },
+ {
+  "name": "catchUpJobs/launch-skipped",
+  "wrapper": "catchUpJobs",
+  "args": [
+   {
+    "taxonomies": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K1",
+       "op": "classify"
+      }
+     ]
+    },
+    "recent": {
+     "papers": 2,
+     "added": 2,
+     "jobs": [
+      {
+       "id": "1:K2",
+       "op": "extract"
+      },
+      {
+       "id": "1:K3",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ]
+    },
+    "prompts": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K4",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ],
+     "unknown": 0
+    }
+   },
+   "launch",
+   {
+    "1:K2": "scan"
+   }
+  ],
+  "expect": [
+   {
+    "id": "1:K3",
+    "op": "prompt",
+    "prompt": "summary"
+   },
+   {
+    "id": "1:K1",
+    "op": "classify"
+   },
+   {
+    "id": "1:K4",
+    "op": "prompt",
+    "prompt": "summary"
+   }
+  ]
+ },
+ {
+  "name": "catchUpJobs/recent",
+  "wrapper": "catchUpJobs",
+  "args": [
+   {
+    "taxonomies": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K1",
+       "op": "classify"
+      }
+     ]
+    },
+    "recent": {
+     "papers": 2,
+     "added": 2,
+     "jobs": [
+      {
+       "id": "1:K2",
+       "op": "extract"
+      },
+      {
+       "id": "1:K3",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ]
+    },
+    "prompts": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K4",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ],
+     "unknown": 0
+    }
+   },
+   "recent",
+   {}
+  ],
+  "expect": [
+   {
+    "id": "1:K2",
+    "op": "extract"
+   },
+   {
+    "id": "1:K3",
+    "op": "prompt",
+    "prompt": "summary"
+   }
+  ]
+ },
+ {
+  "name": "launchCatchUpAsk/found",
+  "wrapper": "launchCatchUpAsk",
+  "args": [
+   {
+    "taxonomies": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K1",
+       "op": "classify"
+      }
+     ]
+    },
+    "recent": {
+     "papers": 2,
+     "added": 2,
+     "jobs": [
+      {
+       "id": "1:K2",
+       "op": "extract"
+      },
+      {
+       "id": "1:K3",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ]
+    },
+    "prompts": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K4",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ],
+     "unknown": 0
+    }
+   },
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   {}
+  ],
+  "expect": {
+   "title": "Bring 4 papers up to date?",
+   "yes": "Bring them up to date (in Processes)",
+   "no": "Not now",
+   "detail": "Added in the last 30 days: text for 1, “Summary” on 1 · 1 paper tagged by an older taxonomy · 1 note from an older prompt",
+   "noDetail": "Settings › Defaults › Ask to catch up when the app opens turns this question off",
+   "jobs": 4,
+   "papers": 4
+  }
+ },
+ {
+  "name": "launchCatchUpAsk/nothing",
+  "wrapper": "launchCatchUpAsk",
+  "args": [
+   {},
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   {}
+  ],
+  "expect": null
+ },
+ {
+  "name": "launchCatchUpToggled/text",
+  "wrapper": "launchCatchUpToggled",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "text"
+  ],
+  "expect": {
+   "text": false
+  }
+ },
+ {
+  "name": "launchCatchUpToggled/prompt",
+  "wrapper": "launchCatchUpToggled",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "prompt:summary"
+  ],
+  "expect": {
+   "prompts": []
+  }
+ },
+ {
+  "name": "settingsPage/launch-catchup",
+  "wrapper": "settingsPage",
+  "args": [
+   "launch-catchup",
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "now": "2026-10-14T10:00:00.000Z",
+    "bridge": {
+     "status": "ready",
+     "version": "0.2.1",
+     "zoteroVersion": "7.0.11",
+     "expected": "0.2.1"
+    },
+    "info": {
+     "configured": true,
+     "keyring": {
+      "ok": true,
+      "detail": "macOS Keychain"
+     },
+     "providers": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "enabled": true,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": true,
+        "detail": "Claude Code is signed in"
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "Anthropic's terms for your plan",
+       "cost": "Your subscription",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "openai",
+       "name": "OpenAI",
+       "kind": "api",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": true,
+       "takesKey": true,
+       "key": {
+        "set": true,
+        "from": "keyring",
+        "masked": "sk-…abcd"
+       },
+       "envNames": [
+        "OPENAI_API_KEY"
+       ],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "OpenAI's API terms",
+       "cost": "Per token",
+       "keyUrl": "https://platform.openai.com/api-keys",
+       "signIn": "",
+       "test": {
+        "ok": true,
+        "detail": "2 models",
+        "at": "2026-10-12T10:00:00.000Z",
+        "stale": false
+       }
+      },
+      {
+       "id": "ollama",
+       "name": "Ollama (on this computer)",
+       "kind": "local",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": "Ollama answers on localhost"
+       },
+       "baseURL": "http://localhost:11434/v1",
+       "context": 0,
+       "privacy": "Stays on this computer",
+       "cost": "Free",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "enabled": true,
+       "endpoint": true,
+       "needsKey": false,
+       "takesKey": true,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "https://gateway.example.edu/v1",
+       "context": 32768,
+       "privacy": "Your institution's",
+       "cost": "Your institution's",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      }
+     ],
+     "suggested": {
+      "claude": "opus[1m]"
+     },
+     "requirements": {
+      "node": "22.4.1",
+      "pdftotext": true
+     }
+    },
+    "models": {
+     "models": [
+      {
+       "value": "claude:opus",
+       "displayName": "Claude Opus",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "claude:sonnet",
+       "displayName": "Claude Sonnet",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "lab-gateway:llama-3-70b",
+       "displayName": "llama-3-70b",
+       "group": "lab-gateway",
+       "context": 32768,
+       "efforts": [],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": true,
+       "description": ""
+      }
+     ],
+     "groups": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "ok": true,
+       "detail": "",
+       "count": 2
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "ok": true,
+       "detail": "",
+       "count": 1
+      }
+     ],
+     "defaults": {
+      "prompts": "claude:opus",
+      "chat": "claude:sonnet"
+     },
+     "configured": true
+    },
+    "defaults": {
+     "prompts": "claude:opus",
+     "chat": "claude:sonnet"
+    },
+    "tests": {
+     "openai": {
+      "running": false,
+      "ok": true,
+      "detail": "2 models",
+      "models": [
+       {
+        "value": "openai:gpt-5",
+        "displayName": "GPT-5"
+       }
+      ],
+      "at": "2026-10-12T10:00:00.000Z"
+     }
+    },
+    "runner": {
+     "installed": true,
+     "installing": false,
+     "update": null
+    },
+    "reqs": {
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "setup": {
+     "zotero": true,
+     "running": true,
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "prompts": [
+     {
+      "id": "summary",
+      "title": "Summary",
+      "model": "default",
+      "effort": "",
+      "output": "note",
+      "brief": true,
+      "excerpt": "A one-page summary of the paper's argument",
+      "body": "Summarise the paper."
+     },
+     {
+      "id": "concept-map",
+      "title": "Concept map",
+      "model": "claude:opus",
+      "effort": "high",
+      "output": "mindmap",
+      "brief": false,
+      "excerpt": "Its concepts and how they relate",
+      "body": "Map the concepts."
+     }
+    ]
+   },
+   {}
+  ],
+  "expect": [
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their text",
+    "labelHtml": "Their text",
+    "detail": "On · extracted where a paper with a PDF has none (as Extract new papers' text, until you change it)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.text",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their taxonomies",
+    "labelHtml": "Their taxonomies",
+    "detail": "Off · tagged where a taxonomy is missing (as Tag new papers by taxonomies, until you change it)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.taxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Summary",
+    "labelHtml": "Summary",
+    "detail": "On · run where it hasn't run (as Prompts to run on new papers, until you change one)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.prompt:summary",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Concept map",
+    "labelHtml": "Concept map",
+    "detail": "Off · run where it hasn't run (as Prompts to run on new papers, until you change one)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.prompt:concept-map",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Taxonomies that changed",
+    "labelHtml": "Taxonomies that changed",
+    "detail": "Off · papers tagged by an older version of a taxonomy are tagged again",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedTaxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Prompts that changed",
+    "labelHtml": "Prompts that changed",
+    "detail": "Off · notes and artifacts from an older version of their prompt are made again (a new note beside the old one); it can cost a lot",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedPrompts",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
+  "name": "settingsPage/launch-catchup-chosen",
+  "wrapper": "settingsPage",
+  "args": [
+   "launch-catchup",
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {
+      "text": false,
+      "changedPrompts": true,
+      "prompts": []
+     }
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "now": "2026-10-14T10:00:00.000Z",
+    "bridge": {
+     "status": "ready",
+     "version": "0.2.1",
+     "zoteroVersion": "7.0.11",
+     "expected": "0.2.1"
+    },
+    "info": {
+     "configured": true,
+     "keyring": {
+      "ok": true,
+      "detail": "macOS Keychain"
+     },
+     "providers": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "enabled": true,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": true,
+        "detail": "Claude Code is signed in"
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "Anthropic's terms for your plan",
+       "cost": "Your subscription",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "openai",
+       "name": "OpenAI",
+       "kind": "api",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": true,
+       "takesKey": true,
+       "key": {
+        "set": true,
+        "from": "keyring",
+        "masked": "sk-…abcd"
+       },
+       "envNames": [
+        "OPENAI_API_KEY"
+       ],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "OpenAI's API terms",
+       "cost": "Per token",
+       "keyUrl": "https://platform.openai.com/api-keys",
+       "signIn": "",
+       "test": {
+        "ok": true,
+        "detail": "2 models",
+        "at": "2026-10-12T10:00:00.000Z",
+        "stale": false
+       }
+      },
+      {
+       "id": "ollama",
+       "name": "Ollama (on this computer)",
+       "kind": "local",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": "Ollama answers on localhost"
+       },
+       "baseURL": "http://localhost:11434/v1",
+       "context": 0,
+       "privacy": "Stays on this computer",
+       "cost": "Free",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "enabled": true,
+       "endpoint": true,
+       "needsKey": false,
+       "takesKey": true,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "https://gateway.example.edu/v1",
+       "context": 32768,
+       "privacy": "Your institution's",
+       "cost": "Your institution's",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      }
+     ],
+     "suggested": {
+      "claude": "opus[1m]"
+     },
+     "requirements": {
+      "node": "22.4.1",
+      "pdftotext": true
+     }
+    },
+    "models": {
+     "models": [
+      {
+       "value": "claude:opus",
+       "displayName": "Claude Opus",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "claude:sonnet",
+       "displayName": "Claude Sonnet",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "lab-gateway:llama-3-70b",
+       "displayName": "llama-3-70b",
+       "group": "lab-gateway",
+       "context": 32768,
+       "efforts": [],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": true,
+       "description": ""
+      }
+     ],
+     "groups": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "ok": true,
+       "detail": "",
+       "count": 2
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "ok": true,
+       "detail": "",
+       "count": 1
+      }
+     ],
+     "defaults": {
+      "prompts": "claude:opus",
+      "chat": "claude:sonnet"
+     },
+     "configured": true
+    },
+    "defaults": {
+     "prompts": "claude:opus",
+     "chat": "claude:sonnet"
+    },
+    "tests": {
+     "openai": {
+      "running": false,
+      "ok": true,
+      "detail": "2 models",
+      "models": [
+       {
+        "value": "openai:gpt-5",
+        "displayName": "GPT-5"
+       }
+      ],
+      "at": "2026-10-12T10:00:00.000Z"
+     }
+    },
+    "runner": {
+     "installed": true,
+     "installing": false,
+     "update": null
+    },
+    "reqs": {
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "setup": {
+     "zotero": true,
+     "running": true,
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "prompts": [
+     {
+      "id": "summary",
+      "title": "Summary",
+      "model": "default",
+      "effort": "",
+      "output": "note",
+      "brief": true,
+      "excerpt": "A one-page summary of the paper's argument",
+      "body": "Summarise the paper."
+     },
+     {
+      "id": "concept-map",
+      "title": "Concept map",
+      "model": "claude:opus",
+      "effort": "high",
+      "output": "mindmap",
+      "brief": false,
+      "excerpt": "Its concepts and how they relate",
+      "body": "Map the concepts."
+     }
+    ]
+   },
+   {}
+  ],
+  "expect": [
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their text",
+    "labelHtml": "Their text",
+    "detail": "Off · extracted where a paper with a PDF has none",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.text",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their taxonomies",
+    "labelHtml": "Their taxonomies",
+    "detail": "Off · tagged where a taxonomy is missing (as Tag new papers by taxonomies, until you change it)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.taxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Summary",
+    "labelHtml": "Summary",
+    "detail": "Off · run where it hasn't run",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.prompt:summary",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Concept map",
+    "labelHtml": "Concept map",
+    "detail": "Off · run where it hasn't run",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.prompt:concept-map",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Taxonomies that changed",
+    "labelHtml": "Taxonomies that changed",
+    "detail": "Off · papers tagged by an older version of a taxonomy are tagged again",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedTaxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Prompts that changed",
+    "labelHtml": "Prompts that changed",
+    "detail": "On · notes and artifacts from an older version of their prompt are made again (a new note beside the old one); it can cost a lot",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedPrompts",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -87435,7 +90783,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -88087,7 +91437,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -88988,7 +92340,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -89446,7 +92800,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -90276,7 +93632,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -91172,7 +94530,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -91540,7 +94900,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,

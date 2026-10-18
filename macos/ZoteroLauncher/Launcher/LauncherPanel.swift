@@ -3,14 +3,24 @@ import Combine
 import SwiftUI
 
 // A Spotlight-style panel: borderless, floating over every Space, takes the keys without
-// activating the app (the window behind keeps its place), closes when it loses them.
+// activating the app (the window behind keeps its place), closes when it loses them. It resizes
+// from its edges, as the window (W) does, and both keep the size last given either.
 final class LauncherPanel: NSPanel {
-    static let size = NSSize(width: 720, height: 480)
+    static let size = NSSize(width: 720, height: 480) // the first time
+    static let minSize = NSSize(width: 560, height: 360) // (the box, the hints and a few rows still fit)
+    private static let sizeKey = "ZLLauncherSize"
+    static var lastSize: NSSize {
+        get { UserDefaults.standard.string(forKey: sizeKey).map(NSSizeFromString).flatMap(fitting) ?? size }
+        set { UserDefaults.standard.set(NSStringFromSize(newValue), forKey: sizeKey) }
+    }
+    // A kept size, if it's one: never below the minimum (an older or edited value is dropped).
+    static func fitting(_ size: NSSize) -> NSSize? { size.width >= minSize.width && size.height >= minSize.height ? size : nil }
 
     init(content: NSView) {
-        super.init(contentRect: NSRect(origin: .zero, size: Self.size),
-                   styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
+        super.init(contentRect: NSRect(origin: .zero, size: Self.lastSize),
+                   styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView, .resizable],
                    backing: .buffered, defer: false)
+        contentMinSize = Self.minSize
         isFloatingPanel = true
         level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -50,16 +60,21 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private var visible = false // shown, in the panel or the window
     private var moving = false // between the panel and the window: losing the keys then isn't closing
 
-    private lazy var hosting = NSHostingView(rootView: LauncherView(model: model))
+    private lazy var hosting: NSHostingView<LauncherView> = {
+        let view = NSHostingView(rootView: LauncherView(model: model))
+        view.sizingOptions = [.minSize] // (SwiftUI's ideal size never snaps the panel back: you size it)
+        return view
+    }()
     private lazy var panel: LauncherPanel = {
         let panel = LauncherPanel(content: hosting)
         panel.delegate = self
         return panel
     }()
     private lazy var window: NSWindow = {
-        let window = NSWindow(contentRect: NSRect(origin: .zero, size: LauncherPanel.size), styleMask: [.titled, .closable, .miniaturizable],
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: LauncherPanel.lastSize), styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: false)
         window.title = "Zotero"
+        window.contentMinSize = LauncherPanel.minSize
         window.isReleasedWhenClosed = false
         window.delegate = self
         return window
@@ -99,8 +114,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let frame = screen?.visibleFrame, !model.windowed {
-            let size = LauncherPanel.size
-            panel.setFrameOrigin(NSPoint(x: frame.midX - size.width / 2, y: frame.midY - size.height / 2 + frame.height * 0.08))
+            // at the size last given it, never past the screen
+            let kept = LauncherPanel.lastSize
+            let size = NSSize(width: max(LauncherPanel.minSize.width, min(kept.width, frame.width)), height: max(LauncherPanel.minSize.height, min(kept.height, frame.height)))
+            panel.setFrame(NSRect(origin: NSPoint(x: frame.midX - size.width / 2, y: frame.midY - size.height / 2 + frame.height * 0.08), size: size), display: false)
         }
         model.willShow()
         visible = true
@@ -145,6 +162,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
         if windowed {
             window.setFrame(window.frameRect(forContentRect: panel.frame), display: false)
             NSApp.activate()
+        } else {
+            panel.setFrame(window.contentRect(forFrameRect: window.frame), display: false) // (the size it had as a window)
         }
         from.orderOut(nil)
         to.makeKeyAndOrderFront(nil)
@@ -180,6 +199,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let key = KeyEvent(keyCode: event.keyCode, characters: event.characters, ignoringModifiers: event.charactersIgnoringModifiers,
                            shift: flags.contains(.shift), control: flags.contains(.control), option: flags.contains(.option), command: flags.contains(.command))
         return model.handle(key)
+    }
+
+    // Resized from an edge (the panel or the window): the size kept for the next opening.
+    func windowDidEndLiveResize(_ notification: Notification) {
+        guard let w = notification.object as? NSWindow, w === panel || w === window else { return }
+        LauncherPanel.lastSize = w.contentRect(forFrameRect: w.frame).size
     }
 
     func windowDidResignKey(_ notification: Notification) {

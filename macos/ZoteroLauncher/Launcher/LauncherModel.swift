@@ -186,6 +186,19 @@ final class LauncherModel: ObservableObject {
             if actionItem != nil && ["actions", "notes", "files"].contains(store.view) { refreshDetails() }
             rebuildList()
         }
+        presentLaunchAsk() // the catch-up's question, found while the launcher was closed
+    }
+
+    // The app started (AppDelegate): the files read, so the background automation runs from now on (not only once the
+    // launcher has opened), and the catch-up's question (Settings › Defaults › Ask to catch up when the app opens).
+    // Not under the tests (the test host is the app: its files and runner are this Mac's) nor in fixture mode.
+    static func startsAtLaunch(_ env: [String: String]) -> Bool { env["XCTestConfigurationFilePath"] == nil && env["ZL_FIXTURES"] == nil }
+
+    func appLaunched() {
+        loadFiles()
+        sched.launchCheck = .waiting
+        refreshPrompts() // (What it checks names them)
+        launchCatchUpCheck()
     }
 
     func dismiss() {
@@ -195,6 +208,7 @@ final class LauncherModel: ObservableObject {
 
     // The launcher is hidden (dismissed, or it lost the keys): nothing waits to act.
     func didHide() {
+        keepLaunchAsk()
         opened = false
         keyTimer?.invalidate()
         store.keys.clear()

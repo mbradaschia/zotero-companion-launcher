@@ -33,8 +33,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyUp(for: .toggleLauncher) { [weak self] in
             MainActor.assumeIsolated { self?.launcher.toggle() }
         }
-        // The UI tests (ZoteroLauncherUITests): the launcher open from the start, as the hotkey would open it.
+        // The UI tests (ZoteroLauncherUITests): the launcher open from the start, as the hotkey would open it; else the files
+        // read (the background automation runs from now) and the catch-up's question (Settings › Defaults › When the app opens)
         if UserDefaults.standard.bool(forKey: "ZLOpenOnLaunch") { launcher.show() }
+        else if LauncherModel.startsAtLaunch(ProcessInfo.processInfo.environment) { launcher.model.appLaunched() }
         // GitHub's releases, once a day (the check itself skips a day already asked)
         if UpdateCheck.automatic(ProcessInfo.processInfo.environment) {
             updates.check(now: false)

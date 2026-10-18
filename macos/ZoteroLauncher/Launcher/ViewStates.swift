@@ -145,6 +145,12 @@ struct SchedulerState {
     var planProblem = ""
     var catchUpRunning: Bool { !catchUpClaimed.isEmpty }
     var catchUpClaimed: [String] = [] // the catch-up's jobs running now (their keys: id|op|prompt), up to Processes at once
+    var checking = false // a catch-up asking the runner what needs it, before it starts
+    // the catch-up's question when the app opens: off (the app didn't say it started: the tests), waiting (for Zotero),
+    // checking, done (asked, or nothing to ask, once a run of the app)
+    enum LaunchCheck { case off, waiting, checking, done }
+    var launchCheck = LaunchCheck.off
+    var launchAsk: ConfirmAsk? // found, not asked yet (the launcher closed)
 }
 
 // Chats and artifacts (phase 8): the runner's lists (`chats --all`, `artifacts --all`; nil until read), and the

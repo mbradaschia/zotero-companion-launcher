@@ -7,6 +7,19 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The launcher resizes**: drag any edge of the panel or of its window (W), down to 560 by 360. The size you give it
+  is kept for the next opening.
+- **A catch-up checks first**: Enter on a Bring papers up to date row asks again which papers need it (the page's count
+  may be old) and runs exactly those: `Started: 5 jobs on 3 papers`, or `Nothing to do: every paper is up to date`.
+- **When the app opens, it offers to catch up**: it counts what needs bringing up to date and, when something does,
+  opens the launcher on a question (`Bring 7 papers up to date?`, with what it found). Not now leaves it; esc too.
+  Settings › Defaults › When the app opens turns it off (*Ask to catch up when the app opens*), and *What it checks*
+  chooses what it looks at: the text, the taxonomies and each prompt on the papers added lately, and the taxonomies and
+  prompts that changed. Until you choose, it checks what New papers runs. Only the machine automation runs on asks.
+- **The background automation starts with the app**: it waited for the launcher's first opening.
+
 ### The Mac app (`macos-v0.3.6`)
 
 - **The one-line install stopped at once in a UTF-8 Terminal** (`TAG?: unbound variable`): macOS's bash read the "…"

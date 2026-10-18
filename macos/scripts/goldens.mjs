@@ -405,6 +405,18 @@ function cases() {
   add("settingEdit/machine-name", "settingEdit", "general.machineName", settings);
   add("promptEditor/elsewhere", "promptEditor", promptList[1], models.models, "claude:opus", true, "lab-mac");
   add("settingsPage/auto-prompts", "settingsPage", "auto-prompts", on, { ...run6, prompts: promptList }, {});
+  // catching up: each kind's check, a plan's jobs, the question when the app opens, What it checks (2026-10-18)
+  const launchPlan = { ...plan, prompts: { papers: 1, jobs: [{ id: "1:K4", op: "prompt", prompt: "summary" }], unknown: 0 } };
+  for (const kind of ["all", "taxonomies", "prompts", "recent", "launch"]) add(`catchUpPlanArgs/${kind}`, "catchUpPlanArgs", on, kind, promptList, "2026-09-18 10:00:00");
+  add("catchUpPlanArgs/launch-nothing", "catchUpPlanArgs", settings, "launch", promptList, "2026-09-18 10:00:00");
+  add("catchUpJobs/launch-skipped", "catchUpJobs", launchPlan, "launch", { "1:K2": "scan" });
+  add("catchUpJobs/recent", "catchUpJobs", launchPlan, "recent", {});
+  add("launchCatchUpAsk/found", "launchCatchUpAsk", launchPlan, on, promptList, {});
+  add("launchCatchUpAsk/nothing", "launchCatchUpAsk", {}, on, promptList, {});
+  add("launchCatchUpToggled/text", "launchCatchUpToggled", on, promptList, "text");
+  add("launchCatchUpToggled/prompt", "launchCatchUpToggled", on, promptList, "prompt:summary");
+  add("settingsPage/launch-catchup", "settingsPage", "launch-catchup", on, { ...run6, prompts: promptList }, {});
+  add("settingsPage/launch-catchup-chosen", "settingsPage", "launch-catchup", { ...on, defaults: { ...on.defaults, launchCatchUpWhat: { text: false, changedPrompts: true, prompts: [] } } }, { ...run6, prompts: promptList }, {});
 
   // ---- phase 8: chat and artifacts (made-up chats and artifacts)
   const chats = [{ id: "2026-10-13T10-00-00-000Z-abc123", title: "What is the main claim?", updated: "2026-10-13T10:05:00Z", turns: 2, model: "claude:opus", key: "ABCD1234", libraryID: 1, paper: "Doe (2016)" },
