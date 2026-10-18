@@ -42,7 +42,7 @@ extension LauncherModel {
             guard let self else { return }
             self.sched.checking = false
             guard let plan = r.json as? [String: Any] else { return done("Couldn't check which papers need it: " + (r.ok ? "the runner didn't answer" : r.problem)) }
-            if kind != "launch", self.sched.plan != nil { self.sched.plan?[kind] = plan[kind] ?? [String: Any]() } // (the page counts the fresh one)
+            if kind != "launch", self.sched.plan != nil, let part = plan[kind] as? [String: Any], part["jobs"] is [Any] { self.sched.plan?[kind] = part } // (the page counts the fresh one)
             done(self.startCatchUpJobs(kind, title: title, plan: plan))
             self.settingsShowChange()
         }
