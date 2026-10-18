@@ -148,6 +148,22 @@ bridge and the prompt runner share one version.
 - **Rankings take less room in the results**: on the second line, abbreviated as on Omarchy (ABS 4* → A 4*, ABDC A →
   D A, FT50 → F, UTD24 → U), each with its full name on hover; the title keeps the whole first line.
 
+### The Mac app (`macos-v0.3.0`)
+
+- **Everything the Omarchy launcher does**, as a native menu-bar app (`macos/`): all 166 row ids of
+  [its plan](macos/PLAN.md), phases 1 to 10. It runs the same view logic (`lib/`, in JavaScriptCore) and its own copy
+  of the prompt runner, and talks to the same Zotero plugin.
+- **The keys view** (`?`, or F1 anywhere): the keys for where you are first, then every key, in the Mac's notation;
+  a note's or a chat's window shows its own with `?` or F1 (F1 in a chat's box).
+- **Open at login** and a **menu bar menu**: the launcher, Chats, Processes, Settings, Sync Zotero, Open at
+  Login, the hotkey.
+- **Accessibility:** VoiceOver reads each row as one element (label, detail, keys, state) and pills by their kind;
+  nothing animates with Reduce Motion on.
+- **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
+  nightly build. Signed ad hoc, not notarized.
+
+## [0.2.2] - 2026-10-18
+
 ### Added
 
 - **One repository, three projects, a new name:** `oma-zotero-launcher` is now
@@ -178,6 +194,9 @@ bridge and the prompt runner share one version.
   installed), and the note says which pages OCR read. A page OCR can't read keeps what pdftotext found; a paper's OCR
   stops after 10 minutes. *Settings › Setup* offers Tesseract (optional); *Read the N skipped scans by OCR* reads the
   scans left alone before, just those, a few at a time.
+- **Search, by author and year as people type them**: a bare two-digit number is also the year's last two digits
+  (`holling 73`), and a first author's whole surname outranks a title word that only starts with it (`smith` finds
+  Smith, J. before *Smithian economics*). Words and four-digit years worked already.
 
 ### Changed
 
@@ -211,20 +230,7 @@ bridge and the prompt runner share one version.
   on), each time with a "Couldn't extract the text" notification: it's tried once, then left alone like the others.
 - A scan behind a cover sheet (one page of text, the rest scanned) was extracted almost empty without a word; its
   scanned pages are now read by OCR (with Tesseract installed).
-
-### The Mac app (`macos-v0.3.0`)
-
-- **Everything the Omarchy launcher does**, as a native menu-bar app (`macos/`): all 166 row ids of
-  [its plan](macos/PLAN.md), phases 1 to 10. It runs the same view logic (`lib/`, in JavaScriptCore) and its own copy
-  of the prompt runner, and talks to the same Zotero plugin.
-- **The keys view** (`?`, or F1 anywhere): the keys for where you are first, then every key, in the Mac's notation;
-  a note's or a chat's window shows its own with `?` or F1 (F1 in a chat's box).
-- **Open at login** and a **menu bar menu**: the launcher, Chats, Processes, Settings, Sync Zotero, Open at
-  Login, the hotkey.
-- **Accessibility:** VoiceOver reads each row as one element (label, detail, keys, state) and pills by their kind;
-  nothing animates with Reduce Motion on.
-- **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
-  nightly build. Signed ad hoc, not notarized.
+- **Typing a two-digit year one key at a time** (`holling 7`, then `holling 73`) found nothing.
 
 ## [0.2.1] - 2026-10-04
 
@@ -589,7 +595,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/mbradaschia/oma-zotero-launcher/releases/tag/v0.1.0
