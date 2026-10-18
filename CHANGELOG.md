@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.3.7`)
+
+- **Installing the AI features no longer reports success without the Claude or Codex binary**: npm ci skips an
+  optional package whose download fails (each is ~80 MB; a slow IPv6 route to the registry is enough) and still
+  succeeds. The installer now checks that this machine's binaries are there, tries once more preferring IPv4 (the
+  rest comes from npm's cache), and fails with "npm didn't download …" if they're still missing. The Omarchy
+  launcher's installer too.
+
 ### The Mac app (`macos-v0.3.6`)
 
 - **The one-line install stopped at once in a UTF-8 Terminal** (`TAG?: unbound variable`): macOS's bash read the "…"
