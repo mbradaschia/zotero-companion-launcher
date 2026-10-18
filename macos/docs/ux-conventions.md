@@ -181,7 +181,7 @@ says so.
 - **Stop all** heads the list while anything runs or waits (the cursor starts past it, on the first process); it asks
   first. **Pills** above the list show one state at a time, each with its count; a click picks one.
 - **Catching up** asks Zotero what's there (another computer's notes and tags count) unless *Replace them* is chosen.
-- **A catch-up checks before it starts** (`Checking which papers need it…`), then says what it started: `Started: 5 jobs
+- **A catch-up checks before it starts** (`Checking which papers need it…`), then says what it started: `Started: 5 processes
   on 3 papers, in the background (in Processes)`, or `Nothing to do: every paper is up to date`.
 - **The question when the app opens** is the confirm view: `Bring N papers up to date?`, the yes row's detail what it
   found, `Not now` saying where to turn the question off. Asked once a run of the app, only where automation runs;

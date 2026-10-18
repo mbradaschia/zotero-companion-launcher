@@ -33,7 +33,7 @@ extension LauncherModel {
     // (the app's opening), used as it is. done: what to say (started, nothing to do, or why not).
     func startCatchUp(_ kind: String, title: String, plan fresh: [String: Any]? = nil, _ done: @escaping @MainActor (String) -> Void) {
         if extractFile?.upToDate != nil { return done("One is running: stop it first") }
-        if sched.checking { return done("Still checking which papers need it") }
+        if sched.checking || sched.launchCheck == .checking { return done("Still checking which papers need it") }
         if let fresh { return done(startCatchUpJobs(kind, title: title, plan: fresh)) }
         let args = catchUpArgs(kind)
         guard !args.isEmpty else { return done("Nothing to do: every paper is up to date") }
@@ -57,7 +57,7 @@ extension LauncherModel {
         saveExtractState(["update": ["kind": kind, "title": title, "jobs": jobs, "done": 0, "failed": 0, "started": Self.isoNow()]])
         if status == "ready" { catchUpTick() } else { pingZotero() } // on when Zotero answers (status becoming ready)
         let papers = Set(jobs.map { $0["id"] as? String ?? "" }).count
-        return "Started: \(jobs.count) \(jobs.count == 1 ? "job" : "jobs") on \(papers) \(papers == 1 ? "paper" : "papers"), in the background (in Processes)"
+        return "Started: \(jobs.count) \(jobs.count == 1 ? "process" : "processes") on \(papers) \(papers == 1 ? "paper" : "papers"), in the background (in Processes)"
     }
 
     // Said in the launcher, or when it opens next.
@@ -88,8 +88,9 @@ extension LauncherModel {
                                               detail: ask["detail"] as? String ?? "", noDetail: ask["noDetail"] as? String ?? "", run: { [weak self] in
                 guard let self else { return }
                 // (the plan just made, while it's fresh; else checked again)
-                self.flashMessage("Checking which papers need it…")
-                self.startCatchUp("launch", title: "Bringing papers up to date", plan: Date().timeIntervalSince(at) < 300 ? plan : nil) { [weak self] in self?.sayLater($0) }
+                let fresh = Date().timeIntervalSince(at) < 300 ? plan : nil
+                if fresh == nil { self.flashMessage("Checking which papers need it…") }
+                self.startCatchUp("launch", title: "Bringing papers up to date", plan: fresh) { [weak self] in self?.sayLater($0) }
             }, tag: Self.launchAskTag)
             self.presentLaunchAsk()
         }
@@ -205,7 +206,10 @@ extension LauncherModel {
         case "set-catchup-stop":
             stopCatchUp()
             flashMessage("Stopped: the one running finishes (in Processes)")
-        case "set-auto-prompt": toggleAutoPrompt(row.value); return true
+        case "set-auto-prompt":
+            // What the app checks when it opens: its prompts (launch:<id>), checkboxes as on Prompts to run on new papers
+            if row.value.hasPrefix("launch:") { toggleSetting("defaults.launchCatchUpWhat.prompt:" + String(row.value.dropFirst("launch:".count))) } else { toggleAutoPrompt(row.value) }
+            return true
         case "pe-auto":
             guard let id = ai.promptEdit?["id"] as? String else { return true }
             toggleAutoPrompt(id)

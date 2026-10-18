@@ -25,7 +25,7 @@ from the counts on the page, which may be minutes or days old. It asks the runne
 part's flags), then saves and starts exactly the jobs that answer lists:
 
 - `Checking which papers need it…` while it asks; Enter again meanwhile: `Still checking which papers need it`.
-- Nothing left: `Nothing to do: every paper is up to date`. Else `Started: 5 jobs on 3 papers, in the background
+- Nothing left: `Nothing to do: every paper is up to date`. Else `Started: 5 processes on 3 papers, in the background
   (in Processes)`. The page's count is the fresh one.
 - The runner fails: `Couldn't check which papers need it: <why>`; nothing starts.
 - One is running already: `One is running: stop it first` (as before).
@@ -42,20 +42,20 @@ chosen; extractions skipped once (scans, large PDFs) stay out.
   4 selects. Zotero not answering yet: it waits for Zotero's first answer.
 - Nothing to do: nothing is said. Else the launcher opens on a question (the confirm view):
   - `Bring 7 papers up to date?`
-  - `Bring them up to date (in Processes)`, its detail what it found: `Added in the last 30 days: 3 need their
-    text, 2 their taxonomies, 4 “Summary” · 2 tagged by an older taxonomy · 1 note from an older prompt`.
+  - `Bring them up to date (in Processes)`, its detail what it found: `Added in the last 30 days: 3 papers need their
+    text, 2 their taxonomies, 4 “Summary” · 2 papers tagged by an older taxonomy · 1 note from an older prompt`.
   - `Not now`, its detail `Settings › Defaults › Ask to catch up when the app opens turns this question off`.
 - Yes runs those jobs as one catch-up, `Bringing papers up to date` (its end: `Bringing papers up to date is done:
   …`), from the plan it just made when that is under five minutes old, else checked again (2).
 - The launcher closed with the question unanswered (it lost the keys, the app in front changed): asked when it
   opens next. esc, as on every question, is Not now.
 
-## 4. What it checks
+## 4. What the app checks when it opens
 
 Settings › Defaults › When the app opens:
 
 - `Ask to catch up when the app opens` (switch, `defaults.launchCatchUp`, default on).
-- `What it checks` (a page of its own, `settings-launch-catchup`), its detail the list in effect.
+- `What the app checks when it opens` (a page of its own, `settings-launch-catchup`), its detail the list in effect.
 
 The page, `defaults.launchCatchUpWhat` (shared, like the other defaults):
 
@@ -63,7 +63,7 @@ The page, `defaults.launchCatchUpWhat` (shared, like the other defaults):
 |---|---|---|---|
 | Papers added in the last N days | Their text | `text` | Extract new papers' text |
 | | Their taxonomies | `taxonomies` | Tag new papers by taxonomies |
-| | each prompt, a checkbox | `prompts` (ids) | Prompts to run on new papers |
+| | each prompt, a checkbox (as on Prompts to run on new papers) | `prompts` (ids) | Prompts to run on new papers |
 | Every paper | Taxonomies that changed | `changedTaxonomies` | off |
 | | Prompts that changed | `changedPrompts` | off |
 

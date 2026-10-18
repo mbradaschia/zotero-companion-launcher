@@ -3,7 +3,7 @@ import XCTest
 @testable import ZoteroLauncher
 
 // A catch-up checks what needs it before it starts; when the app opens it runs that check (what Settings › Defaults ›
-// What it checks selects) and asks first; the launcher resizes (macos/docs/superpowers/specs/2026-10-18-…).
+// What the app checks when it opens selects) and asks first; the launcher resizes (macos/docs/superpowers/specs/2026-10-18-…).
 @MainActor
 final class CatchUpOnLaunchTests: XCTestCase {
     private var home: URL!
@@ -77,7 +77,7 @@ final class CatchUpOnLaunchTests: XCTestCase {
         model.execute(.activate)
         XCTAssertEqual(calls, counted + 1, "asked again at Enter")
         XCTAssertEqual(runner.calls("run").map { $0.argv[4] }, ["OLD00002"], "only what the check found")
-        XCTAssertEqual(model.flash, "Started: 1 job on 1 paper, in the background (in Processes)")
+        XCTAssertEqual(model.flash, "Started: 1 process on 1 paper, in the background (in Processes)")
     }
 
     func testNothingFoundStartsNothing() throws {
@@ -114,7 +114,7 @@ final class CatchUpOnLaunchTests: XCTestCase {
         XCTAssertEqual(model.store.view, "confirm")
         XCTAssertEqual(model.confirmAsk?.title, "Bring 1 paper up to date?")
         XCTAssertEqual(model.listRows.map(\.label), ["Bring it up to date (in Processes)", "Not now"])
-        XCTAssertEqual(model.listRows.first?.detail, "Added in the last 30 days: “Summary” on 1")
+        XCTAssertEqual(model.listRows.first?.detail, "Added in the last 30 days: 1 paper needs “Summary”")
         model.answerConfirm(true)
         XCTAssertEqual(runner.calls("catchup-plan").count, 1, "the plan just made, not a second check")
         XCTAssertEqual(runner.calls("run").last?.argv, ["oma-zotero-prompt", "run", "summary", "--key", "NEW00001", "--library", "1", "--extract-first"])
@@ -198,12 +198,13 @@ final class CatchUpOnLaunchTests: XCTestCase {
         try select { $0.rowId == "set-nav" && $0.value == "launch-catchup" }
         model.execute(.activate)
         XCTAssertEqual(model.store.view, "settings-launch-catchup")
-        XCTAssertEqual(model.placeholder(), "‹ Settings › Defaults › What it checks")
+        XCTAssertEqual(model.placeholder(), "‹ Settings › Defaults › What the app checks when it opens")
         try select { $0.value == "defaults.launchCatchUpWhat.text" }
         XCTAssertTrue(try XCTUnwrap(model.selectedListRow).checked, "as Extract new papers' text")
         model.execute(.activate)
         XCTAssertEqual(savedDefaults["launchCatchUpWhat"] as? [String: Bool], ["text": false])
-        try select { $0.value == "defaults.launchCatchUpWhat.prompt:summary" }
+        try select { $0.rowId == "set-auto-prompt" && $0.value == "launch:summary" }
+        XCTAssertTrue(model.hints().contains("↵ change"), "\(model.hints())") // a checkbox, as on Prompts to run on new papers
         model.execute(.activate)
         let what = try XCTUnwrap(savedDefaults["launchCatchUpWhat"] as? [String: Any])
         XCTAssertEqual(what["prompts"] as? [String], ["summary"])

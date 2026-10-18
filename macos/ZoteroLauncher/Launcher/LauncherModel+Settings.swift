@@ -101,7 +101,7 @@ extension LauncherModel {
         let on = (try? core.glue("settingValue", [settingsJSON, path], as: Bool.self)) ?? false
         guard saveSetting(path, !on, "") else { return }
         if path == "defaults.launchCatchUp" {
-            flashMessage(on ? "Off: the app no longer asks when it opens" : "On: when the app opens, it checks what needs catching up and asks first" + onHost)
+            flashMessage(on ? "Off: the app no longer asks when it opens" : "On: when the app opens" + onHost + ", it checks what needs catching up and asks first")
         }
         if path == "defaults.autoExtractNew" && !on {
             extractNewTurnedOn()

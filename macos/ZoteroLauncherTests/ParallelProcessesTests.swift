@@ -109,7 +109,7 @@ final class ParallelProcessesTests: XCTestCase {
                                                        ["id": b, "op": "prompt", "prompt": "summary", "replace": true], ["id": c, "op": "classify"]]]]
         var said = ""
         model.startCatchUp("recent", title: "Catching up", plan: plan) { said = $0 }
-        XCTAssertEqual(said, "Started: 4 jobs on 3 papers, in the background (in Processes)")
+        XCTAssertEqual(said, "Started: 4 processes on 3 papers, in the background (in Processes)")
         let started = (runner.calls("run") + runner.calls("classify")).map { items2($0.argv) }
         XCTAssertEqual(started, [a, b], "two at once, the second paper's (a's tagging waits for a)")
         XCTAssertTrue(runner.calls("run").last?.argv.contains("--replace") == true, "a replacing job says so")
@@ -135,7 +135,7 @@ final class ParallelProcessesTests: XCTestCase {
                                                        ["id": "1:" + pool[2], "op": "prompt", "prompt": "summary"]]]]
         var said = ""
         model.startCatchUp("recent", title: "Catching up", plan: plan) { said = $0 }
-        XCTAssertTrue(said.hasPrefix("Started: 3 jobs on 3 papers"), said)
+        XCTAssertTrue(said.hasPrefix("Started: 3 processes on 3 papers"), said)
         XCTAssertEqual(runner.calls("run").count, 3)
         XCTAssertNil(model.extractFile?.upToDate, "done")
     }

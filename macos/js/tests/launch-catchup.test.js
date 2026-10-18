@@ -52,7 +52,7 @@ test("the question says what it found, and nothing to do asks nothing", () => {
   assert.equal(ask.title, "Bring 4 papers up to date?");
   assert.equal(ask.yes, "Bring them up to date (in Processes)");
   assert.equal(ask.no, "Not now");
-  assert.equal(ask.detail, "Added in the last 7 days: text for 1, taxonomies for 1, “Summary” on 1 · 2 papers tagged by an older taxonomy · 1 note from an older prompt");
+  assert.equal(ask.detail, "Added in the last 7 days: 1 paper needs their text, 1 their taxonomies, 1 “Summary” · 2 papers tagged by an older taxonomy · 1 note from an older prompt");
   assert.equal(ask.noDetail, "Settings › Defaults › Ask to catch up when the app opens turns this question off");
   assert.equal(ask.jobs, 5);
   const one = Glue.launchCatchUpAsk({ prompts: { jobs: [{ id: "1:D", op: "prompt", prompt: "findings" }] } }, settings({}), PROMPTS, {});
@@ -86,7 +86,7 @@ test("Defaults has When the app opens after Bring papers up to date, and its pag
   assert.match(ask.detail, /^On · /);
   const what = rows.find((r) => r.rowId === "set-nav" && r.value === "launch-catchup");
   assert.equal(what.detail, "Their text and “Summary”");
-  assert.equal(Glue.settingsPage("defaults", settings({}), { prompts: PROMPTS }, {}).find((r) => r.value === "launch-catchup").detail, "Nothing: turn something on");
+  assert.equal(Glue.settingsPage("defaults", settings({}), { prompts: PROMPTS }, {}).find((r) => r.value === "launch-catchup").detail, "Nothing: no question when the app opens (turn one on)");
   const off = Glue.settingsPage("defaults", settings({ launchCatchUp: false }), {}, {}).find((r) => r.value === "defaults.launchCatchUp");
   assert.equal(off.checked, false);
   assert.match(off.detail, /^Off · /);
@@ -94,13 +94,18 @@ test("Defaults has When the app opens after Bring papers up to date, and its pag
   assert.match(away.detail, /on “lab”, the machine automation runs on$/);
 
   const page = Glue.settingsPage("launch-catchup", s, { prompts: PROMPTS }, {});
-  assert.deepEqual(page.map((r) => r.value), ["defaults.launchCatchUpWhat.text", "defaults.launchCatchUpWhat.taxonomies", "defaults.launchCatchUpWhat.prompt:summary",
-    "defaults.launchCatchUpWhat.prompt:findings", "defaults.launchCatchUpWhat.changedTaxonomies", "defaults.launchCatchUpWhat.changedPrompts"]);
-  assert.ok(page.every((r) => r.rowId === "set-toggle"));
+  assert.deepEqual(page.map((r) => r.value), ["defaults.launchCatchUpWhat.text", "defaults.launchCatchUpWhat.taxonomies", "launch:summary",
+    "launch:findings", "defaults.launchCatchUpWhat.changedTaxonomies", "defaults.launchCatchUpWhat.changedPrompts"]);
+  assert.deepEqual(page.map((r) => r.rowId), ["set-toggle", "set-toggle", "set-auto-prompt", "set-auto-prompt", "set-toggle", "set-toggle"]); // prompts: checkboxes
+  assert.ok(page[2].showCheck);
   assert.deepEqual(page.map((r) => r.checked), [true, false, true, false, false, false]);
   assert.equal(page[0].section, "Papers added in the last 30 days");
   assert.equal(page[4].section, "Every paper");
   assert.match(page[0].detail, /\(as Extract new papers' text, until you change it\)$/);
   const reading = Glue.settingsPage("launch-catchup", s, { runner: { installed: true } }, {});
   assert.ok(reading.some((r) => r.rowId === "set-info" && r.label === "Reading your prompts…"));
+  const none = Glue.settingsPage("launch-catchup", s, { prompts: [], runner: { installed: true } }, {});
+  assert.ok(none.some((r) => r.rowId === "set-info" && r.label === "No prompts yet"));
+  const days = Glue.settingsPage("defaults", s, { prompts: PROMPTS }, {}).find((r) => r.value === "defaults.catchUpDays");
+  assert.match(days.detail, /what Catch up and the check when the app opens look at$/); // one setting, both its users
 });

@@ -116,10 +116,11 @@ function GlueSettings(V, C, T, P, S) {
     var of = function (test) { return recent.filter(test).length }
     var promptIds = []
     recent.forEach(function (j) { if (j.op === "prompt" && promptIds.indexOf(j.prompt) < 0) promptIds.push(j.prompt) })
-    var added = [of(function (j) { return j.op === "extract" }) ? "text for " + of(function (j) { return j.op === "extract" }) : "",
-      of(function (j) { return j.op === "classify" }) ? "taxonomies for " + of(function (j) { return j.op === "classify" }) : ""]
-      .concat(promptIds.map(function (id) { return titleOf(prompts, id) + " on " + of(function (j) { return j.op === "prompt" && j.prompt === id }) }))
-      .filter(function (x) { return x })
+    // "3 papers need their text, 2 their taxonomies, 4 “Summary”" (the first says what the counts are)
+    var counts = [[of(function (j) { return j.op === "extract" }), "their text"], [of(function (j) { return j.op === "classify" }), "their taxonomies"]]
+      .concat(promptIds.map(function (id) { return [of(function (j) { return j.op === "prompt" && j.prompt === id }), titleOf(prompts, id)] }))
+      .filter(function (c) { return c[0] > 0 })
+    var added = counts.map(function (c, i) { return i ? c[0] + " " + c[1] : c[0] + (c[0] === 1 ? " paper needs " : " papers need ") + c[1] })
     var tax = papersIn(planJobs(plan, "taxonomies", skipped)), notes = planJobs(plan, "prompts", skipped).length
     var parts = [added.length ? "Added in the last " + n(days, "day", "days") + ": " + added.join(", ") : "",
       tax ? n(tax, "paper", "papers") + " tagged by an older taxonomy" : "", notes ? n(notes, "note", "notes") + " from an older prompt" : ""].filter(function (x) { return x })
@@ -136,9 +137,9 @@ function GlueSettings(V, C, T, P, S) {
     var on = d.launchCatchUp !== false
     var what = launchWhatText(state.settings, state.prompts)
     return [L({ section: "When the app opens", rowId: "set-toggle", value: "defaults.launchCatchUp", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
-      label: "Ask to catch up when the app opens", detail: (on ? "On" : "Off") + " · as it starts, the app counts what Bring papers up to date would run and asks before running it; nothing to do, nothing asked" + away }),
-      L({ section: "When the app opens", rowId: "set-nav", value: "launch-catchup", icon: S.ICON.defaults, label: "What it checks", submenu: true, available: true,
-        detail: what ? what.charAt(0).toUpperCase() + what.slice(1) : "Nothing: turn something on" })]
+      label: "Ask to catch up when the app opens", detail: (on ? "On" : "Off") + " · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked" + away }),
+      L({ section: "When the app opens", rowId: "set-nav", value: "launch-catchup", icon: S.ICON.defaults, label: "What the app checks when it opens", submenu: true, available: true,
+        detail: what ? what.charAt(0).toUpperCase() + what.slice(1) : "Nothing: no question when the app opens (turn one on)" })]
   }
 
   // Settings › Defaults › What it checks: each switch of defaults.launchCatchUpWhat.
@@ -158,11 +159,13 @@ function GlueSettings(V, C, T, P, S) {
     var replace = d.catchUpPrompts === "replace"
     ;(state.prompts || []).forEach(function (p) {
       var on = w.prompts.indexOf(p.id) >= 0
-      rows.push(L({ section: sec, rowId: "set-toggle", value: "defaults.launchCatchUpWhat.prompt:" + p.id, icon: S.ICON.model, checked: on, available: true, label: p.title,
+      rows.push(L({ section: sec, rowId: "set-auto-prompt", value: "launch:" + p.id, icon: S.ICON.model, showCheck: true, checked: on, available: true, label: p.title,
         detail: (on ? "On" : "Off") + " · run where it hasn't run" + (replace ? ", and again where it has (Replace them)" : "") + (Array.isArray(lw.prompts) ? "" : " (as Prompts to run on new papers, until you change one)") }))
     })
-    if (!state.prompts) rows.push(L({ section: sec, rowId: "set-info", icon: S.ICON.info, label: state.runner && state.runner.installed === false ? "No prompts: the AI features aren't installed" : "Reading your prompts…",
-      detail: state.runner && state.runner.installed === false ? "Settings › Setup installs the AI features" : "Prompts it can run show here", available: false }))
+    var noRunner = state.runner && state.runner.installed === false
+    if (!(state.prompts || []).length) rows.push(L({ section: sec, rowId: "set-info", icon: S.ICON.info, available: false,
+      label: state.prompts ? "No prompts yet" : noRunner ? "No prompts: the AI features aren't installed" : "Reading your prompts…",
+      detail: noRunner && !state.prompts ? "Settings › Setup installs the AI features" : "Prompts it can check show here" }))
     rows.push(sw("Every paper", "changedTaxonomies", "Taxonomies that changed", "papers tagged by an older version of a taxonomy are tagged again"),
       sw("Every paper", "changedPrompts", "Prompts that changed", "notes and artifacts from an older version of their prompt are made again (a new note beside the old one); it can cost a lot"))
     return rows
@@ -225,7 +228,7 @@ function GlueSettings(V, C, T, P, S) {
   // it opens both through Launch Services) aren't offered.
   var MAC_WORDS = [["A system keyring", "The macOS Keychain"], ["keyring", "Keychain"], ["omarchy pkg add ollama", "brew install ollama"],
     ["; installed somewhere else? Set its command in General › Advanced", ""], [" its 1 models", " its one model"],
-    ["under a paper's status line", "under the paper's name at the top"]]
+    ["under a paper's status line", "under the paper's name at the top"], [" · what Catch up looks at", " · what Catch up and the check when the app opens look at"]]
   var NOT_ON_MAC = ["general.externalPdfCommand", "general.zoteroCommand"]
   function macWords(rows) {
     return rows.filter(function (r) { return NOT_ON_MAC.indexOf(r.value) < 0 }).map(function (r) {
