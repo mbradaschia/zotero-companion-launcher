@@ -7,6 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The launcher resizes from its edges and corners**, and keeps the size you give it (also when it moves into a
+  window with W and back); it never opens smaller than 560 by 360 or larger than the screen. It's a titled panel with
+  its title bar hidden: a borderless one doesn't resize from its edges, and its clear corners passed the clicks to the
+  app behind. (The size handling comes from PR #30.)
+
 ### The Mac app (`macos-v0.3.6`)
 
 - **The one-line install stopped at once in a UTF-8 Terminal** (`TAG?: unbound variable`): macOS's bash read the "…"
