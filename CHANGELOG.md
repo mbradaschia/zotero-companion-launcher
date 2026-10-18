@@ -7,7 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### Changed
+
+- **The Zotero plugin's file is `zotero-companion-bridge-<version>.xpi`** (it was `oma-zotero-launcher-<version>.xpi`).
+  The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
+  both names (the same file).
+
+### The Mac app (`macos-v0.3.7`)
 
 - **The launcher resizes from its edges and corners**, and keeps the size you give it (also when it moves into a
   window with W and back); it never opens smaller than 560 by 360 or larger than the screen. It's a titled panel with

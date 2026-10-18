@@ -21,13 +21,13 @@ function pick(releases) {
 test("the newest v* release with an .xpi, past a newer macos-v* release, a prerelease and a draft", () => {
   const r = pick([
     release("macos-v0.1.0", { assets: [asset("macos-v0.1.0", "ZoteroLauncher.zip")] }),
-    release("v0.3.0", { prerelease: true, assets: [asset("v0.3.0", "oma-zotero-launcher-0.3.0.xpi")] }),
-    release("v0.2.9", { draft: true, assets: [asset("v0.2.9", "oma-zotero-launcher-0.2.9.xpi")] }),
-    release("v0.2.2", { assets: [asset("v0.2.2", "oma-zotero-launcher-0.2.2.xpi"), asset("v0.2.2", "oma-zotero-launcher-0.2.2.xpi.sha256")] }),
-    release("v0.2.1", { assets: [asset("v0.2.1", "oma-zotero-launcher-0.2.1.xpi")] }),
+    release("v0.3.0", { prerelease: true, assets: [asset("v0.3.0", "zotero-companion-bridge-0.3.0.xpi")] }),
+    release("v0.2.9", { draft: true, assets: [asset("v0.2.9", "zotero-companion-bridge-0.2.9.xpi")] }),
+    release("v0.2.2", { assets: [asset("v0.2.2", "zotero-companion-bridge-0.2.2.xpi"), asset("v0.2.2", "zotero-companion-bridge-0.2.2.xpi.sha256")] }),
+    release("v0.2.1", { assets: [asset("v0.2.1", "zotero-companion-bridge-0.2.1.xpi")] }),
   ]);
   assert.equal(r.status, 0, r.stderr);
-  assert.equal(r.stdout.trim(), "https://example/v0.2.2/oma-zotero-launcher-0.2.2.xpi");
+  assert.equal(r.stdout.trim(), "https://example/v0.2.2/zotero-companion-bridge-0.2.2.xpi");
 });
 
 test("no bridge release at all: says so", () => {
