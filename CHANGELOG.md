@@ -7,6 +7,12 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Changed
+
+- **The Zotero plugin's file is `zotero-companion-bridge-<version>.xpi`** (it was `oma-zotero-launcher-<version>.xpi`).
+  The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
+  both names (the same file).
+
 ### The Mac app (`macos-v0.3.6`)
 
 - **The one-line install stopped at once in a UTF-8 Terminal** (`TAG?: unbound variable`): macOS's bash read the "…"

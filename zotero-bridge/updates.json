@@ -4,7 +4,7 @@
       "updates": [
         {
           "version": "0.2.2",
-          "update_link": "https://github.com/mbradaschia/zotero-companion-launcher/releases/download/v0.2.2/oma-zotero-launcher-0.2.2.xpi",
+          "update_link": "https://github.com/mbradaschia/zotero-companion-launcher/releases/download/v0.2.2/zotero-companion-bridge-0.2.2.xpi",
           "update_hash": "sha256:1aaeabee9c6eeb838dc1a178bf8ca0033f4eecd3529ff0bdec0d584c15e52262",
           "applications": {
             "zotero": {

@@ -5,7 +5,7 @@
 #   2. sets the version in manifest.json, zotero-bridge/manifest.in.json, daemon/package.json
 #      (+ its lockfile)
 #   3. dates the CHANGELOG: [Unreleased] → [1.2.3] - YYYY-MM-DD, with its compare link
-#   4. runs the tests, builds dist/oma-zotero-launcher-1.2.3.xpi and zotero-bridge/updates.json
+#   4. runs the tests, builds dist/zotero-companion-bridge-1.2.3.xpi and zotero-bridge/updates.json
 #   5. commits "Release v1.2.3" and tags v1.2.3 (annotated)
 #
 # Nothing is pushed: check the commit, then `git push origin master v1.2.3`. The tag starts

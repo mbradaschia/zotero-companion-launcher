@@ -127,7 +127,7 @@ itself) and, optionally, the **prompt runner**.
 
 ### 1. The Zotero bridge
 
-1. Download `oma-zotero-launcher-<version>.xpi` from the
+1. Download `zotero-companion-bridge-<version>.xpi` from the
    [latest release](https://github.com/mbradaschia/zotero-companion-launcher/releases/latest).
 2. In Zotero: *Tools → Plugins*, then the ⚙ menu → *Install Plugin From File…*, and pick the file.
 
@@ -194,7 +194,7 @@ paper's menu shows **Set up an AI model** instead, which opens the same page.
 
 ```bash
 git clone https://github.com/mbradaschia/zotero-companion-launcher && cd zotero-companion-launcher
-make xpi              # dist/oma-zotero-launcher-<version>.xpi, to install in Zotero as above
+make xpi              # dist/zotero-companion-bridge-<version>.xpi, to install in Zotero as above
 make install          # copies the Omarchy plugin into ~/.config/omarchy/plugins and enables it
 make prompts-install  # optional
 ```
