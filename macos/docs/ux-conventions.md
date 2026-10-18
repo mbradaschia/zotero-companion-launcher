@@ -184,8 +184,9 @@ says so.
 - **A catch-up checks before it starts** (`Checking which papers need it…`), then says what it started: `Started: 5 processes
   on 3 papers, in the background (in Processes)`, or `Nothing to do: every paper is up to date`.
 - **The question when the app opens** is the confirm view: `Bring N papers up to date?`, the yes row's detail what it
-  found, `Not now` saying where to turn the question off. Asked once a run of the app, only where automation runs;
-  unanswered when the launcher closes, it is asked when it opens next; esc is Not now.
+  found, `Not now` saying where to turn the question off. It comes unasked for, so `Not now` is highlighted (a Return
+  meant for another app leaves the papers be). Asked once a run of the app, only where automation runs; unanswered
+  when the launcher closes or another view opens over it, it is asked when it opens next; esc is Not now.
 
 ## Counts and clicks
 

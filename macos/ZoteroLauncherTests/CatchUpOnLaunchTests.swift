@@ -115,6 +115,7 @@ final class CatchUpOnLaunchTests: XCTestCase {
         XCTAssertEqual(model.confirmAsk?.title, "Bring 1 paper up to date?")
         XCTAssertEqual(model.listRows.map(\.label), ["Bring it up to date (in Processes)", "Not now"])
         XCTAssertEqual(model.listRows.first?.detail, "Added in the last 30 days: 1 paper needs “Summary”")
+        XCTAssertEqual(model.store.selectedIndex, 1, "unasked for: Not now is highlighted, so a stray Return leaves them")
         model.answerConfirm(true)
         XCTAssertEqual(runner.calls("catchup-plan").count, 1, "the plan just made, not a second check")
         XCTAssertEqual(runner.calls("run").last?.argv, ["oma-zotero-prompt", "run", "summary", "--key", "NEW00001", "--library", "1", "--extract-first"])
@@ -134,6 +135,33 @@ final class CatchUpOnLaunchTests: XCTestCase {
         XCTAssertTrue(runner.calls("run").isEmpty)
         XCTAssertNil(model.extractFile?.upToDate)
         XCTAssertNotEqual(model.store.view, "confirm")
+        // answered: not asked at the next open
+        model.didHide()
+        model.willShow()
+        XCTAssertNotEqual(model.store.view, "confirm")
+    }
+
+    func testEscIsNotNow() throws {
+        runner.answers["catchup-plan"] = { _, _ in FakeRunner.json(Self.recent) }
+        try make(#"{"defaults": {"autoPrompts": ["summary"]}}"#, launched: true)
+        XCTAssertEqual(model.store.view, "confirm")
+        model.execute(.back)
+        XCTAssertNotEqual(model.store.view, "confirm")
+        model.didHide()
+        model.willShow()
+        XCTAssertNotEqual(model.store.view, "confirm")
+        XCTAssertTrue(runner.calls("run").isEmpty)
+    }
+
+    func testLeftForAnotherViewItIsAskedWhenTheLauncherOpensNext() throws {
+        runner.answers["catchup-plan"] = { _, _ in FakeRunner.json(Self.recent) }
+        try make(#"{"defaults": {"autoPrompts": ["summary"]}}"#, launched: true)
+        XCTAssertEqual(model.store.view, "confirm")
+        model.goHome() // (Go to… from the menu bar opened another view over it)
+        model.didHide()
+        model.willShow()
+        XCTAssertEqual(model.store.view, "confirm")
+        XCTAssertEqual(model.confirmAsk?.tag, LauncherModel.launchAskTag)
     }
 
     func testNothingToDoAsksNothing() throws {
@@ -184,6 +212,8 @@ final class CatchUpOnLaunchTests: XCTestCase {
     func testTheTestsAndFixturesDontStartIt() {
         XCTAssertFalse(LauncherModel.startsAtLaunch(["XCTestConfigurationFilePath": "/x"]))
         XCTAssertFalse(LauncherModel.startsAtLaunch(["ZL_FIXTURES": "/x"]))
+        XCTAssertFalse(LauncherModel.startsAtLaunch(["XCTestBundlePath": "/x"]))
+        XCTAssertFalse(LauncherModel.startsAtLaunch(["XCTestSessionIdentifier": "x"]))
         XCTAssertTrue(LauncherModel.startsAtLaunch([:]))
     }
 

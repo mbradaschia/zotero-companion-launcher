@@ -41,6 +41,7 @@ extension LauncherModel {
     func execute(_ command: KeyCommand) -> Bool {
         switch command {
         case .home:
+            escLaunchAsk()
             goHome()
             if store.atRoot {
                 if !store.filterText.isEmpty { setFilter("") }
@@ -48,7 +49,7 @@ extension LauncherModel {
             }
         case .leaveSearch: store.searchFocus = false
         case .clearFilter: setFilter("")
-        case .back: back()
+        case .back: escLaunchAsk(); back()
         case .close: if pinnedOpen { flashMessage("Pinned: it stays open (⌘W, or the pin, closes it)") } else { dismiss() }
         case .openKeys: openKeys()
         case .alternate:

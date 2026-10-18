@@ -80,36 +80,39 @@ extension LauncherModel {
         runRunner(args, timeout: 300, quiet: false) { [weak self] r in
             guard let self else { return }
             self.sched.launchCheck = .done
-            guard let plan = r.json as? [String: Any], let core = self.core,
+            guard self.extractFile?.upToDate == nil, let plan = r.json as? [String: Any], let core = self.core,
                   let ask = (try? core.glueJSON("launchCatchUpAsk", [plan, self.settingsJSON, self.ai.promptsJSON, self.extractFile?.skipped ?? [:]]))
                     .flatMap({ try? JSONSerialization.jsonObject(with: Data($0.utf8)) }) as? [String: Any] else { return }
             let at = Date()
             self.sched.launchAsk = ConfirmAsk(title: ask["title"] as? String ?? "", yes: ask["yes"] as? String ?? "", no: ask["no"] as? String ?? "",
                                               detail: ask["detail"] as? String ?? "", noDetail: ask["noDetail"] as? String ?? "", run: { [weak self] in
                 guard let self else { return }
+                self.sched.launchAsk = nil
                 // (the plan just made, while it's fresh; else checked again)
                 let fresh = Date().timeIntervalSince(at) < 300 ? plan : nil
                 if fresh == nil { self.flashMessage("Checking which papers need it…") }
                 self.startCatchUp("launch", title: "Bringing papers up to date", plan: fresh) { [weak self] in self?.sayLater($0) }
-            }, tag: Self.launchAskTag)
+            }, cancel: { [weak self] in self?.sched.launchAsk = nil }, tag: Self.launchAskTag)
             self.presentLaunchAsk()
         }
     }
 
     static let launchAskTag = "launch-catchup"
 
-    // The question in the launcher: asked where it is, or the launcher opened for it (its willShow asks it).
+    // The question in the launcher: asked where it is, or the launcher opened for it (its willShow asks it). Kept until
+    // answered: closed, or left for another view, it's asked when the launcher opens next. It comes unasked for, so Not
+    // now is highlighted: a Return meant for something else leaves the papers be.
     func presentLaunchAsk() {
         guard let ask = sched.launchAsk else { return }
         guard opened else { showLauncher?(); return }
-        sched.launchAsk = nil
         if store.view == "confirm" && confirmAsk?.tag == ask.tag { return } // (still there: the launcher kept its place)
         askConfirm(ask)
+        store.selectedIndex = 1
     }
 
-    // The launcher closed with the question unanswered (it lost the keys): asked when it opens next.
-    func keepLaunchAsk() {
-        if store.view == "confirm", let ask = confirmAsk, ask.tag == Self.launchAskTag { sched.launchAsk = ask }
+    // esc (or ⇧esc) on the question is Not now; another view opened over it (Go to…, a note's menu) isn't an answer.
+    func escLaunchAsk() {
+        if store.view == "confirm", confirmAsk?.tag == Self.launchAskTag { sched.launchAsk = nil }
     }
 
     func stopCatchUp() {

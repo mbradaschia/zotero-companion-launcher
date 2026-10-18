@@ -150,7 +150,7 @@ struct SchedulerState {
     // checking, done (asked, or nothing to ask, once a run of the app)
     enum LaunchCheck { case off, waiting, checking, done }
     var launchCheck = LaunchCheck.off
-    var launchAsk: ConfirmAsk? // found, not asked yet (the launcher closed)
+    var launchAsk: ConfirmAsk? // the question when the app opens, until answered
 }
 
 // Chats and artifacts (phase 8): the runner's lists (`chats --all`, `artifacts --all`; nil until read), and the

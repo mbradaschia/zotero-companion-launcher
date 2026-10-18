@@ -47,8 +47,10 @@ chosen; extractions skipped once (scans, large PDFs) stay out.
   - `Not now`, its detail `Settings › Defaults › Ask to catch up when the app opens turns this question off`.
 - Yes runs those jobs as one catch-up, `Bringing papers up to date` (its end: `Bringing papers up to date is done:
   …`), from the plan it just made when that is under five minutes old, else checked again (2).
-- The launcher closed with the question unanswered (it lost the keys, the app in front changed): asked when it
-  opens next. esc, as on every question, is Not now.
+- `Not now` is the highlighted row: the question comes unasked for, maybe while typing in another app, so a stray
+  Return leaves the papers be.
+- The launcher closed with the question unanswered (it lost the keys, the app in front changed), or another view
+  opened over it (Go to… from the menu bar, a note window's menu): asked when it opens next. esc is Not now.
 
 ## 4. What the app checks when it opens
 

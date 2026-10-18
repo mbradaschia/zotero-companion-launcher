@@ -40,7 +40,7 @@ extension LauncherModel {
     private func promptsChanged() {
         if let id = ai.promptEdit?["id"] as? String, let fresh = ai.prompts?.first(where: { $0["id"] as? String == id }) { ai.promptEdit = fresh }
         runnerState.index = nil
-        guard opened, ["actions", "prompts", "prompt-edit", "settings-defaults"].contains(store.view) else { return }
+        guard opened, ["actions", "prompts", "prompt-edit", "settings-defaults", "settings-auto-prompts", "settings-launch-catchup"].contains(store.view) else { return }
         store.followTop = false
         rebuildList()
     }

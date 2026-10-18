@@ -117,7 +117,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
             // at the size last given it, never past the screen
             let kept = LauncherPanel.lastSize
             let size = NSSize(width: max(LauncherPanel.minSize.width, min(kept.width, frame.width)), height: max(LauncherPanel.minSize.height, min(kept.height, frame.height)))
-            panel.setFrame(NSRect(origin: NSPoint(x: frame.midX - size.width / 2, y: frame.midY - size.height / 2 + frame.height * 0.08), size: size), display: false)
+            let y = min(frame.midY - size.height / 2 + frame.height * 0.08, frame.maxY - size.height) // (a tall one never under the menu bar)
+            panel.setFrame(NSRect(origin: NSPoint(x: frame.midX - size.width / 2, y: max(frame.minY, y)), size: size), display: false)
         }
         model.willShow()
         visible = true
