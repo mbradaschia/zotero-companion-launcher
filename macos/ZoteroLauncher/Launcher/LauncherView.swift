@@ -69,7 +69,7 @@ struct LauncherView: View {
             Divider()
             FooterView(model: model)
         }
-        .frame(width: LauncherPanel.size.width, height: LauncherPanel.size.height)
+        .frame(minWidth: LauncherPanel.minSize.width, maxWidth: .infinity, minHeight: LauncherPanel.minSize.height, maxHeight: .infinity) // (resizable: it fills the panel)
         // solid, not a see-through material: what's behind (lighter still while it isn't the window in front) made the text hard to read
         .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
