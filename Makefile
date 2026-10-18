@@ -14,7 +14,7 @@ lint:            ## syntax checks: JavaScript, QML, shell scripts
 	scripts/lint.sh
 	scripts/check-boundaries.sh
 
-xpi:             ## build dist/oma-zotero-launcher-<version>.xpi (no dev routes) and zotero-bridge/updates.json
+xpi:             ## build dist/zotero-companion-bridge-<version>.xpi (no dev routes) and zotero-bridge/updates.json
 	scripts/build-xpi.sh
 
 install:         ## install this checkout's shell plugin and enable it (then add the keybinding, see README)
