@@ -93,8 +93,7 @@ extension LauncherModel {
         if path == "mac.openAsWindow" {
             openAsWindow.toggle()
             flashMessage(openAsWindow ? "On: the hotkey opens a window from now on (\(keyName("W")) switches to the overlay)" : "Off: the hotkey opens the overlay from now on")
-            store.followTop = false
-            return rebuildList()
+            return
         }
         guard let core else { return }
         // Settings › Defaults › What it checks: a switch writes its own key of launchCatchUpWhat (the others keep following

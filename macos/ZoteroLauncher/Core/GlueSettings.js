@@ -177,9 +177,9 @@ function GlueSettings(V, C, T, P, S) {
     if (typeof x.openAsWindow !== "boolean") return []
     var on = x.openAsWindow
     return [L({ section: "The launcher", rowId: "set-toggle", value: "mac.openAsWindow", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
-      label: "Open as a window",
-      detail: on ? "On · the hotkey opens a regular window: it stays until you close it (⌘W), window managers such as Raycast's can move and tile it, and it's in ⌘Tab; W switches to the overlay"
-        : "Off · the hotkey opens the overlay: over any Space and full-screen app, the app you're in stays in front, and it closes when you click away; W switches to a window" })]
+      label: "Open as a window", badge: x.machineOnly ? "this machine" : "",
+      detail: on ? "On · the hotkey opens a regular window: it stays when you click away, and window managers such as Raycast's can move and tile it; W switches to the overlay"
+        : "Off · the hotkey opens the overlay: over any app, even full screen, gone when you click away; W switches to a window" })]
   }
 
   // Defaults with the Mac's rows: When the app opens after Bring papers up to date, Processes last.

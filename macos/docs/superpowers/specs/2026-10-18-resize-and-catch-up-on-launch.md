@@ -96,8 +96,8 @@ Nothing selected: no check, no question.
 ## 5. Open as a window (added 2026-10-20)
 
 Window managers (Raycast's) act on the window of the app in front; the overlay never puts the app in front, so they
-can't move it. Settings › General › The launcher › `Open as a window` (a switch, off by default, this Mac's own:
+can't move it. Settings › General › `Open as a window` (a switch, off by default, this Mac's own:
 UserDefaults `ZLOpenAsWindow`, not the settings file): on, the hotkey opens the regular window W gives, centred the
 first time, then where it was left (its frame kept), on the Space you're on. W switches for one opening; closing it
 (⌘W, its close button) goes back to what the setting says. The hotkey on the window behind another app brings it to
-the front rather than closing it. Also in the app's Settings (⌘,), under This Mac.
+the front rather than closing it. Also in the menu bar icon › Hotkey and Login…, under Keys. Its detail claims nothing a menu bar app lacks (no ⌘Tab).

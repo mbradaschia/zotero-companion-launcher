@@ -36,7 +36,10 @@ final class LauncherModel: ObservableObject {
     // Settings › General › Open as a window (this Mac's): the hotkey opens a regular window, not the overlay. (Under
     // the tests, each model's own: the test host is the app, its defaults this Mac's.)
     @Published var openAsWindow = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLOpenAsWindow") {
-        didSet { if !Self.underTests { UserDefaults.standard.set(openAsWindow, forKey: "ZLOpenAsWindow") } }
+        didSet {
+            if !Self.underTests { UserDefaults.standard.set(openAsWindow, forKey: "ZLOpenAsWindow") }
+            if opened && store.view == "settings-general" { store.followTop = false; rebuildList() } // (also from the app's Settings window)
+        }
     }
     static let underTests = NSClassFromString("XCTestCase") != nil
     @Published private(set) var shown = 0 // counts openings: the view focuses on each
