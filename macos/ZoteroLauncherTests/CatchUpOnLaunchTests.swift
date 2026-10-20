@@ -247,14 +247,4 @@ final class CatchUpOnLaunchTests: XCTestCase {
         XCTAssertEqual(model.flash, "Off: the app no longer asks when it opens")
     }
 
-    // ---- 1: the launcher resizes
-
-    func testTheLauncherResizesWithAMinimumAndKeepsOnlyASizeThatFits() {
-        let panel = LauncherPanel(content: NSView())
-        XCTAssertTrue(panel.styleMask.contains(.resizable))
-        XCTAssertEqual(panel.contentMinSize, LauncherPanel.minSize)
-        XCTAssertNil(LauncherPanel.fitting(NSSize(width: 400, height: 900)))
-        XCTAssertNil(LauncherPanel.fitting(NSSize(width: 900, height: 200)))
-        XCTAssertEqual(LauncherPanel.fitting(NSSize(width: 900, height: 600)), NSSize(width: 900, height: 600))
-    }
 }

@@ -2,9 +2,11 @@ import AppKit
 import Combine
 import SwiftUI
 
-// A Spotlight-style panel: borderless, floating over every Space, takes the keys without
-// activating the app (the window behind keeps its place), closes when it loses them. It resizes
-// from its edges, as the window (W) does, and both keep the size last given either.
+// A Spotlight-style panel: no title bar to see, floating over every Space, takes the keys without
+// activating the app (the window behind keeps its place), closes when it loses them. It resizes from
+// its edges and corners, as the window (W) does, and both keep the size last given either.
+// (Titled, its title bar hidden and transparent, rather than borderless: a borderless panel doesn't
+// resize from its edges reliably, and its clear corners let the clicks through to the app behind.)
 final class LauncherPanel: NSPanel {
     static let size = NSSize(width: 720, height: 480) // the first time
     static let minSize = NSSize(width: 560, height: 360) // (the box, the hints and a few rows still fit)
@@ -16,10 +18,13 @@ final class LauncherPanel: NSPanel {
     // A kept size, if it's one: never below the minimum (an older or edited value is dropped).
     static func fitting(_ size: NSSize) -> NSSize? { size.width >= minSize.width && size.height >= minSize.height ? size : nil }
 
+    static let style: NSWindow.StyleMask = [.titled, .fullSizeContentView, .resizable, .nonactivatingPanel]
+
     init(content: NSView) {
-        super.init(contentRect: NSRect(origin: .zero, size: Self.lastSize),
-                   styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView, .resizable],
-                   backing: .buffered, defer: false)
+        super.init(contentRect: NSRect(origin: .zero, size: Self.lastSize), styleMask: Self.style, backing: .buffered, defer: false)
+        titleVisibility = .hidden
+        titlebarAppearsTransparent = true
+        for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] { standardWindowButton(button)?.isHidden = true }
         contentMinSize = Self.minSize
         isFloatingPanel = true
         level = .floating
@@ -27,8 +32,7 @@ final class LauncherPanel: NSPanel {
         hidesOnDeactivate = false
         isMovableByWindowBackground = true // (dragged by its background: the header, the footer, an empty list)
         isReleasedWhenClosed = false
-        backgroundColor = .clear
-        isOpaque = false
+        backgroundColor = .windowBackgroundColor // (no clear corners: every pixel of it takes the clicks)
         hasShadow = true
         contentView = content
     }
@@ -172,10 +176,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
         moving = true
         defer { moving = false }
         if windowed {
-            window.setFrame(window.frameRect(forContentRect: panel.frame), display: false)
+            window.setFrame(window.frameRect(forContentRect: panel.contentRect(forFrameRect: panel.frame)), display: false)
             NSApp.activate()
         } else {
-            panel.setFrame(window.contentRect(forFrameRect: window.frame), display: false) // (the size it had as a window)
+            panel.setFrame(panel.frameRect(forContentRect: window.contentRect(forFrameRect: window.frame)), display: false) // (the size it had as a window)
         }
         from.orderOut(nil)
         to.makeKeyAndOrderFront(nil)

@@ -27,12 +27,12 @@ only the bridge's API and `contracts/` are shared.
 
 You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zotero](https://www.zotero.org) 10 with the bridge plugin.
 
-1. **The Zotero plugin**: download `oma-zotero-launcher-<version>.xpi` from the
+1. **The Zotero plugin**: download `zotero-companion-bridge-<version>.xpi` from the
    [latest release](https://github.com/mbradaschia/zotero-companion-launcher/releases/latest); in Zotero,
    *Tools → Plugins → ⚙ → Install Plugin From File…*.
 2. **The app**, in Terminal:
    ```bash
-   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.3.6/install.sh | bash
+   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.3.7/install.sh | bash
    ```
    It downloads that release (or, with `macos-nightly` in the URL, the
    [nightly build](https://github.com/mbradaschia/zotero-companion-launcher/releases/tag/macos-nightly), rebuilt on
