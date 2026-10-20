@@ -75,6 +75,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
                               backing: .buffered, defer: false)
         window.title = "Zotero"
         window.contentMinSize = LauncherPanel.minSize
+        window.collectionBehavior = [.moveToActiveSpace] // (the hotkey brings it to the Space you're on)
+        if !window.setFrameUsingName("ZLLauncherWindow") { window.center() } // where you (or a window manager) left it
+        window.setFrameAutosaveName("ZLLauncherWindow")
         window.isReleasedWhenClosed = false
         window.delegate = self
         return window
@@ -106,10 +109,18 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private var current: NSWindow { model.windowed ? window : panel }
 
     func toggle() {
-        visible ? hide() : show()
+        guard visible else { return show() }
+        // the window behind another app: brought to the front, as it was
+        if model.windowed && !(window.isKeyWindow && NSApp.isActive) {
+            NSApp.activate()
+            return window.makeKeyAndOrderFront(nil)
+        }
+        hide()
     }
 
     func show() {
+        // each opening as Settings › General › Open as a window says (W switches for this one)
+        if !visible && model.windowed != model.openAsWindow { model.windowed = model.openAsWindow }
         // On the screen with the pointer, a little above the middle.
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
@@ -191,7 +202,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             model.store.caretBack = max(0, (editor.string as NSString).length - editor.selectedRange().upperBound)
         }
         let flags = event.modifierFlags
-        // ⌘W closes the launcher as its close button does, back to the panel next time (Omarchy's Super+W; the app
+        // ⌘W closes the launcher as its close button does, as the hotkey opens it next time (Omarchy's Super+W; the app
         // has no menu bar of its own to do it)
         if flags.intersection([.command, .shift, .control, .option]) == .command, event.charactersIgnoringModifiers?.lowercased() == "w" {
             model.dismiss()

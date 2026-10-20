@@ -171,6 +171,17 @@ function GlueSettings(V, C, T, P, S) {
     return rows
   }
 
+  // Settings › General's first row on a Mac: how the hotkey opens the launcher (this Mac's own, x.openAsWindow; none
+  // when it isn't given).
+  function windowRows(x) {
+    if (typeof x.openAsWindow !== "boolean") return []
+    var on = x.openAsWindow
+    return [L({ section: "The launcher", rowId: "set-toggle", value: "mac.openAsWindow", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
+      label: "Open as a window",
+      detail: on ? "On · the hotkey opens a regular window: it stays until you close it (⌘W), window managers such as Raycast's can move and tile it, and it's in ⌘Tab; W switches to the overlay"
+        : "Off · the hotkey opens the overlay: over any Space and full-screen app, the app you're in stays in front, and it closes when you click away; W switches to a window" })]
+  }
+
   // Defaults with the Mac's rows: When the app opens after Bring papers up to date, Processes last.
   function defaultsRows(state, L) {
     var rows = S.buildDefaults(state, L)
@@ -248,7 +259,7 @@ function GlueSettings(V, C, T, P, S) {
     var state = settingsState(settings, ctx)
     var ps = state.settings.paperStatuses || []
     if (name === "") return macSetup(S.buildRoot(state, L), state.runner)
-    if (name === "general") return S.buildGeneral(Object.assign({}, state, { machineOnly: x.machineOnly || null }), L)
+    if (name === "general") return windowRows(x).concat(S.buildGeneral(Object.assign({}, state, { machineOnly: x.machineOnly || null }), L))
     if (name === "paper-status") return S.buildPaperStatusSettings(ps, L).concat([L({ section: "In Zotero", rowId: "pstatus-migrate", icon: "",
       label: "Move the status tags to " + C.PAPER_TAG_PREFIX + "…", detail: "Papers tagged “" + (ps[0] || "reading") + "” before the prefix get “" + C.statusTag(ps[0] || "reading") + "”, and so on", available: ps.length > 0 })])
     if (name === "styles") return S.buildStylePicker(state, L)

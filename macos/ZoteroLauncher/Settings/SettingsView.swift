@@ -12,6 +12,7 @@ struct SettingsView: View {
                 KeyboardShortcuts.Recorder("Open the launcher:", name: .toggleLauncher)
             }
             Section("This Mac") {
+                Toggle("Open the launcher as a window", isOn: $model.openAsWindow)
                 Toggle("Open at login", isOn: Binding(get: { login.enabled }, set: { login.set($0) }))
                 Text(login.detail).font(.caption).foregroundStyle(login.problem.isEmpty ? Color.secondary : Color.red)
             }

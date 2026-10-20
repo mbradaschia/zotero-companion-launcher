@@ -11,6 +11,9 @@ bridge and the prompt runner share one version.
 
 - **The launcher resizes**: drag any edge of the panel or of its window (W), down to 560 by 360. The size you give it
   is kept for the next opening.
+- **Open as a window** (Settings › General, off by default): the hotkey opens a regular window instead of the overlay,
+  one that stays until you close it, that window managers such as Raycast's can move and tile, and that's in ⌘Tab. It
+  comes back where you left it. W still switches between the two for one opening.
 - **A catch-up checks first**: Enter on a Bring papers up to date row asks again which papers need it (the page's count
   may be old) and runs exactly those: `Started: 5 processes on 3 papers`, or `Nothing to do: every paper is up to date`.
 - **When the app opens, it offers to catch up**: it counts what needs bringing up to date and, when something does,

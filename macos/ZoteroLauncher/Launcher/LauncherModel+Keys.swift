@@ -339,6 +339,6 @@ extension LauncherModel {
     // W: the launcher as a window, and back.
     func toggleWindowed() {
         windowed.toggle()
-        flashMessage(windowed ? "A window now: \(keyName("W")) puts it back" : "")
+        flashMessage(windowed == openAsWindow ? "" : windowed ? "A window now: \(keyName("W")) puts it back" : "The overlay now: \(keyName("W")) puts the window back")
     }
 }

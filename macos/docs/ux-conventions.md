@@ -173,6 +173,9 @@ says so.
   menu in the launcher, the window closed; a question being typed stays.
 - **The launcher resizes** from its edges (the panel and the window alike), never below 560 by 360, and opens at the
   size last given it.
+- **Overlay or window**: the hotkey opens the overlay unless Settings › General › Open as a window is on; W switches
+  for one opening, and closing goes back to the setting. The window comes back where it was left; the hotkey on it
+  behind another app brings it to the front.
 - **The launcher moves** by its background. **The pin** keeps it open while other apps are used; esc then stops at
   the top level and the hint says `⌘W close`.
 

@@ -33,6 +33,12 @@ final class LauncherModel: ObservableObject {
         }
     }
     @Published var windowed = false
+    // Settings › General › Open as a window (this Mac's): the hotkey opens a regular window, not the overlay. (Under
+    // the tests, each model's own: the test host is the app, its defaults this Mac's.)
+    @Published var openAsWindow = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLOpenAsWindow") {
+        didSet { if !Self.underTests { UserDefaults.standard.set(openAsWindow, forKey: "ZLOpenAsWindow") } }
+    }
+    static let underTests = NSClassFromString("XCTestCase") != nil
     @Published private(set) var shown = 0 // counts openings: the view focuses on each
     private(set) var opened = false // shown: answers and timers for a launcher that closed do nothing
 
@@ -205,7 +211,7 @@ final class LauncherModel: ObservableObject {
 
     func dismiss() {
         close()
-        windowed = false
+        windowed = openAsWindow // (as the hotkey opens it next)
     }
 
     // The launcher is hidden (dismissed, or it lost the keys): nothing waits to act.

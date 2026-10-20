@@ -175,6 +175,7 @@ function cases() {
   for (const page of ["", "general", "paper-status", "styles"]) add(`settingsPage/${page || "root"}`, "settingsPage", page, settings, ctx, {});
   add("settingsPage/general-synced", "settingsPage", "general", settings, ctx, { machineOnly: Glue.machineOnly() });
   add("settingsPage/general-filtered", "settingsPage", "general", settings, ctx, { filter: "key" });
+  add("settingsPage/general-window", "settingsPage", "general", settings, ctx, { openAsWindow: true });
   add("settingsPage/choice", "settingsPage", "choice", settings, ctx, { choice: "general.keys" });
   add("settingsPage/edit", "settingsPage", "edit", settings, ctx, { edit: Glue.settingEdit("general.keyDelay", settings), filter: "450" });
   add("settingsPage/styles-loading", "settingsPage", "styles", settings, {}, {});
