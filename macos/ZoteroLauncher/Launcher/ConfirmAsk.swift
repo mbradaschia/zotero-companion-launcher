@@ -10,6 +10,7 @@ struct ConfirmAsk {
     var noDetail = ""
     var run: () -> Void
     var cancel: () -> Void = {}
+    var tag = "" // which question (the app's opening asks one it keeps until answered)
 
     var json: [String: Any] { ["title": title, "yes": yes, "no": no, "detail": detail, "noDetail": noDetail] }
 }

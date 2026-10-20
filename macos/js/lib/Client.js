@@ -327,7 +327,7 @@ function normalizeStatus(raw, problems) {
 }
 
 function normalizeDefaults(raw, problems) {
-  var out = { prompts: { model: "", effort: "high" }, chat: { model: "", effort: "high" }, fallback: "", autoExtract: false, autoExtractNew: false, extractMaxMB: 40, autoTagNew: false, extractOnOpen: false, tagOnOpen: false, autoPrompts: [], catchUpDays: 30, processesAtOnce: 1, catchUpPrompts: "missing", catchUpTaxonomies: "missing" }
+  var out = { prompts: { model: "", effort: "high" }, chat: { model: "", effort: "high" }, fallback: "", autoExtract: false, autoExtractNew: false, extractMaxMB: 40, autoTagNew: false, extractOnOpen: false, tagOnOpen: false, autoPrompts: [], catchUpDays: 30, processesAtOnce: 1, catchUpPrompts: "missing", catchUpTaxonomies: "missing", launchCatchUp: true, launchCatchUpWhat: {} }
   if (raw === undefined) return out
   if (!isObject(raw)) { problems.push("defaults must be an object"); return out }
   ;["prompts", "chat"].forEach(function (p) {
@@ -380,6 +380,21 @@ function normalizeDefaults(raw, problems) {
     if (raw[k] === "missing" || raw[k] === "replace") out[k] = raw[k]
     else problems.push("defaults." + k + " must be missing or replace")
   })
+  // When the app opens (the Mac's): ask before catching up, and what that catch-up checks (a key left out follows its
+  // default: New papers' switches and prompts, the changed ones off)
+  if (raw.launchCatchUp !== undefined) {
+    if (typeof raw.launchCatchUp === "boolean") out.launchCatchUp = raw.launchCatchUp
+    else problems.push("defaults.launchCatchUp must be true or false")
+  }
+  if (raw.launchCatchUpWhat !== undefined) {
+    var w = raw.launchCatchUpWhat
+    var bad = !isObject(w) || ["text", "taxonomies", "changedTaxonomies", "changedPrompts"].some(function (k) { return w[k] !== undefined && typeof w[k] !== "boolean" })
+      || (w.prompts !== undefined && !(Array.isArray(w.prompts) && w.prompts.every(function (x) { return typeof x === "string" && /^[a-z0-9][a-z0-9-]{0,80}$/.test(x) })))
+    if (bad) problems.push("defaults.launchCatchUpWhat must hold text, taxonomies, changedTaxonomies, changedPrompts (true or false) and prompts (prompt ids)")
+    else ["text", "taxonomies", "changedTaxonomies", "changedPrompts", "prompts"].forEach(function (k) {
+      if (w[k] !== undefined) out.launchCatchUpWhat[k] = Array.isArray(w[k]) ? w[k].slice() : w[k]
+    })
+  }
   if (raw.processesAtOnce !== undefined) {
     if (typeof raw.processesAtOnce === "number" && raw.processesAtOnce % 1 === 0 && raw.processesAtOnce >= 1 && raw.processesAtOnce <= 4) out.processesAtOnce = raw.processesAtOnce
     else problems.push("defaults.processesAtOnce must be a whole number from 1 to 4")

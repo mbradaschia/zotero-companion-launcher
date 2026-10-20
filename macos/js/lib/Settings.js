@@ -49,6 +49,8 @@ function toFile(settings) {
   if (d.processesAtOnce && d.processesAtOnce !== 1) defaults.processesAtOnce = d.processesAtOnce
   if (d.catchUpPrompts === "replace") defaults.catchUpPrompts = "replace"
   if (d.catchUpTaxonomies === "replace") defaults.catchUpTaxonomies = "replace"
+  if (d.launchCatchUp === false) defaults.launchCatchUp = false
+  if (d.launchCatchUpWhat && Object.keys(d.launchCatchUpWhat).length) defaults.launchCatchUpWhat = clone(d.launchCatchUpWhat)
   var out = { general: general, providers: providers, defaults: defaults }
   if (settings.tasks) {
     var tasks = {}

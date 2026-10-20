@@ -13,6 +13,20 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.0`)
+
+- **Open as a window** (Settings › General, off by default): the hotkey opens a regular window instead of the overlay,
+  one that stays when you click away and that window managers such as Raycast's can move and tile. It comes back where
+  you left it. W still switches between the two for one opening. Also in the menu bar icon › Hotkey and Login….
+- **A catch-up checks first**: Enter on a Bring papers up to date row asks again which papers need it (the page's count
+  may be old) and runs exactly those: `Started: 5 processes on 3 papers`, or `Nothing to do: every paper is up to date`.
+- **When the app opens, it offers to catch up**: it counts what needs bringing up to date and, when something does,
+  opens the launcher on a question (`Bring 7 papers up to date?`, with what it found). Not now leaves it; esc too.
+  Settings › Defaults › When the app opens turns it off (*Ask to catch up when the app opens*), and *What the app checks when it opens*
+  chooses what it looks at: the text, the taxonomies and each prompt on the papers added lately, and the taxonomies and
+  prompts that changed. Until you choose, it checks what New papers runs. Only the machine automation runs on asks.
+- **The background automation starts with the app**: it waited for the launcher's first opening.
+
 ### The Mac app (`macos-v0.3.7`)
 
 - **The launcher resizes from its edges and corners**, and keeps the size you give it (also when it moves into a

@@ -33,6 +33,15 @@ final class LauncherModel: ObservableObject {
         }
     }
     @Published var windowed = false
+    // Settings › General › Open as a window (this Mac's): the hotkey opens a regular window, not the overlay. (Under
+    // the tests, each model's own: the test host is the app, its defaults this Mac's.)
+    @Published var openAsWindow = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLOpenAsWindow") {
+        didSet {
+            if !Self.underTests { UserDefaults.standard.set(openAsWindow, forKey: "ZLOpenAsWindow") }
+            if opened && store.view == "settings-general" { store.followTop = false; rebuildList() } // (also from the app's Settings window)
+        }
+    }
+    static let underTests = NSClassFromString("XCTestCase") != nil
     @Published private(set) var shown = 0 // counts openings: the view focuses on each
     private(set) var opened = false // shown: answers and timers for a launcher that closed do nothing
 
@@ -186,11 +195,26 @@ final class LauncherModel: ObservableObject {
             if actionItem != nil && ["actions", "notes", "files"].contains(store.view) { refreshDetails() }
             rebuildList()
         }
+        presentLaunchAsk() // the catch-up's question, found while the launcher was closed
+    }
+
+    // The app started (AppDelegate): the files read, so the background automation runs from now on (not only once the
+    // launcher has opened), and the catch-up's question (Settings › Defaults › Ask to catch up when the app opens).
+    // Not under the tests (the test host is the app: its files and runner are this Mac's) nor in fixture mode.
+    static func startsAtLaunch(_ env: [String: String]) -> Bool {
+        ["XCTestConfigurationFilePath", "XCTestBundlePath", "XCTestSessionIdentifier", "ZL_FIXTURES"].allSatisfy { env[$0] == nil }
+    }
+
+    func appLaunched() {
+        loadFiles()
+        sched.launchCheck = .waiting
+        refreshPrompts() // (What it checks names them)
+        launchCatchUpCheck()
     }
 
     func dismiss() {
         close()
-        windowed = false
+        windowed = openAsWindow // (as the hotkey opens it next)
     }
 
     // The launcher is hidden (dismissed, or it lost the keys): nothing waits to act.

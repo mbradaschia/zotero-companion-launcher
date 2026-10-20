@@ -155,7 +155,8 @@ final class LauncherModel7Tests: XCTestCase {
         XCTAssertTrue(runner.calls("catchup-plan").last?.argv.contains("--extract") == true)
         try select { $0.rowId == "set-catchup" && $0.value == "recent" }
         model.execute(.activate)
-        XCTAssertEqual(model.flash, "Started: one at a time, in the background (in Processes)")
+        XCTAssertEqual(model.flash, "Started: 2 processes on 2 papers, in the background (in Processes)")
+        XCTAssertFalse(runner.calls("catchup-plan").last?.argv.contains("--stale-taxonomies") ?? true) // checked again first, its part only
         XCTAssertEqual(runner.calls("extract-batch").last?.argv.prefix(4), ["oma-zotero-prompt", "extract-batch", "--items", "1:OLD00001"])
         XCTAssertEqual(runner.calls("run").last?.argv, ["oma-zotero-prompt", "run", "summary", "--key", "OLD00002", "--library", "1", "--extract-first"])
         XCTAssertTrue(model.listRows.contains { $0.rowId == "set-catchup-stop" }) // running

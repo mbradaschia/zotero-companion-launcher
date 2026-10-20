@@ -197,7 +197,8 @@ var Glue = (function () {
     [/[Aa]lt\+/g, "⌥"], [/Shift\+/g, "⇧"], [/[Cc]trl\+/g, "⌃"], [/\bEnter\b/g, "↵"], [/\bEsc\b/g, "esc"], [/\bBackspace\b/g, "⌫"], [/\bDelete\b/g, "⌘⌫"], // (⌘⌫ the Mac's delete in a list; ⌦ works too)
     [/\bTab\b/g, "tab"], [/\bSpace\b/g, "space"]]
   var MAC_KEY_LINES = [["(your Hyprland keybinding)", "(the app's hotkey: menu bar icon › Hotkey and Login…)"], ["Close the launcher when it's open (with the README's rebinding)", "Close the launcher"],
-    ["Clear the search box", "Clear the search box (⌥⌫ deletes a word)"], ["Stop the answer, or close a menu", "Stop the answer, or hide these keys"]]
+    ["Clear the search box", "Clear the search box (⌥⌫ deletes a word)"], ["Stop the answer, or close a menu", "Stop the answer, or hide these keys"],
+    ["The launcher as a window, and back as the overlay", "The launcher as a window or as the overlay, for this opening"]]
   var macKeyColumn = function (t) {
     if (typeof t !== "string") return t
     for (var i = 0; i < MAC_KEY_COLUMN.length; i++) t = t.replace(MAC_KEY_COLUMN[i][0], MAC_KEY_COLUMN[i][1])

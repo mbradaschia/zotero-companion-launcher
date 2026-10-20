@@ -15,6 +15,182 @@ function GlueSettings(V, C, T, P, S) {
       detail: n + " at a time on this Mac · extraction, tagging and prompts on new papers; a catch-up runs one at a time, a prompt you run yourself never waits" })
   }
 
+  // ---- catching up (the Mac's): what each catch-up checks, the plan's argv, the jobs a plan holds, the question when
+  // the app opens and its page (macos/docs/superpowers/specs/2026-10-18-resize-and-catch-up-on-launch.md)
+
+  var LAUNCH_SWITCHES = ["text", "taxonomies", "changedTaxonomies", "changedPrompts"]
+
+  // The prompts' ids that still name a prompt (prompts: the runner's list, null while it's read: kept as they are).
+  function existing(ids, prompts) {
+    return (ids || []).filter(function (id) { return !prompts || prompts.some(function (p) { return p.id === id }) })
+  }
+
+  // What the app's opening checks, a key left out following its default: New papers' text, taxonomies and prompts;
+  // the changed taxonomies and prompts off. → { text, taxonomies, changedTaxonomies, changedPrompts, prompts: [ids] }
+  function launchWhat(settings, prompts) {
+    var d = (settings && settings.defaults) || {}
+    var w = d.launchCatchUpWhat || {}
+    return { text: typeof w.text === "boolean" ? w.text : !!d.autoExtractNew, taxonomies: typeof w.taxonomies === "boolean" ? w.taxonomies : !!d.autoTagNew,
+      changedTaxonomies: w.changedTaxonomies === true, changedPrompts: w.changedPrompts === true, prompts: existing(Array.isArray(w.prompts) ? w.prompts : d.autoPrompts, prompts) }
+  }
+
+  // One of its switches changed (field: text, taxonomies, changedTaxonomies, changedPrompts, prompt:<id>): the new
+  // defaults.launchCatchUpWhat, that key written, the others left as they were (still following their defaults).
+  function launchWhatToggled(settings, prompts, field) {
+    var d = (settings && settings.defaults) || {}
+    var now = launchWhat(settings, prompts)
+    var out = JSON.parse(JSON.stringify(d.launchCatchUpWhat || {}))
+    var m = /^prompt:(.+)$/.exec(String(field))
+    if (m) {
+      var on = now.prompts.indexOf(m[1]) >= 0
+      out.prompts = on ? now.prompts.filter(function (id) { return id !== m[1] }) : now.prompts.concat([m[1]])
+    } else if (LAUNCH_SWITCHES.indexOf(field) >= 0) out[field] = !now[field]
+    return out
+  }
+
+  // A list's words: "a, b and c".
+  function listed(xs) { return xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1] }
+  function titleOf(prompts, id) {
+    var p = (prompts || []).filter(function (x) { return x.id === id })[0]
+    return "“" + (p ? p.title : id) + "”"
+  }
+
+  // What it checks, in words ("" for nothing).
+  function launchWhatText(settings, prompts) {
+    var w = launchWhat(settings, prompts)
+    return listed([w.text ? "their text" : "", w.taxonomies ? "their taxonomies" : ""].concat(w.prompts.map(function (id) { return titleOf(prompts, id) }),
+      [w.changedTaxonomies ? "taxonomies that changed" : "", w.changedPrompts ? "prompts that changed" : ""]).filter(function (x) { return x }))
+  }
+
+  // catchup-plan's argv for a kind: "all" (the counts Bring papers up to date shows), "taxonomies", "prompts",
+  // "recent" (Catch up the last N days: what New papers runs), "launch" (what the app's opening checks); since: Zotero's
+  // date catchUpDays ago. → [] when the kind checks nothing.
+  function planArgs(settings, kind, prompts, since) {
+    var d = (settings && settings.defaults) || {}
+    var mode = function (k) { return d[k] === "replace" ? "replace" : "missing" }
+    var w = kind === "launch" ? launchWhat(settings, prompts)
+      : { text: !!d.autoExtractNew, taxonomies: !!d.autoTagNew, prompts: existing(d.autoPrompts, prompts), changedTaxonomies: true, changedPrompts: true }
+    var stale = { taxonomies: kind === "all" || kind === "taxonomies" || (kind === "launch" && w.changedTaxonomies),
+      prompts: kind === "all" || kind === "prompts" || (kind === "launch" && w.changedPrompts) }
+    var recent = kind === "all" || kind === "recent" || (kind === "launch" && (w.text || w.taxonomies || w.prompts.length > 0))
+    if (!stale.taxonomies && !stale.prompts && !recent) return []
+    return ["catchup-plan"].concat(stale.taxonomies ? ["--stale-taxonomies"] : [], stale.prompts ? ["--stale-prompts"] : [],
+      recent ? ["--since", String(since)].concat(w.taxonomies ? ["--tag"] : [], w.text ? ["--extract"] : [], w.prompts.length ? ["--prompts", w.prompts.join(",")] : []) : [],
+      ["--prompts-mode", mode("catchUpPrompts"), "--tag-mode", mode("catchUpTaxonomies")])
+  }
+
+  // A plan's jobs for a kind (launch: every part it holds, the papers added lately first), each once (a paper tagged
+  // twice: once, by the taxonomies of both), the extractions skipped before (scans, large PDFs) left out.
+  function planJobs(plan, kind, skipped) {
+    var parts = kind === "launch" ? ["recent", "taxonomies", "prompts"] : [kind]
+    var out = [], at = {}
+    parts.forEach(function (k) {
+      ;((plan && plan[k] && plan[k].jobs) || []).forEach(function (j) {
+        if (j.op === "extract" && skipped && Object.prototype.hasOwnProperty.call(skipped, j.id)) return
+        var key = j.id + "|" + j.op + "|" + (j.prompt || "")
+        if (at[key] === undefined) { at[key] = out.length; out.push(JSON.parse(JSON.stringify(j))); return }
+        var was = out[at[key]]
+        if (j.op === "classify") { // (all of them when either asks for all)
+          if (!was.only || !j.only) delete was.only
+          else j.only.forEach(function (t) { if (was.only.indexOf(t) < 0) was.only.push(t) })
+        }
+      })
+    })
+    return out
+  }
+
+  function papersIn(jobs) {
+    var seen = {}
+    jobs.forEach(function (j) { seen[j.id] = true })
+    return Object.keys(seen).length
+  }
+
+  // The question when the app opens. → null (nothing to do), or { title, yes, no, detail, noDetail, jobs, papers }
+  function launchAsk(plan, settings, prompts, skipped) {
+    var jobs = planJobs(plan, "launch", skipped)
+    if (!jobs.length) return null
+    var d = (settings && settings.defaults) || {}
+    var days = d.catchUpDays || 30
+    var n = function (k, one, many) { return k + " " + (k === 1 ? one : many) }
+    var recent = planJobs(plan, "recent", skipped)
+    var of = function (test) { return recent.filter(test).length }
+    var promptIds = []
+    recent.forEach(function (j) { if (j.op === "prompt" && promptIds.indexOf(j.prompt) < 0) promptIds.push(j.prompt) })
+    // "3 papers need their text, 2 their taxonomies, 4 “Summary”" (the first says what the counts are)
+    var counts = [[of(function (j) { return j.op === "extract" }), "their text"], [of(function (j) { return j.op === "classify" }), "their taxonomies"]]
+      .concat(promptIds.map(function (id) { return [of(function (j) { return j.op === "prompt" && j.prompt === id }), titleOf(prompts, id)] }))
+      .filter(function (c) { return c[0] > 0 })
+    var added = counts.map(function (c, i) { return i ? c[0] + " " + c[1] : c[0] + (c[0] === 1 ? " paper needs " : " papers need ") + c[1] })
+    var tax = papersIn(planJobs(plan, "taxonomies", skipped)), notes = planJobs(plan, "prompts", skipped).length
+    var parts = [added.length ? "Added in the last " + n(days, "day", "days") + ": " + added.join(", ") : "",
+      tax ? n(tax, "paper", "papers") + " tagged by an older taxonomy" : "", notes ? n(notes, "note", "notes") + " from an older prompt" : ""].filter(function (x) { return x })
+    var papers = papersIn(jobs)
+    return { title: "Bring " + n(papers, "paper", "papers") + " up to date?", yes: "Bring " + (papers === 1 ? "it" : "them") + " up to date (in Processes)", no: "Not now",
+      detail: parts.join(" · "), noDetail: "Settings › Defaults › Ask to catch up when the app opens turns this question off", jobs: jobs.length, papers: papers }
+  }
+
+  // Settings › Defaults › When the app opens: ask, and what it checks (after Bring papers up to date).
+  function launchRows(state, L) {
+    var d = state.settings.defaults || {}
+    var am = state.automation
+    var away = am && am.host && !am.here ? " · on “" + am.host + "”, the machine automation runs on" : ""
+    var on = d.launchCatchUp !== false
+    var what = launchWhatText(state.settings, state.prompts)
+    return [L({ section: "When the app opens", rowId: "set-toggle", value: "defaults.launchCatchUp", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
+      label: "Ask to catch up when the app opens", detail: (on ? "On" : "Off") + " · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked" + away }),
+      L({ section: "When the app opens", rowId: "set-nav", value: "launch-catchup", icon: S.ICON.defaults, label: "What the app checks when it opens", submenu: true, available: true,
+        detail: what ? what.charAt(0).toUpperCase() + what.slice(1) : "Nothing: no question when the app opens (turn one on)" })]
+  }
+
+  // Settings › Defaults › What it checks: each switch of defaults.launchCatchUpWhat.
+  function launchPage(state, L) {
+    var d = state.settings.defaults || {}
+    var w = launchWhat(state.settings, state.prompts)
+    var lw = d.launchCatchUpWhat || {}
+    var days = d.catchUpDays || 30
+    var sec = "Papers added in the last " + days + " " + (days === 1 ? "day" : "days")
+    var follows = function (k, name) { return typeof lw[k] === "boolean" ? "" : " (as " + name + ", until you change it)" }
+    var sw = function (section, k, label, detail) {
+      return L({ section: section, rowId: "set-toggle", value: "defaults.launchCatchUpWhat." + k, icon: w[k] ? S.ICON.on : S.ICON.off, checked: w[k], available: true, label: label,
+        detail: (w[k] ? "On" : "Off") + " · " + detail })
+    }
+    var rows = [sw(sec, "text", "Their text", "extracted where a paper with a PDF has none" + follows("text", "Extract new papers' text")),
+      sw(sec, "taxonomies", "Their taxonomies", "tagged where a taxonomy is missing" + (d.catchUpTaxonomies === "replace" ? " or there (Replace them)" : "") + follows("taxonomies", "Tag new papers by taxonomies"))]
+    var replace = d.catchUpPrompts === "replace"
+    ;(state.prompts || []).forEach(function (p) {
+      var on = w.prompts.indexOf(p.id) >= 0
+      rows.push(L({ section: sec, rowId: "set-auto-prompt", value: "launch:" + p.id, icon: S.ICON.model, showCheck: true, checked: on, available: true, label: p.title,
+        detail: (on ? "On" : "Off") + " · run where it hasn't run" + (replace ? ", and again where it has (Replace them)" : "") + (Array.isArray(lw.prompts) ? "" : " (as Prompts to run on new papers, until you change one)") }))
+    })
+    var noRunner = state.runner && state.runner.installed === false
+    if (!(state.prompts || []).length) rows.push(L({ section: sec, rowId: "set-info", icon: S.ICON.info, available: false,
+      label: state.prompts ? "No prompts yet" : noRunner ? "No prompts: the AI features aren't installed" : "Reading your prompts…",
+      detail: noRunner && !state.prompts ? "Settings › Setup installs the AI features" : "Prompts it can check show here" }))
+    rows.push(sw("Every paper", "changedTaxonomies", "Taxonomies that changed", "papers tagged by an older version of a taxonomy are tagged again"),
+      sw("Every paper", "changedPrompts", "Prompts that changed", "notes and artifacts from an older version of their prompt are made again (a new note beside the old one); it can cost a lot"))
+    return rows
+  }
+
+  // Settings › General's first row on a Mac: how the hotkey opens the launcher (this Mac's own, x.openAsWindow; none
+  // when it isn't given).
+  function windowRows(x) {
+    if (typeof x.openAsWindow !== "boolean") return []
+    var on = x.openAsWindow
+    return [L({ section: "The launcher", rowId: "set-toggle", value: "mac.openAsWindow", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
+      label: "Open as a window", badge: x.machineOnly ? "this machine" : "",
+      detail: on ? "On · the hotkey opens a regular window: it stays when you click away, and window managers such as Raycast's can move and tile it; W switches to the overlay"
+        : "Off · the hotkey opens the overlay: over any app, even full screen, gone when you click away; W switches to a window" })]
+  }
+
+  // Defaults with the Mac's rows: When the app opens after Bring papers up to date, Processes last.
+  function defaultsRows(state, L) {
+    var rows = S.buildDefaults(state, L)
+    var after = -1
+    rows.forEach(function (r, i) { if (r.section === "Bring papers up to date") after = i })
+    var mine = launchRows(state, L)
+    return (after < 0 ? rows.concat(mine) : rows.slice(0, after + 1).concat(mine, rows.slice(after + 1))).concat([processesRow(state, L)])
+  }
+
   function settingsState(settings, ctx) {
     var c = ctx || {}
     return { settings: settings, info: c.info || null, models: c.models ? c.models.models || null : null, defaults: c.defaults || { prompts: "", chat: "" },
@@ -63,7 +239,7 @@ function GlueSettings(V, C, T, P, S) {
   // it opens both through Launch Services) aren't offered.
   var MAC_WORDS = [["A system keyring", "The macOS Keychain"], ["keyring", "Keychain"], ["omarchy pkg add ollama", "brew install ollama"],
     ["; installed somewhere else? Set its command in General › Advanced", ""], [" its 1 models", " its one model"],
-    ["under a paper's status line", "under the paper's name at the top"]]
+    ["under a paper's status line", "under the paper's name at the top"], [" · what Catch up looks at", " · what Catch up and the check when the app opens look at"]]
   var NOT_ON_MAC = ["general.externalPdfCommand", "general.zoteroCommand"]
   function macWords(rows) {
     return rows.filter(function (r) { return NOT_ON_MAC.indexOf(r.value) < 0 }).map(function (r) {
@@ -83,7 +259,7 @@ function GlueSettings(V, C, T, P, S) {
     var state = settingsState(settings, ctx)
     var ps = state.settings.paperStatuses || []
     if (name === "") return macSetup(S.buildRoot(state, L), state.runner)
-    if (name === "general") return S.buildGeneral(Object.assign({}, state, { machineOnly: x.machineOnly || null }), L)
+    if (name === "general") return windowRows(x).concat(S.buildGeneral(Object.assign({}, state, { machineOnly: x.machineOnly || null }), L))
     if (name === "paper-status") return S.buildPaperStatusSettings(ps, L).concat([L({ section: "In Zotero", rowId: "pstatus-migrate", icon: "",
       label: "Move the status tags to " + C.PAPER_TAG_PREFIX + "…", detail: "Papers tagged “" + (ps[0] || "reading") + "” before the prefix get “" + C.statusTag(ps[0] || "reading") + "”, and so on", available: ps.length > 0 })])
     if (name === "styles") return S.buildStylePicker(state, L)
@@ -91,7 +267,8 @@ function GlueSettings(V, C, T, P, S) {
     if (name === "providers") return S.buildProviders(state, L)
     if (name === "provider") return S.buildProvider(state, x.provider, L)
     if (name === "models") return S.buildModelPicker(state, x.modelsPath, L, x.only || "")
-    if (name === "defaults") return S.buildDefaults(state, L).concat([processesRow(state, L)])
+    if (name === "defaults") return defaultsRows(state, L)
+    if (name === "launch-catchup") return launchPage(state, L)
     if (name === "auto-prompts") return S.buildAutoPrompts(state, L)
     if (name === "rules") {
       // no rules.json to read (installed or bundled): said, not "Reading the rules…" for ever
@@ -218,7 +395,12 @@ function GlueSettings(V, C, T, P, S) {
     },
     // The runner's argv (settings.promptCommand, else oma-zotero-prompt).
     promptArgv: function (settings, args) { return C.promptArgv(settings, args || []) },
-    needsSetup: function (settings, ctx) { return S.needsSetup(settingsState(settings, ctx)) }
+    needsSetup: function (settings, ctx) { return S.needsSetup(settingsState(settings, ctx)) },
+    // Catching up (the Mac's): see above.
+    catchUpPlanArgs: function (settings, kind, prompts, since) { return planArgs(settings, kind, prompts || null, since) },
+    catchUpJobs: function (plan, kind, skipped) { return planJobs(plan, kind, skipped || {}) },
+    launchCatchUpAsk: function (plan, settings, prompts, skipped) { return launchAsk(plan, settings, prompts || null, skipped || {}) },
+    launchCatchUpToggled: function (settings, prompts, field) { return launchWhatToggled(settings, prompts || null, field) }
   }
 }
 
