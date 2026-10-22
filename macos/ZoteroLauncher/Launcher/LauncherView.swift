@@ -16,8 +16,8 @@ struct LauncherView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let context = model.context {
-                HStack(spacing: 8) {
-                    BreadcrumbBar(crumbs: model.breadcrumb, jump: { model.jumpToCrumb($0) })
+                HStack(alignment: .top, spacing: 8) { // (the ranks and the count beside the breadcrumb's first line)
+                    BreadcrumbBar(crumbs: model.breadcrumb, jump: { model.jumpToCrumb($0) }).layoutPriority(1)
                     Spacer(minLength: 8)
                     ForEach(context.ranks, id: \.self) { PillView(text: $0, selected: false, kind: "rank") }
                     if !context.count.isEmpty { Text(context.count).font(.callout).foregroundStyle(.secondary) }
