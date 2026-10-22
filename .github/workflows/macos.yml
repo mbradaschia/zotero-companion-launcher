@@ -57,9 +57,8 @@ jobs:
           xcodebuild test -project ZoteroLauncher.xcodeproj -scheme ZoteroLauncher \
             -destination 'platform=macOS,arch=arm64' -derivedDataPath build | xcbeautify
 
-      # The real app on screen, on the fixtures (no Zotero, no runner): best effort for now, PLAN.md › Testing.
+      # The real app on screen, on the fixtures (no Zotero, no runner): a failing flow fails the build, PLAN.md › Testing.
       - name: The app on screen (fixtures)
-        continue-on-error: true
         run: |
           xcodebuild test -project ZoteroLauncher.xcodeproj -scheme ZoteroLauncherUITests \
             -destination 'platform=macOS,arch=arm64' -derivedDataPath build | xcbeautify
