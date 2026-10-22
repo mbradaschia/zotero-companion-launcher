@@ -13,6 +13,16 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.1`)
+
+- **No empty strip at the top of the launcher**: it kept room for its hidden title bar (about 28pt) above its own
+  margin. The breadcrumb now sits 8pt from the top and the search box 8pt below it (12pt at the top level). Open as a
+  window is unchanged.
+- **A long breadcrumb wraps onto a second line** instead of being cut short; where you are can take two lines itself.
+  The ranks and the count stay beside the first line.
+- **The key hints at the bottom wrap onto a second line** instead of dropping the ones that don't fit. esc and ⌫ are
+  always shown.
+
 ### The Mac app (`macos-v0.4.0`)
 
 - **Open as a window** (Settings › General, off by default): the hotkey opens a regular window instead of the overlay,
