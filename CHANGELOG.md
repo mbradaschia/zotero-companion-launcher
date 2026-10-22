@@ -13,6 +13,13 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.2`)
+
+- **A paper's ranking pills beside the breadcrumb keep their size**: in 0.4.1 the breadcrumb took the bar's width
+  first and squeezed them. The breadcrumb wraps in the space left.
+- **The UI tests are fixed and gate the build** (on pull requests and master): three had been failing unnoticed, as
+  the tests didn't see one-line rows and the chat test asked its second question too soon.
+
 ### The Mac app (`macos-v0.4.1`)
 
 - **No empty strip at the top of the launcher**: it kept room for its hidden title bar (about 28pt) above its own
