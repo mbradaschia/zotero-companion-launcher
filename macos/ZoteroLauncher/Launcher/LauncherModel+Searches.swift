@@ -342,11 +342,14 @@ extension LauncherModel {
         store.queryLive = true
     }
 
-    // The badges above the results, at the top level: All, each pinned search, and the save hint.
+    // The badges above the results, at the top level and while picking a paper there: All, each pinned search, and
+    // (not while picking: ⌘S doesn't save there) the save hint.
     var badges: [(id: String, name: String)] {
-        guard store.inSearch && store.atRoot else { return [] }
+        guard store.inSearch && store.scope == nil else { return [] }
+        let searches = [("", "All")] + pinnedSearches.map { ($0["id"] as? String ?? "", $0["name"] as? String ?? "") }
+        guard store.pickFor.isEmpty else { return searches }
         let typed = store.filterText.trimmingCharacters(in: .whitespaces)
         let save = typed.isEmpty ? "+ Type, then ⌘S saves it as a search" : "+ Save “\(typed)” as a search · ⌘S"
-        return [("", "All")] + pinnedSearches.map { ($0["id"] as? String ?? "", $0["name"] as? String ?? "") } + [("+save", save)]
+        return searches + [("+save", save)]
     }
 }

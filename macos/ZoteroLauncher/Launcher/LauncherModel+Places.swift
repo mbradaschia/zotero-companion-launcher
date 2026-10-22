@@ -14,11 +14,11 @@ extension LauncherModel {
         requestSearch()
     }
 
-    // What the results are searched within: the scope opened, else (at the top level) the badge
+    // What the results are searched within: the scope opened, else (at the top level, picking a paper too) the badge
     // selected (ZoteroSearch.qml's searchScope).
     var searchScope: Scope? {
         if let s = store.scope { return s }
-        guard store.pickFor.isEmpty, !searchState.active.isEmpty else { return nil }
+        guard !searchState.active.isEmpty else { return nil }
         return scopeOf(pinnedSearches.first { $0["id"] as? String == searchState.active })
     }
 

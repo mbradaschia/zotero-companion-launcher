@@ -21,6 +21,12 @@ struct SearchRow: Decodable, Equatable {
 
     var isPaper: Bool { kind == "item" }
 
+    // Its status's name, "" for none or unknown (lib/Client.js's statusName: the tag without its s/).
+    var statusName: String {
+        guard !status.isEmpty, status != "\u{0}" else { return "" }
+        return status.lowercased().hasPrefix("s/") ? String(status.dropFirst(2)) : status
+    }
+
     // An SF Symbol for the row (lib/Views.js's icons are Nerd Font glyphs, not installed on macOS).
     var symbol: String {
         switch kind {
