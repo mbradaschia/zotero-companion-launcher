@@ -67,6 +67,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private lazy var hosting: NSHostingView<LauncherView> = {
         let view = NSHostingView(rootView: LauncherView(model: model))
         view.sizingOptions = [.minSize] // (SwiftUI's ideal size never snaps the panel back: you size it)
+        view.safeAreaRegions = [] // (no room kept for the panel's hidden title bar: the card starts at its top edge)
         return view
     }()
     private lazy var panel: LauncherPanel = {

@@ -16,14 +16,14 @@ struct LauncherView: View {
     var body: some View {
         VStack(spacing: 0) {
             if let context = model.context {
-                HStack(spacing: 8) {
-                    BreadcrumbBar(crumbs: model.breadcrumb, jump: { model.jumpToCrumb($0) })
+                HStack(alignment: .top, spacing: 8) { // (the ranks and the count beside the breadcrumb's first line)
+                    BreadcrumbBar(crumbs: model.breadcrumb, jump: { model.jumpToCrumb($0) }).layoutPriority(1)
                     Spacer(minLength: 8)
                     ForEach(context.ranks, id: \.self) { PillView(text: $0, selected: false, kind: "rank") }
                     if !context.count.isEmpty { Text(context.count).font(.callout).foregroundStyle(.secondary) }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
+                .padding(.top, 8)
             }
             if let (strip, items) = stripShown {
                 TaxonomyStrip(model: model, strip: strip, items: items)
@@ -50,7 +50,8 @@ struct LauncherView: View {
                 PinButton(pinned: model.pinnedOpen) { model.pinnedOpen.toggle() }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.top, model.context == nil ? 12 : 8) // (closer under the breadcrumb)
+            .padding(.bottom, 12)
 
             if !model.badges.isEmpty || !model.sortLabel.isEmpty { BadgeBar(model: model) } // (in a scope too: the sort is always shown)
             if store.view == "tasks" && !model.processesAndPending.isEmpty { ProcessFilterBar(model: model) }
@@ -280,6 +281,7 @@ struct BadgeChip: View {
 // The footer: the paper's pills in its menu, the note (a flash, an error), and the hints that fit.
 struct FooterView: View {
     @ObservedObject var model: LauncherModel
+    @State private var hintsWidth: CGFloat = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -309,21 +311,23 @@ struct FooterView: View {
                     if !sync.isEmpty { Label(sync, systemImage: "arrow.triangle.2.circlepath").font(.caption).foregroundStyle(.secondary) }
                 }
             }
-            GeometryReader { geometry in
-                let fitted = FitHints.fit(model.hints(), width: geometry.size.width, gap: 14, widthOf: { FitHints.width($0) })
-                HStack(spacing: 14) {
-                    ForEach(fitted, id: \.self) { hint in
-                        let p = FitHints.parts(hint)
-                        HStack(spacing: 4) {
-                            Text(p.keys).bold()
-                            Text(p.desc).foregroundStyle(.secondary)
-                        }
-                        .font(.system(size: NSFont.smallSystemFontSize))
-                        .fixedSize()
+            // the hints on two lines when one isn't enough (the width measured, as the hints are)
+            let fitted = FitHints.fit(model.hints(), width: hintsWidth, gap: 14, lines: 2, widthOf: { FitHints.width($0) })
+            FlowLayout(spacing: 14, lineSpacing: 4) {
+                ForEach(fitted, id: \.self) { hint in
+                    let p = FitHints.parts(hint)
+                    HStack(spacing: 4) {
+                        Text(p.keys).bold()
+                        Text(p.desc).foregroundStyle(.secondary)
                     }
+                    .font(.system(size: NSFont.smallSystemFontSize))
+                    .fixedSize()
                 }
             }
-            .frame(height: 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(GeometryReader { g in
+                Color.clear.onAppear { hintsWidth = g.size.width }.onChange(of: g.size.width) { _, w in hintsWidth = w }
+            })
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
