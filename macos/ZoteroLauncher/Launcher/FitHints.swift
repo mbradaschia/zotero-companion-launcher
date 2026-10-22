@@ -1,6 +1,6 @@
 import AppKit
 
-// The footer's hints on one line (lib/Views.js's hintParts and fitHints, ported: they measure
+// The footer's hints on a line or two (lib/Views.js's hintParts and fitHints, ported: they measure
 // text): the ones that go back (esc, ⌫) always, then the others in order while there is room.
 enum FitHints {
     static let keyWords: Set<String> = ["tab", "esc", "del", "space", "pgup", "pgdn", "home", "end", "enter"]
@@ -13,19 +13,14 @@ enum FitHints {
         return (words.prefix(n).joined(separator: " "), words.dropFirst(n).joined(separator: " "))
     }
 
-    static func fit(_ hints: [String], width: CGFloat, gap: CGFloat, widthOf: (String) -> CGFloat) -> [String] {
-        var used: CGFloat = 0
-        var take = Set<Int>()
-        for (i, h) in hints.enumerated() where parts(h).keys.contains("esc") || parts(h).keys.contains("⌫") {
-            used += widthOf(h) + (used > 0 ? gap : 0)
-            take.insert(i)
-        }
-        for (i, h) in hints.enumerated() where !take.contains(i) {
-            let w = widthOf(h) + (used > 0 ? gap : 0)
-            if used + w <= width {
-                used += w
-                take.insert(i)
-            }
+    // The hints shown on `lines` lines of `width`, each line laid out as FlowLayout lays out the footer's.
+    static func fit(_ hints: [String], width: CGFloat, gap: CGFloat, lines: Int = 1, widthOf: (String) -> CGFloat) -> [String] {
+        let widths = hints.map(widthOf)
+        var take = Set(hints.indices.filter { parts(hints[$0]).keys.contains("esc") || parts(hints[$0]).keys.contains("⌫") })
+        for i in hints.indices where !take.contains(i) && widths[i] <= width {
+            let tried = take.union([i])
+            let shown = hints.indices.filter(tried.contains).map { widths[$0] }
+            if FlowLayout.lines(widths: shown, maxWidth: width, spacing: gap).count <= lines { take = tried }
         }
         return hints.enumerated().filter { take.contains($0.offset) }.map(\.element)
     }
