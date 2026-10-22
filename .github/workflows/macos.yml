@@ -42,6 +42,24 @@ jobs:
         working-directory: .
         run: scripts/check-boundaries.sh
 
+  # The real app on screen, on the fixtures (no Zotero, no runner): best effort for now, PLAN.md › Testing.
+  # A job of its own, beside the build: it takes most of the time (about 17 minutes) and fails nothing, so the
+  # build and the release don't wait for it. Not for a tag: its commit was checked on master.
+  ui:
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: XcodeGen
+        run: brew install xcodegen xcbeautify && xcodegen generate
+
+      - name: The app on screen (fixtures)
+        continue-on-error: true
+        run: |
+          xcodebuild test -project ZoteroLauncher.xcodeproj -scheme ZoteroLauncherUITests \
+            -destination 'platform=macOS,arch=arm64' -derivedDataPath build | xcbeautify
+
   build:
     runs-on: macos-15
     permissions:
@@ -55,13 +73,6 @@ jobs:
       - name: Unit tests
         run: |
           xcodebuild test -project ZoteroLauncher.xcodeproj -scheme ZoteroLauncher \
-            -destination 'platform=macOS,arch=arm64' -derivedDataPath build | xcbeautify
-
-      # The real app on screen, on the fixtures (no Zotero, no runner): best effort for now, PLAN.md › Testing.
-      - name: The app on screen (fixtures)
-        continue-on-error: true
-        run: |
-          xcodebuild test -project ZoteroLauncher.xcodeproj -scheme ZoteroLauncherUITests \
             -destination 'platform=macOS,arch=arm64' -derivedDataPath build | xcbeautify
 
       # Universal: Apple silicon and Intel Macs. The check fails the build if either is missing.
