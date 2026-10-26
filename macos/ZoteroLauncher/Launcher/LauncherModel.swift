@@ -121,6 +121,9 @@ final class LauncherModel: ObservableObject {
     var openWindow: ([String: Any]) -> Void = { _ in } // a note window (LauncherController's)
     var closeNoteWindow: (String) -> Void = { _ in } // a deleted note's window, if open
 
+    var spotDefaults: UserDefaults? // where you are is kept there (the app's; none under the tests: LauncherModel+Spot)
+    var spotSink: AnyCancellable?
+
     private var flashTimer: Timer?
     private var keyTimer: Timer?
 
@@ -160,6 +163,7 @@ final class LauncherModel: ObservableObject {
         opened = true
         bridge.reload()
         loadFiles()
+        if shown == 1 && query == nil { restoreSpot() } // (the app just started: where the last run left it)
         let resuming = store.open(query: query)
         flash = ""
         lastError = ""
