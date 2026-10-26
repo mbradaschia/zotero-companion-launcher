@@ -13,20 +13,20 @@ extension LauncherModel {
     }
 
     static let spotKey = "ZLLauncherSpot"
-    static let paperViews: Set<String> = ["actions", "notes", "files"]
-    static let keptViews: Set<String> = paperViews.union(["search", "todos", "tasks", "chats", "searches", "prompts", "settings",
+    static let spotPaperViews: Set<String> = ["actions", "notes", "files"] // (a paper's menu and its lists: drawn with it)
+    static let keptViews: Set<String> = spotPaperViews.union(["search", "todos", "tasks", "chats", "searches", "settings",
         "settings-general", "settings-defaults", "settings-providers", "settings-tasks", "settings-paper-status",
         "settings-taxonomies", "settings-setup", "settings-auto-prompts", "settings-rules"])
 
     // The levels up to the first that can't be drawn again (nil: not even the first); the paper only for its views.
     static func kept(_ spot: Spot) -> Spot? {
         let levels = spot.store.levels
-        let n = levels.firstIndex { !keptViews.contains($0.view) || ($0.view == "search" && !$0.pickFor.isEmpty) || (paperViews.contains($0.view) && spot.paper == nil) } ?? levels.count
+        let n = levels.firstIndex { !keptViews.contains($0.view) || ($0.view == "search" && !$0.pickFor.isEmpty) || (spotPaperViews.contains($0.view) && spot.paper == nil) } ?? levels.count
         guard n > 0, spot.store.crumbs.count == levels.count - 1 else { return nil }
         var out = spot
         out.store = AppStore.Spot(levels: Array(levels.prefix(n)), crumbs: Array(spot.store.crumbs.prefix(n - 1)))
         if n < levels.count { out.store.levels[n - 1].followTop = false } // (the row you came from stays highlighted)
-        if !out.store.levels.contains(where: { paperViews.contains($0.view) }) { out.paper = nil }
+        if !out.store.levels.contains(where: { spotPaperViews.contains($0.view) }) { out.paper = nil }
         return out
     }
 
