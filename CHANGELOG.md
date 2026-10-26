@@ -13,6 +13,13 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.5`)
+
+- **The launcher opens where you left it, also after the app restarts** (an update, a login, a quit): the same view,
+  paper, scope, search and row. Within a run it already did; now the first opening after a restart does too. A page
+  that needs more than that to be drawn again (a note being read, a setting being edited, a picker) comes back as the
+  level under it.
+
 ### The Mac app (`macos-v0.4.4`)
 
 - **Update quits the running app and opens the new one**: macOS's pkill skips its caller's ancestors, and the app

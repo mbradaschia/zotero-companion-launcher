@@ -125,4 +125,35 @@ final class AppStore: ObservableObject {
         if filterText.isEmpty && (!searchFirst || atRoot) { searchFocus = searchFirst ? false : typingView }
         followTop = false // the row you were on stays selected as the list refreshes
     }
+
+    // Where you are, kept across the app's restarts (an update, a login): every level, this one last, and the
+    // breadcrumb's names (one per level below this one).
+    struct Spot: Codable, Equatable {
+        var levels: [ViewLevel]
+        var crumbs: [String]
+    }
+
+    var spot: Spot {
+        Spot(levels: stack + [ViewLevel(view: view, filterText: filterText, caretBack: caretBack, selectedIndex: selectedIndex,
+                                        followTop: followTop, scope: scope, pickFor: pickFor, searchFocus: searchFocus)],
+             crumbs: crumbs)
+    }
+
+    // Back where a spot says, as if the launcher had been open there: the next open resumes it.
+    func restore(_ spot: Spot) {
+        guard let here = spot.levels.last, spot.crumbs.count == spot.levels.count - 1 else { return }
+        stack = Array(spot.levels.dropLast())
+        crumbs = spot.crumbs
+        view = here.view
+        filterText = here.filterText
+        caretBack = here.caretBack
+        selectedIndex = here.selectedIndex
+        followTop = here.followTop
+        scope = here.scope
+        pickFor = here.pickFor
+        searchFocus = here.searchFocus
+        queryLive = false
+        keys.clear()
+        hasState = true
+    }
 }

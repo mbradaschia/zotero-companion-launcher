@@ -90,6 +90,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
 
     override init() {
         super.init()
+        // where you are, kept for the next run (not under the tests, nor on the fixtures)
+        if LauncherModel.startsAtLaunch(ProcessInfo.processInfo.environment) { model.keepSpot(in: .standard) }
         model.close = { [weak self] in self?.hide() }
         model.openWindow = { [weak self] note in
             guard let self else { return }
