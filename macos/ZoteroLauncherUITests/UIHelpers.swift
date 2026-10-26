@@ -23,6 +23,7 @@ class LauncherUITestCase: XCTestCase {
             app.launchEnvironment["ZL_FIXTURE_CALLS"] = callsPath
         }
         launchEnvironment.forEach { app.launchEnvironment[$0.key] = $0.value }
+        Self.closeSystemAlerts()
         app.launch()
         XCTAssertTrue(app.dialogs.firstMatch.waitForExistence(timeout: 20), "the launcher didn't open") // (a first start after a build is slow)
         RunLoop.current.run(until: Date().addingTimeInterval(0.5))
@@ -33,6 +34,23 @@ class LauncherUITestCase: XCTestCase {
     override func tearDownWithError() throws {
         app.terminate()
         if !callsPath.isEmpty { try? FileManager.default.removeItem(atPath: callsPath) }
+    }
+
+    // A system alert left on screen (UserNotificationCenter's, on CI from the second test on) made each launch wait
+    // about 35 seconds, against 1 for the first: what it says goes in the log, then it's closed (its default button).
+    static func closeSystemAlerts() {
+        let center = XCUIApplication(bundleIdentifier: "com.apple.UserNotificationCenter")
+        for _ in 0..<3 {
+            let dialog = center.dialogs.firstMatch
+            guard dialog.exists else { return }
+            let said = dialog.staticTexts.allElementsBoundByIndex.map(\.label).filter { !$0.isEmpty }.joined(separator: " | ")
+            let buttons = dialog.buttons.allElementsBoundByIndex
+            XCTContext.runActivity(named: "System alert: \(said) [buttons: \(buttons.map(\.label).joined(separator: ", "))]") { _ in
+                let button = dialog.buttons["action-button-1"].exists ? dialog.buttons["action-button-1"] : buttons.first
+                button?.click()
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        }
     }
 
     // what the fixture runner was asked, "subcommand args…" each
