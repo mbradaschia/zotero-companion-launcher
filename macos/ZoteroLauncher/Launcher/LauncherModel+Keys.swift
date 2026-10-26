@@ -17,6 +17,7 @@ extension LauncherModel {
         s.selectedKind = selectedSearchRow?.kind ?? ""
         s.tabTodo = !tabTodoId.isEmpty
         s.pinnedSearches = !pinnedSearches.isEmpty
+        s.pickingAtTop = store.inSearch && store.scope == nil && !store.pickFor.isEmpty
         s.searchEditQuery = store.view == "search-edit" && searchState.editMode == "query"
         s.statusTarget = statusTarget() != nil
         s.taskTarget = taskTarget() != nil
@@ -257,7 +258,7 @@ extension LauncherModel {
         case "?":
             openKeys()
             return true
-        case "g" where store.inSearch && store.pickFor.isEmpty, "G" where store.inSearch && store.pickFor.isEmpty:
+        case "g" where store.inSearch, "G" where store.inSearch:
             cycleGrouping(c == "g" ? 1 : -1)
             return true
         case "x" where store.view == "actions" || (store.inSearch && selectedSearchRow?.kind == "item"):

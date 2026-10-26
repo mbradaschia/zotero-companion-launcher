@@ -121,7 +121,8 @@ struct LauncherView: View {
                             // (a section's heading and its first row: one target, so scrolling to the row brings both)
                             VStack(alignment: .leading, spacing: 0) {
                                 section(row.section, first: index == 0 || rows[index - 1].section != row.section)
-                                SearchRowView(row: row, selected: index == store.selectedIndex, hint: hint, opens: model.searchRowOpens(row))
+                                SearchRowView(row: row, selected: index == store.selectedIndex, hint: hint, opens: model.searchRowOpens(row),
+                                              task: row.isPaper ? model.rowTasks["\(row.libraryID):\(row.key)"] ?? "" : "")
                                     .contentShape(Rectangle())
                                     .onTapGesture { store.selectedIndex = index; model.enterActions(index) }
                                     .accessibilityAction { store.selectedIndex = index; model.enterActions(index) }

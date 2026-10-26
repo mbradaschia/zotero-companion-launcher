@@ -6,6 +6,7 @@ struct KeyState: Equatable {
     var searchFocus = false
     var view = "search"
     var scoped = false // the results narrowed to a collection or a tag, or picking for something
+    var pickingAtTop = false // picking a paper from the whole library (its badges: Tab goes through them)
     var searchEditQuery = false // search-edit is editing the query (not the name)
     var filterText = ""
     var caretBack = 0

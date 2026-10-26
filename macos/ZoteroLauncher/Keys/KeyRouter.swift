@@ -52,7 +52,7 @@ enum KeyRouter {
         if tabs && plain && (s.view == "settings-tax-label" || s.view == "settings-tax-ai") { return .ignore } // (Tab never deletes a label or saves a draft)
         if s.view == "todo-due" && plain, let command = calendar(k) { return command }
         if tabs && plain && s.tabTodo { return .cycleTask(dir) }
-        if tabs && plain && s.atRoot && s.pinnedSearches { return .cycleSearch(dir) }
+        if tabs && plain && (s.atRoot || s.pickingAtTop) && s.pinnedSearches { return .cycleSearch(dir) }
         if horizontal != 0 && e.option && e.shift && !e.control && s.taskTarget { return .cycleDefaultTask(horizontal) }
         if horizontal != 0 && e.option && !e.shift && !e.control && s.statusTarget { return .cycleStatus(horizontal) }
         if k == .enter && e.shift { return .alternate }

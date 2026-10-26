@@ -51,7 +51,7 @@ final class LauncherModel: ObservableObject {
     var settings: AppSettings?
     var pins: PinsFile?
     var prefs: ViewPrefs?
-    var todos: TodosFile?
+    var todos: TodosFile? { didSet { refreshRowTasks() } }
     var searchesFile: SearchesFile?
     let env: [String: String]
 
@@ -96,6 +96,7 @@ final class LauncherModel: ObservableObject {
     // The paper's pills (the footer's, the taxonomy strip's), made as the list is (not at every redraw: each is a
     // JavaScriptCore call over the paper's details).
     @Published private(set) var paperPills: [Pill] = []
+    @Published var rowTasks: [String: String] = [:] // each paper's default task, by its id (refreshRowTasks)
     @Published private(set) var taxonomyStrip: [String: Any]?
     func refreshPaperPills() {
         paperPills = computePaperPills
@@ -301,6 +302,7 @@ final class LauncherModel: ObservableObject {
     func rebuildSearch() {
         guard let core else { return }
         refreshPaperPills() // (none in the results)
+        refreshRowTasks()
         let previous = backToKey ?? selectedSearchRow?.key ?? ""
         var rows: [SearchRow] = []
         if let response {

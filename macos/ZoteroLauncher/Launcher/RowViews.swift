@@ -6,6 +6,7 @@ struct SearchRowView: View {
     let selected: Bool
     var hint = ""
     var opens = false // Enter opens another list: the same › as a menu's rows
+    var task = "" // its default task's name
 
     var body: some View {
         HStack(spacing: RowMetrics.iconGap) {
@@ -27,6 +28,15 @@ struct SearchRowView: View {
                 }
             }
             Spacer(minLength: 8)
+            // its status (⌥→←) over its default task (⇧⌥→←), as the QML's row
+            let status = row.isPaper ? row.statusName : ""
+            if !status.isEmpty || !task.isEmpty {
+                VStack(alignment: .trailing, spacing: 2) {
+                    if !status.isEmpty { PillView(text: status, selected: selected, mode: "tag", kind: "status").accessibilityLabel("status: " + status) }
+                    if !task.isEmpty { PillView(text: task, selected: selected, mode: "tag", kind: "task").accessibilityLabel("task: " + task) }
+                }
+                .fixedSize()
+            }
             if row.openState == "current" || row.openState == "open" {
                 Image(systemName: row.openState == "current" ? "circle.fill" : "circle")
                     .font(.system(size: 7))

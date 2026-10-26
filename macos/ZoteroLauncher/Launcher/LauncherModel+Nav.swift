@@ -88,7 +88,7 @@ extension LauncherModel {
 // status"; "" where the papers aren't sorted (nothing typed at the top level, or not the results).
 extension LauncherModel {
     var sortLabel: String {
-        guard store.inSearch, store.pickFor.isEmpty, let core, let response else { return "" }
+        guard store.inSearch, let core, let response else { return "" }
         let groupable = (response["scope"] is [String: Any]) || !((response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
         guard groupable else { return "" }
         let mode = prefs?.values["grouping"] as? String ?? "relevance"
