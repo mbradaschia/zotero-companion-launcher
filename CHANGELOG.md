@@ -13,6 +13,18 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.3`)
+
+- **Each paper's status and task on its row**: the status (orange) over the default task (green) on the right, in the
+  results and when picking a paper, as the Omarchy launcher draws them. They change with ⌥→← and ⇧⌥→←.
+- **Picking a paper keeps the badges and the sort** (New chat…, a task's paper): All and the pinned searches above the
+  list (Tab goes through them), and the sort pill with g / ⇧G.
+- **Updating opens the new version by itself**: the installer waits for the running app to be gone before opening the
+  new copy (opened while the old one was still quitting, macOS brought that one forward, and nothing stayed open).
+- **The Zotero bridge comes with each Mac release** (its .xpi and .sha256), and each bridge release with the Mac app.
+- **A merged version is released by itself**: a new MARKETING_VERSION on master, with its notes, is tagged and published
+  by CI. Pull requests that change no code (notes, docs, the version) skip the UI tests.
+
 ### The Mac app (`macos-v0.4.2`)
 
 - **A paper's ranking pills beside the breadcrumb keep their size**: in 0.4.1 the breadcrumb took the bar's width

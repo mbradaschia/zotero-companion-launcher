@@ -54,11 +54,20 @@ jobs:
           See the [README](https://github.com/${GITHUB_REPOSITORY}#install) for the keybinding and the optional prompts.
           NOTES
 
+      # With the newest Mac app (its zip and install.sh, copied from its macos-v release), so both are found in one place.
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           v="${GITHUB_REF_NAME#v}"
+          mac=$(gh release list --limit 50 --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[].tagName | select(test("^macos-v[0-9]"))][0] // ""')
+          extra=()
+          if [ -n "$mac" ]; then
+            gh release download "$mac" --pattern ZoteroLauncher.zip --pattern install.sh --dir mac
+            extra=(mac/ZoteroLauncher.zip mac/install.sh)
+            printf '\n- **The Mac app** (%s) is attached too: run its `install.sh` (macos/README.md), or update from the menu bar.\n' "$mac" >>notes.md
+          fi
           gh release create "$GITHUB_REF_NAME" \
-            "dist/zotero-companion-bridge-$v.xpi" "dist/zotero-companion-bridge-$v.xpi.sha256" \
+            "dist/zotero-companion-bridge-$v.xpi" "dist/zotero-companion-bridge-$v.xpi.sha256" "${extra[@]}" \
             --title "v$v" --notes-file notes.md --verify-tag
