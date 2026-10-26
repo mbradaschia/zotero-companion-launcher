@@ -24,3 +24,12 @@ test("install.sh replaces only ZoteroLauncher.app, and only if it is ours", () =
   assert.match(t, /isn't Zotero Launcher: not replacing it/);
   for (const m of t.matchAll(/\b(rm -rf|mv) ("[^"]+"|\S+)/g)) assert.ok(/\$(APP|work|old|new)\b|"\$\w+"|\$work/.test(m[2]), `unexpected ${m[0]}`);
 });
+
+// From the app's Update, the app is the installer's ancestor: macOS's pkill and pgrep skip their ancestors unless -a,
+// so without it the app was never quit (the new copy installed under the old one, still running).
+test("install.sh quits the running app even when that app started it", () => {
+  const t = fs.readFileSync(path.join(__dirname, "../../scripts/install.sh"), "utf8").split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+  const calls = [...t.matchAll(/\b(pkill|pgrep)\b[^\n]*/g)].map((m) => m[0]);
+  assert.ok(calls.length >= 3, calls.join("\n"));
+  for (const c of calls) assert.match(c, /\s-a\s/, `without -a: ${c}`);
+});
