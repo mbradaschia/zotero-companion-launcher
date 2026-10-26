@@ -21,17 +21,19 @@ fail() { echo "install: $*" >&2; exit 1; }
 
 # The running app quit, and gone (at most 10 seconds, then killed): opened while the old one is still going away,
 # macOS brings that one forward instead of starting the new copy, and nothing is open once it's gone.
+# -a: macOS's pkill and pgrep leave out their own ancestors, and from the app's Update the app is one (it runs this
+# script), so without it the app was never quit: the new copy was installed and the old one kept running.
 quit_app() {
-  pkill -x ZoteroLauncher 2>/dev/null || return 0
-  for _ in $(seq 50); do pgrep -x ZoteroLauncher >/dev/null || return 0; sleep 0.2; done
-  pkill -9 -x ZoteroLauncher 2>/dev/null || true
+  pkill -a -x ZoteroLauncher 2>/dev/null || return 0
+  for _ in $(seq 50); do pgrep -a -x ZoteroLauncher >/dev/null || return 0; sleep 0.2; done
+  pkill -9 -a -x ZoteroLauncher 2>/dev/null || true
   sleep 0.5
 }
 
 # The new copy opened, and running (opened once more if it isn't after 5 seconds).
 open_app() {
   open "$APP" || true
-  for _ in $(seq 25); do pgrep -x ZoteroLauncher >/dev/null && return 0; sleep 0.2; done
+  for _ in $(seq 25); do pgrep -a -x ZoteroLauncher >/dev/null && return 0; sleep 0.2; done
   open "$APP" || echo "install: it's installed but didn't open: open ZoteroLauncher from Applications" >&2
 }
 

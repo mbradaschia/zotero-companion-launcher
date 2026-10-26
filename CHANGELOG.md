@@ -13,6 +13,14 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.4`)
+
+- **Update quits the running app and opens the new one**: macOS's pkill skips its caller's ancestors, and the app
+  runs the installer, so the app was never quit: the new copy was installed while the old one kept running until you
+  quit it yourself. The update to 0.4.4 already runs the fixed installer.
+- **The UI tests close a system alert left on screen** before each launch: it made every launch after the first wait
+  about 35 seconds.
+
 ### The Mac app (`macos-v0.4.3`)
 
 - **Each paper's status and task on its row**: the status (orange) over the default task (green) on the right, in the
