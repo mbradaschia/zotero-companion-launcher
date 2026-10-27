@@ -34,6 +34,7 @@ extension LauncherModel {
 
     func taxonomiesChanged() {
         runnerState.index = nil
+        reviewsRefresh() // (a review table's taxonomy columns)
         guard opened else { return }
         if store.inSettings || ["actions", "tax-paper", "tax-audit"].contains(store.view) { store.followTop = false; rebuildList() }
         if store.inSearch, (prefs?.values["grouping"] as? String ?? "").hasPrefix("tax:") { rebuildSearch() }

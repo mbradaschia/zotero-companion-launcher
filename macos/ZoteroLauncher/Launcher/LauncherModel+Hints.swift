@@ -23,7 +23,7 @@ extension LauncherModel {
         if store.view == "keys" { return ["type to find a key", "↑↓ move", "esc clear, then back"] } // (letters type there)
         if singleKeys && store.searchFocus && !store.textEntry {
             let badges: [String] = store.atRoot && !pinnedSearches.isEmpty ? ["tab next search"] : []
-            let filters: [String] = store.inSearch && store.pickFor.isEmpty ? ["@ filters"] + badges + ["⌘S save"] : []
+            let filters: [String] = store.inSearch && store.pickFor.isEmpty ? ["@ filters"] + badges + ["⌘S save", "⌘T table"] : []
             let what = store.view == "todos" ? "type to add or find" : !store.pickFor.isEmpty ? "type to find the paper" : "type to search"
             let enter = !store.inSearch ? (selectedListRow?.rowId == "setting-go" ? Self.settingKeyVerb(selectedListRow?.value ?? "") : "choose") : !store.pickFor.isEmpty ? (store.pickFor == "chat" ? "chat about it" : "pick it")
                 : selectedSearchRow?.kind == "setting" ? settingHitVerb : selectedSearchRow?.kind == "saved-search" ? "its papers" : "menu"

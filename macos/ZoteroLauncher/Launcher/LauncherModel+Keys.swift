@@ -127,6 +127,7 @@ extension LauncherModel {
             store.push("todo-tags")
             rebuildList()
         case .saveSearch: saveSearchPrompt()
+        case .openReview: openReviewHere()
         case .openPicker: openPicker()
         case .cycleSearch(let d): cycleSearch(d)
         case .rejectSuggestion: // Delete on a suggestion (Settings › Taxonomies › Review): dismissed

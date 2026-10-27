@@ -493,6 +493,32 @@ function cases() {
   add("keyRows/alt", "keyRows", "", hereAlt);
   add("windowKeys/note-window", "windowKeys", "note-window");
   add("windowKeys/chat-window", "windowKeys", "chat-window");
+
+  // phase 11a: the review tables' files (reviewNew makes a random id: tested in Swift)
+  const review = { id: "r-abcdefghij", name: "Capabilities", source: { type: "query", query: "dynamic capabilities" }, columns: [{ id: "title" }, { id: "year", width: 70 }, { id: "c-0123456789" }], sort: [{ column: "year", asc: false }], lines: 2, panel: false, created: "2026-10-27T10:00:00Z" };
+  const reviewText = Glue.reviewText(review, "2026-10-27T11:00:00Z");
+  add("reviewText/whole", "reviewText", review, "2026-10-27T11:00:00Z");
+  add("reviewParse/back", "reviewParse", reviewText, "r-abcdefghij");
+  add("reviewParse/not-json", "reviewParse", "{ half", "r-abcdefghij");
+  add("reviewParse/title-first", "reviewParse", JSON.stringify({ name: "x", columns: [{ id: "year" }, { id: "title", hidden: true }], lines: 9, source: { type: "tag", title: "to-read" } }), "r-abcdefghij");
+  add("reviewSourceName/query", "reviewSourceName", { type: "query", query: "teece" });
+  add("reviewSourceName/tag", "reviewSourceName", { type: "tag", title: "to-read" });
+  add("reviewScope/query", "reviewScope", { type: "query", query: "teece" }, []);
+  add("reviewScope/saved", "reviewScope", { type: "search", key: "s1", title: "Old" }, [{ id: "s1", name: "Capabilities", query: "dynamic capabilities" }]);
+  add("reviewScope/saved-gone", "reviewScope", { type: "search", key: "s1", title: "Old", query: "dc" }, []);
+  add("reviewScope/collection", "reviewScope", { type: "collection", key: "WXYZ9876", libraryID: 1, title: "c" }, []);
+  const column = { id: "c-0123456789", label: "Method", kind: "own", type: "choice", options: ["case study", "survey"] };
+  add("reviewColumnText/choice", "reviewColumnText", column);
+  add("reviewColumnParse/back", "reviewColumnParse", Glue.reviewColumnText(column), "c-0123456789");
+  add("reviewColumnParse/no-name", "reviewColumnParse", "---\nkind: own\n---\n", "c-0123456789");
+  const cells = Glue.reviewSetCell("", "1:P3NM4G92", "survey", "2026-10-27T10:00:00Z", "mac");
+  add("reviewSetCell/first", "reviewSetCell", "", "1:P3NM4G92", "survey", "2026-10-27T10:00:00Z", "mac");
+  add("reviewSetCell/emptied", "reviewSetCell", cells, "1:P3NM4G92", "", "2026-10-27T11:00:00Z", "laptop");
+  add("reviewSetCell/bad-paper", "reviewSetCell", cells, "../x", "v", "2026-10-27T11:00:00Z", "mac");
+  add("reviewCells/back", "reviewCells", cells);
+  add("reviewCells/prototype", "reviewCells", '{"cells": {"__proto__": {"v": "x"}, "constructor": {"v": "y"}, "1:AAAA0001": {"v": "ok"}}}');
+  add("reviewValidId/review", "reviewValidId", "r-abcdefghij", "r-");
+  add("reviewValidId/path", "reviewValidId", "r-../../x", "r-");
   return list;
 }
 

@@ -38992,6 +38992,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -39114,6 +39115,7 @@
     "taxonomies": "/h/Sync/shared/taxonomies",
     "taxonomyState": "/h/Sync/shared/taxonomy.json",
     "chats": "/h/Sync/shared/chats",
+    "reviews": "/h/Sync/shared/reviews",
     "artifacts": "/h/Sync/shared/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -39238,6 +39240,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -39357,6 +39360,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -69248,6 +69252,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -69369,6 +69374,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -69491,6 +69497,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -69619,6 +69626,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -69749,6 +69757,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -69870,6 +69879,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -76713,6 +76723,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -97545,6 +97556,43 @@
    {
     "rowId": "key-info",
     "icon": "",
+    "label": "Open the results as a review table, in its own window",
+    "labelHtml": "Open the results as a review table, in its own window",
+    "detail": "",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "⌘T",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "The search box",
+    "promptId": "",
+    "value": "",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "key-info",
+    "icon": "",
     "label": "Next / previous pinned search (the badges on top)",
     "labelHtml": "Next / previous pinned search (the badges on top)",
     "detail": "",
@@ -101088,6 +101136,43 @@
    {
     "rowId": "key-info",
     "icon": "",
+    "label": "Open the results as a review table, in its own window",
+    "labelHtml": "Open the results as a review table, in its own window",
+    "detail": "",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "⌘T",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "The search box",
+    "promptId": "",
+    "value": "",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "key-info",
+    "icon": "",
     "label": "Next / previous pinned search (the badges on top)",
     "labelHtml": "Next / previous pinned search (the badges on top)",
     "detail": "",
@@ -103922,5 +104007,363 @@
     "Close the window (a running answer stops)"
    ]
   ]
+ },
+ {
+  "name": "reviewText/whole",
+  "wrapper": "reviewText",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   "2026-10-27T11:00:00Z"
+  ],
+  "expect": "{\n  \"id\": \"r-abcdefghij\",\n  \"name\": \"Capabilities\",\n  \"source\": {\n    \"type\": \"query\",\n    \"query\": \"dynamic capabilities\",\n    \"key\": \"\",\n    \"libraryID\": 1,\n    \"title\": \"\"\n  },\n  \"columns\": [\n    {\n      \"id\": \"title\"\n    },\n    {\n      \"id\": \"year\",\n      \"width\": 70\n    },\n    {\n      \"id\": \"c-0123456789\"\n    }\n  ],\n  \"sort\": [\n    {\n      \"column\": \"year\",\n      \"dir\": \"asc\"\n    }\n  ],\n  \"lines\": 2,\n  \"panel\": false,\n  \"created\": \"2026-10-27T10:00:00Z\",\n  \"updated\": \"2026-10-27T11:00:00Z\"\n}\n"
+ },
+ {
+  "name": "reviewParse/back",
+  "wrapper": "reviewParse",
+  "args": [
+   "{\n  \"id\": \"r-abcdefghij\",\n  \"name\": \"Capabilities\",\n  \"source\": {\n    \"type\": \"query\",\n    \"query\": \"dynamic capabilities\",\n    \"key\": \"\",\n    \"libraryID\": 1,\n    \"title\": \"\"\n  },\n  \"columns\": [\n    {\n      \"id\": \"title\"\n    },\n    {\n      \"id\": \"year\",\n      \"width\": 70\n    },\n    {\n      \"id\": \"c-0123456789\"\n    }\n  ],\n  \"sort\": [\n    {\n      \"column\": \"year\",\n      \"dir\": \"asc\"\n    }\n  ],\n  \"lines\": 2,\n  \"panel\": false,\n  \"created\": \"2026-10-27T10:00:00Z\",\n  \"updated\": \"2026-10-27T11:00:00Z\"\n}\n",
+   "r-abcdefghij"
+  ],
+  "expect": {
+   "id": "r-abcdefghij",
+   "name": "Capabilities",
+   "source": {
+    "type": "query",
+    "query": "dynamic capabilities",
+    "key": "",
+    "libraryID": 1,
+    "title": ""
+   },
+   "columns": [
+    {
+     "id": "title"
+    },
+    {
+     "id": "year",
+     "width": 70
+    },
+    {
+     "id": "c-0123456789"
+    }
+   ],
+   "sort": [
+    {
+     "column": "year",
+     "dir": "asc"
+    }
+   ],
+   "lines": 2,
+   "panel": false,
+   "created": "2026-10-27T10:00:00Z",
+   "updated": "2026-10-27T11:00:00Z"
+  }
+ },
+ {
+  "name": "reviewParse/not-json",
+  "wrapper": "reviewParse",
+  "args": [
+   "{ half",
+   "r-abcdefghij"
+  ],
+  "expect": null
+ },
+ {
+  "name": "reviewParse/title-first",
+  "wrapper": "reviewParse",
+  "args": [
+   "{\"name\":\"x\",\"columns\":[{\"id\":\"year\"},{\"id\":\"title\",\"hidden\":true}],\"lines\":9,\"source\":{\"type\":\"tag\",\"title\":\"to-read\"}}",
+   "r-abcdefghij"
+  ],
+  "expect": {
+   "id": "r-abcdefghij",
+   "name": "x",
+   "source": {
+    "type": "tag",
+    "query": "",
+    "key": "",
+    "libraryID": 1,
+    "title": "to-read"
+   },
+   "columns": [
+    {
+     "id": "title"
+    },
+    {
+     "id": "year"
+    }
+   ],
+   "sort": [],
+   "lines": 3,
+   "panel": true,
+   "created": "",
+   "updated": ""
+  }
+ },
+ {
+  "name": "reviewSourceName/query",
+  "wrapper": "reviewSourceName",
+  "args": [
+   {
+    "type": "query",
+    "query": "teece"
+   }
+  ],
+  "expect": "“teece”"
+ },
+ {
+  "name": "reviewSourceName/tag",
+  "wrapper": "reviewSourceName",
+  "args": [
+   {
+    "type": "tag",
+    "title": "to-read"
+   }
+  ],
+  "expect": "#to-read"
+ },
+ {
+  "name": "reviewScope/query",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "query",
+    "query": "teece"
+   },
+   []
+  ],
+  "expect": {
+   "scope": null,
+   "query": "teece"
+  }
+ },
+ {
+  "name": "reviewScope/saved",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "search",
+    "key": "s1",
+    "title": "Old"
+   },
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities"
+    }
+   ]
+  ],
+  "expect": {
+   "scope": {
+    "type": "search",
+    "key": "s1",
+    "libraryID": 1,
+    "title": "Capabilities",
+    "query": "dynamic capabilities"
+   },
+   "query": "",
+   "gone": false
+  }
+ },
+ {
+  "name": "reviewScope/saved-gone",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "search",
+    "key": "s1",
+    "title": "Old",
+    "query": "dc"
+   },
+   []
+  ],
+  "expect": {
+   "scope": {
+    "type": "search",
+    "key": "s1",
+    "libraryID": 1,
+    "title": "Old",
+    "query": "dc"
+   },
+   "query": "",
+   "gone": true
+  }
+ },
+ {
+  "name": "reviewScope/collection",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "collection",
+    "key": "WXYZ9876",
+    "libraryID": 1,
+    "title": "c"
+   },
+   []
+  ],
+  "expect": {
+   "scope": {
+    "type": "collection",
+    "key": "WXYZ9876",
+    "libraryID": 1,
+    "title": "c"
+   },
+   "query": ""
+  }
+ },
+ {
+  "name": "reviewColumnText/choice",
+  "wrapper": "reviewColumnText",
+  "args": [
+   {
+    "id": "c-0123456789",
+    "label": "Method",
+    "kind": "own",
+    "type": "choice",
+    "options": [
+     "case study",
+     "survey"
+    ]
+   }
+  ],
+  "expect": "---\nlabel: \"Method\"\nkind: own\ntype: choice\noptions: [\"case study\",\"survey\"]\n---\n"
+ },
+ {
+  "name": "reviewColumnParse/back",
+  "wrapper": "reviewColumnParse",
+  "args": [
+   "---\nlabel: \"Method\"\nkind: own\ntype: choice\noptions: [\"case study\",\"survey\"]\n---\n",
+   "c-0123456789"
+  ],
+  "expect": {
+   "id": "c-0123456789",
+   "label": "Method",
+   "kind": "own",
+   "type": "choice",
+   "options": [
+    "case study",
+    "survey"
+   ],
+   "description": ""
+  }
+ },
+ {
+  "name": "reviewColumnParse/no-name",
+  "wrapper": "reviewColumnParse",
+  "args": [
+   "---\nkind: own\n---\n",
+   "c-0123456789"
+  ],
+  "expect": null
+ },
+ {
+  "name": "reviewSetCell/first",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "",
+   "1:P3NM4G92",
+   "survey",
+   "2026-10-27T10:00:00Z",
+   "mac"
+  ],
+  "expect": "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n"
+ },
+ {
+  "name": "reviewSetCell/emptied",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n",
+   "1:P3NM4G92",
+   "",
+   "2026-10-27T11:00:00Z",
+   "laptop"
+  ],
+  "expect": "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"\",\n      \"updated\": \"2026-10-27T11:00:00Z\",\n      \"by\": \"laptop\"\n    }\n  }\n}\n"
+ },
+ {
+  "name": "reviewSetCell/bad-paper",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n",
+   "../x",
+   "v",
+   "2026-10-27T11:00:00Z",
+   "mac"
+  ],
+  "expect": null
+ },
+ {
+  "name": "reviewCells/back",
+  "wrapper": "reviewCells",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n"
+  ],
+  "expect": {
+   "1:P3NM4G92": {
+    "v": "survey",
+    "updated": "2026-10-27T10:00:00Z",
+    "by": "mac"
+   }
+  }
+ },
+ {
+  "name": "reviewCells/prototype",
+  "wrapper": "reviewCells",
+  "args": [
+   "{\"cells\": {\"__proto__\": {\"v\": \"x\"}, \"constructor\": {\"v\": \"y\"}, \"1:AAAA0001\": {\"v\": \"ok\"}}}"
+  ],
+  "expect": {
+   "1:AAAA0001": {
+    "v": "ok",
+    "updated": "",
+    "by": ""
+   }
+  }
+ },
+ {
+  "name": "reviewValidId/review",
+  "wrapper": "reviewValidId",
+  "args": [
+   "r-abcdefghij",
+   "r-"
+  ],
+  "expect": true
+ },
+ {
+  "name": "reviewValidId/path",
+  "wrapper": "reviewValidId",
+  "args": [
+   "r-../../x",
+   "r-"
+  ],
+  "expect": false
  }
 ]

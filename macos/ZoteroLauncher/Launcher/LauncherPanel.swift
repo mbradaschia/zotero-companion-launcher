@@ -59,6 +59,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }()
     private let noteWindows = NoteWindows()
     private let chatWindows = ChatWindows()
+    private let reviewWindows = ReviewWindows()
+    let reviewShelf = ReviewShelf() // (the menu bar's Review Tables)
     private var monitor: Any?
     private var windowedSink: AnyCancellable?
     private var visible = false // shown, in the panel or the window
@@ -108,12 +110,25 @@ final class LauncherController: NSObject, NSWindowDelegate {
         }
         model.showLauncher = { [weak self] in self?.show() } // (in front, also when it was open behind the chat)
         model.chatDeleted = { [weak self] item, id in self?.chatWindows.deleted(item, id) }
+        model.openReviewWindow = { [weak self] id in
+            guard let self else { return }
+            self.reviewWindows.show(id, launcher: self.model)
+        }
+        reviewShelf.read = { [weak self] in self?.model.reviewList() ?? [] }
+        model.reviewsRefresh = { [weak self] in self?.reviewWindows.refreshAll() }
         windowedSink = model.$windowed.dropFirst().removeDuplicates().sink { [weak self] windowed in
             self?.place(windowed: windowed)
         }
     }
 
     private var current: NSWindow { model.windowed ? window : panel }
+
+    // A review table's window (the menu bar's Review Tables), the files read first if the launcher hasn't yet.
+    func openReview(_ id: String) {
+        if model.paths == nil { model.loadFiles() }
+        if model.tax.report == nil { model.refreshTaxonomies() } // (their columns: drawn when the report comes)
+        reviewWindows.show(id, launcher: model)
+    }
 
     func toggle() {
         guard visible else { return show() }
