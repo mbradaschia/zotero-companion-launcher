@@ -7,6 +7,7 @@ import SwiftUI
 struct ChatWindowView: View {
     @ObservedObject var model: ChatWindowModel
     let launcher: LauncherModel // (not observed: the model passes its changes on, at most twice a second)
+    @Environment(\.palette) private var palette
 
     var body: some View {
         HStack(spacing: 0) {
@@ -38,7 +39,7 @@ struct ChatWindowView: View {
                 .help("Past chats and artifacts")
             Text(model.flash.isEmpty ? model.paperLine : model.flash)
                 .font(.callout.weight(model.flash.isEmpty ? .regular : .semibold))
-                .foregroundStyle(model.flash.isEmpty ? Color.secondary : Color.accentColor)
+                .foregroundStyle(model.flash.isEmpty ? palette.subtext : palette.accent)
                 .lineLimit(1)
             Spacer()
             Button { model.backToMenu(); model.close() } label: { Label("Back", systemImage: "chevron.left") }
@@ -82,7 +83,7 @@ struct ChatWindowView: View {
             .disabled(model.busy)
             Text(info.text)
                 .font(.caption)
-                .foregroundStyle(info.high ? Color.accentColor : Color.secondary)
+                .foregroundStyle(info.high ? palette.accent : palette.subtext)
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 0)
@@ -116,7 +117,7 @@ struct ChatWindowView: View {
             HStack(alignment: .top) {
                 Button { model.openSession(id) } label: {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(s["title"] as? String ?? "chat").lineLimit(2).foregroundStyle(id == model.sessionId ? Color.accentColor : Color.primary)
+                        Text(s["title"] as? String ?? "chat").lineLimit(2).foregroundStyle(id == model.sessionId ? palette.accent : palette.text)
                         let n = s["turns"] as? Int ?? 0
                         Text(String((s["updated"] as? String ?? "").prefix(10)) + " · \(n) " + (n == 1 ? "question" : "questions")).font(.caption).foregroundStyle(.secondary)
                     }
@@ -284,7 +285,8 @@ final class ChatWindows: NSObject, NSWindowDelegate {
         window.title = model.windowTitle
         window.isReleasedWhenClosed = false
         window.contentMinSize = NSSize(width: 520, height: 420)
-        window.contentView = NSHostingView(rootView: ChatWindowView(model: model, launcher: launcher))
+        window.contentView = NSHostingView(rootView: ChatWindowView(model: model, launcher: launcher).themed())
+        ThemeStore.shared.adopt(window)
         window.delegate = self
         window.center()
         model.close = { [weak window] in window?.close() }

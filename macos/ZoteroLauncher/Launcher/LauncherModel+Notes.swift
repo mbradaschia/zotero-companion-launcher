@@ -320,7 +320,8 @@ extension LauncherModel {
     func noteBody(_ html: String, title: String) -> String {
         guard let core else { return "" }
         let parts = (try? core.glueJSON("noteParts", [html, title])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]
-        let looks: [String: Any] = ["size": noteTextSize, "color": "CanvasText", "accent": Self.accentHex, "dim": "GrayText"]
+        // (the theme's, from the page's style; Default's the system's own)
+        let looks: [String: Any] = ["size": noteTextSize, "color": "var(--zl-text, CanvasText)", "accent": "var(--zl-accent, \(Self.accentHex))", "dim": "var(--zl-subtext, GrayText)"]
         return (try? core.glue("noteHtml", [parts?["html"] as? String ?? html, looks], as: String.self)) ?? ""
     }
 

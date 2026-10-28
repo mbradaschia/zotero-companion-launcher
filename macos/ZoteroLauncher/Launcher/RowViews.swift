@@ -7,12 +7,13 @@ struct SearchRowView: View {
     var hint = ""
     var opens = false // Enter opens another list: the same › as a menu's rows
     var task = "" // its default task's name
+    @Environment(\.palette) private var palette
 
     var body: some View {
         HStack(spacing: RowMetrics.iconGap) {
             RowIcon(glyph: row.icon, symbol: row.symbol)
                 .frame(width: 20)
-                .foregroundStyle(selected ? Color.white : Color.secondary)
+                .foregroundStyle(selected ? palette.onAccent : palette.subtext)
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(StyledText.attributed(row.titleHtml, colored: !selected))
                     .lineLimit(1)
@@ -22,7 +23,7 @@ struct SearchRowView: View {
                         Text(row.subtitle)
                             .font(.caption)
                             .lineLimit(1)
-                            .foregroundStyle(selected ? Color.white.opacity(0.85) : Color.secondary)
+                            .foregroundStyle(selected ? palette.onAccent.opacity(0.85) : palette.subtext)
                         RankChips(ranks: row.ranks, selected: selected)
                     }
                 }
@@ -40,7 +41,7 @@ struct SearchRowView: View {
             if row.openState == "current" || row.openState == "open" {
                 Image(systemName: row.openState == "current" ? "circle.fill" : "circle")
                     .font(.system(size: 7))
-                    .foregroundStyle(selected ? Color.white : Color.accentColor)
+                    .foregroundStyle(selected ? palette.onAccent : palette.accent)
                     .help(row.openState == "current" ? "Showing in Zotero" : "Open in Zotero")
             }
             if opens { SubmenuArrow(selected: selected) }
@@ -56,17 +57,18 @@ struct ListRowView: View {
     let row: ListRow
     let selected: Bool
     var hint = ""
+    @Environment(\.palette) private var palette
 
     var body: some View {
         HStack(spacing: RowMetrics.iconGap) {
             if row.showCheck {
                 Image(systemName: row.checked ? "checkmark.square.fill" : "square")
                     .frame(width: 20)
-                    .foregroundStyle(selected ? Color.white : row.checked ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(selected ? palette.onAccent : row.checked ? palette.accent : palette.subtext)
             } else {
                 RowIcon(glyph: row.icon, symbol: Icons.symbol(rowId: row.rowId, badge: row.badge))
                     .frame(width: 20)
-                    .foregroundStyle(selected ? Color.white : Color.secondary)
+                    .foregroundStyle(selected ? palette.onAccent : palette.subtext)
             }
             if let swatch = StyledText.fontColor(in: row.swatch.lowercased()) {
                 Circle().fill(swatch).frame(width: 9, height: 9)
@@ -78,7 +80,7 @@ struct ListRowView: View {
                     Text(row.detail)
                         .font(.caption)
                         .lineLimit(2)
-                        .foregroundStyle(selected ? Color.white.opacity(0.85) : Color.secondary)
+                        .foregroundStyle(selected ? palette.onAccent.opacity(0.85) : palette.subtext)
                 }
             }
             if !row.pill.isEmpty { PillView(text: row.pill, selected: selected, mode: "tag", kind: row.pillKind) }
@@ -89,11 +91,11 @@ struct ListRowView: View {
                 }
             }
             if (row.field == "text" || row.field == "multiline") && !row.editText.isEmpty {
-                Text(row.editText).lineLimit(2).foregroundStyle(selected ? Color.white.opacity(0.9) : Color.secondary)
+                Text(row.editText).lineLimit(2).foregroundStyle(selected ? palette.onAccent.opacity(0.9) : palette.subtext)
             }
             if !row.badge.isEmpty { PillView(text: row.badge, selected: selected) }
             if !row.trailing.isEmpty {
-                Text(row.trailing).font(.caption).foregroundStyle(selected ? Color.white.opacity(0.85) : Color.secondary)
+                Text(row.trailing).font(.caption).foregroundStyle(selected ? palette.onAccent.opacity(0.85) : palette.subtext)
             }
             if row.isSwitch { SwitchMark(on: row.checked, selected: selected) }
             if row.submenu { SubmenuArrow(selected: selected) }
@@ -110,6 +112,7 @@ struct ListRowView: View {
 struct RankChips: View {
     let ranks: String
     let selected: Bool
+    @Environment(\.palette) private var palette
 
     static func labels(_ ranks: String) -> [String] { ranks.split(separator: "|").map(String.init).filter { !$0.isEmpty } }
 
@@ -137,7 +140,7 @@ struct RankChips: View {
             HStack(spacing: 3) {
                 ForEach(all, id: \.self) { label in
                     let top = Self.isTop(label)
-                    let tint: Color = selected ? .white : top ? PillView.color("rank") : .secondary
+                    let tint: Color = selected ? palette.onAccent : top ? PillView.color("rank", palette) : palette.subtext
                     Text(Self.short(label))
                         .font(.system(size: 9, weight: .semibold))
                         .padding(.horizontal, 4)
@@ -157,10 +160,11 @@ struct RankChips: View {
 struct SwitchMark: View {
     let on: Bool
     let selected: Bool
+    @Environment(\.palette) private var palette
 
     var body: some View {
-        let track: Color = on ? (selected ? Color.white.opacity(0.9) : Color.accentColor) : Color.secondary.opacity(selected ? 0.5 : 0.3)
-        let knob: Color = on && selected ? Color.accentColor : Color.white
+        let track: Color = on ? (selected ? palette.onAccent.opacity(0.9) : palette.accent) : palette.subtext.opacity(selected ? 0.5 : 0.3)
+        let knob: Color = on && selected ? palette.accent : Color.white
         ZStack(alignment: on ? .trailing : .leading) {
             Capsule().fill(track).frame(width: 26, height: 15)
             Circle().fill(knob).frame(width: 13, height: 13).padding(.horizontal, 1).shadow(radius: 0.5)
@@ -172,11 +176,12 @@ struct SwitchMark: View {
 // The one submenu arrow (›): every row whose Enter opens another list, results and menus alike.
 struct SubmenuArrow: View {
     let selected: Bool
+    @Environment(\.palette) private var palette
 
     var body: some View {
         Image(systemName: "chevron.right")
             .font(.caption.weight(.semibold))
-            .foregroundStyle(selected ? Color.white : Color.secondary)
+            .foregroundStyle(selected ? palette.onAccent : palette.subtext)
             .frame(width: 10)
             .accessibilityHidden(true) // (the row's value says it: "opens a list")
     }
@@ -190,28 +195,29 @@ struct PillView: View {
     let selected: Bool
     var mode = "off"
     var kind = ""
+    @Environment(\.palette) private var palette
 
-    static func color(_ kind: String) -> Color {
+    static func color(_ kind: String, _ palette: Palette) -> Color {
         switch kind {
-        case "status": return .orange
-        case "priority": return .red
-        case "rank": return .purple
-        case "taxonomy": return .teal
-        case "task": return .green
-        case "neutral": return .secondary
-        default: return .accentColor
+        case "status": return palette.orange
+        case "priority": return palette.red
+        case "rank": return palette.purple
+        case "taxonomy": return palette.teal
+        case "task": return palette.green
+        case "neutral": return palette.subtext
+        default: return palette.accent
         }
     }
 
     var body: some View {
-        let tint = selected ? Color.white : Self.color(kind)
+        let tint = selected ? palette.onAccent : Self.color(kind, palette)
         Text(text)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(Capsule().fill(mode == "on" ? tint.opacity(selected ? 0.9 : 0.85) : mode == "tag" ? tint.opacity(0.14) : Color.secondary.opacity(selected ? 0.3 : 0.16)))
+            .background(Capsule().fill(mode == "on" ? tint.opacity(selected ? 0.9 : 0.85) : mode == "tag" ? tint.opacity(0.14) : palette.subtext.opacity(selected ? 0.3 : 0.16)))
             .overlay(Capsule().strokeBorder(mode == "tag" ? tint.opacity(0.7) : .clear))
-            .foregroundStyle(mode == "on" ? (selected ? Color.accentColor : Color.white) : mode == "tag" ? tint : selected ? Color.white : Color.primary)
+            .foregroundStyle(mode == "on" ? (selected ? palette.accent : palette.onAccent) : mode == "tag" ? tint : selected ? palette.onAccent : palette.text)
             .accessibilityLabel(Access.pill(text, kind: kind))
             .accessibilityValue(mode == "on" ? "chosen" : "")
     }
@@ -227,12 +233,21 @@ enum RowMetrics {
 }
 
 extension View {
-    func rowChrome(selected: Bool) -> some View {
-        font(RowMetrics.title)
+    func rowChrome(selected: Bool) -> some View { modifier(RowChrome(selected: selected)) }
+}
+
+// A row's room and, highlighted, the accent behind it with the text on it in the theme's colour.
+struct RowChrome: ViewModifier {
+    let selected: Bool
+    @Environment(\.palette) private var palette
+
+    func body(content: Content) -> some View {
+        content
+            .font(RowMetrics.title)
             .padding(.horizontal, 12)
             .padding(.vertical, RowMetrics.vertical)
-            .background(selected ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .foregroundStyle(selected ? Color.white : Color.primary)
+            .background(selected ? palette.accent : Color.clear, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .foregroundStyle(selected ? palette.onAccent : palette.text)
             .padding(.horizontal, 6)
     }
 }

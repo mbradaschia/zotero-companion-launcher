@@ -232,6 +232,19 @@ paper has, its status, its extracted text), **off** (faint: a choice, a rank); e
 colour (status orange, priority red, rank purple, taxonomy teal, task green, else the accent); in
 white on a selected row.
 
+## Themes
+
+- **Every colour is the theme's** (`Core/Theme.swift`, Settings › General › Appearance): views read `palette` from the
+  environment (`palette.accent`, `palette.subtext`, `palette.onAccent` on a selected row, the pills' kinds), AppKit
+  reads `palette.ns`, the web pages the theme's style (`--zl-*` in a note's and a chat's, ReviewGrid.css's own custom
+  properties in a review table). No view names `Color.accentColor`, `.white` or `.orange` itself; `.secondary` as a
+  foreground style is fine (it is the theme's text, dimmed).
+- **Default is the Mac's own** (the system's colours and accent, exactly as before themes); a theme is a light and a
+  dark variant, picked by *Light or dark* (as the Mac, or always one: the app's appearance, menus and alerts too).
+- **What's text reads:** 4.5:1 on the background for the second line and the accent, 3:1 for the pills' colours (a
+  theme's own colour nudged darker or lighter until it does); on the accent, the background or the text, whichever
+  reads better. Solid backgrounds only, the theme's, title bars too.
+
 ## Known gaps
 
 - None known. (The empty states draw SF Symbols where the QML draws Nerd Font glyphs: a triangle for what's wrong,

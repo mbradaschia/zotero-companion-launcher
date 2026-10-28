@@ -40,6 +40,7 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.contentMinSize = Self.minSize
         window.contentView = NSHostingView(rootView: ReviewWebView(model: model).frame(minWidth: Self.minSize.width, minHeight: Self.minSize.height))
+        ThemeStore.shared.adopt(window)
         window.delegate = self
         window.center()
         model.close = { [weak window] in window?.close() }

@@ -160,7 +160,9 @@ extension LauncherModel {
                                                    "artifact-rename": "Rename the artifact"]
 
     private func settingLabel(_ path: String) -> String {
-        (try? core?.glueJSON("settingEdit", [path, settingsJSON])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) }
+        if path == "mac.theme" { return "Theme" } // (this Mac's own, not the settings file's)
+        if path == "mac.themeMode" { return "Light or dark" }
+        return (try? core?.glueJSON("settingEdit", [path, settingsJSON])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) }
             .flatMap { ($0 as? [String: Any])?["label"] as? String } ?? "Choose"
     }
 

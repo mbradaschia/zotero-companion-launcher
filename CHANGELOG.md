@@ -13,6 +13,19 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.14`)
+
+- **Themes.** Settings › General › Appearance › Theme picks the app's colours: Default (the Mac's own colours and
+  accent, as before) or one of ten well-known themes, each with a light and a dark variant: Catppuccin (Latte, Mocha),
+  Solarized, Gruvbox, Nord, Dracula (Alucard, Dracula), Tokyo Night (Day, Night), One (Light, Dark), GitHub and Rosé
+  Pine (Dawn, Rosé Pine). Each row shows its accent. One palette draws every window: the launcher (the overlay and the
+  window), its search box, notes, chats and review tables, their title bars too.
+- **Light or dark** (same section): As the Mac (System Settings › Appearance, the default), or always light, or always
+  dark, for the whole app (its menus and alerts too). Both are kept on this Mac, as Open as a window is.
+- A theme's colours are its authors'; one used as text that would read poorly on the background (Solarized Light's
+  yellow, Nord Light's greens) is darkened, or lightened on a dark one, until it reads (4.5:1 for the second line and
+  the accent, 3:1 for the pills).
+
 ### The Mac app (`macos-v0.4.10`)
 
 - **The review table is easier to find.** The results' footer hints ⌘T table wherever the keys are (the search box or

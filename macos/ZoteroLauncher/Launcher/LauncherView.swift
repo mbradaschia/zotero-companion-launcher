@@ -5,12 +5,14 @@ import SwiftUI
 struct LauncherView: View {
     @ObservedObject var model: LauncherModel
     @ObservedObject var store: AppStore
+    @ObservedObject var theme: ThemeStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var top: Int? // the first row in view: 1…9 count from it
 
     init(model: LauncherModel) {
         self.model = model
         self.store = model.store
+        self.theme = ThemeStore.shared
     }
 
     var body: some View {
@@ -77,8 +79,9 @@ struct LauncherView: View {
         }
         .frame(minWidth: LauncherPanel.minSize.width, maxWidth: .infinity, minHeight: LauncherPanel.minSize.height, maxHeight: .infinity) // (resizable: it fills the panel)
         // solid, not a see-through material: what's behind (lighter still while it isn't the window in front) made the text hard to read
-        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(theme.palette.background, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .themed()
     }
 
     // The paper's taxonomy strip, when it has a label or a note to show.
@@ -275,11 +278,12 @@ struct ArrangeMenu: View {
 
 struct ArrangeChip: View {
     let text: String
+    @Environment(\.palette) private var palette
 
     var body: some View {
         Text(text).font(.caption.weight(.medium)).lineLimit(1)
             .padding(.horizontal, 8).padding(.vertical, 2)
-            .background(Capsule().fill(Color.secondary.opacity(0.14)))
+            .background(Capsule().fill(palette.subtext.opacity(0.14)))
             .foregroundStyle(.secondary)
     }
 }
@@ -291,13 +295,14 @@ struct BadgeChip: View {
     let id: String
     let active: Bool
     let tap: () -> Void
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let save: Bool = id == "+save"
         let plain: Bool = id.isEmpty || save
-        let fill: Color = active ? .accentColor : .clear
-        let stroke: Color = Color.secondary.opacity(save || active ? 0 : 0.4)
-        let ink: Color = active ? .white : .primary
+        let fill: Color = active ? palette.accent : .clear
+        let stroke: Color = palette.subtext.opacity(save || active ? 0 : 0.4)
+        let ink: Color = active ? palette.onAccent : palette.text
         let traits: AccessibilityTraits = active ? [.isButton, .isSelected] : .isButton
         Text(plain ? name : "\u{2315} " + name)
             .font(.caption.weight(active ? .semibold : .regular))
@@ -317,6 +322,7 @@ struct BadgeChip: View {
 // The footer: the paper's pills in its menu, the note (a flash, an error), and the hints that fit.
 struct FooterView: View {
     @ObservedObject var model: LauncherModel
+    @Environment(\.palette) private var palette
     @State private var hintsWidth: CGFloat = 0
 
     var body: some View {
@@ -340,7 +346,7 @@ struct FooterView: View {
                             Label(processes, systemImage: processes.contains("failed") ? "exclamationmark.triangle" : "gearshape.2").font(.caption)
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(processes.contains("failed") ? Color.orange : Color.secondary)
+                        .foregroundStyle(processes.contains("failed") ? palette.orange : palette.subtext)
                         .help("Processes (" + model.keyName(".") + ")")
                         .accessibilityLabel("Processes: " + processes.replacingOccurrences(of: " · ", with: ", "))
                     }

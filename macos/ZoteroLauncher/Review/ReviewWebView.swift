@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import CryptoKit
 import SwiftUI
 import WebKit
@@ -41,8 +42,9 @@ struct ReviewWebView: NSViewRepresentable {
         view.navigationDelegate = context.coordinator
         view.setAccessibilityLabel("Review table")
         context.coordinator.view = view
+        context.coordinator.watchTheme()
         model.page = context.coordinator
-        view.loadHTMLString(Self.shell, baseURL: nil)
+        view.loadHTMLString(ThemeStyle.page(Self.shell, ThemeStore.shared.palette.reviewCSS), baseURL: nil)
         return view
     }
 
@@ -65,8 +67,16 @@ struct ReviewWebView: NSViewRepresentable {
         weak var view: WKWebView?
         weak var model: ReviewWindowModel?
         private var loaded = false
+        private var theme: AnyCancellable?
 
         init(model: ReviewWindowModel) { self.model = model }
+
+        // Settings › General › Theme changed: the page's colours (ReviewGrid.css's custom properties), in place.
+        func watchTheme() {
+            theme = ThemeStore.shared.$palette.dropFirst().sink { [weak self] palette in
+                MainActor.assumeIsolated { self?.view?.evaluateJavaScript(ThemeStyle.script(palette.reviewCSS), in: nil, in: .defaultClient) { _ in } }
+            }
+        }
 
         // (the data as a JSON literal, run in the page's world: the app's own call, which the page's CSP doesn't stop)
         func load(_ data: [String: Any]) { call("RT.load", data) }
@@ -86,7 +96,7 @@ struct ReviewWebView: NSViewRepresentable {
         // The page's process gone (memory pressure, a crash): the page again; it says it's ready, and is loaded again.
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             loaded = false
-            webView.loadHTMLString(ReviewWebView.shell, baseURL: nil)
+            webView.loadHTMLString(ThemeStyle.page(ReviewWebView.shell, ThemeStore.shared.palette.reviewCSS), baseURL: nil)
         }
 
         // Only the page itself loads; a link, a dropped file, anything else is cancelled.

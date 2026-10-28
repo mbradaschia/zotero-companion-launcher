@@ -4,6 +4,7 @@ import SwiftUI
 // PgUp/PgDn, Home, Delete and Enter come through the key router.
 struct CalendarView: View {
     @ObservedObject var model: LauncherModel
+    @Environment(\.palette) private var palette
 
     private var month: (title: String, days: [[String: Any]]) {
         let json = (try? model.core?.glueJSON("calendarMonth", [model.tasks.calDate, model.nowMs])) ?? "{}"
@@ -24,8 +25,8 @@ struct CalendarView: View {
                             let chosen = day["date"] as? String == model.tasks.calDate
                             Text("\(day["day"] as? Int ?? 0)")
                                 .frame(width: 34, height: 26)
-                                .background(chosen ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-                                .foregroundStyle(chosen ? Color.white : (day["inMonth"] as? Bool == true ? Color.primary : Color.secondary))
+                                .background(chosen ? palette.accent : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+                                .foregroundStyle(chosen ? palette.onAccent : (day["inMonth"] as? Bool == true ? palette.text : palette.subtext))
                         }
                     }
                 }

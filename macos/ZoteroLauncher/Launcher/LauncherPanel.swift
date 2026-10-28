@@ -32,7 +32,7 @@ final class LauncherPanel: NSPanel {
         hidesOnDeactivate = false
         isMovableByWindowBackground = true // (dragged by its background: the header, the footer, an empty list)
         isReleasedWhenClosed = false
-        backgroundColor = .windowBackgroundColor // (no clear corners: every pixel of it takes the clicks)
+        backgroundColor = ThemeStore.shared.palette.ns.background // (no clear corners: every pixel of it takes the clicks)
         hasShadow = true
         contentView = content
     }
@@ -75,6 +75,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private lazy var panel: LauncherPanel = {
         let panel = LauncherPanel(content: hosting)
         panel.delegate = self
+        ThemeStore.shared.adopt(panel)
         return panel
     }()
     private lazy var window: NSWindow = {
@@ -87,6 +88,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         window.setFrameAutosaveName("ZLLauncherWindow")
         window.isReleasedWhenClosed = false
         window.delegate = self
+        ThemeStore.shared.adopt(window)
         return window
     }()
 

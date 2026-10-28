@@ -45,8 +45,25 @@ extension LauncherModel {
         extra["taxEditId"] = tax.editId
         extra["home"] = NSHomeDirectory()
         extra["openAsWindow"] = openAsWindow
+        extra["theme"] = themeSettings
         if let review = tax.review { extra["review"] = review }
         return try core.glue("settingsPage", [settingsPageName, settingsJSON, settingsContext, extra], as: [ListRow].self)
+    }
+
+    // Settings › General › Appearance: the theme in effect, light or dark, and the app's themes (Core/Theme.swift), each
+    // with its accent as a swatch.
+    var themeSettings: [String: Any] {
+        let theme = ThemeStore.shared
+        return ["id": theme.family.id, "mode": theme.mode.rawValue,
+                "themes": ThemeFamily.all.map { f -> [String: Any] in
+                    ["id": f.id, "name": f.name, "light": f.light?.name ?? "", "dark": f.dark?.name ?? "", "swatch": Palette(f).accentHex]
+                }]
+    }
+
+    // A theme or light or dark chosen (this Mac's, not the settings file's): every window redraws in it at once.
+    func chooseTheme(_ path: String, _ value: String) {
+        if path == "mac.themeMode" { ThemeStore.shared.setMode(ThemeMode(rawValue: value) ?? .system) } else { ThemeStore.shared.setFamily(value) }
+        runnerState.index = nil // (what the search finds says the one now in effect)
     }
 
     var handshakeVersion: String { (bridge as? BridgeClient)?.handshake?.bridgeVersion ?? "" }
@@ -190,7 +207,11 @@ extension LauncherModel {
             selectRow { $0.checked }
         case "set-opt":
             let path = row.value
-            if saveSetting(path, row.tag, "") {
+            if path == "mac.theme" || path == "mac.themeMode" {
+                chooseTheme(path, row.tag)
+                back()
+                selectRow { $0.rowId == "set-choice" && $0.value == path }
+            } else if saveSetting(path, row.tag, "") {
                 back()
                 selectRow { $0.rowId == "set-choice" && $0.value == path }
             }
