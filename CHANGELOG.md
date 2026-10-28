@@ -13,6 +13,14 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.12`)
+
+- **Installing the AI features no longer reports success without the Claude or Codex binary**: npm ci skips an
+  optional package whose download fails (each is ~80 MB; a slow IPv6 route to the registry is enough) and still
+  succeeds. The installer now checks that this machine's binaries are there, tries once more preferring IPv4 (the
+  rest comes from npm's cache), and fails with "npm didn't download …" if they're still missing. The Omarchy
+  launcher's installer too.
+
 ### The Mac app (`macos-v0.4.10`)
 
 - **The review table is easier to find.** The results' footer hints ⌘T table wherever the keys are (the search box or
