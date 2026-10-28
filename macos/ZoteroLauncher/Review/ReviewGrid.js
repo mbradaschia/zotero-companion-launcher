@@ -7,7 +7,8 @@ var RT = (function () {
   var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true }
   var review = null // the review as you arrange it (sent back on each change)
   var cols = [] // its columns, resolved (ReviewCore.columns)
-  var rows = [] // the papers, in the sort's order
+  var rows = [] // the papers, in the sort's order (and grouped: the groups' order)
+  var groups = [] // [{ label, rows }]: one group, its label "", when the papers aren't grouped
   var act = { pid: "", c: "title" } // the active cell: its paper and column
   var sel = {} // the selected papers (space, the checkboxes)
   var editing = null // { pid, c } while a cell of yours is being typed
@@ -62,7 +63,10 @@ var RT = (function () {
 
   function resolve() {
     cols = C.columns(review, D.ctx, D.columns)
-    rows = C.sortRows(D.results || [], review.sort, cols, D.ctx, D.cells)
+    // grouped: the groups in the group column's order, descending when the sort has that column descending
+    var down = review.sort.some(function (k) { return k.column === review.group && k.dir === "desc" })
+    groups = C.groupRows(C.sortRows(D.results || [], review.sort, cols, D.ctx, D.cells), review.group, cols, D.ctx, D.cells, down)
+    rows = [].concat.apply([], groups.map(function (g) { return g.rows }))
     var ids = {}
     rows.forEach(function (r) { ids[C.paperId(r)] = true })
     Object.keys(sel).forEach(function (k) { if (!ids[k]) delete sel[k] })
@@ -81,7 +85,7 @@ var RT = (function () {
     clearTimeout(layoutTimer)
     layoutTimer = setTimeout(function () {
       layoutTimer = null
-      post("layout", { review: { columns: review.columns, sort: review.sort, lines: review.lines, panel: review.panel } })
+      post("layout", { review: { columns: review.columns, sort: review.sort, group: review.group, lines: review.lines, panel: review.panel } })
     }, 400)
   }
 
@@ -95,7 +99,9 @@ var RT = (function () {
     app.appendChild(el("div", { class: "toolbar" }, [
       el("button", { class: "source", id: "bSource", type: "button", title: "The papers: a saved search or a query. A click picks another, or renames the review", "aria-haspopup": "true" }),
       el("div", { class: "tools" }, [
-        el("button", { class: "tb", id: "bSort", type: "button", "aria-haspopup": "true" }),
+        el("button", { class: "tb", id: "bGroup", type: "button", "aria-haspopup": "true", title: "Group the papers by a column's value" }),
+        el("button", { class: "tb", id: "bSort", type: "button", "aria-haspopup": "true", title: "Sort by one column or several" }),
+        el("button", { class: "tb", id: "bOrder", type: "button" }),
         el("button", { class: "tb", id: "bLines", type: "button", text: "Lines ▾", "aria-haspopup": "true" }),
         el("button", { class: "tb", id: "bCols", type: "button", text: "Columns ▾", "aria-haspopup": "true" }),
         el("button", { class: "tb primary", id: "bAdd", type: "button", text: "+ Column" }),
@@ -123,8 +129,16 @@ var RT = (function () {
     clear($("bSource")).appendChild(el("span", { class: "kind", text: sourceKind(s) }))
     $("bSource").appendChild(el("span", { class: "what", text: review.name }))
     if (q) $("bSource").appendChild(el("span", { class: "q", text: q }))
-    $("bSort").textContent = review.sort.length ? "Sort: " + review.sort.length + " ▾" : "Sort ▾"
+    var g = colById(review.group), k = review.sort[0], kc = k ? colById(k.column) : null
+    $("bGroup").textContent = "Group: " + (g && C.groupable(g) ? g.label : "none") + " ▾"
+    $("bGroup").className = "tb" + (g && C.groupable(g) ? " on" : "")
+    $("bSort").textContent = "Sort: " + (k ? (kc ? kc.label : k.column) + (review.sort.length > 1 ? " +" + (review.sort.length - 1) : "") : "none") + " ▾"
     $("bSort").className = "tb" + (review.sort.length ? " on" : "")
+    // the order: the first sort key's direction (no sort, no order)
+    $("bOrder").textContent = k && k.dir === "desc" ? "↓ Desc" : "↑ Asc"
+    $("bOrder").disabled = !k
+    $("bOrder").title = k ? (k.dir === "desc" ? "Descending by " : "Ascending by ") + (kc ? kc.label : k.column) + ": a click turns it" : "Sort by a column first, then choose its order"
+    $("bOrder").setAttribute("aria-label", k ? "Order: " + (k.dir === "desc" ? "descending" : "ascending") : "Order: not sorted")
     $("bPanel").className = "tb" + (review.panel ? " on" : "")
     $("bPanel").setAttribute("aria-pressed", String(!!review.panel))
     $("body").className = "body" + (review.panel ? "" : " nopanel")
@@ -169,7 +183,21 @@ var RT = (function () {
     })
     table.appendChild(el("thead", {}, [hr]))
     var tb = el("tbody")
-    rows.forEach(function (r) {
+    groups.forEach(function (gr) {
+      if (gr.label) {
+        tb.appendChild(el("tr", { class: "grp" }, [el("td", { colspan: String(vc.length + 1) }, [
+          el("div", { class: "gh" }, [el("span", { class: "gl", text: gr.label }), el("span", { class: "gn", text: String(gr.rows.length) })])
+        ])]))
+      }
+      gr.rows.forEach(function (r) { tb.appendChild(paperRow(r, vc)) })
+    })
+    table.appendChild(tb)
+    gw.appendChild(table)
+    var box = $("edbox")
+    if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length) }
+  }
+
+  function paperRow(r, vc) {
       var pid = C.paperId(r)
       var tr = el("tr", { class: sel[pid] ? "selrow" : "", "data-p": pid }, [
         el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + r.title })])])
@@ -181,12 +209,7 @@ var RT = (function () {
         } else td.appendChild(cellView(c, r))
         tr.appendChild(td)
       })
-      tb.appendChild(tr)
-    })
-    table.appendChild(tb)
-    gw.appendChild(table)
-    var box = $("edbox")
-    if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length) }
+      return tr
   }
 
   function cellView(c, r) {
@@ -464,6 +487,30 @@ var RT = (function () {
     })
   }
 
+  function groupPop(anchor) {
+    var choices = visible().filter(C.groupable)
+    var kids = [el("div", { class: "ph", text: "Group the papers by" }), item((review.group ? "" : "✓ ") + "None", { "data-g": "" })]
+    choices.forEach(function (c) { kids.push(item((review.group === c.id ? "✓ " : "") + c.label, { "data-g": c.id })) })
+    kids.push(el("div", { class: "ph", text: "The groups follow the column's order; sort by it descending to turn them." }))
+    openPop(anchor, kids, function (p) {
+      p.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-g]")
+        if (!b) return
+        closePop()
+        review.group = b.getAttribute("data-g")
+        layoutChanged()
+        var c = colById(review.group)
+        flash(c ? "Grouped by " + c.label : "Not grouped")
+      })
+    })
+  }
+
+  // The order button: the first sort key's direction turned.
+  function turnOrder() {
+    if (!review.sort.length) return
+    setSort(review.sort.map(function (k, i) { return { column: k.column, dir: i === 0 ? (k.dir === "desc" ? "asc" : "desc") : k.dir } }))
+  }
+
   function sortPop(anchor) {
     var kids = [el("div", { class: "ph", text: review.sort.length ? "Sorted by, in order" : "Not sorted: the papers in the search's order" })]
     review.sort.forEach(function (k, i) {
@@ -674,7 +721,9 @@ var RT = (function () {
 
   function wire() {
     $("bSource").addEventListener("click", function (e) { sourcePop(e.currentTarget) })
+    $("bGroup").addEventListener("click", function (e) { groupPop(e.currentTarget) })
     $("bSort").addEventListener("click", function (e) { sortPop(e.currentTarget) })
+    $("bOrder").addEventListener("click", turnOrder)
     $("bLines").addEventListener("click", function (e) { linesPop(e.currentTarget) })
     $("bCols").addEventListener("click", function (e) { colsPop(e.currentTarget) })
     $("bAdd").addEventListener("click", addDialog)

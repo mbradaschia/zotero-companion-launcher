@@ -23,6 +23,45 @@ var Glue = (function () {
   // Go to with only the places the Mac has (`have`: their kinds; a Settings row found by name
   // stays): the rest of the launcher's places come in later phases. With none left above the
   // papers, the papers lose their heading, as lib/Views.js's buildRows does.
+  // ---- the results' Group, Sort and Order
+  var SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"]]
+  var isGroup = function (id) { return id === "status" || id === "task" || id === "taskgroup" || /^tax:./.test(String(id)) }
+  var arrangement = function (values) {
+    var v = values && typeof values === "object" ? values : {}
+    var a = { group: isGroup(v.group) ? v.group : "", sort: "relevance", order: v.order === "asc" ? "asc" : "desc" }
+    for (var i = 0; i < SORTS.length; i++) if (SORTS[i][0] === v.sort) a.sort = v.sort
+    if (!("group" in v) && !("sort" in v) && !("order" in v) && typeof v.grouping === "string") { // (before 0.4.10: one key for both)
+      var g = v.grouping.replace(/:asc$/, "")
+      if (g === "added" || g === "modified" || g === "year") { a.sort = g; a.order = /:asc$/.test(v.grouping) ? "asc" : "desc" }
+      else if (isGroup(g)) a.group = g
+    }
+    return a
+  }
+  // The papers sorted (none last, either way; relevance within a tie), then grouped: the rest stay where they were.
+  var arrange = function (rows, a, info) {
+    if (a.sort !== "relevance") {
+      var raw = {}
+      ;(info.results || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
+      var isPaper = function (r) { return r.kind === "item" && r.section !== "Pinned" }
+      var keyOf = function (r) {
+        var x = raw[r.libraryID + ":" + r.key] || {}
+        if (a.sort === "year") { var y = Number(x.year) || 0; return y ? String(y) : "" }
+        return String((a.sort === "added" ? x.dateAdded : x.dateModified) || "")
+      }
+      var papers = rows.filter(isPaper).map(function (r, i) { return { r: r, i: i, k: keyOf(r) } })
+      papers.sort(function (p, q) {
+        if (p.k !== q.k) {
+          if (!p.k || !q.k) return p.k ? -1 : 1
+          return (p.k < q.k ? -1 : 1) * (a.order === "asc" ? 1 : -1)
+        }
+        return p.i - q.i
+      })
+      var n = 0
+      rows = rows.map(function (r) { return isPaper(r) ? papers[n++].r : r })
+    }
+    return a.group ? V.groupRows(rows, a.group, info) : rows
+  }
+
   var onlyHave = function (rows, have, response) {
     var out = rows.filter(function (r) { return r.section !== "Go to" || r.kind === "setting" || have.indexOf(r.kind) >= 0 })
     var above = out.some(function (r) { return r.section === "Go to" || r.section === V.SECTION_COLLECTIONS || r.section === "Tags" })
@@ -67,8 +106,18 @@ var Glue = (function () {
       if (extras && extras.have) built = onlyHave(built, extras.have, response)
       var rows = V.orderSections(built, sectionOrder || null)
       var groupable = !!(response && (response.scope || String(response.query || "").trim()))
-      if (grouping && groupable) rows = V.groupRows(rows, grouping.mode, Object.assign({ results: response.results, groups: T.GROUPS }, grouping.info || {}))
+      if (grouping && groupable) rows = arrange(rows, arrangement(grouping), Object.assign({ results: response.results, groups: T.GROUPS }, grouping.info || {}))
       return V.withNoteRows(rows, expanded || null)
+    },
+    // The results' Group, Sort and Order (view.json's group, sort, order; the older one-key grouping read when
+    // none of them is set): { group: "" or a grouping, sort: "relevance" or a date, order: "desc" or "asc" }.
+    arrangement: function (values) { return arrangement(values) },
+    // What the Group and Sort menus offer: [[id, name]] each.
+    arrangeOptions: function (taxonomies) {
+      return { groups: [["", "None"]].concat(V.groupings(taxonomies || []).filter(function (g) { return isGroup(g[0]) }).map(function (g) {
+        var n = String(g[1]).replace(/^by /, "")
+        return [g[0], n.charAt(0).toUpperCase() + n.slice(1)]
+      })), sorts: SORTS.map(function (s) { return s.slice() }) }
     },
     nextGrouping: function (id, delta, taxonomies) { return V.nextGrouping(id, delta, taxonomies || []) },
     groupingName: function (id, taxonomies) { return V.groupingName(id, taxonomies || []) },
@@ -201,7 +250,11 @@ var Glue = (function () {
     [/\bTab\b/g, "tab"], [/\bSpace\b/g, "space"]]
   var MAC_KEY_LINES = [["(your Hyprland keybinding)", "(the app's hotkey: menu bar icon › Hotkey and Login…)"], ["Close the launcher when it's open (with the README's rebinding)", "Close the launcher"],
     ["Clear the search box", "Clear the search box (⌥⌫ deletes a word)"], ["Stop the answer, or close a menu", "Stop the answer, or hide these keys"],
-    ["The launcher as a window, and back as the overlay", "The launcher as a window or as the overlay, for this opening"]]
+    ["The launcher as a window, and back as the overlay", "The launcher as a window or as the overlay, for this opening"],
+    // (g and G: the Mac's results have Group, Sort and Order, 0.4.10)
+    ["Group or sort the papers: by paper status, task status or group, a taxonomy, date added, changed, published; relevance",
+      "Sort the papers (g: relevance, date added, changed, published) or group them (G: paper status, task status or group, a taxonomy); the order is the bar's ↓ Desc / ↑ Asc"],
+    ["Group or sort the papers / back a step", "The next sort / the next grouping"], ["Group or sort the papers", "Sort the papers (g), group them (G)"]]
   var macKeyColumn = function (t) {
     if (typeof t !== "string") return t
     for (var i = 0; i < MAC_KEY_COLUMN.length; i++) t = t.replace(MAC_KEY_COLUMN[i][0], MAC_KEY_COLUMN[i][1])

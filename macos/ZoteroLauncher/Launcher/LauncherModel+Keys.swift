@@ -260,7 +260,7 @@ extension LauncherModel {
             openKeys()
             return true
         case "g" where store.inSearch, "G" where store.inSearch:
-            cycleGrouping(c == "g" ? 1 : -1)
+            c == "g" ? cycleSort(1) : cycleGroup(1)
             return true
         case "x" where store.view == "actions" || (store.inSearch && selectedSearchRow?.kind == "item"):
             return extractKey()
@@ -320,22 +320,6 @@ extension LauncherModel {
         keysHere = (try? core.glueJSON("keysContext", [store.view, ctx, !singleKeys])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]
         store.push("keys")
         rebuildList()
-    }
-
-    // g / G: the results' papers grouped or sorted (ZoteroSearch.qml:581), kept in view.json.
-    func cycleGrouping(_ delta: Int) {
-        guard let core, var prefs else { return }
-        let current = prefs.values["grouping"] as? String ?? "relevance"
-        let next = (try? core.glue("nextGrouping", [current, delta, tax.taxonomies], as: String.self)) ?? "relevance"
-        saved {
-            try prefs.set("grouping", next == "relevance" ? nil : next)
-            self.prefs = prefs
-        }
-        store.followTop = false
-        if store.inSearch { rebuildSearch() }
-        let name = (try? core.glue("groupingName", [next, tax.taxonomies], as: String.self)) ?? ""
-        let groupable = response.map { ($0["scope"] is [String: Any]) || !((($0["query"] as? String) ?? "").trimmingCharacters(in: .whitespaces).isEmpty) } ?? false
-        flashMessage("Papers: " + (name.isEmpty ? "by relevance" : name) + (groupable || !store.inSearch ? "" : " (once you search)"))
     }
 
     // W: the launcher as a window, and back.

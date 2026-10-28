@@ -37,7 +37,7 @@ extension LauncherModel {
         reviewsRefresh() // (a review table's taxonomy columns)
         guard opened else { return }
         if store.inSettings || ["actions", "tax-paper", "tax-audit"].contains(store.view) { store.followTop = false; rebuildList() }
-        if store.inSearch, (prefs?.values["grouping"] as? String ?? "").hasPrefix("tax:") { rebuildSearch() }
+        if store.inSearch, arrangement.group.hasPrefix("tax:") { rebuildSearch() }
     }
 
     // One job at a time (taxonomy-save, -remove, -new, -show; classify-show, -decide), stdin when it's a save.

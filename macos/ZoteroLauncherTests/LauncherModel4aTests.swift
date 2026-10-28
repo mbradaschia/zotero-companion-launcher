@@ -412,7 +412,7 @@ final class LauncherModel4aTests: XCTestCase {
         model.willShow(query: "")
         XCTAssertTrue(model.keyAction("g"))
         let view = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: config.appendingPathComponent("view.json"))) as? [String: Any])
-        XCTAssertNotNil(view["grouping"] as? String)
+        XCTAssertNotNil(view["sort"] as? String) // (g: the next sort)
         XCTAssertTrue(model.flash.hasPrefix("Papers: "))
     }
 }
