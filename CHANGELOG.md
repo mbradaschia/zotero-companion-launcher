@@ -13,12 +13,18 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (`macos-v0.4.8`)
+### The Mac app (`macos-v0.4.10`)
 
-- **Settings › Setup installs Node.js, pdftotext and Tesseract itself**: Enter on *Install Node.js*, *Install
-  pdftotext* or *Read scans by OCR* runs `brew install …` (node, poppler, tesseract) in the background, shown in
-  Processes, and the row says it's installed when it's done. It used to only copy the command, with nothing on screen
-  but a short flash, so the button looked broken. Without Homebrew it still copies the command, and says so.
+- **The review table is easier to find.** The results' footer hints ⌘T table wherever the keys are (the search box or
+  the list), early enough that a narrow launcher keeps it, and a table button beside the pin opens the results as a
+  review table, as ⌘T does.
+- **Group, Sort and Order, apart.** The results' one pill (e.g. "Year ↑") is three controls on the bar: Group ▾
+  (none, paper status, task status, task group, or a taxonomy), Sort ▾ (relevance, date added, date changed, year
+  published) and Order (↓ Desc / ↑ Asc, off while the sort is relevance). g picks the next sort, G the next grouping.
+  The view keeps them as `group`, `sort` and `order` in view.json; an older `grouping` is read once and replaced.
+- **The review table groups too.** Its toolbar has Group ▾ (any column with values to share, such as year, type,
+  status or a taxonomy), Sort ▾ (the columns sorted, as before) and Order, which turns the first sort key. Each group
+  gets a header row with its count, the empty group last; the table remembers the grouping.
 
 ### The Mac app (`macos-v0.4.7`)
 

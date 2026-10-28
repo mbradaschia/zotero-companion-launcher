@@ -107,6 +107,16 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(model.reviewList().count, 1)
     }
 
+    func testCommandTIsHintedInTheResultsWhereverTheKeysAre() throws {
+        model.willShow(query: "dynamic capabilities")
+        model.store.searchFocus = true
+        XCTAssertTrue(model.hintsFor().contains("⌘T table"), "\(model.hintsFor())")
+        model.store.searchFocus = false // the list has the keys, on a paper
+        model.store.selectedIndex = try XCTUnwrap(model.searchRows.firstIndex { $0.kind == "item" })
+        XCTAssertTrue(model.hintsFor().contains("⌘T table"), "\(model.hintsFor())")
+        XCTAssertLessThan(try XCTUnwrap(model.hintsFor().firstIndex(of: "⌘T table")), 6) // early: a narrow footer keeps it
+    }
+
     func testCommandTWithNothingTypedSaysWhatItNeeds() {
         var opened: [String] = []
         model.openReviewWindow = { opened.append($0) }
