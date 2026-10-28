@@ -13,6 +13,18 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.16`)
+
+- **Settings › Setup installs Node.js, pdftotext and Tesseract itself**: Enter on *Install Node.js*, *Install
+  pdftotext* or *Read scans by OCR* runs `brew install …` (node, poppler, tesseract) in the background, shown in
+  Processes, and the row says it's installed when it's done. It used to only copy the command, with nothing on screen
+  but a short flash, so the button looked broken. Without Homebrew it still copies the command, and says so.
+- **Installing the AI features no longer reports success without the Claude or Codex binary**: npm ci skips an
+  optional package whose download fails (each is ~80 MB; a slow IPv6 route to the registry is enough) and still
+  succeeds. The installer now checks that this machine's binaries are there, tries once more preferring IPv4 (the
+  rest comes from npm's cache), and fails with "npm didn't download …" if they're still missing. The Omarchy
+  launcher's installer too.
+
 ### The Mac app (`macos-v0.4.13`)
 
 - **The review table's toolbar is icons** (Group, Sort, Order, Lines, Columns, add a column, Export, Panel, search
