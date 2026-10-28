@@ -13,6 +13,15 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (next)
+
+- **An icon of its own**, in the Dock, ⌘Tab and Finder: a shelf of books and a magnifier.
+- **In the Dock and ⌘Tab.** Its Dock icon, or switching to it with nothing of it on screen, opens the launcher as the
+  hotkey does. Settings › General › In the Dock and ⌘Tab turns it off (the menu bar's icon and the hotkey only, as
+  before); it's kept on this Mac.
+- **Themes preview as you browse.** On Settings › General › Theme (and Light or dark), the row you're on is the app's
+  look at once; ↵ keeps it, esc or ⌫ (or closing the launcher) puts back the one you had.
+
 ### The Mac app (`macos-v0.4.14`)
 
 - **AI columns in the review table** (phase 11b). *+ Column › An AI column* makes one of four kinds:

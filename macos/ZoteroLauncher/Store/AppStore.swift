@@ -10,7 +10,7 @@ final class AppStore: ObservableObject {
     @Published var filterText = ""
     @Published var caretBack = 0
     @Published var queryLive = false // the word at the caret is being typed: not a finished block yet
-    @Published var selectedIndex = 0
+    @Published var selectedIndex = 0 { didSet { selectionChanged() } }
     @Published var followTop = true // the selection stays on the top row as rows arrive
     @Published var scope: Scope?
     @Published var pickFor = ""
@@ -24,6 +24,7 @@ final class AppStore: ObservableObject {
     private(set) var leftView = "" // the view that move left (the reader and the calendar don't slide)
     var keys = KeyBuffer() // a single key waiting to be told from typing; cleared with each view
     var levelChanged: () -> Void = {} // a level pushed or popped (the model clears its last error, as pushView and back do)
+    var selectionChanged: () -> Void = {} // another row selected (or the same one again; the model previews a theme)
 
     // The keys start in the search box (the keysStart setting), not the list.
     var searchFirst: Bool

@@ -176,9 +176,13 @@ says so.
   size last given it.
 - **Overlay or window**: the hotkey opens the overlay unless Settings › General › Open as a window is on; W switches
   for one opening, and closing goes back to the setting. The window comes back where it was left; the hotkey on it
-  behind another app brings it to the front. Users read "the overlay" and "the window", never "panel"; a row says
-  only what's true of a menu bar app (no Dock, no ⌘Tab), and a setting kept on this Mac alone (UserDefaults) gets the
-  `this machine` badge when a sync folder is set, like the shared machine-only rows.
+  behind another app brings it to the front. Users read "the overlay" and "the window", never "panel"; a setting kept
+  on this Mac alone (UserDefaults) gets the `this machine` badge when a sync folder is set, like the shared
+  machine-only rows.
+- **Dock and ⌘Tab**: the app is in both unless Settings › General › In the Dock and ⌘Tab is off (then only the menu
+  bar's icon and the hotkey). Its Dock icon, or switching to it with nothing of it on screen, opens the launcher as the
+  hotkey does; a window of its own on screen (or in the Dock) is brought back instead. A row says only what's true
+  either way.
 - **The launcher moves** by its background. **The pin** keeps it open while other apps are used; esc then stops at
   the top level and the hint says `⌘W close`.
 
@@ -245,6 +249,8 @@ white on a selected row.
 - **What's text reads:** 4.5:1 on the background for the second line and the accent, 3:1 for the pills' colours (a
   theme's own colour nudged darker or lighter until it does); on the accent, the background or the text, whichever
   reads better. Solid backgrounds only, the theme's, title bars too.
+- **Browsing previews:** on Theme's (or Light or dark's) list, the row you're on is the app's look at once; ↵ keeps it,
+  any other way out (esc, ⌫, closing the launcher) puts back the one you had, and the check stays on yours meanwhile.
 
 ## Known gaps
 

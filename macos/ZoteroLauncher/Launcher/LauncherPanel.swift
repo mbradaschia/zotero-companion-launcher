@@ -162,6 +162,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
         current.makeKeyAndOrderFront(nil)
     }
 
+    // The app brought forward (its Dock icon, ⌘Tab) with no window of its own on screen: the launcher, as the hotkey opens it.
+    func showIfNothingShown() {
+        guard !visible, !NSApp.windows.contains(where: { $0.isVisible && $0.styleMask.contains(.titled) }) else { return }
+        show()
+    }
+
     // From the menu bar menu: the launcher, on one of Go to's places (chats, tasks, settings, sync).
     func show(place: String) {
         if !visible { show() } else { current.makeKeyAndOrderFront(nil); NSApp.activate() }

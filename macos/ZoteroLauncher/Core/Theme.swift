@@ -305,29 +305,53 @@ final class ThemeStore: ObservableObject {
     static let themeKey = "ZLTheme"
     static let modeKey = "ZLThemeMode"
 
+    // What's drawn: the theme and light or dark kept, or (browsing their lists) the row you're on, for a moment.
     @Published private(set) var palette: Palette
     @Published private(set) var mode: ThemeMode
+    // What's kept (Settings › General › Appearance): what a preview goes back to.
+    private(set) var chosen: ThemeFamily
+    private(set) var chosenMode: ThemeMode
     private let defaults: UserDefaults?
     private let windows = NSHashTable<NSWindow>.weakObjects()
 
     init(defaults: UserDefaults? = NSClassFromString("XCTestCase") != nil ? nil : .standard) { // (LauncherModel.underTests)
         self.defaults = defaults
-        palette = Palette(.named(defaults?.string(forKey: Self.themeKey) ?? ""))
-        mode = ThemeMode(rawValue: defaults?.string(forKey: Self.modeKey) ?? "") ?? .system
+        chosen = .named(defaults?.string(forKey: Self.themeKey) ?? "")
+        chosenMode = ThemeMode(rawValue: defaults?.string(forKey: Self.modeKey) ?? "") ?? .system
+        palette = Palette(chosen)
+        mode = chosenMode
     }
 
     var family: ThemeFamily { palette.family }
+    var previewing: Bool { family != chosen || mode != chosenMode }
 
     func setFamily(_ id: String) {
-        let next = ThemeFamily.named(id)
-        defaults?.set(next.id, forKey: Self.themeKey)
+        chosen = .named(id)
+        defaults?.set(chosen.id, forKey: Self.themeKey)
+        show(chosen)
+    }
+
+    func setMode(_ next: ThemeMode) {
+        chosenMode = next
+        defaults?.set(next.rawValue, forKey: Self.modeKey)
+        show(mode: next)
+    }
+
+    // Every window in a theme, or light or dark, without keeping it (until endPreview, or a set).
+    func preview(_ id: String) { show(.named(id)) }
+    func preview(mode next: ThemeMode) { show(mode: next) }
+    func endPreview() {
+        show(chosen)
+        show(mode: chosenMode)
+    }
+
+    private func show(_ next: ThemeFamily) {
         guard next != family else { return }
         palette = Palette(next)
         restyle()
     }
 
-    func setMode(_ next: ThemeMode) {
-        defaults?.set(next.rawValue, forKey: Self.modeKey)
+    private func show(mode next: ThemeMode) {
         guard next != mode else { return }
         mode = next
         applyAppearance()
