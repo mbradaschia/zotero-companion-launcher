@@ -27,7 +27,7 @@ extension LauncherModel {
             "taskStatuses": statuses.compactMap { $0["name"] as? String },
             "tasks": tasks,
             "taxonomies": tax.taxonomies.map { ["id": $0["id"] ?? "", "name": $0["name"] ?? "", "prefix": $0["prefix"] ?? "", "kind": $0["kind"] ?? "",
-                                                "labels": $0["labels"] ?? [], "threshold": $0["threshold"] ?? 0.6, "hash": $0["hash"] ?? ""] },
+                                                "labels": $0["labels"] ?? [String](), "threshold": $0["threshold"] ?? 0.6, "hash": $0["hash"] ?? ""] },
             "searches": savedSearches.map { ["id": $0["id"] ?? "", "name": $0["name"] ?? "", "query": $0["query"] ?? ""] },
             "jev": jevKeySet,
             "models": ((runnerModels as? [[String: Any]]) ?? []).map { ["value": $0["value"] ?? "", "label": $0["displayName"] ?? $0["value"] ?? "", "group": $0["group"] ?? ""] }
