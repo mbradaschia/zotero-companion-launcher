@@ -1,4 +1,4 @@
-AI columns in the review table: a prompt, Jev's labels or relevance, asked of each paper, with a plan before each run and every cell's state in sight.
+AI columns in the review table, themes for the whole app, and Settings › Setup that installs what the AI features need, and checks it all came down.
 
 **Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
 (*Update to 0.4.14…*); otherwise:
@@ -34,6 +34,22 @@ Processes. Cells fill in as each paper is done, and a run you stop keeps what it
 since. ✎ means you edited it, and ⚠ means it failed, with the reason when you point at it. The panel shows a cell
 whole: its value, each label's probability, the evidence, which model made it, when, and from what text. *Run it
 again* reruns that one cell. *Back to the AI's answer* undoes your edit.
+
+**Pick a theme.** Settings › General › Appearance › Theme lists them, each with its accent beside it:
+
+- **Default**: the Mac's own colours and accent, as the app looked until now.
+- **Catppuccin** (Latte, Mocha), **Solarized**, **Gruvbox**, **Nord**, **Dracula** (Alucard, Dracula), **Tokyo Night**
+  (Day, Night), **One** (Light, Dark), **GitHub** and **Rosé Pine** (Dawn, Rosé Pine): each a light and a dark variant.
+
+The launcher (the overlay and the window), its search box, notes, chats and review tables all change at once, title
+bars included.
+
+**Light or dark**, just below: *As the Mac* follows System Settings › Appearance (the default); *Light* or *Dark*
+keeps the app in one, whatever the Mac does, menus and alerts too. Both settings are kept on this Mac, as Open as a
+window is; with a sync folder they say *this machine*. Typing "theme" in the search finds them.
+
+A theme's colours are its authors'. Where one would be hard to read as text on its background (Solarized Light's
+yellow, Nord Light's greens), it's darkened (or, on a dark theme, lightened) just enough to read.
 
 **Install buttons that install.** In Settings › Setup, Enter on *Install Node.js*, *Install pdftotext* or *Read scans
 by OCR* runs `brew install node`, `brew install poppler` or `brew install tesseract` in the background. It shows in
