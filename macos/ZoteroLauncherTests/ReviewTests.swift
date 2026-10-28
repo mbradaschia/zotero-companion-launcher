@@ -352,6 +352,38 @@ final class ReviewTests: XCTestCase {
         XCTAssertTrue(page.flashes.last?.hasPrefix("Not run: ") == true)
     }
 
+    func testAnAIColumnTickedInColumnsBringsItsAnswersAndARunDoesntRedoThem() throws {
+        let (first, _) = try openWindow()
+        let id = try aiColumn(first)
+        let job = try XCTUnwrap(ReviewFiles.object(try core().glueJSON("reviewRunJob", [try XCTUnwrap(first.review), try XCTUnwrap(model.reviewFiles).columns(try core()), model.reviewContext(), [["column": id, "paper": "1:P3NM4G92"]]])))
+        let hash = try XCTUnwrap((job["columns"] as? [[String: Any]])?.first?["hash"] as? String)
+        let f = try XCTUnwrap(model.reviewFiles)
+        try FileManager.default.createDirectory(at: f.cellsDir, withIntermediateDirectories: true)
+        try Data("{\"cells\": {\"1:P3NM4G92\": {\"v\": \"a gap\", \"by\": \"ai\", \"hash\": \"\(hash)\"}}}".utf8).write(to: f.cellsURL(id))
+        // another list's table: the column ticked in its Columns menu
+        var opened: [String] = []
+        model.openReviewWindow = { opened.append($0) }
+        model.willShow(query: "absorptive capacity")
+        model.execute(.openReview)
+        let window = ReviewWindowModel(id: try XCTUnwrap(opened.first), launcher: model)
+        let page = FakePage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertNil((page.loads.last?["cells"] as? [String: Any])?[id])
+        window.handle(["type": "layout", "review": ["columns": [["id": "title"], ["id": id]]]])
+        let shown = (page.loads.last?["cells"] as? [String: Any])?[id] as? [String: Any]
+        XCTAssertEqual((shown?["1:P3NM4G92"] as? [String: Any])?["v"] as? String, "a gap", "its answers, from the other table's run")
+        // a run asked before the table showed them (the cell seen as not run): nothing spent on it
+        var runs = 0
+        runner.answers["review-run"] = { _, _ in runs += 1; return FakeRunner.json(["papers": 1, "cells": 1, "failed": 0]) }
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:P3NM4G92", "seen": "empty"]]])
+        XCTAssertEqual(runs, 0)
+        XCTAssertEqual(page.flashes.last, "Nothing run: that cell has an answer already (shown now)")
+        // Run it again (seen up to date): runs
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:P3NM4G92", "seen": "ok"]]])
+        XCTAssertEqual(runs, 1)
+    }
+
     func testAnEditedAICellGoesBackToTheAIsAnswer() throws {
         let (window, page) = try openWindow()
         let id = try aiColumn(window)

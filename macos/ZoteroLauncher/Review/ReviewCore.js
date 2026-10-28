@@ -568,7 +568,7 @@ var ReviewCore = (function () {
 
   // What a run would do: cols (AI columns, as columns() resolves them), rows (the papers), cells; opts { yours: also
   // the cells you edited, again: up to date ones too }. → { counts: { <column id>: { empty, ok, … } }, jobs: [{ column,
-  // paper }], papers, requests: { jev, prompt }, jevUsd, skipped: { ok, yours, problem } }. At most 200 papers.
+  // paper, seen (its state here) }], papers, requests: { jev, prompt }, jevUsd, skipped: { ok, yours, problem } }. At most 200 papers.
   function runPlan(cols, rows, cells, opts) {
     var o = opts || {}
     var counts = {}, jobs = [], papers = {}, jevPapers = {}, promptGroups = {}, skipped = { ok: 0, yours: 0, problem: 0 }
@@ -583,7 +583,7 @@ var ReviewCore = (function () {
         if (st === "ok" && !o.again) { skipped.ok++; return }
         if (st === "yours" && !o.yours) { skipped.yours++; return }
         var pid = paperId(r)
-        jobs.push({ column: c.id, paper: pid })
+        jobs.push({ column: c.id, paper: pid, seen: st }) // (what the table showed: the run checks it against the file)
         papers[pid] = true
         if (c.kind === "prompt") promptGroups[pid + "|" + c.model + "|" + c.reads] = true
         else jevPapers[pid] = true

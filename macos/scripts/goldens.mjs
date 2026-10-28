@@ -546,6 +546,13 @@ function cases() {
   const aiDefs = { "c-abcdefghij": Glue.reviewColumnParse(Glue.reviewColumnText(aiCol), "c-abcdefghij"), "c-0123456789": Glue.reviewColumnParse(Glue.reviewColumnText(column), "c-0123456789") };
   add("reviewRunJob/cells", "reviewRunJob", review, aiDefs, { taxonomies: [] }, [{ column: "c-abcdefghij", paper: "1:P3NM4G92" }, { column: "c-0123456789", paper: "1:P3NM4G92" }, { column: "c-abcdefghij", paper: "../x" }]);
   add("reviewRunJob/nothing", "reviewRunJob", review, aiDefs, {}, [{ column: "c-0123456789", paper: "1:P3NM4G92" }]);
+  // a cell the table showed as not run that the file answers already: left as it is (an added column's, say)
+  const gapHash = Glue.reviewRunJob(review, aiDefs, { taxonomies: [] }, [{ column: "c-abcdefghij", paper: "1:P3NM4G92" }]).columns[0].hash;
+  const known = { "c-abcdefghij": { "1:P3NM4G92": { v: ["a gap"], by: "ai", hash: gapHash }, "1:AAAA0002": { v: [], by: "ai", hash: "000000000000" }, "1:AAAA0003": { v: "", by: "ai", error: "timeout" } } };
+  add("reviewRunJob/answered-already", "reviewRunJob", review, aiDefs, { taxonomies: [] },
+    [{ column: "c-abcdefghij", paper: "1:P3NM4G92", seen: "empty" }, { column: "c-abcdefghij", paper: "1:AAAA0002", seen: "empty" }, { column: "c-abcdefghij", paper: "1:AAAA0003", seen: "empty" }, { column: "c-abcdefghij", paper: "1:AAAA0004", seen: "empty" }], known);
+  add("reviewRunJob/again-asked", "reviewRunJob", review, aiDefs, { taxonomies: [] }, [{ column: "c-abcdefghij", paper: "1:P3NM4G92", seen: "ok" }], known);
+  add("reviewRunJob/all-answered", "reviewRunJob", review, aiDefs, { taxonomies: [] }, [{ column: "c-abcdefghij", paper: "1:P3NM4G92", seen: "empty" }], known);
   const aiCells = JSON.stringify({ cells: { "1:P3NM4G92": { v: ["a gap"], updated: "2026-10-28T10:00:00Z", by: "ai", model: "claude:sonnet", hash: "abc", input: { text: "note" } } } });
   const edited = Glue.reviewSetCell(aiCells, "1:P3NM4G92", "my gap", "2026-10-28T11:00:00Z", "mac");
   add("reviewSetCell/ai-kept", "reviewSetCell", aiCells, "1:P3NM4G92", "my gap", "2026-10-28T11:00:00Z", "mac");

@@ -107156,7 +107156,8 @@
      "column": "c-abcdefghij",
      "paper": "1:P3NM4G92"
     }
-   ]
+   ],
+   "skipped": 0
   }
  },
  {
@@ -107227,6 +107228,362 @@
   ],
   "expect": {
    "error": "Nothing to run: no AI cell was asked for"
+  }
+ },
+ {
+  "name": "reviewRunJob/answered-already",
+  "wrapper": "reviewRunJob",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   {
+    "c-abcdefghij": {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "description": "Which gaps does it name?",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default"
+    },
+    "c-0123456789": {
+     "id": "c-0123456789",
+     "label": "Method",
+     "kind": "own",
+     "type": "choice",
+     "options": [
+      "case study",
+      "survey"
+     ],
+     "description": ""
+    }
+   },
+   {
+    "taxonomies": []
+   },
+   [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:P3NM4G92",
+     "seen": "empty"
+    },
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:AAAA0002",
+     "seen": "empty"
+    },
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:AAAA0003",
+     "seen": "empty"
+    },
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:AAAA0004",
+     "seen": "empty"
+    }
+   ],
+   {
+    "c-abcdefghij": {
+     "1:P3NM4G92": {
+      "v": [
+       "a gap"
+      ],
+      "by": "ai",
+      "hash": "fa25c4bbd92a"
+     },
+     "1:AAAA0002": {
+      "v": [],
+      "by": "ai",
+      "hash": "000000000000"
+     },
+     "1:AAAA0003": {
+      "v": "",
+      "by": "ai",
+      "error": "timeout"
+     }
+    }
+   }
+  ],
+  "expect": {
+   "review": "r-abcdefghij",
+   "name": "Capabilities",
+   "columns": [
+    {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default",
+     "taxonomy": "",
+     "topic": "",
+     "description": "Which gaps does it name?",
+     "hash": "fa25c4bbd92a"
+    }
+   ],
+   "jobs": [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:AAAA0002"
+    },
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:AAAA0003"
+    },
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:AAAA0004"
+    }
+   ],
+   "skipped": 1
+  }
+ },
+ {
+  "name": "reviewRunJob/again-asked",
+  "wrapper": "reviewRunJob",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   {
+    "c-abcdefghij": {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "description": "Which gaps does it name?",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default"
+    },
+    "c-0123456789": {
+     "id": "c-0123456789",
+     "label": "Method",
+     "kind": "own",
+     "type": "choice",
+     "options": [
+      "case study",
+      "survey"
+     ],
+     "description": ""
+    }
+   },
+   {
+    "taxonomies": []
+   },
+   [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:P3NM4G92",
+     "seen": "ok"
+    }
+   ],
+   {
+    "c-abcdefghij": {
+     "1:P3NM4G92": {
+      "v": [
+       "a gap"
+      ],
+      "by": "ai",
+      "hash": "fa25c4bbd92a"
+     },
+     "1:AAAA0002": {
+      "v": [],
+      "by": "ai",
+      "hash": "000000000000"
+     },
+     "1:AAAA0003": {
+      "v": "",
+      "by": "ai",
+      "error": "timeout"
+     }
+    }
+   }
+  ],
+  "expect": {
+   "review": "r-abcdefghij",
+   "name": "Capabilities",
+   "columns": [
+    {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default",
+     "taxonomy": "",
+     "topic": "",
+     "description": "Which gaps does it name?",
+     "hash": "fa25c4bbd92a"
+    }
+   ],
+   "jobs": [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:P3NM4G92"
+    }
+   ],
+   "skipped": 0
+  }
+ },
+ {
+  "name": "reviewRunJob/all-answered",
+  "wrapper": "reviewRunJob",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   {
+    "c-abcdefghij": {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "description": "Which gaps does it name?",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default"
+    },
+    "c-0123456789": {
+     "id": "c-0123456789",
+     "label": "Method",
+     "kind": "own",
+     "type": "choice",
+     "options": [
+      "case study",
+      "survey"
+     ],
+     "description": ""
+    }
+   },
+   {
+    "taxonomies": []
+   },
+   [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:P3NM4G92",
+     "seen": "empty"
+    }
+   ],
+   {
+    "c-abcdefghij": {
+     "1:P3NM4G92": {
+      "v": [
+       "a gap"
+      ],
+      "by": "ai",
+      "hash": "fa25c4bbd92a"
+     },
+     "1:AAAA0002": {
+      "v": [],
+      "by": "ai",
+      "hash": "000000000000"
+     },
+     "1:AAAA0003": {
+      "v": "",
+      "by": "ai",
+      "error": "timeout"
+     }
+    }
+   }
+  ],
+  "expect": {
+   "error": "Nothing run: that cell has an answer already (shown now)",
+   "skipped": 1
   }
  },
  {

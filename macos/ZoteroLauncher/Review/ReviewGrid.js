@@ -12,6 +12,7 @@ var RT = (function () {
   var act = { pid: "", c: "title" } // the active cell: its paper and column
   var sel = {} // the selected papers (space, the checkboxes)
   var editing = null // { pid, c } while a cell of yours is being typed
+  var peekShut = "" // the cell whose whole text esc put away (until another is selected)
   var flashText = ""
   var flashTimer = null
   var layoutTimer = null
@@ -250,7 +251,8 @@ var RT = (function () {
   function showPeek() {
     var old = $("peek")
     if (old) old.remove()
-    if (editing) return
+    if (peekShut !== act.pid + "|" + act.c) peekShut = ""
+    if (editing || peekShut) return
     var td = cellEl(act.pid, act.c), c = colById(act.c), r = actRow()
     var cv = td && td.querySelector(".cv")
     // (a pill's few pixels over the line's height isn't text cut off: half a line is)
@@ -272,13 +274,28 @@ var RT = (function () {
   // The cell under the peek where it was clicked (it covers the cells below the selected one), unless that click
   // ended a selection of its text.
   function cellUnder(e) {
-    var pk = $("peek"), s = window.getSelection()
-    if (!pk || (s && !s.isCollapsed && pk.contains(s.anchorNode))) return null
+    var pk = $("peek")
+    if (!pk || selecting()) return null
     pk.style.pointerEvents = "none"
     var at = document.elementFromPoint(e.clientX, e.clientY)
     pk.style.pointerEvents = ""
     var td = at && at.closest("td.cell")
     return td && !(td.getAttribute("data-p") === act.pid && td.getAttribute("data-c") === act.c) ? td : null
+  }
+
+  // (a click that ended a selection of the whole text's words leaves it be)
+  function selecting() {
+    var pk = $("peek"), s = window.getSelection()
+    return !!(pk && s && !s.isCollapsed && pk.contains(s.anchorNode))
+  }
+
+  // esc, or a click on it: the whole text put away, until another cell is selected
+  function shutPeek() {
+    var pk = $("peek")
+    if (!pk) return false
+    peekShut = act.pid + "|" + act.c
+    pk.remove()
+    return true
   }
 
   function paperRow(r, vc) {
@@ -1148,7 +1165,13 @@ var RT = (function () {
       if (e.target.closest(".rz") || noClick) return
       var th = e.target.closest("th[data-c]")
       if (th) return setSort(C.clickSort(review.sort, th.getAttribute("data-c"), e.shiftKey))
-      var td = e.target.closest("td.cell") || (e.target.closest("#peek") ? cellUnder(e) : null)
+      if (e.target.closest("#peek") && !editing) { // a click on the whole text: the cell under it, else it's put away
+        var under = cellUnder(e)
+        if (under) { setActive(under.getAttribute("data-p"), under.getAttribute("data-c")); gw.focus({ preventScroll: true }) }
+        else if (!selecting()) shutPeek()
+        return
+      }
+      var td = e.target.closest("td.cell")
       if (td && !editing) { setActive(td.getAttribute("data-p"), td.getAttribute("data-c")); gw.focus({ preventScroll: true }) }
     })
     gw.addEventListener("dblclick", function (e) {
@@ -1208,7 +1231,7 @@ var RT = (function () {
       }
       if (e.target.closest("[data-act=open]")) openPaper(r)
       var c = colById(act.c)
-      if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) { D.run = { stage: "starting" }; drawToolbar(); drawFoot(); post("run", { jobs: [{ column: c.id, paper: C.paperId(r) }] }) }
+      if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) { D.run = { stage: "starting" }; drawToolbar(); drawFoot(); post("run", { jobs: [{ column: c.id, paper: C.paperId(r), seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }] }) }
       if (r && c && c.ai && e.target.closest("[data-act=restore]:not(:disabled)")) post("restore", { column: c.id, paper: C.paperId(r) })
     })
 
@@ -1292,6 +1315,7 @@ var RT = (function () {
       if (popEl) { closePop(); return }
       if (modalEl) { closeModal(); return }
       if ($("keys")) { keysPanel(); return }
+      if (shutPeek()) return
       return
     }
     if (typing || modalEl) return
