@@ -183,8 +183,10 @@ ok(w1 > w0 && !(await pg.isVisible("#panel")), "⌥⌘I folds the panel away, th
 await pg.click("#bPanel");
 ok(await pg.isVisible("#panel"), "the Panel button brings it back");
 
-// adding a column of your own
+// adding a column of your own: + Column asks who fills it in first
 await pg.click("#bAdd");
+ok((await pg.locator(".sheet .choice").count()) === 2 && !(await pg.locator("#nname").count()) && !(await pg.locator("#aprompt").count()), "+ Column: you or the AI, one at a time");
+await pg.click('.sheet .choice[data-step="own"]');
 await pg.fill("#nname", "Chapter");
 await pg.selectOption("#ntype", "choice");
 await pg.fill("#nopts", "2, 3");
@@ -192,6 +194,49 @@ await pg.click("#nadd");
 m = await sent();
 const added = m.find((x) => x.type === "addColumn");
 ok(added && added.column.label === "Chapter" && added.column.options.join() === "2,3", "+ Column adds a column of your own");
+
+// the Columns menu: every column there is, ticked when shown; ticking one not in the table adds it
+await pg.click("#bCols");
+ok((await pg.locator('.pop input[data-show="title"]').isChecked()) && (await pg.locator(".pop .ph.grp").count()) > 1, "Columns: every column, grouped, the shown ones ticked");
+const unshown = await pg.$$eval(".pop input[data-show]", (b) => (b.find((x) => !x.checked) || {}).dataset?.show || "");
+await pg.click(`.pop input[data-show="${unshown}"]`);
+await pg.waitForTimeout(500);
+m = await sent();
+ok(unshown && m.filter((x) => x.type === "layout").pop().review.columns.some((c) => c.id === unshown && !c.hidden), "ticking one adds it: " + unshown);
+
+// the toolbar's menus: their button again closes them, and so does a click outside
+await pg.click("#bGroup");
+ok(await pg.locator(".pop").count() === 1, "Group opens its menu");
+await pg.click("#bGroup");
+ok(await pg.locator(".pop").count() === 0, "and Group again closes it");
+await pg.click("#bSort");
+await pg.mouse.click(640, 700);
+ok(await pg.locator(".pop").count() === 0, "a click outside closes it too");
+await pg.click("#bSort");
+await pg.click("#bGroup");
+ok(await pg.locator(".pop").count() === 1, "another menu's button opens that one instead");
+await pg.keyboard.press("Escape");
+
+// a cell, a panel or a menu scrolled to its end doesn't scroll the table on
+ok((await pg.evaluate(() => ["td.cell .cv", "#panel", "#gw"].map((q) => getComputedStyle(document.querySelector(q)).overscrollBehaviorY))).slice(0, 2).every((v) => v === "contain"), "a scrolled cell or panel stops at its end");
+
+// the selected cell, when its text doesn't fit: the whole of it, over the cells below
+const long = Array.from({ length: 40 }, (_, i) => "word" + i).join(" ");
+const pk = JSON.parse(JSON.stringify(data));
+pk.results[0].title = long;
+await pg.evaluate((d) => RT.load(d), pk);
+await sent();
+await pg.click(cell("BBBBBBBB", "year"), { force: true }); // (the peek left from before may be over it: a click passes through)
+ok(!(await pg.locator("#peek").count()), "a cell that fits: no peek");
+await pg.click(cell("AAAAAAAA", "title"));
+ok((await pg.locator("#peek").count()) === 1 && (await pg.textContent("#peek")).includes("word39"), "the selected cell's whole text, when it doesn't fit");
+const pkb = await pg.locator("#peek").boundingBox(), below = await pg.locator(cell("BBBBBBBB", "title")).boundingBox();
+if (pkb.y + pkb.height > below.y + 4) {
+  await pg.mouse.click(below.x + 10, below.y + below.height / 2);
+  ok((await pg.getAttribute(cell("BBBBBBBB", "title"), "class")).includes("active"), "a click on it over the cell below selects that cell");
+}
+await pg.evaluate((d) => RT.load(d), data);
+await sent();
 
 // CSV
 await pg.keyboard.press("Meta+e");
@@ -280,8 +325,16 @@ const run = m.find((x) => x.type === "run");
 ok(run && run.jobs.length === 5 && (await label("#bRun")).startsWith("An AI run is going"), "Run sends the plan's cells, and the toolbar shows the run");
 await pg.evaluate((d) => RT.load(d), ai);
 await pg.click("#bAdd");
-await pg.selectOption("#akind", "prompt");
+await pg.click('.sheet .choice[data-step="ai"]');
+await pg.check('input[name="akind"][value="prompt"]');
 ok(await pg.isVisible("#aprompt") && !(await pg.isVisible("#atopic")), "+ Column: the AI prompt's fields");
+await pg.fill("#adesc", "how many firms each study looked at");
+await pg.click("#adraft");
+m = await sent();
+const dr = m.find((x) => x.type === "draftColumn");
+ok(dr && dr.kind === "prompt" && dr.request === "how many firms each study looked at" && (await pg.isDisabled("#adraft")), "Write it with AI asks for the column, described");
+await pg.evaluate(() => RT.drafted({ column: { label: "Firms studied", prompt: "How many firms did the study look at? A number.", reads: "full", shape: "number", length: 1, options: [], evidence: true }, notes: "Read from the method section." }));
+ok((await pg.inputValue("#aname")) === "Firms studied" && (await pg.inputValue("#aprompt")).startsWith("How many firms") && (await pg.inputValue("#ashape")) === "number" && (await pg.textContent("#adraft")) === "Write it again", "and its answer fills the form, to change before Add");
 await pg.fill("#aname", "Sample size");
 await pg.fill("#aprompt", "How many firms?");
 await pg.selectOption("#ashape", "number");
@@ -290,7 +343,8 @@ m = await sent();
 const aic = m.find((x) => x.type === "addColumn");
 ok(aic && aic.column.kind === "prompt" && aic.column.shape === "number" && aic.column.description === "How many firms?", "+ Column adds an AI prompt column");
 await pg.click("#bAdd");
-await pg.selectOption("#akind", "jev-several");
+await pg.click('.sheet .choice[data-step="ai"]');
+await pg.check('input[name="akind"][value="jev-several"]');
 ok((await pg.textContent("#atax")).includes("Method (method/)") === false, "a taxonomy without an id isn't offered");
 await pg.keyboard.press("Escape");
 

@@ -109,6 +109,28 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(model.reviewList().count, 1)
     }
 
+    func testCommandTOnTheSameListReopensItsReviewAsYouLeftIt() throws {
+        var opened: [String] = []
+        model.openReviewWindow = { opened.append($0) }
+        model.willShow(query: "dynamic capabilities")
+        model.execute(.openReview)
+        let id = try XCTUnwrap(opened.first)
+        let window = ReviewWindowModel(id: id, launcher: model)
+        window.handle(["type": "layout", "review": ["columns": [["id": "title", "width": 420], ["id": "year"]]]])
+        model.willShow(query: "dynamic  capabilities ") // (the same query, spaced otherwise)
+        model.execute(.openReview)
+        XCTAssertEqual(opened, [id, id])
+        XCTAssertEqual(model.reviewList().count, 1)
+        XCTAssertTrue(model.flash.hasSuffix("this list's review table, as you left it"), model.flash)
+        let saved = try XCTUnwrap(model.reviewFiles?.review(id, try core()))
+        XCTAssertEqual((saved["columns"] as? [[String: Any]])?.first?["width"] as? Int, 420)
+        model.willShow(query: "absorptive capacity") // another list: a review of its own
+        model.execute(.openReview)
+        XCTAssertEqual(opened.count, 3)
+        XCTAssertNotEqual(opened[2], id)
+        XCTAssertEqual(model.reviewList().count, 2)
+    }
+
     func testCommandTIsHintedInTheResultsWhereverTheKeysAre() throws {
         model.willShow(query: "dynamic capabilities")
         model.store.searchFocus = true
@@ -138,6 +160,10 @@ final class ReviewTests: XCTestCase {
         func load(_ data: [String: Any]) { loads.append(data) }
         func flash(_ text: String) { flashes.append(text) }
         func segments(_ text: String, _ list: [Any]) { segments.append((text, list)) }
+        var drafts: [[String: Any]] = []
+        var zooms: [Double] = []
+        func drafted(_ out: [String: Any]) { drafts.append(out) }
+        func zoom(_ z: Double) { zooms.append(z) }
     }
 
     private func openWindow() throws -> (ReviewWindowModel, FakePage) {
@@ -279,6 +305,42 @@ final class ReviewTests: XCTestCase {
         window.handle(["type": "run", "jobs": [["column": "title", "paper": "1:P3NM4G92"]]])
         XCTAssertEqual(done, 1)
         XCTAssertEqual(page.flashes.last, "Nothing to run: no AI cell was asked for")
+    }
+
+    func testWriteItWithAIAsksReviewDraftAndAnswersTheDialog() throws {
+        let (window, page) = try openWindow()
+        runner.answers["review-draft"] = { _, _ in FakeRunner.json(["column": ["label": "Sample", "prompt": "How many firms?", "shape": "number"], "notes": "A number."]) }
+        window.handle(["type": "draftColumn", "kind": "prompt", "request": "the sample size", "current": ["label": "", "description": ""]])
+        let call = try XCTUnwrap(runner.calls.last { $0.argv.contains("review-draft") })
+        let sent = try XCTUnwrap(ReviewFiles.object(try XCTUnwrap(call.stdin)))
+        XCTAssertEqual(sent["request"] as? String, "the sample size")
+        XCTAssertEqual(sent["kind"] as? String, "prompt")
+        XCTAssertEqual((page.drafts.last?["column"] as? [String: Any])?["label"] as? String, "Sample")
+        // a runner from before it: said so
+        runner.answers["review-draft"] = { _, _ in RunnerResult(status: 2, stderr: "usage: oma-zotero-prompt …") }
+        window.handle(["type": "draftColumn", "kind": "prompt", "request": "x"])
+        XCTAssertTrue((page.drafts.last?["error"] as? String)?.contains("older than the app") == true)
+    }
+
+    func testCommandMinusAndPlusSizeTheTablesTextAndCommandZeroGoesBack() throws {
+        let (window, page) = try openWindow()
+        var zoomed: [Double] = []
+        window.zoomed = { zoomed.append($0) }
+        defer { ReviewWindowModel.zoom = 1 }
+        ReviewWindowModel.zoom = 1
+        func key(_ c: String, _ flags: NSEvent.ModifierFlags) -> NSEvent {
+            NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags, timestamp: 0, windowNumber: 0, context: nil, characters: c, charactersIgnoringModifiers: c, isARepeat: false, keyCode: 0)!
+        }
+        XCTAssertTrue(window.windowKey(key("=", .command)))
+        XCTAssertTrue(window.windowKey(key("=", .command)))
+        XCTAssertTrue(window.windowKey(key("-", .control)))
+        XCTAssertEqual(zoomed, [1.1, 1.25, 1.1])
+        XCTAssertEqual(ReviewWindowModel.zoom, 1.1) // kept for the next table
+        XCTAssertEqual(page.flashes.last, "Text 110% (⌘0 its size)")
+        XCTAssertTrue(window.windowKey(key("0", .command)))
+        XCTAssertEqual(zoomed.last, 1)
+        XCTAssertEqual(page.flashes.last, "Text 100%")
+        XCTAssertFalse(window.windowKey(key("-", .option))) // (the page's)
     }
 
     func testRunIsRefusedWhileTheSyncFolderIsAway() throws {

@@ -13,6 +13,24 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (next)
+
+- **Each list keeps its review table.** ⌘T on a collection, a tag, a saved search or a query that already has one
+  opens that one, with its columns, their widths and order, its sort and grouping as you left them. It used to make a
+  new table with the default columns every time.
+- **+ Column asks who fills it in first**: you (text, or one of a list) or the AI, and then only that kind's fields.
+  The *Existing attributes* section is gone: the Columns button now lists every column there is (Zotero's fields,
+  the rankings, your taxonomies, your columns and the AI ones), grouped, to tick.
+- **Write it with AI**: in an AI column's dialog, describe what you want to know and the AI writes the column for
+  you (its name, the prompt, what it reads, the answer's shape, the choices; a Jev relevance column's topic and
+  definition). Change anything before *Add*. It runs on your prompts model.
+- **The selected cell shows its whole text** when it doesn't fit, over the cells below. A click on it selects the
+  cell under it, a double-click edits it (or opens the paper, on the title).
+- **⌘- and ⌘+ size the table's text** (⌃- and ⌃+ too), ⌘0 goes back. One size for every review table, kept.
+- **A cell, the panel or a menu scrolled to its end stops there**: the table doesn't scroll on.
+- **The toolbar's menus close** on their button again, or a click outside.
+- The runner is 0.2.4 (`review-draft`): *Settings › Setup › Install the AI features* offers the update.
+
 ### The Mac app (`macos-v0.4.14`)
 
 - **AI columns in the review table** (phase 11b). *+ Column › An AI column* makes one of four kinds:

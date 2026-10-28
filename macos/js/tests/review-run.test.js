@@ -244,3 +244,24 @@ test("review-run: Jev's cells in the column's file, no tags written, one task fo
     jev.close();
   }
 });
+
+test("Write it with AI: what you describe, and the column as it is, go to the model; its answer becomes a column", async () => {
+  const { draftMessage, parseColumnDraft } = await RV();
+  const m = draftMessage("prompt", "the sample size and countries", { label: "Sample", description: "How many firms?", shape: "number" })
+  assert.match(m, /the sample size and countries/)
+  assert.match(m, /"prompt":"How many firms\?"/) // (to change, not start over)
+  assert.doesNotMatch(draftMessage("prompt", "x", {}), /as it is now/)
+  const c = parseColumnDraft('Sure.\n```json\n{"label":"Sample","prompt":"How many firms or people did the study use, and from which countries? Say not stated when the paper doesn\'t say.","reads":"full","shape":"list","length":4,"evidence":true,"notes":"The body has it."}\n```', "prompt")
+  assert.deepEqual(c.column, { label: "Sample", prompt: "How many firms or people did the study use, and from which countries? Say not stated when the paper doesn't say.", reads: "full", shape: "list", length: 4, options: [], evidence: true })
+  assert.equal(c.notes, "The body has it.")
+  // a choice with fewer than two choices is text; odd lengths fall back; nothing usable is an error
+  assert.equal(parseColumnDraft('{"label":"X","prompt":"Q?","shape":"choice","options":["a"]}', "prompt").column.shape, "text")
+  assert.equal(parseColumnDraft('{"label":"X","prompt":"Q?","shape":"text","length":9000}', "prompt").column.length, 60)
+  assert.deepEqual(parseColumnDraft('{"label":"X","prompt":"Q?","shape":"choice","options":"firm, industry, firm"}', "prompt").column.options, ["firm", "industry"])
+  assert.match(parseColumnDraft("no json here", "prompt").error, /no JSON/)
+  assert.match(parseColumnDraft('{"label":"X"}', "prompt").error, /no question/)
+  // relevance: a topic and what relevant means
+  assert.match(draftMessage("jev-relevance", "dynamic capabilities", {}), /"topic"/)
+  assert.deepEqual(parseColumnDraft('{"topic":"dynamic capabilities","definition":"It theorizes or tests them."}', "jev-relevance").column, { label: "dynamic capabilities", topic: "dynamic capabilities", definition: "It theorizes or tests them." })
+  assert.match(parseColumnDraft('{"definition":"x"}', "jev-relevance").error, /no topic/)
+})

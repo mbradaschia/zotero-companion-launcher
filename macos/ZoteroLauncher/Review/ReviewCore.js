@@ -397,6 +397,25 @@ var ReviewCore = (function () {
     return normalizeReview({ name: sourceName(source), source: source, columns: cols, created: now, updated: now }, randomId("r-", rand))
   }
 
+  // The same list of papers: the same saved search, collection or tag (by its key), or the same query typed.
+  function sameSource(a, b) {
+    var x = normalizeSource(a), y = normalizeSource(b)
+    if (x.type !== y.type) return false
+    if (x.type === "query") return x.query.trim().replace(/\s+/g, " ") === y.query.trim().replace(/\s+/g, " ") && !!x.query.trim()
+    return !!x.key && x.key === y.key && (x.type === "search" || x.libraryID === y.libraryID)
+  }
+
+  // ⌘T on a list that has a review already: that review (the newest changed, if more), so its columns, their widths
+  // and order, its sort and grouping are the list's. → its id, or "".
+  function reviewFor(reviews, source) {
+    var best = null
+    ;(Array.isArray(reviews) ? reviews : []).forEach(function (r) {
+      if (!isObject(r) || !validId(r.id, "r-") || !sameSource(r.source, source)) return
+      if (!best || String(r.updated || "") > String(best.updated || "")) best = r
+    })
+    return best ? best.id : ""
+  }
+
   // The launcher's /search scope for a review's source (Glue.searchBody's), and the query typed with it.
   function searchScope(source, searches) {
     var s = normalizeSource(source)
@@ -666,7 +685,7 @@ var ReviewCore = (function () {
     groupable: groupable, groupRows: groupRows,
     csvCell: csvCell, csv: csv,
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
-    sourceName: sourceName, newReview: newReview, searchScope: searchScope,
+    sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
     parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,
     AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, columnHash: columnHash, hash12: hash12,
     cellOf: cellOf, cellState: cellState, runPlan: runPlan, band: band

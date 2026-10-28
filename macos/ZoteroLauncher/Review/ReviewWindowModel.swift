@@ -31,6 +31,24 @@ final class ReviewWindowModel: ObservableObject {
 
     static let maxPapers = 200 // (the bridge's cap on a search)
 
+    // The tables' text size (⌘- ⌘+ ⌘0): the page zoomed, columns and all; kept for the next table.
+    private static let zoomKey = "ZLReviewZoom"
+    static let zoomSteps: [Double] = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6, 1.8, 2]
+    static var zoom: Double {
+        get { let z = UserDefaults.standard.double(forKey: zoomKey); return zoomSteps.contains(z) ? z : 1 }
+        set { UserDefaults.standard.set(newValue == 1 ? nil : newValue, forKey: zoomKey) }
+    }
+    var zoomed: (Double) -> Void = { _ in } // every table's page at that size (ReviewWindows)
+
+    func stepZoom(_ step: Int) {
+        let steps = Self.zoomSteps
+        let i = steps.firstIndex(of: Self.zoom) ?? 3
+        let next = step == 0 ? 1 : steps[max(0, min(steps.count - 1, i + step))]
+        Self.zoom = next
+        zoomed(next)
+        page?.flash("Text \(Int((next * 100).rounded()))%" + (next == 1 ? "" : " (⌘0 its size)"))
+    }
+
     init(id: String, launcher: LauncherModel) {
         self.id = id
         self.launcher = launcher
@@ -168,6 +186,7 @@ final class ReviewWindowModel: ObservableObject {
             }
         case "csv": exportCSV(name: m["name"] as? String ?? title, text: m["text"] as? String ?? "")
         case "run": runAI(m["jobs"] as? [[String: Any]] ?? [])
+        case "draftColumn": draftColumn(m)
         case "restore":
             guard let core = launcher.core, let files, let column = m["column"] as? String, let paper = m["paper"] as? String else { return }
             do {
@@ -269,6 +288,22 @@ final class ReviewWindowModel: ObservableObject {
         }
     }
 
+    // + Column › An AI column › Write it with AI: what you described to review-draft (your prompts model); the column
+    // it writes goes back to the dialog's fields, nothing saved.
+    private func draftColumn(_ m: [String: Any]) {
+        let input: [String: Any] = ["kind": m["kind"] as? String ?? "prompt", "request": m["request"] as? String ?? "", "current": m["current"] as? [String: Any] ?? [:]]
+        guard let data = try? JSONSerialization.data(withJSONObject: input), let stdin = String(data: data, encoding: .utf8) else { return }
+        launcher.runRunner(["review-draft"], stdin: stdin, timeout: 300) { [weak self] r in
+            guard let self else { return }
+            if let out = r.json as? [String: Any] {
+                self.page?.drafted(out)
+                return
+            }
+            let old = r.status == 2 && r.stderr.contains("usage:")
+            self.page?.drafted(["error": old ? "the AI features here are older than the app: Settings › Setup › Install the AI features updates them" : r.problem.isEmpty ? "the model didn't answer" : r.problem])
+        }
+    }
+
     // ⌘E, Export ▾ › CSV: a save panel, the file written as the page made it.
     private func exportCSV(name: String, text: String) {
         let panel = NSSavePanel()
@@ -300,6 +335,12 @@ final class ReviewWindowModel: ObservableObject {
         let flags = e.modifierFlags.intersection([.command, .option, .control, .shift])
         let chars = (e.charactersIgnoringModifiers ?? "").lowercased()
         if flags == .command && chars == "w" { close(); return true }
+        // ⌘- ⌘+ ⌘0 (or ⌃): the tables' text smaller, larger, back to its size (every table: one setting, as the pin)
+        let zoomFlags: [NSEvent.ModifierFlags] = [.command, .control, [.command, .shift], [.control, .shift]]
+        if zoomFlags.contains(flags), let step = ["-": -1, "=": 1, "+": 1, "0": 0][chars] {
+            stepZoom(step)
+            return true
+        }
         if flags == .command && chars == "r" { reload(); search(); return true }
         // the editing keys, for the page's text fields (an app without an Edit menu doesn't send them)
         let edits: [String: Selector] = ["c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "x": #selector(NSText.cut(_:)),

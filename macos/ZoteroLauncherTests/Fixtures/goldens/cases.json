@@ -106786,6 +106786,96 @@
   }
  },
  {
+  "name": "reviewFor/newest-of-the-query",
+  "wrapper": "reviewFor",
+  "args": [
+   [
+    {
+     "id": "r-aaaaaaaaaa",
+     "source": {
+      "type": "query",
+      "query": "dynamic  capabilities"
+     },
+     "updated": "2026-10-27T10:00:00Z"
+    },
+    {
+     "id": "r-bbbbbbbbbb",
+     "source": {
+      "type": "query",
+      "query": "dynamic capabilities"
+     },
+     "updated": "2026-10-28T10:00:00Z"
+    },
+    {
+     "id": "r-cccccccccc",
+     "source": {
+      "type": "collection",
+      "key": "WXYZ9876",
+      "libraryID": 2
+     },
+     "updated": "2026-10-28T11:00:00Z"
+    }
+   ],
+   {
+    "type": "query",
+    "query": " dynamic capabilities "
+   }
+  ],
+  "expect": "r-bbbbbbbbbb"
+ },
+ {
+  "name": "reviewFor/other-library",
+  "wrapper": "reviewFor",
+  "args": [
+   [
+    {
+     "id": "r-aaaaaaaaaa",
+     "source": {
+      "type": "query",
+      "query": "dynamic  capabilities"
+     },
+     "updated": "2026-10-27T10:00:00Z"
+    },
+    {
+     "id": "r-bbbbbbbbbb",
+     "source": {
+      "type": "query",
+      "query": "dynamic capabilities"
+     },
+     "updated": "2026-10-28T10:00:00Z"
+    },
+    {
+     "id": "r-cccccccccc",
+     "source": {
+      "type": "collection",
+      "key": "WXYZ9876",
+      "libraryID": 2
+     },
+     "updated": "2026-10-28T11:00:00Z"
+    }
+   ],
+   {
+    "type": "collection",
+    "key": "WXYZ9876",
+    "libraryID": 1
+   }
+  ],
+  "expect": ""
+ },
+ {
+  "name": "reviewFor/none",
+  "wrapper": "reviewFor",
+  "args": [
+   [],
+   {
+    "type": "tag",
+    "key": "to-read",
+    "libraryID": 1
+   }
+  ],
+  "expect": ""
+ },
+ {
   "name": "reviewColumnText/choice",
   "wrapper": "reviewColumnText",
   "args": [

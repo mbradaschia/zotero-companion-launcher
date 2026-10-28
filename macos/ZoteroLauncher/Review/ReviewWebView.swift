@@ -42,6 +42,7 @@ struct ReviewWebView: NSViewRepresentable {
         view.navigationDelegate = context.coordinator
         view.setAccessibilityLabel("Review table")
         context.coordinator.view = view
+        view.pageZoom = CGFloat(ReviewWindowModel.zoom)
         context.coordinator.watchTheme()
         model.page = context.coordinator
         view.loadHTMLString(ThemeStyle.page(Self.shell, ThemeStore.shared.palette.reviewCSS), baseURL: nil)
@@ -82,6 +83,8 @@ struct ReviewWebView: NSViewRepresentable {
         func load(_ data: [String: Any]) { call("RT.load", data) }
         func flash(_ text: String) { call("RT.flash", [text]) }
         func segments(_ text: String, _ list: [Any]) { call("RT.segments", [text, list]) }
+        func drafted(_ out: [String: Any]) { call("RT.drafted", [out]) }
+        func zoom(_ z: Double) { view?.pageZoom = CGFloat(z) }
 
         private func call(_ function: String, _ value: Any) {
             guard JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) else { return }
@@ -115,4 +118,6 @@ protocol ReviewPage: AnyObject {
     func load(_ data: [String: Any])
     func flash(_ text: String)
     func segments(_ text: String, _ list: [Any]) // the source box's query, read as the launcher reads it
+    func drafted(_ out: [String: Any]) // Write it with AI's answer: { column, notes } or { error }
+    func zoom(_ z: Double) // the text size (⌘- ⌘+ ⌘0)
 }
