@@ -18,7 +18,7 @@ window per paper, its artifacts); taxonomies; sync between machines; the keys vi
 | The sync format | `contracts/` | Read in place by both launchers: `SYNC-FORMAT.md`, `Paths.js` |
 | View logic | `macos/js/lib/` | The app's own copy, run in JavaScriptCore (see `VENDORED.md`) |
 | Prompt runner (AI features) | `macos/runner/` | The app's own copy of the Node runner |
-| The app | `macos/` | SwiftUI + AppKit, a menu-bar app |
+| The app | `macos/` | SwiftUI + AppKit, in the Dock and the menu bar |
 
 The app reads nothing of the Omarchy launcher's code (`scripts/check-boundaries.sh` checks it in CI);
 only the bridge's API and `contracts/` are shared.
@@ -32,7 +32,7 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
    *Tools → Plugins → ⚙ → Install Plugin From File…*.
 2. **The app**, in Terminal:
    ```bash
-   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.14/install.sh | bash
+   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.15/install.sh | bash
    ```
    It downloads that release (or, with `macos-nightly` in the URL, the
    [nightly build](https://github.com/mbradaschia/zotero-companion-launcher/releases/tag/macos-nightly), rebuilt on

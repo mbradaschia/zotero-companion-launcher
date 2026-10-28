@@ -171,15 +171,26 @@ function GlueSettings(V, C, T, P, S) {
     return rows
   }
 
-  // Settings › General's first row on a Mac: how the hotkey opens the launcher (this Mac's own, x.openAsWindow; none
-  // when it isn't given).
+  // Settings › General's first rows on a Mac: how the hotkey opens the launcher, and whether the app is in the Dock
+  // (this Mac's own, x.openAsWindow and x.dock; each none when it isn't given).
   function windowRows(x) {
-    if (typeof x.openAsWindow !== "boolean") return []
-    var on = x.openAsWindow
-    return [L({ section: "The launcher", rowId: "set-toggle", value: "mac.openAsWindow", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
-      label: "Open as a window", badge: x.machineOnly ? "this machine" : "",
-      detail: on ? "On · the hotkey opens a regular window: it stays when you click away, and window managers such as Raycast's can move and tile it; W switches to the overlay"
-        : "Off · the hotkey opens the overlay: over any app, even full screen, gone when you click away; W switches to a window" })]
+    var rows = []
+    var badge = x.machineOnly ? "this machine" : ""
+    if (typeof x.openAsWindow === "boolean") {
+      var on = x.openAsWindow
+      rows.push(L({ section: "The launcher", rowId: "set-toggle", value: "mac.openAsWindow", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
+        label: "Open as a window", badge: badge,
+        detail: on ? "On · the hotkey opens a regular window: it stays when you click away, and window managers such as Raycast's can move and tile it; W switches to the overlay"
+          : "Off · the hotkey opens the overlay: over any app, even full screen, gone when you click away; W switches to a window" }))
+    }
+    if (typeof x.dock === "boolean") {
+      var dock = x.dock
+      rows.push(L({ section: "The launcher", rowId: "set-toggle", value: "mac.dock", icon: dock ? S.ICON.on : S.ICON.off, checked: dock, available: true,
+        label: "In the Dock and ⌘Tab", badge: badge,
+        detail: dock ? "On · the app has a Dock icon and is in ⌘Tab: clicking it (or switching to it) opens the launcher"
+          : "Off · only the menu bar's icon and the hotkey: no Dock icon, not in ⌘Tab" }))
+    }
+    return rows
   }
 
   // Settings › General › Appearance on a Mac: the theme and light or dark, this Mac's own (x.theme: { id, mode, themes:
@@ -365,12 +376,12 @@ function GlueSettings(V, C, T, P, S) {
       return V.filterRows(macWords(page(name, settings, ctx, x)).map(function (r) { return tilde(r, x.home) }), x.filter || "")
     },
     // Every row of the pages above, as the results' Go to and a menu's Settings rows find them (mac: this Mac's own
-    // rows' values, { theme }, when given).
+    // rows' values, { theme, openAsWindow, dock }, when given).
     settingsIndex: function (settings, ctx, todos, mac) {
       var out = []
       var m = mac || {}
       INDEXED.forEach(function (p) {
-        macWords(page(p[0], settings, ctx, { todos: todos, theme: m.theme })).forEach(function (r) {
+        macWords(page(p[0], settings, ctx, { todos: todos, theme: m.theme, openAsWindow: m.openAsWindow, dock: m.dock })).forEach(function (r) {
           if (!r.label || (r.rowId === "set-info" && !r.available)) return
           var nav = r.rowId === "set-nav"
           out.push({ page: nav ? r.value : p[0], pageTitle: nav ? r.label : p[1], label: r.label, detail: r.detail, section: r.section, rowId: nav ? "" : r.rowId, value: nav ? "" : r.value })

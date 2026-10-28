@@ -13,6 +13,7 @@ struct SettingsView: View {
                 Toggle("Open as a window", isOn: $model.openAsWindow)
             }
             Section("This Mac") {
+                Toggle("In the Dock and ⌘Tab", isOn: $model.showInDock)
                 Toggle("Open at login", isOn: Binding(get: { login.enabled }, set: { login.set($0) }))
                 Text(login.detail).font(.caption).foregroundStyle(login.problem.isEmpty ? Color.secondary : Color.red)
             }

@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Icons.registerBundledFonts()
         ThemeStore.shared.applyAppearance() // Settings › General › Light or dark, as it was left
+        DockPresence.apply(launcher.model.showInDock) // (and In the Dock and ⌘Tab)
         KeyboardShortcuts.onKeyUp(for: .toggleLauncher) { [weak self] in
             MainActor.assumeIsolated { self?.launcher.toggle() }
         }
@@ -45,5 +46,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated { self?.updates.check(now: false) }
             }
         }
+    }
+
+    // Its Dock icon clicked: the launcher, unless a window of the app's is on screen (or in the Dock, which brings it back).
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if hasVisibleWindows || NSApp.windows.contains(where: \.isMiniaturized) { return true }
+        launcher.showIfNothingShown()
+        return false
+    }
+
+    // Switched to (⌘Tab) with nothing of it on screen: the launcher, as the hotkey opens it. A moment later, so a window the
+    // app is opening (its Settings, an alert) counts.
+    func applicationDidBecomeActive(_ notification: Notification) {
+        guard launcher.model.showInDock else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            MainActor.assumeIsolated {
+                guard NSApp.isActive, NSApp.modalWindow == nil else { return }
+                self?.launcher.showIfNothingShown()
+            }
+        }
+    }
+}
+
+// Settings › General › In the Dock and ⌘Tab (this Mac's, on until turned off): a regular app, its icon in the Dock and in
+// ⌘Tab; off, an accessory (the menu bar's icon and the hotkey only). The bundle says accessory (LSUIElement), so the
+// launch never flashes an icon that's turned off.
+enum DockPresence {
+    static let key = "ZLShowInDock"
+    static var kept: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+
+    @MainActor
+    static func keep(_ on: Bool) {
+        UserDefaults.standard.set(on, forKey: key)
+        apply(on)
+    }
+
+    @MainActor
+    static func apply(_ on: Bool) {
+        NSApp.setActivationPolicy(on ? .regular : .accessory)
     }
 }

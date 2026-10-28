@@ -45,6 +45,7 @@ extension LauncherModel {
         extra["taxEditId"] = tax.editId
         extra["home"] = NSHomeDirectory()
         extra["openAsWindow"] = openAsWindow
+        extra["dock"] = showInDock
         extra["theme"] = themeSettings
         if let review = tax.review { extra["review"] = review }
         return try core.glue("settingsPage", [settingsPageName, settingsJSON, settingsContext, extra], as: [ListRow].self)
@@ -54,7 +55,7 @@ extension LauncherModel {
     // with its accent as a swatch.
     var themeSettings: [String: Any] {
         let theme = ThemeStore.shared
-        return ["id": theme.family.id, "mode": theme.mode.rawValue,
+        return ["id": theme.chosen.id, "mode": theme.chosenMode.rawValue, // (the kept one checked, not the one previewed)
                 "themes": ThemeFamily.all.map { f -> [String: Any] in
                     ["id": f.id, "name": f.name, "light": f.light?.name ?? "", "dark": f.dark?.name ?? "", "swatch": Palette(f).accentHex]
                 }]
@@ -64,6 +65,15 @@ extension LauncherModel {
     func chooseTheme(_ path: String, _ value: String) {
         if path == "mac.themeMode" { ThemeStore.shared.setMode(ThemeMode(rawValue: value) ?? .system) } else { ThemeStore.shared.setFamily(value) }
         runnerState.index = nil // (what the search finds says the one now in effect)
+    }
+
+    // Browsing Theme's (or Light or dark's) choices: the app in the row you're on, at once; ↵ keeps it, leaving any other
+    // way (esc, ⌫, closing the launcher) puts back the one you had.
+    func previewTheme() {
+        let theme = ThemeStore.shared
+        guard store.view == "settings-choice", settingsView.choice.hasPrefix("mac.theme"), let row = selectedListRow,
+              row.rowId == "set-opt", row.value == settingsView.choice else { return theme.endPreview() }
+        if row.value == "mac.themeMode" { theme.preview(mode: ThemeMode(rawValue: row.tag) ?? .system) } else { theme.preview(row.tag) }
     }
 
     var handshakeVersion: String { (bridge as? BridgeClient)?.handshake?.bridgeVersion ?? "" }
@@ -110,6 +120,11 @@ extension LauncherModel {
         if path == "mac.openAsWindow" {
             openAsWindow.toggle()
             flashMessage(openAsWindow ? "On: the hotkey opens a window from now on (\(keyName("W")) switches to the overlay)" : "Off: the hotkey opens the overlay from now on")
+            return
+        }
+        if path == "mac.dock" {
+            showInDock.toggle()
+            flashMessage(showInDock ? "On: the app is in the Dock and ⌘Tab" : "Off: only the menu bar's icon from now on")
             return
         }
         guard let core else { return }
