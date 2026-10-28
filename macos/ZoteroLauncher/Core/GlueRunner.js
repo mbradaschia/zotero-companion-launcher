@@ -17,6 +17,39 @@ function GlueRunner(V, C, S, F) {
     return html
   }
 
+  // The runner's (runner/lib/fatal.mjs, kept the same: js/tests/fatal.test.js), in this order: Claude Code's "Invalid API
+  // key · Please run /login" is a sign-in, an API's refused key a key.
+  var FATAL_PATTERNS = [
+    ["key", /api key was refused|key isn't accepted|incorrect api key|invalid x-api-key|Jev refused \((401|403)\)/i],
+    ["signin", /\/login|not logged in|logged out|log in again|codex login|oauth token|token (has )?expired|authentication_error|failed to authenticate|invalid api key|invalid bearer|unauthori[sz]ed|\b401\b/i],
+    ["limit", /credit|insufficient_quota|quota|billing|usage limit|limit reached|hit your limit|rate.?limit|too many requests|\b429\b/i],
+    ["busy", /overloaded|\b529\b/i],
+    ["setup", /no AI model is set up|no default model yet|there is no default model|no API key|isn't installed|aren't installed|reinstall the AI features/i],
+    ["network", /can't reach|couldn't reach|isn't answering at|ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ECONNRESET|ETIMEDOUT|ENETUNREACH|EHOSTUNREACH|getaddrinfo|fetch failed|connection error|network|socket hang up|unable to connect|offline/i]
+  ]
+
+  // A runner's reason for a failed job → null (this paper's own problem: the next one may work), or what stops the
+  // batch: { kind: signin, key, limit, busy, network, setup; message: what to fix, in a line; retryMin: when the
+  // automation tries again by itself; reason: the runner's own words, cut short }.
+  function fatalProblem(reason) {
+    var text = String(reason || "").trim()
+    if (!text || /zotero/i.test(text)) return null // (Zotero away: what waits for it goes on when it's back)
+    var who = /chatgpt|codex/i.test(text) ? "ChatGPT" : /claude|anthropic|\/login/i.test(text) ? "Claude" : ""
+    var hit = FATAL_PATTERNS.filter(function (p) { return p[1].test(text) })[0]
+    var kind = hit ? hit[0] : ""
+    if (!kind) return null
+    var message = kind === "signin" ? (who === "ChatGPT" ? "ChatGPT isn't signed in: in Terminal, run codex login"
+        : who === "Claude" ? "Claude isn't signed in (its login expired?): in Terminal, run claude, then /login"
+        : "The AI refused the sign-in: check it in Settings › Models & providers")
+      : kind === "key" ? "An API key was refused: replace it in Settings › Models & providers"
+      : kind === "limit" ? (who || "The AI") + " is out of credit or over its usage limit: wait for the limit to reset, or add credit"
+      : kind === "busy" ? (who || "The AI") + " is overloaded right now: it's tried again in a few minutes"
+      : kind === "setup" ? "The AI isn't ready: " + text.replace(/^oma-zotero-prompt: /, "")
+      : "Can't reach the AI: check the network connection"
+    var retryMin = { network: 5, busy: 10, limit: 30, signin: 30, key: 30, setup: 30 }[kind]
+    return { kind: kind, message: message, retryMin: retryMin, reason: text.length > 200 ? text.slice(0, 199) + "…" : text }
+  }
+
   return {
     // ---- prompts (`list --json`)
     parsePromptList: function (text) { return C.parsePromptList(text) },
@@ -60,7 +93,10 @@ function GlueRunner(V, C, S, F) {
     extractMenu: function (details, noRunner) { return V.buildExtractMenu(details, !!noRunner) },
 
     // ---- Settings › Rules (the page itself: GlueSettings.js's settingsPage "rules")
-    instructionsText: function (text) { return String(text || "").replace(/<!--[\s\S]*?-->/g, "").trim() }
+    instructionsText: function (text) { return String(text || "").replace(/<!--[\s\S]*?-->/g, "").trim() },
+
+    // ---- a problem every paper would meet (the runner's reason for one that failed)
+    fatalProblem: function (reason) { return fatalProblem(reason) }
   }
 }
 

@@ -95,7 +95,8 @@ extension LauncherModel {
             let r = results.first ?? [:]
             let add = r["add"] as? [String] ?? []
             let suggested = r["suggested"] as? Int ?? 0
-            self.flashMessage(r["status"] as? String != "tagged" ? "Not tagged: " + ((r["reason"] as? String) ?? (r["status"] as? String) ?? "failed")
+            let why = (r["reason"] as? String) ?? (r["status"] as? String) ?? "failed"
+            self.flashMessage(r["status"] as? String != "tagged" ? "Not tagged: " + (self.fatalProblem(why)?.message ?? why)
                 : "Tagged by taxonomies" + (add.isEmpty ? " (nothing new)" : ": " + add.joined(separator: ", ")) + (suggested > 0 ? " · \(suggested) to review in Settings › Taxonomies › Review" : ""))
             if self.actionItem?.key == item.key { self.refreshDetails() }
             if self.store.view == "tax-audit" { self.loadTaxonomyAudit() }
@@ -225,6 +226,9 @@ extension LauncherModel {
                     self.classify(items) { [weak self] results in
                         guard let self else { return }
                         let tagged = results.filter { $0["status"] as? String == "tagged" }.count, failed = results.filter { $0["status"] as? String == "failed" }.count
+                        if let p = self.fatalProblem(in: results) { // (stopped at a problem every paper would meet)
+                            return self.notify("Tagging by taxonomies stopped", "\(tagged) of \(results.count) tagged. " + p.message + ", then tag them again")
+                        }
                         self.notify("Tagging by taxonomies is done", "\(tagged) tagged" + (failed > 0 ? ", \(failed) failed (in Processes)" : "") + " of \(results.count)")
                     }
                     self.flashMessage("Tagging \(items.count) " + (items.count == 1 ? "paper" : "papers") + " by taxonomies: it's in Processes (\(self.keyName(".")))")
