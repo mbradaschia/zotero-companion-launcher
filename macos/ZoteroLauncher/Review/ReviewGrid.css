@@ -38,9 +38,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tb { border: 1px solid var(--line); background: var(--win); padding: 3px 10px; border-radius: 6px; font-size: 12.5px; white-space: nowrap; }
 .tb:hover:not(:disabled) { background: var(--head); }
 .tb:disabled { opacity: .45; }
-.tb.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.tb.primary { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
 .tb.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.tb.danger { background: var(--red); color: #fff; border-color: var(--red); }
+.tb.danger { background: var(--red); color: var(--on-accent, #fff); border-color: var(--red); }
 
 .body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
 .body.nopanel { grid-template-columns: minmax(0, 1fr); }
@@ -99,9 +99,9 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .ilab .k { font-weight: 400; color: var(--faint); font-size: 11px; }
 .opts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .opts .pill { cursor: default; font-size: 12px; padding: 1px 8px; }
-.opts .pill.on.status { background: var(--status); color: #fff; border-color: var(--status); }
-.opts .pill.on.task { background: var(--task); color: #fff; border-color: var(--task); }
-.opts .pill.on.own { background: var(--you); color: #fff; border-color: var(--you); }
+.opts .pill.on.status { background: var(--status); color: var(--on-accent, #fff); border-color: var(--status); }
+.opts .pill.on.task { background: var(--task); color: var(--on-accent, #fff); border-color: var(--task); }
+.opts .pill.on.own { background: var(--you); color: var(--on-accent, #fff); border-color: var(--you); }
 .hint { color: var(--muted); font-size: 11.5px; line-height: 1.45; }
 
 .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 16px; padding: 5px 12px; border-top: 1px solid var(--line); background: var(--chrome); color: var(--muted); font-size: 12px; }
@@ -111,8 +111,8 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .pop { position: fixed; z-index: 20; min-width: 220px; max-width: 360px; max-height: 70vh; overflow: auto; background: var(--win); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.18); padding: 4px; }
 .pop .ph { font-size: 11px; color: var(--faint); padding: 6px 10px 2px; }
 .pop .pi { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 4px 10px; border: 0; background: transparent; border-radius: 5px; text-align: left; }
-.pop .pi:hover:not(:disabled), .pop .pi.hi { background: var(--accent); color: #fff; }
-.pop .pi:hover:not(:disabled) small, .pop .pi.hi small { color: #fff; }
+.pop .pi:hover:not(:disabled), .pop .pi.hi { background: var(--accent); color: var(--on-accent, #fff); }
+.pop .pi:hover:not(:disabled) small, .pop .pi.hi small { color: var(--on-accent, #fff); }
 .pop .pi:disabled { opacity: .5; }
 .pop .pi small { color: var(--faint); font-size: 11px; }
 .pop hr { border: 0; border-top: 1px solid var(--line2); margin: 4px 0; }
@@ -130,7 +130,7 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .pop input[type=search], .pop input[type=text] { width: calc(100% - 12px); margin: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--head); -webkit-user-select: text; user-select: text; }
 .seg { display: flex; gap: 2px; padding: 4px 10px; }
 .seg button { border: 1px solid var(--line); background: var(--win); border-radius: 5px; padding: 2px 9px; }
-.seg button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.seg button.on { background: var(--accent); color: var(--on-accent, #fff); border-color: var(--accent); }
 .srow { display: flex; align-items: center; gap: 4px; padding: 2px 6px 2px 10px; }
 .srow .n { color: var(--faint); width: 14px; }
 .srow .l { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
