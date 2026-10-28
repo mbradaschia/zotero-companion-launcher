@@ -32,7 +32,7 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
    *Tools → Plugins → ⚙ → Install Plugin From File…*.
 2. **The app**, in Terminal:
    ```bash
-   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.11/install.sh | bash
+   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.13/install.sh | bash
    ```
    It downloads that release (or, with `macos-nightly` in the URL, the
    [nightly build](https://github.com/mbradaschia/zotero-companion-launcher/releases/tag/macos-nightly), rebuilt on
@@ -77,8 +77,7 @@ wants your OK for the login item, the app opens *System Settings › General ›
   regular window; ⌘W closes it, as it closes a note's or a chat's window.
 - ⌘ does what Ctrl does there: ⌘S saves a search, ⌘V pastes, ⌘-/+/0 size a note's text. Keys are written in the
   Mac's notation (⌘ ⌥ ⌃ ⇧ ↵ esc ⌫).
-- API keys are kept in the Keychain; Settings › Setup installs Node.js, pdftotext and Tesseract with Homebrew
-  (`brew install …`, shown in Processes), or copies the command for Terminal when Homebrew isn't installed.
+- API keys are kept in the Keychain; commands to copy are Homebrew's (`brew install …`).
 - The app is signed ad hoc, not notarized (the installer clears the quarantine). A signed, notarized build with
   automatic updates needs the Apple Developer Program.
 - Accessibility: VoiceOver reads each row as one element (its label, detail, keys and state), pills by their kind,

@@ -4,7 +4,7 @@
 // right, by editing a cell of your own, or with ⌥→← (status) and ⇧⌥→← (task).
 var RT = (function () {
   var C = ReviewCore
-  var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true }
+  var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true, pinned: false, preview: null }
   var review = null // the review as you arrange it (sent back on each change)
   var cols = [] // its columns, resolved (ReviewCore.columns)
   var rows = [] // the papers, in the sort's order (and grouped: the groups' order)
@@ -15,7 +15,9 @@ var RT = (function () {
   var flashText = ""
   var flashTimer = null
   var layoutTimer = null
-  var dragCol = null
+  var press = null // a header pressed: { id, x, moving, to, after } (moved past a few px: the column moves)
+  var noClick = false // the click that ends a move or a resize doesn't sort
+  var previewing = false // the source's box has a query searched as you type, not kept yet
   var built = false
   var showKeys = false
   var $ = function (id) { return document.getElementById(id) }
@@ -41,6 +43,37 @@ var RT = (function () {
   }
   function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e }
 
+  // The toolbar's icons: strokes in the text's colour (an SVG drawn here: the page loads no images).
+  var ICONS = {
+    group: "M3 4h5v5H3z M11 6.5h10 M3 15h5v5H3z M11 17.5h10",
+    sort: "M7 20V4 M3 8l4-4 4 4 M17 4v16 M13 16l4 4 4-4",
+    asc: "M3 6h5 M3 12h8 M3 18h11 M18 20V5 M15 8l3-3 3 3",
+    desc: "M3 6h11 M3 12h8 M3 18h5 M18 4v15 M15 16l3 3 3-3",
+    lines: "M4 6h16 M4 10.5h16 M4 15h16 M4 19.5h9",
+    columns: "M3 4h18v16H3z M9 4v16 M15 4v16",
+    addcol: "M3 4h11v16H3z M8.5 4v16 M19 9v6 M16 12h6",
+    export: "M12 15V3 M7 8l5-5 5 5 M5 12v8h14v-8",
+    panel: "M3 4h18v16H3z M15 4v16 M17.5 8h1.5 M17.5 11h1.5",
+    refresh: "M20 12a8 8 0 1 1-2.34-5.66 M20 4v5h-5",
+    pin: "M9 3h6 M10 3v6.5L7 13h10l-3-3.5V3 M12 13v8"
+  }
+  function icon(name) {
+    var ns = "http://www.w3.org/2000/svg"
+    var svg = document.createElementNS(ns, "svg")
+    svg.setAttribute("viewBox", "0 0 24 24")
+    svg.setAttribute("aria-hidden", "true")
+    svg.setAttribute("class", "ic ic-" + name)
+    var path = document.createElementNS(ns, "path")
+    path.setAttribute("d", ICONS[name])
+    svg.appendChild(path)
+    return svg
+  }
+  function iconButton(id, name, label, extra) {
+    return el("button", Object.assign({ class: "tb icon", id: id, type: "button", title: label, "aria-label": label, "data-icon": name }, extra || {}), [icon(name)])
+  }
+  function setIcon(b, name) { if (b.getAttribute("data-icon") !== name) { b.setAttribute("data-icon", name); clear(b).appendChild(icon(name)) } }
+  function label(b, text) { b.title = text; b.setAttribute("aria-label", text) }
+
   function flash(text) {
     flashText = String(text || "")
     clearTimeout(flashTimer)
@@ -52,7 +85,7 @@ var RT = (function () {
 
   function load(data) {
     var first = !D.review || !data.review || D.review.id !== data.review.id
-    D = Object.assign({ columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: false }, data || {})
+    D = Object.assign({ columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: false, pinned: false, preview: null }, data || {})
     // your arrangement while a change is on its way stays yours (the file comes back the same a moment later)
     if (first || !layoutTimer) review = JSON.parse(JSON.stringify(D.review))
     if (!built) build()
@@ -99,15 +132,18 @@ var RT = (function () {
     app.appendChild(el("div", { class: "toolbar" }, [
       el("button", { class: "source", id: "bSource", type: "button", title: "The papers: a saved search or a query. A click picks another, or renames the review", "aria-haspopup": "true" }),
       el("div", { class: "tools" }, [
-        el("button", { class: "tb", id: "bGroup", type: "button", "aria-haspopup": "true", title: "Group the papers by a column's value" }),
-        el("button", { class: "tb", id: "bSort", type: "button", "aria-haspopup": "true", title: "Sort by one column or several" }),
-        el("button", { class: "tb", id: "bOrder", type: "button" }),
-        el("button", { class: "tb", id: "bLines", type: "button", text: "Lines ▾", "aria-haspopup": "true" }),
-        el("button", { class: "tb", id: "bCols", type: "button", text: "Columns ▾", "aria-haspopup": "true" }),
-        el("button", { class: "tb primary", id: "bAdd", type: "button", text: "+ Column" }),
-        el("button", { class: "tb", id: "bExport", type: "button", text: "Export ▾", "aria-haspopup": "true" }),
-        el("button", { class: "tb", id: "bPanel", type: "button", text: "◨ Panel", title: "Show or hide the panel on the right (⌥⌘I)", "aria-controls": "panel" }),
-        el("button", { class: "tb", id: "bRefresh", type: "button", text: "↻", title: "Search again (⌘R)", "aria-label": "Search again" })
+        iconButton("bGroup", "group", "Group the papers", { "aria-haspopup": "true" }),
+        iconButton("bSort", "sort", "Sort", { "aria-haspopup": "true" }),
+        iconButton("bOrder", "asc", "Order"),
+        el("span", { class: "tsep" }),
+        iconButton("bLines", "lines", "Lines in each cell", { "aria-haspopup": "true" }),
+        iconButton("bCols", "columns", "Show and hide columns", { "aria-haspopup": "true" }),
+        iconButton("bAdd", "addcol", "Add a column"),
+        el("span", { class: "tsep" }),
+        iconButton("bExport", "export", "Export", { "aria-haspopup": "true" }),
+        iconButton("bPanel", "panel", "Show or hide the panel on the right (⌥⌘I)", { "aria-controls": "panel" }),
+        iconButton("bRefresh", "refresh", "Search again (⌘R)"),
+        iconButton("bPin", "pin", "Pin")
       ])
     ]))
     app.appendChild(el("div", { class: "body", id: "body" }, [
@@ -126,21 +162,26 @@ var RT = (function () {
     var s = review.source
     var saved = s.type === "search" ? (D.ctx.searches || []).filter(function (x) { return x.id === s.key })[0] : null
     var q = s.type === "search" ? (saved ? saved.query : s.query) : s.type === "query" ? s.query : ""
-    clear($("bSource")).appendChild(el("span", { class: "kind", text: sourceKind(s) }))
+    if (D.preview) { q = D.preview } // (a query you're typing: shown, not kept yet)
+    clear($("bSource")).appendChild(el("span", { class: "kind", text: D.preview ? "Typing (↵ keeps it)" : sourceKind(s) }))
     $("bSource").appendChild(el("span", { class: "what", text: review.name }))
     if (q) $("bSource").appendChild(el("span", { class: "q", text: q }))
     var g = colById(review.group), k = review.sort[0], kc = k ? colById(k.column) : null
-    $("bGroup").textContent = "Group: " + (g && C.groupable(g) ? g.label : "none") + " ▾"
-    $("bGroup").className = "tb" + (g && C.groupable(g) ? " on" : "")
-    $("bSort").textContent = "Sort: " + (k ? (kc ? kc.label : k.column) + (review.sort.length > 1 ? " +" + (review.sort.length - 1) : "") : "none") + " ▾"
-    $("bSort").className = "tb" + (review.sort.length ? " on" : "")
+    var grouped = !!(g && C.groupable(g))
+    label($("bGroup"), "Group: " + (grouped ? g.label : "none") + " (a click picks another)")
+    $("bGroup").className = "tb icon" + (grouped ? " on" : "")
+    var sortNames = review.sort.map(function (x) { var c = colById(x.column); return c ? c.label : x.column })
+    label($("bSort"), "Sort: " + (sortNames.length ? sortNames.join(", then ") : "none") + " (a click changes it)")
+    $("bSort").className = "tb icon" + (review.sort.length ? " on" : "")
     // the order: the first sort key's direction (no sort, no order)
-    $("bOrder").textContent = k && k.dir === "desc" ? "↓ Desc" : "↑ Asc"
+    setIcon($("bOrder"), k && k.dir === "desc" ? "desc" : "asc")
     $("bOrder").disabled = !k
-    $("bOrder").title = k ? (k.dir === "desc" ? "Descending by " : "Ascending by ") + (kc ? kc.label : k.column) + ": a click turns it" : "Sort by a column first, then choose its order"
-    $("bOrder").setAttribute("aria-label", k ? "Order: " + (k.dir === "desc" ? "descending" : "ascending") : "Order: not sorted")
-    $("bPanel").className = "tb" + (review.panel ? " on" : "")
+    label($("bOrder"), k ? (k.dir === "desc" ? "Descending by " : "Ascending by ") + (kc ? kc.label : k.column) + ": a click turns it" : "Order: sort by a column first")
+    $("bPanel").className = "tb icon" + (review.panel ? " on" : "")
     $("bPanel").setAttribute("aria-pressed", String(!!review.panel))
+    $("bPin").className = "tb icon" + (D.pinned ? " on" : "")
+    $("bPin").setAttribute("aria-pressed", String(!!D.pinned))
+    label($("bPin"), D.pinned ? "Pinned: the table stays over other apps' windows. A click unpins it" : "Pin it: the table stays over other apps' windows")
     $("body").className = "body" + (review.panel ? "" : " nopanel")
   }
 
@@ -162,7 +203,8 @@ var RT = (function () {
       return
     }
     var vc = visible()
-    var table = el("table", { class: "grid", id: "grid" })
+    // (its width the columns' sum: a fixed layout keeps each column as wide as you made it, narrower than what it holds)
+    var table = el("table", { class: "grid", id: "grid", style: "width:" + vc.reduce(function (t, c) { return t + c.width }, 30) + "px" })
     var cg = el("colgroup", {}, [el("col", { style: "width:30px" })])
     vc.forEach(function (c) { cg.appendChild(el("col", { style: "width:" + c.width + "px", "data-col": c.id })) })
     table.appendChild(cg)
@@ -172,12 +214,12 @@ var RT = (function () {
       var mark = sortMark(c.id)
       var s = null
       review.sort.forEach(function (k) { if (k.column === c.id) s = k.dir })
-      hr.appendChild(el("th", { class: i === 0 ? "fz1" : "", "data-c": c.id, draggable: i === 0 ? null : "true", "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
+      hr.appendChild(el("th", { class: i === 0 ? "fz1" : "mv", "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
         el("div", { class: "hcell" }, [
-          el("span", { class: "hl", text: c.label, title: c.label + (c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" }),
+          el("span", { class: "hl", text: c.label, title: c.label + (c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }),
           mark ? el("span", { class: "sortmark", text: mark }) : null,
           el("button", { class: "hmenu", type: "button", "data-menu": c.id, text: "▾", "aria-label": c.label + ": its menu" }),
-          el("div", { class: "rz", "data-rz": c.id, title: "Drag to resize; a double-click fits it" })
+          el("div", { class: "rz", "data-rz": c.id, title: "Drag to resize it; a double-click fits it" })
         ])
       ]))
     })
@@ -440,7 +482,11 @@ var RT = (function () {
   // ------------------------------------------------------------ pop-ups
 
   var popEl = null
-  function closePop() { if (popEl) { popEl.remove(); popEl = null } }
+  // Closed: a query searched as you typed and not kept (↵) goes, the table back to its source.
+  function closePop() {
+    if (popEl) { popEl.remove(); popEl = null }
+    if (previewing) { previewing = false; clearTimeout(previewTimer); post("preview", { query: null }) }
+  }
   function openPop(anchor, kids, bind) {
     closePop()
     popEl = el("div", { class: "pop", role: "menu" }, kids)
@@ -481,7 +527,7 @@ var RT = (function () {
         else if (m === "unsort") setSort(review.sort.filter(function (k) { return k.column !== c.id }))
         else if (m === "left" || m === "right") moveColumn(c.id, m === "left" ? -1 : 1)
         else if (m === "fit") fitColumn(c.id)
-        else if (m === "hide") { layoutOf(c.id).hidden = true; layoutChanged(); flash("Hidden: “" + c.label + "” (Columns ▾ shows it again)") }
+        else if (m === "hide") { layoutOf(c.id).hidden = true; layoutChanged(); flash("Hidden: “" + c.label + "” (the Columns button shows it again)") }
         else if (m === "remove") { review.columns = review.columns.filter(function (l) { return l.id !== c.id }); layoutChanged(); flash("Removed “" + c.label + "” from this review: its values stay, + Column adds it back") }
       })
     })
@@ -583,41 +629,107 @@ var RT = (function () {
     })
   }
 
+  // The source's box: a saved search, or a query typed as in the launcher's search box. The table searches as you
+  // type; the query is read as the launcher reads it (its blocks: a:, y:, #tag, NOT…); ↵ keeps it, esc drops it, ⌘S
+  // saves it as a search (the launcher's searches list it too).
+  var previewTimer = null
+  var segFor = ""
   function sourcePop(anchor) {
     var s = review.source
     var kids = [el("div", { class: "ph", text: "Saved searches" })]
     var list = D.ctx.searches || []
-    if (!list.length) kids.push(el("div", { class: "ph", text: "None yet: ⌘S in the launcher saves a search" }))
+    if (!list.length) kids.push(el("div", { class: "ph", text: "None yet: type a query below, then ⌘S" }))
     list.forEach(function (x) { kids.push(item(x.name, { "data-search": x.id, class: "pi" + (s.type === "search" && s.key === x.id ? " hi" : "") }, x.query)) })
-    kids.push(el("hr"), el("div", { class: "ph", text: "Or a query, in the launcher's syntax (↵)" }),
-      el("input", { type: "search", id: "srcq", placeholder: "resilience y:2015.. -#excluded", value: s.type === "query" ? s.query : "", "aria-label": "A query" }),
+    kids.push(el("hr"), el("div", { class: "ph", text: "Or a query, as in the launcher's search box" }),
+      el("input", { type: "search", id: "srcq", placeholder: "resilience a:teece y:2015.. !#excluded", value: s.type === "query" ? s.query : "", "aria-label": "A query", spellcheck: "false", autocomplete: "off" }),
+      el("div", { class: "qsegs", id: "srcsegs", "aria-live": "polite" }),
+      el("div", { class: "ph", text: "The table follows as you type · ↵ keeps it · esc goes back · ⌘S saves it as a search" }),
+      item("Save it as a search…", { "data-savesearch": "1" }, "⌘S"),
       el("div", { class: "ph", text: "A collection or a tag: open it in the launcher, then ⌘T." }),
       el("hr"), item("Rename this review…", { "data-rename": "1" }))
     openPop(anchor, kids, function (p) {
+      var box = $("srcq")
+      segFor = ""
+      if (box.value) askSegments(box)
       p.addEventListener("click", function (e) {
         var b = e.target.closest("[data-search]")
         if (b) {
           var x = list.filter(function (y) { return y.id === b.getAttribute("data-search") })[0]
+          previewing = false
           closePop()
           if (x) post("source", { source: { type: "search", key: x.id, title: x.name, query: x.query } })
           return
         }
+        if (e.target.closest("[data-savesearch]")) return saveSearchDialog(box.value)
         if (e.target.closest("[data-rename]")) { closePop(); renameDialog() }
       })
+      box.addEventListener("input", function () {
+        askSegments(box)
+        previewing = true
+        clearTimeout(previewTimer)
+        previewTimer = setTimeout(function () { post("preview", { query: box.value }) }, 250)
+      })
+      box.addEventListener("keyup", function (e) { if (/^Arrow|^Home$|^End$/.test(e.key)) askSegments(box) })
+      box.addEventListener("click", function () { askSegments(box) })
       p.addEventListener("keydown", function (e) {
-        if (e.target.id !== "srcq" || e.key !== "Enter") return
-        var q = e.target.value.trim()
+        if (e.target.id !== "srcq") return
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") { e.preventDefault(); return saveSearchDialog(box.value) }
+        if (e.key !== "Enter") return
+        var q = box.value.trim()
         if (!q) return
+        clearTimeout(previewTimer)
+        previewing = false
         closePop()
         post("source", { source: { type: "query", query: q } })
       })
     })
   }
 
+  // The query's blocks, from the app (the launcher's own reading of it: Views.querySegments).
+  function askSegments(box) {
+    var key = box.value + "\u0000" + box.selectionStart
+    if (key === segFor) return
+    segFor = key
+    post("segments", { text: box.value, caret: box.selectionStart })
+  }
+
+  function segments(text, list) {
+    var box = $("srcq"), out = $("srcsegs")
+    if (!box || !out || box.value !== text) return // (an older answer)
+    clear(out)
+    var blocks = (list || []).filter(function (g) { return g && g.block })
+    if (!blocks.length) return
+    out.appendChild(el("span", { class: "qlab", text: "Reads as" }))
+    ;(list || []).forEach(function (g) {
+      if (!g || !String(g.text || "").trim()) return
+      out.appendChild(el("span", { class: (g.block ? "qb" : "qt") + (g.role ? " r-" + g.role : ""), text: g.block ? g.label : g.text }))
+    })
+  }
+
+  function saveSearchDialog(query) {
+    var q = String(query || "").trim()
+    if (!q) return flash("Type a query first; then ⌘S saves it as a search")
+    var was = previewing
+    previewing = false // (the table keeps showing it while you name it: it becomes the saved search)
+    openModal([el("header", {}, [el("h2", { text: "Save the search" }), el("p", { text: q })]),
+      el("div", { class: "sb" }, [el("label", {}, ["Its name", el("input", { type: "text", id: "ssname", value: q, maxlength: "120" })])]),
+      el("footer", {}, [el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), el("button", { class: "tb primary", type: "button", id: "sssave", text: "Save it" })])], function () {
+      var go = function () { var n = $("ssname").value.trim(); onDrop = null; closeModal(); post("saveSearch", { name: n || q, query: q }) }
+      onDrop = was ? function () { post("preview", { query: null }) } : null // cancelled: the table back to its source
+      $("sssave").addEventListener("click", go)
+      $("ssname").addEventListener("keydown", function (e) { if (e.key === "Enter") go() })
+      $("ssname").select()
+    })
+  }
+
   // ------------------------------------------------------------ dialogs
 
   var modalEl = null
-  function closeModal() { if (modalEl) { modalEl.remove(); modalEl = null; $("gw").focus({ preventScroll: true }) } }
+  var onDrop = null // what a dialog closed without its button does
+  function closeModal() {
+    if (modalEl) { modalEl.remove(); modalEl = null; $("gw").focus({ preventScroll: true }) }
+    if (onDrop) { var f = onDrop; onDrop = null; f() }
+  }
   function openModal(kids, bind) {
     closePop()
     closeModal()
@@ -713,7 +825,7 @@ var RT = (function () {
     probe.style.fontWeight = "400"
     rows.slice(0, 200).forEach(function (r) { probe.textContent = C.text(c, C.value(c, r, D.ctx, D.cells)).slice(0, 120); w = Math.max(w, probe.offsetWidth + 24) })
     probe.remove()
-    layoutOf(id).width = Math.max(48, Math.min(480, w))
+    layoutOf(id).width = Math.max(C.MIN_WIDTH, Math.min(480, w))
     layoutChanged()
   }
 
@@ -730,7 +842,9 @@ var RT = (function () {
     $("bExport").addEventListener("click", function (e) { exportPop(e.currentTarget) })
     $("bPanel").addEventListener("click", togglePanel)
     $("bRefresh").addEventListener("click", function () { post("refresh") })
+    $("bPin").addEventListener("click", function () { D.pinned = !D.pinned; drawToolbar(); post("pin", { on: D.pinned }) })
     document.addEventListener("mousedown", function (e) { if (popEl && !popEl.contains(e.target) && !e.target.closest(".tools, #bSource, .hmenu")) closePop() })
+    document.addEventListener("dragstart", function (e) { e.preventDefault() }) // (nothing here is dragged out: a drag moves a column)
 
     var gw = $("gw")
     gw.addEventListener("click", function (e) {
@@ -739,7 +853,7 @@ var RT = (function () {
       if (e.target.id === "ckall") { rows.forEach(function (r) { if (e.target.checked) sel[C.paperId(r)] = true; else delete sel[C.paperId(r)] }); drawGrid(); drawFoot(); return }
       var mb = e.target.closest("[data-menu]")
       if (mb) { e.stopPropagation(); return headerMenu(colById(mb.getAttribute("data-menu")), mb) }
-      if (e.target.closest(".rz")) return
+      if (e.target.closest(".rz") || noClick) return
       var th = e.target.closest("th[data-c]")
       if (th) return setSort(C.clickSort(review.sort, th.getAttribute("data-c"), e.shiftKey))
       var td = e.target.closest("td.cell")
@@ -762,56 +876,27 @@ var RT = (function () {
     })
     gw.addEventListener("focusout", function (e) { if (e.target.id === "edbox") setTimeout(function () { if (editing) endEdit(true) }, 0) })
 
-    // resizing a column by its edge
+    // resizing a column by its edge (the grip inside its own header, at its right), or moving it by its header
     gw.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return
       var rz = e.target.closest("[data-rz]")
-      if (!rz) return
-      e.preventDefault()
-      var id = rz.getAttribute("data-rz")
-      var col = $("grid").querySelector('col[data-col="' + id + '"]')
-      var start = e.clientX, w0 = colById(id).width
-      rz.classList.add("on")
-      rz.setPointerCapture(e.pointerId)
-      var move = function (ev) { var w = Math.max(48, Math.min(1200, w0 + ev.clientX - start)); col.style.width = w + "px"; layoutOf(id).width = w }
-      var up = function () { rz.classList.remove("on"); rz.removeEventListener("pointermove", move); rz.removeEventListener("pointerup", up); layoutChanged() }
-      rz.addEventListener("pointermove", move)
-      rz.addEventListener("pointerup", up)
+      if (rz) return startResize(e, rz)
+      var th = e.target.closest("th[data-c]")
+      if (th && !e.target.closest(".hmenu")) press = { id: th.getAttribute("data-c"), x: e.clientX, moving: false, to: null, after: false }
     })
-
-    // moving a column by its header
-    gw.addEventListener("dragstart", function (e) {
-      var th = e.target.closest && e.target.closest("th[data-c]")
-      if (!th || e.target.closest(".rz")) { e.preventDefault(); return }
-      dragCol = th.getAttribute("data-c")
-      th.classList.add("dragging")
-      e.dataTransfer.effectAllowed = "move"
-      e.dataTransfer.setData("text/plain", dragCol)
-    })
-    gw.addEventListener("dragover", function (e) {
-      var th = e.target.closest && e.target.closest("th[data-c]")
-      if (!dragCol || !th) return
-      e.preventDefault()
-      Array.prototype.forEach.call($("grid").querySelectorAll("th.dropL, th.dropR"), function (t) { t.classList.remove("dropL", "dropR") })
-      if (th.getAttribute("data-c") === dragCol || th.getAttribute("data-c") === "title") return
-      var b = th.getBoundingClientRect()
-      th.classList.add(e.clientX < b.left + b.width / 2 ? "dropL" : "dropR")
-    })
-    gw.addEventListener("drop", function (e) {
-      var th = e.target.closest && e.target.closest("th[data-c]")
-      if (!dragCol || !th) return
-      e.preventDefault()
-      var to = th.getAttribute("data-c")
-      var after = th.classList.contains("dropR")
-      var from = dragCol
-      dragCol = null
-      if (to === from || (to === "title" && !after)) return drawGrid()
+    document.addEventListener("pointermove", function (e) { if (press) moveTo(e) })
+    document.addEventListener("pointerup", function () {
+      var p = press
+      press = null
+      if (!p || !p.moving) return
+      quiet()
+      document.body.classList.remove("moving")
+      if (!p.to || p.to === p.id) return drawGrid()
       var list = review.columns
-      var item = list.splice(list.indexOf(layoutOf(from)), 1)[0]
-      var at = list.indexOf(layoutOf(to)) + (after || to === "title" ? 1 : 0)
-      list.splice(at, 0, item)
+      var item = list.splice(list.indexOf(layoutOf(p.id)), 1)[0]
+      list.splice(list.indexOf(layoutOf(p.to)) + (p.after || p.to === "title" ? 1 : 0), 0, item)
       layoutChanged()
     })
-    gw.addEventListener("dragend", function () { dragCol = null; drawGrid() })
 
     $("panel").addEventListener("click", function (e) {
       var b = e.target.closest("[data-set]")
@@ -830,11 +915,61 @@ var RT = (function () {
     document.addEventListener("keydown", onKey)
   }
 
+  // The click that ends a drag isn't a click on what's under it.
+  function quiet() { noClick = true; setTimeout(function () { noClick = false }, 0) }
+
+  function startResize(e, rz) {
+    e.preventDefault()
+    var id = rz.getAttribute("data-rz")
+    var col = $("grid").querySelector('col[data-col="' + id + '"]')
+    var start = e.clientX, w0 = colById(id).width
+    rz.classList.add("on")
+    rz.setPointerCapture(e.pointerId)
+    var t0 = $("grid").offsetWidth
+    var move = function (ev) {
+      var w = Math.max(C.MIN_WIDTH, Math.min(C.MAX_WIDTH, w0 + ev.clientX - start))
+      col.style.width = w + "px"
+      $("grid").style.width = (t0 + w - w0) + "px"
+      layoutOf(id).width = w
+    }
+    var up = function () { rz.classList.remove("on"); rz.removeEventListener("pointermove", move); rz.removeEventListener("pointerup", up); quiet(); layoutChanged() }
+    rz.addEventListener("pointermove", move)
+    rz.addEventListener("pointerup", up)
+  }
+
+  // A header held and moved past a few px: the column follows; the mark shows where it lands (left or right half of
+  // the header under the pointer). The paper column stays first, and isn't moved.
+  function moveTo(e) {
+    var g = $("grid")
+    if (!g) { press = null; return }
+    if (!press.moving) {
+      if (Math.abs(e.clientX - press.x) < 6) return
+      if (press.id === "title") { press = null; return }
+      press.moving = true
+      document.body.classList.add("moving")
+      var me = g.querySelector('th[data-c="' + press.id + '"]')
+      if (me) me.classList.add("dragging")
+    }
+    Array.prototype.forEach.call(g.querySelectorAll("th.dropL, th.dropR"), function (t) { t.classList.remove("dropL", "dropR") })
+    press.to = null
+    var ths = g.querySelectorAll("thead th[data-c]")
+    for (var i = 0; i < ths.length; i++) {
+      var b = ths[i].getBoundingClientRect()
+      if (e.clientX < b.left || e.clientX >= b.right) continue
+      var id = ths[i].getAttribute("data-c")
+      if (id === press.id) return
+      press.to = id
+      press.after = id === "title" || e.clientX >= b.left + b.width / 2
+      ths[i].classList.add(press.after ? "dropR" : "dropL")
+      return
+    }
+  }
+
   function togglePanel() {
     review.panel = !review.panel
     drawToolbar()
     layoutChanged(false)
-    flash(review.panel ? "Panel shown" : "Panel hidden: ⌥⌘I or ◨ Panel brings it back")
+    flash(review.panel ? "Panel shown" : "Panel hidden: ⌥⌘I or the Panel button brings it back")
   }
 
   function toggleSel(pid, on) {
@@ -890,7 +1025,7 @@ var RT = (function () {
     setActive(C.paperId(rows[nr]), vc[nc].id, true)
   }
 
-  return { load: load, flash: flash, ready: function () { post("ready") } }
+  return { load: load, flash: flash, segments: segments, ready: function () { post("ready") } }
 })()
 
 RT.ready()
