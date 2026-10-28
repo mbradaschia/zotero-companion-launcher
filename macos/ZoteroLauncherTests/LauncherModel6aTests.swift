@@ -207,11 +207,38 @@ final class LauncherModel6aTests: XCTestCase {
         model.openSettings("")
         let setup = model.listRows.filter { $0.section == "Setup" }
         XCTAssertFalse(setup.contains { ["bind-add", "rule-add"].contains($0.value) })
-        try select { $0.value == "copy:brew install node" }
+        let node = try XCTUnwrap(setup.first { $0.value == "brew:node" })
+        XCTAssertEqual(node.detail, "For the AI features: Enter installs it with Homebrew (brew install node)")
+        XCTAssertTrue(setup.contains { $0.value == "brew:poppler" })
+    }
+
+    func testInstallingPdftotextRunsHomebrewAndShowsItInstalled() throws {
+        let script = try XCTUnwrap(RunnerKit.brewScript(), "the app carries brew-install.sh")
+        runner.hasPdftotext = false
+        runner.hold = [script.path]
+        model.openSettings("")
+        try select { $0.value == "brew:poppler" }
+        model.execute(.activate)
+        XCTAssertEqual(runner.calls.last?.argv, ["/bin/bash", script.path, "poppler"])
+        XCTAssertTrue(model.runnerState.brewing.contains("poppler"))
+        model.execute(.activate) // once at a time
+        XCTAssertEqual(model.flash, "Installing poppler already")
+        runner.hasPdftotext = true
+        runner.release(script.path, RunnerResult(status: 0))
+        XCTAssertFalse(model.runnerState.brewing.contains("poppler"))
+        XCTAssertEqual(model.flash, "Installed poppler")
+        XCTAssertTrue(model.listRows.contains { $0.section == "Setup" && $0.detail == "Installed: it extracts the text of PDFs" })
+    }
+
+    func testWithoutHomebrewTheCommandIsCopied() throws {
+        let script = try XCTUnwrap(RunnerKit.brewScript())
+        runner.answers[script.path] = { _, _ in RunnerResult(status: 3, stderr: "brew-install: Homebrew isn't installed (brew.sh)") }
+        runner.nodeVersion = ""
+        model.openSettings("")
+        try select { $0.value == "brew:node" }
         model.execute(.activate)
         XCTAssertEqual(desktop.copied.last, "brew install node")
-        XCTAssertEqual(model.flash, "Copied “brew install node”: paste it in Terminal, then come back here when it's done")
-        XCTAssertTrue(setup.contains { $0.value == "copy:brew install poppler" })
+        XCTAssertEqual(model.flash, "Homebrew isn't installed (brew.sh): copied “brew install node” for Terminal, once it is")
     }
 
     func testInstallingRunsTheBundledScriptAndSaysWhenDone() throws {

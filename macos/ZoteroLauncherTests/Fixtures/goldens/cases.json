@@ -34731,7 +34731,7 @@
     "icon": "",
     "label": "Install Node.js",
     "labelHtml": "Install Node.js",
-    "detail": "For the AI features: Enter copies brew install node (paste it in Terminal)",
+    "detail": "For the AI features: Enter installs it with Homebrew (brew install node)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -34747,7 +34747,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install node",
+    "value": "brew:node",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -34805,7 +34805,7 @@
     "icon": "",
     "label": "Install pdftotext",
     "labelHtml": "Install pdftotext",
-    "detail": "To extract PDFs' text: Enter copies brew install poppler (paste it in Terminal)",
+    "detail": "To extract PDFs' text: Enter installs it with Homebrew (brew install poppler)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -34821,7 +34821,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install poppler",
+    "value": "brew:poppler",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -34842,7 +34842,7 @@
     "icon": "",
     "label": "Read scans by OCR (optional)",
     "labelHtml": "Read scans by OCR (optional)",
-    "detail": "Tesseract reads scanned PDFs (no text layer): Enter copies brew install tesseract (paste it in Terminal)",
+    "detail": "Tesseract reads scanned PDFs (no text layer): Enter installs it with Homebrew (brew install tesseract)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -34858,7 +34858,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install tesseract",
+    "value": "brew:tesseract",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -62376,7 +62376,7 @@
     "icon": "",
     "label": "Install Node.js",
     "labelHtml": "Install Node.js",
-    "detail": "For the AI features: Enter copies brew install node (paste it in Terminal)",
+    "detail": "For the AI features: Enter installs it with Homebrew (brew install node)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -62392,7 +62392,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install node",
+    "value": "brew:node",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -62450,7 +62450,7 @@
     "icon": "",
     "label": "Install pdftotext",
     "labelHtml": "Install pdftotext",
-    "detail": "To extract PDFs' text: Enter copies brew install poppler (paste it in Terminal)",
+    "detail": "To extract PDFs' text: Enter installs it with Homebrew (brew install poppler)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -62466,7 +62466,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install poppler",
+    "value": "brew:poppler",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -62487,7 +62487,7 @@
     "icon": "",
     "label": "Read scans by OCR (optional)",
     "labelHtml": "Read scans by OCR (optional)",
-    "detail": "Tesseract reads scanned PDFs (no text layer): Enter copies brew install tesseract (paste it in Terminal)",
+    "detail": "Tesseract reads scanned PDFs (no text layer): Enter installs it with Homebrew (brew install tesseract)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -62503,7 +62503,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install tesseract",
+    "value": "brew:tesseract",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -63367,7 +63367,7 @@
     "icon": "",
     "label": "Read scans by OCR (optional)",
     "labelHtml": "Read scans by OCR (optional)",
-    "detail": "Tesseract reads scanned PDFs (no text layer): Enter copies brew install tesseract (paste it in Terminal)",
+    "detail": "Tesseract reads scanned PDFs (no text layer): Enter installs it with Homebrew (brew install tesseract)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -63383,7 +63383,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install tesseract",
+    "value": "brew:tesseract",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -64287,7 +64287,7 @@
     "icon": "",
     "label": "Read scans by OCR (optional)",
     "labelHtml": "Read scans by OCR (optional)",
-    "detail": "Tesseract reads scanned PDFs (no text layer): Enter copies brew install tesseract (paste it in Terminal)",
+    "detail": "Tesseract reads scanned PDFs (no text layer): Enter installs it with Homebrew (brew install tesseract)",
     "available": true,
     "submenu": false,
     "showCheck": true,
@@ -64303,7 +64303,7 @@
     "tag": "",
     "section": "Setup",
     "promptId": "",
-    "value": "copy:brew install tesseract",
+    "value": "brew:tesseract",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -70234,10 +70234,10 @@
     "page": "",
     "pageTitle": "Settings",
     "label": "Read scans by OCR (optional)",
-    "detail": "Tesseract reads scanned PDFs (no text layer): Enter copies brew install tesseract (paste it in Terminal)",
+    "detail": "Tesseract reads scanned PDFs (no text layer): Enter installs it with Homebrew (brew install tesseract)",
     "section": "Setup",
     "rowId": "set-setup",
-    "value": "copy:brew install tesseract"
+    "value": "brew:tesseract"
    },
    {
     "page": "",
@@ -71079,10 +71079,10 @@
      "page": "",
      "pageTitle": "Settings",
      "label": "Read scans by OCR (optional)",
-     "detail": "Tesseract reads scanned PDFs (no text layer): Enter copies brew install tesseract (paste it in Terminal)",
+     "detail": "Tesseract reads scanned PDFs (no text layer): Enter installs it with Homebrew (brew install tesseract)",
      "section": "Setup",
      "rowId": "set-setup",
-     "value": "copy:brew install tesseract"
+     "value": "brew:tesseract"
     },
     {
      "page": "",
@@ -106911,5 +106911,264 @@
    "r-"
   ],
   "expect": false
+ },
+ {
+  "name": "reviewColumnText/ai-prompt",
+  "wrapper": "reviewColumnText",
+  "args": [
+   {
+    "id": "c-abcdefghij",
+    "label": "Gap",
+    "kind": "prompt",
+    "reads": "full",
+    "shape": "list",
+    "length": 3,
+    "evidence": true,
+    "model": "default",
+    "description": "Which gaps does it name?"
+   }
+  ],
+  "expect": "---\nlabel: \"Gap\"\nkind: prompt\nreads: full\nshape: list\nlength: 3\nevidence: true\nmodel: \"default\"\n---\nWhich gaps does it name?\n"
+ },
+ {
+  "name": "reviewColumnParse/ai-prompt",
+  "wrapper": "reviewColumnParse",
+  "args": [
+   "---\nlabel: \"Gap\"\nkind: prompt\nreads: full\nshape: list\nlength: 3\nevidence: true\nmodel: \"default\"\n---\nWhich gaps does it name?\n",
+   "c-abcdefghij"
+  ],
+  "expect": {
+   "id": "c-abcdefghij",
+   "label": "Gap",
+   "kind": "prompt",
+   "description": "Which gaps does it name?",
+   "reads": "full",
+   "shape": "list",
+   "length": 3,
+   "options": [],
+   "evidence": true,
+   "model": "default"
+  }
+ },
+ {
+  "name": "reviewColumnParse/ai-relevance",
+  "wrapper": "reviewColumnParse",
+  "args": [
+   "---\nlabel: Relevant?\nkind: jev-relevance\ntopic: \"routines\"\n---\nIt studies routines\n",
+   "c-abcdefghij"
+  ],
+  "expect": {
+   "id": "c-abcdefghij",
+   "label": "Relevant?",
+   "kind": "jev-relevance",
+   "description": "It studies routines",
+   "topic": "routines"
+  }
+ },
+ {
+  "name": "reviewRunJob/cells",
+  "wrapper": "reviewRunJob",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   {
+    "c-abcdefghij": {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "description": "Which gaps does it name?",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default"
+    },
+    "c-0123456789": {
+     "id": "c-0123456789",
+     "label": "Method",
+     "kind": "own",
+     "type": "choice",
+     "options": [
+      "case study",
+      "survey"
+     ],
+     "description": ""
+    }
+   },
+   {
+    "taxonomies": []
+   },
+   [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:P3NM4G92"
+    },
+    {
+     "column": "c-0123456789",
+     "paper": "1:P3NM4G92"
+    },
+    {
+     "column": "c-abcdefghij",
+     "paper": "../x"
+    }
+   ]
+  ],
+  "expect": {
+   "review": "r-abcdefghij",
+   "name": "Capabilities",
+   "columns": [
+    {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default",
+     "taxonomy": "",
+     "topic": "",
+     "description": "Which gaps does it name?",
+     "hash": "fa25c4bbd92a"
+    }
+   ],
+   "jobs": [
+    {
+     "column": "c-abcdefghij",
+     "paper": "1:P3NM4G92"
+    }
+   ]
+  }
+ },
+ {
+  "name": "reviewRunJob/nothing",
+  "wrapper": "reviewRunJob",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   {
+    "c-abcdefghij": {
+     "id": "c-abcdefghij",
+     "label": "Gap",
+     "kind": "prompt",
+     "description": "Which gaps does it name?",
+     "reads": "full",
+     "shape": "list",
+     "length": 3,
+     "options": [],
+     "evidence": true,
+     "model": "default"
+    },
+    "c-0123456789": {
+     "id": "c-0123456789",
+     "label": "Method",
+     "kind": "own",
+     "type": "choice",
+     "options": [
+      "case study",
+      "survey"
+     ],
+     "description": ""
+    }
+   },
+   {},
+   [
+    {
+     "column": "c-0123456789",
+     "paper": "1:P3NM4G92"
+    }
+   ]
+  ],
+  "expect": {
+   "error": "Nothing to run: no AI cell was asked for"
+  }
+ },
+ {
+  "name": "reviewSetCell/ai-kept",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "{\"cells\":{\"1:P3NM4G92\":{\"v\":[\"a gap\"],\"updated\":\"2026-10-28T10:00:00Z\",\"by\":\"ai\",\"model\":\"claude:sonnet\",\"hash\":\"abc\",\"input\":{\"text\":\"note\"}}}}",
+   "1:P3NM4G92",
+   "my gap",
+   "2026-10-28T11:00:00Z",
+   "mac"
+  ],
+  "expect": "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"my gap\",\n      \"updated\": \"2026-10-28T11:00:00Z\",\n      \"by\": \"mac\",\n      \"ai\": {\n        \"v\": [\n          \"a gap\"\n        ],\n        \"updated\": \"2026-10-28T10:00:00Z\",\n        \"by\": \"ai\",\n        \"model\": \"claude:sonnet\",\n        \"hash\": \"abc\",\n        \"input\": {\n          \"text\": \"note\"\n        }\n      }\n    }\n  }\n}\n"
+ },
+ {
+  "name": "reviewRestoreCell/back",
+  "wrapper": "reviewRestoreCell",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"my gap\",\n      \"updated\": \"2026-10-28T11:00:00Z\",\n      \"by\": \"mac\",\n      \"ai\": {\n        \"v\": [\n          \"a gap\"\n        ],\n        \"updated\": \"2026-10-28T10:00:00Z\",\n        \"by\": \"ai\",\n        \"model\": \"claude:sonnet\",\n        \"hash\": \"abc\",\n        \"input\": {\n          \"text\": \"note\"\n        }\n      }\n    }\n  }\n}\n",
+   "1:P3NM4G92",
+   "2026-10-28T12:00:00Z"
+  ],
+  "expect": "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": [\n        \"a gap\"\n      ],\n      \"updated\": \"2026-10-28T12:00:00Z\",\n      \"by\": \"ai\",\n      \"model\": \"claude:sonnet\",\n      \"hash\": \"abc\",\n      \"input\": {\n        \"text\": \"note\"\n      }\n    }\n  }\n}\n"
+ },
+ {
+  "name": "reviewRestoreCell/nothing",
+  "wrapper": "reviewRestoreCell",
+  "args": [
+   "{\"cells\":{\"1:P3NM4G92\":{\"v\":[\"a gap\"],\"updated\":\"2026-10-28T10:00:00Z\",\"by\":\"ai\",\"model\":\"claude:sonnet\",\"hash\":\"abc\",\"input\":{\"text\":\"note\"}}}}",
+   "1:P3NM4G92",
+   "2026-10-28T12:00:00Z"
+  ],
+  "expect": null
  }
 ]

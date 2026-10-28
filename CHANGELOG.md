@@ -13,8 +13,37 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.14`)
 
+- **AI columns in the review table** (phase 11b). *+ Column › An AI column* makes one of four kinds:
+  - *AI prompt*: your question, asked of each paper. It reads the title and abstract or the full text (the extracted
+    text, else the PDF). Its answer is text of at most N words, a list, a number or one of a list. Evidence is optional:
+    quotes with their page, each checked word for word against the paper. It runs on your prompts model or any model
+    the app lists.
+  - *Jev, several labels* and *Jev, best fit*: one of your taxonomies.
+  - *Jev, relevance*: a topic and what relevant means, scored 0 to 100 (high from 70, maybe from 40).
+  The Jev kinds read what tagging reads and run on your prompts model without a Jev key. A run from the table writes
+  no Zotero tags.
+- **Run… shows the plan before anything starts** (the toolbar's ▷, a column's menu, ⇧⌘R). It covers the selected
+  papers or every one shown, this column or every AI column, the cells by state, what's left alone (up to date, or
+  yours unless you ask), and the requests with Jev's cost. A run is one row in Processes. It makes one Jev request per
+  paper for all its Jev cells and one request per model and text for the prompt columns. Each paper's cells are
+  written as they're made, so a stopped run keeps them. At most 200 papers a run.
+- **A cell says when it's out of date.** Amber means the column changed since it ran, or the paper's text was
+  extracted since. ✎ means you edited it, and ⚠ means it failed, with the reason.
+- **The panel shows an AI cell whole**: the value, each label's probability, the evidence (found or not), the model,
+  the date and the text it read. It has *Run it again*, and *Back to the AI's answer* for a cell you edited; an AI
+  prompt's text cell edits as your own columns do.
+- The runner is 0.2.3 (`review-run`): *Settings › Setup › Install the AI features* offers the update.
+- **Settings › Setup installs Node.js, pdftotext and Tesseract itself**: Enter on *Install Node.js*, *Install
+  pdftotext* or *Read scans by OCR* runs `brew install …` (node, poppler, tesseract) in the background, shown in
+  Processes, and the row says it's installed when it's done. It used to only copy the command, with nothing on screen
+  but a short flash, so the button looked broken. Without Homebrew it still copies the command, and says so.
+- **Installing the AI features no longer reports success without the Claude or Codex binary**: npm ci skips an
+  optional package whose download fails (each is ~80 MB; a slow IPv6 route to the registry is enough) and still
+  succeeds. The installer now checks that this machine's binaries are there, tries once more preferring IPv4 (the
+  rest comes from npm's cache), and fails with "npm didn't download …" if they're still missing. The Omarchy
+  launcher's installer too.
 - **Themes.** Settings › General › Appearance › Theme picks the app's colours: Default (the Mac's own colours and
   accent, as before) or one of ten well-known themes, each with a light and a dark variant: Catppuccin (Latte, Mocha),
   Solarized, Gruvbox, Nord, Dracula (Alucard, Dracula), Tokyo Night (Day, Night), One (Light, Dark), GitHub and Rosé

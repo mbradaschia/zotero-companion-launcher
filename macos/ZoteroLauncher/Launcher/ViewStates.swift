@@ -85,6 +85,7 @@ struct RunnerState {
     var tests: [String: [String: Any]] = [:] // `provider-test <id>`, or { running: true }
     var installing = false
     var installProblem = ""
+    var brewing: Set<String> = [] // Homebrew installs running (node, poppler, tesseract)
     var busy: Set<String> = [] // providers, models: one run each at a time
     var again: Set<String> = [] // asked again while running: run once more after
     var provider = "" // settings-provider's
@@ -113,6 +114,7 @@ struct AIState {
     var titleMode = "create" // prompt-title's: "create" or "rename"
     var tasks: [[String: Any]] = [] // the runner's tasks (tasks.json)
     var tasksAsking = false // a `tasks` run out
+    var reviewRunState = "" // the review runs' tasks as last read (their status and count): a change draws the open tables again
     var tasksWatched = "" // the folders the watchers are on
     var instructionsWatched = ""
     var tasksRead = Date.distantPast // when the menu last read its paper (a task on it that ended since: read again)

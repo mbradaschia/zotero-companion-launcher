@@ -1,4 +1,4 @@
-// The review table's page, driven headless (phase 11a): the page as ReviewWebView builds it (the CSS, ReviewCore.js
+// The review table's page, driven headless (phases 11a, 11b): the page as ReviewWebView builds it (the CSS, ReviewCore.js
 // and ReviewGrid.js, the script allowed by its hash), loaded with a small paper set, then clicked and typed at.
 // A developer's check where Playwright is installed (not CI's):
 //   node macos/scripts/review-grid-check.mjs [--shot out.png]
@@ -123,7 +123,7 @@ const layout = m.filter((x) => x.type === "layout").pop();
 ok(layout && layout.review.sort.length === 2 && layout.review.sort[1].column === "year", "the sort is saved with the review");
 const label = (sel) => pg.getAttribute(sel, "aria-label");
 ok((await label("#bSort")).startsWith("Sort: ABS, then Year") && (await label("#bOrder")).startsWith("Ascending by ABS"), "Sort names its keys, Order says its direction");
-ok((await pg.textContent(".tools")).trim() === "" && (await pg.locator(".tools button svg").count()) === 10, "the toolbar is icons, each with its name");
+ok((await pg.textContent(".tools")).trim() === "" && (await pg.locator(".tools button svg").count()) === 11, "the toolbar is icons, each with its name");
 
 // the order and the groups
 await pg.click("#bOrder");
@@ -234,6 +234,65 @@ ok(saved && saved.name === "Teece on capabilities" && saved.query === "capabilit
 await pg.click("#bPin");
 m = await sent();
 ok(m.some((x) => x.type === "pin" && x.on === true) && (await pg.getAttribute("#bPin", "aria-pressed")) === "true", "the pin asks for the window on top");
+
+// AI columns (11b): a cell's state, the panel's evidence, + Column's AI form, Run…'s plan
+const gap = { id: "c-gap0000000", label: "Gap", kind: "prompt", reads: "full", shape: "text", length: 60, options: [], evidence: true, model: "default", description: "What gap?" };
+const rel = { id: "c-rel0000000", label: "Relevant?", kind: "jev-relevance", topic: "resilience", description: "About supply chain resilience" };
+const hashOf = (d) => pg.evaluate((x) => ReviewCore.aiColumn(x, {}).hash, d);
+const gh = await hashOf(gap), rh = await hashOf(rel);
+const ai = JSON.parse(JSON.stringify(data));
+ai.review.columns = [{ id: "title" }, { id: gap.id }, { id: rel.id }];
+ai.columns = { [gap.id]: gap, [rel.id]: rel };
+ai.ctx.jev = true;
+ai.cells = {
+  [gap.id]: { "1:AAAAAAAA": { v: "Orchestration over time", by: "ai", hash: gh, model: "claude:sonnet", updated: "2026-10-28T10:00:00Z", input: { text: "pdf" }, evidence: [{ quote: "we extend resource management", page: "4", found: true }, { quote: "an invented line", page: "", found: false }] },
+    "1:BBBBBBBB": { v: "stale", by: "ai", hash: "000000000000" }, "1:CCCCCCCC": { v: "", by: "ai", error: "the model took longer than 300 s" },
+    "1:DDDDDDDD": { v: "mine", by: "Mac mini", ai: { v: "the AI's", by: "ai", hash: gh } } },
+  [rel.id]: { "1:AAAAAAAA": { v: 82, p: 0.82, by: "ai", hash: rh, model: "jev:jev-1" } }
+};
+await pg.evaluate((d) => RT.load(d), ai);
+await sent();
+ok((await pg.textContent(cell("BBBBBBBB", gap.id))).startsWith("●") && (await pg.locator(cell("BBBBBBBB", gap.id) + " .cv.st-prompt").count()) === 1, "a cell made by an older version of its column: prompt changed");
+ok((await pg.textContent(cell("CCCCCCCC", gap.id))).startsWith("⚠") && (await pg.getAttribute(cell("CCCCCCCC", gap.id) + " .smark", "title")).includes("took longer"), "a failed cell says why");
+ok((await pg.textContent(cell("DDDDDDDD", gap.id))).startsWith("✎"), "an edited one is yours");
+ok((await pg.textContent(cell("AAAAAAAA", rel.id))) === "82 high", "relevance: its score and band");
+await pg.click(cell("AAAAAAAA", gap.id));
+ok((await pg.locator("#panel .ev").count()) === 2 && (await pg.locator("#panel .ev.nf").count()) === 1 && (await pg.textContent("#panel")).includes("By claude:sonnet on 2026-10-28, from the PDF"), "the panel: evidence, found or not, who made it and when");
+await pg.click(cell("DDDDDDDD", gap.id));
+await pg.click('#panel [data-act="restore"]');
+m = await sent();
+ok(m.some((x) => x.type === "restore" && x.column === gap.id && x.paper === "1:DDDDDDDD"), "Back to the AI's answer");
+await pg.click(cell("BBBBBBBB", gap.id));
+await pg.click('#panel [data-act="run1"]');
+m = await sent();
+ok(m.some((x) => x.type === "run" && x.jobs.length === 1 && x.jobs[0].paper === "1:BBBBBBBB"), "Run it again: that cell");
+await pg.evaluate((d) => RT.load(d), ai);
+await pg.click(cell("BBBBBBBB", gap.id));
+await pg.keyboard.press("Meta+Shift+KeyR");
+const plan = await pg.textContent("#rplan");
+ok(plan.includes("1 failed") && plan.includes("1 prompt changed") && plan.includes("1 up to date") && plan.includes("Left as they are: 1 up to date, 1 of yours"), "⇧⌘R on an AI column: the plan, by state, what's left as it is");
+ok(plan.includes("2 cells on 2 papers") && plan.includes("1 prompt request") === false && plan.includes("2 prompt requests"), "its requests");
+await pg.click('input[name="rcols"][value="all"]');
+ok((await pg.textContent("#rplan")).includes("Jev request"), "every AI column: Jev's requests too");
+await pg.click("#rgo");
+m = await sent();
+const run = m.find((x) => x.type === "run");
+ok(run && run.jobs.length === 5 && (await label("#bRun")).startsWith("An AI run is going"), "Run sends the plan's cells, and the toolbar shows the run");
+await pg.evaluate((d) => RT.load(d), ai);
+await pg.click("#bAdd");
+await pg.selectOption("#akind", "prompt");
+ok(await pg.isVisible("#aprompt") && !(await pg.isVisible("#atopic")), "+ Column: the AI prompt's fields");
+await pg.fill("#aname", "Sample size");
+await pg.fill("#aprompt", "How many firms?");
+await pg.selectOption("#ashape", "number");
+await pg.click("#nadd");
+m = await sent();
+const aic = m.find((x) => x.type === "addColumn");
+ok(aic && aic.column.kind === "prompt" && aic.column.shape === "number" && aic.column.description === "How many firms?", "+ Column adds an AI prompt column");
+await pg.click("#bAdd");
+await pg.selectOption("#akind", "jev-several");
+ok((await pg.textContent("#atax")).includes("Method (method/)") === false, "a taxonomy without an id isn't offered");
+await pg.keyboard.press("Escape");
 
 // narrow
 await pg.setViewportSize({ width: 520, height: 700 });

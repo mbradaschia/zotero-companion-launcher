@@ -77,7 +77,7 @@ struct ReviewFiles {
 
     // ---- cells
 
-    // The values of these columns: column id → paper id → { v, updated, by }.
+    // The values of these columns: column id → paper id → { v, updated, by } (an AI cell's facts too: ReviewCore.parseCells).
     func cells(_ ids: [String], _ core: JSCore) -> [String: Any] {
         var out: [String: Any] = [:]
         for id in ids where Self.validColumn(id) {
@@ -95,6 +95,18 @@ struct ReviewFiles {
         let json = try core.glueJSON("reviewSetCell", [old, paper, value, Self.iso(now), by])
         guard let text = (try? JSONSerialization.jsonObject(with: Data(json.utf8), options: .fragmentsAllowed)) as? String else { throw WriteError.badId }
         try write(text, to: url)
+    }
+
+    // Back to the AI's answer: an AI cell you edited, as the AI last made it. False when there's nothing to go back to.
+    func restoreCell(column: String, paper: String, _ core: JSCore, now: Date = Date()) throws -> Bool {
+        guard Self.validColumn(column) else { throw WriteError.badId }
+        let url = cellsURL(column)
+        guard let old = Self.text(url) else { return false }
+        if !Self.blank(old), Self.object(old) == nil { throw WriteError.damaged(url.path) }
+        let json = try core.glueJSON("reviewRestoreCell", [old, paper, Self.iso(now)])
+        guard let text = (try? JSONSerialization.jsonObject(with: Data(json.utf8), options: .fragmentsAllowed)) as? String else { return false }
+        try write(text, to: url)
+        return true
     }
 
     // ---- the files

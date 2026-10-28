@@ -231,12 +231,12 @@ function GlueSettings(V, C, T, P, S) {
   }
 
   // The setup checklist as a Mac shows it: no Hyprland rows (the keybinding, the layer rule),
-  // Homebrew for Omarchy's installers (Enter copies the command, for Terminal), the Mac's file
+  // Homebrew for Omarchy's installers (Enter runs brew install, brew-install.sh), the Mac's file
   // picker keys, the app in place of the plugin; and the runner row offering the newer one the app
   // brings (decision 7).
   var HYPRLAND = ["bind-add", "rule-add", "readme-keys"]
-  var BREW = { "term:omarchy install dev-env node": "brew install node", "term:omarchy pkg add poppler": "brew install poppler",
-    "term:omarchy pkg add tesseract tesseract-data-eng": "brew install tesseract" }
+  var BREW = { "term:omarchy install dev-env node": "node", "term:omarchy pkg add poppler": "poppler",
+    "term:omarchy pkg add tesseract tesseract-data-eng": "tesseract" }
   function macSetup(rows, runner) {
     var out = []
     rows.forEach(function (r) {
@@ -245,9 +245,9 @@ function GlueSettings(V, C, T, P, S) {
       var x = Object.assign({}, r)
       var brew = BREW[r.value]
       if (brew) {
-        x.value = "copy:" + brew
-        var omarchy = r.value.slice(5)
-        x.detail = String(r.detail).replace("runs " + omarchy + " in a terminal", "copies " + brew + " (paste it in Terminal)").replace("runs " + omarchy, "copies " + brew + " (paste it in Terminal)")
+        x.value = "brew:" + brew
+        var omarchy = r.value.slice(5), mac = "installs it with Homebrew (brew install " + brew + ")"
+        x.detail = String(r.detail).replace("runs " + omarchy + " in a terminal", mac).replace("runs " + omarchy, mac)
       }
       x.label = String(x.label).replace("Ctrl+L, then Ctrl+V", "⌘⇧G, then ⌘V")
       x.detail = String(x.detail).replace("(after an update of the plugin)", "(after an update of the app)").replace("Enter starts it (zotero)", "Enter starts it (Zotero.app)")

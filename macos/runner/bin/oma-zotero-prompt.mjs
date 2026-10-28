@@ -54,6 +54,8 @@
 //   oma-zotero-prompt artifact-undo|artifact-delete --key K [--library L] --id A
 //   oma-zotero-prompt artifact-rename --key K [--library L] --id A --title T
 //   oma-zotero-prompt artifact-libs     fetch the diagram and mind map libraries (once), redraw the views
+//   oma-zotero-prompt review-run        stdin { review, name, columns, jobs: [{ column, paper }] }: a review table's AI
+//                                       columns filled paper by paper (one task; each paper's cells written as made)
 //   oma-zotero-prompt tasks [--clear]   the task queue: prompt runs and extractions (JSON)
 //
 // The model comes from a provider (lib/providers/: a Claude or ChatGPT subscription, an API key,
@@ -96,6 +98,7 @@ import { versionsFor, promptNotes, promptRuns, stalePromptJobs, staleTaxonomyJob
 import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
 import { checkQuotes, quoteCheckLine, groundingText as quoteSources } from "../lib/quotes.mjs";
+import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell } from "../lib/reviews.mjs";
 
 // On macOS an app that starts the runner hands it a PATH without Homebrew or ~/.local/bin, where
 // pdftotext, ollama and the claude / codex CLIs live; every lookup and spawn below uses this one.
@@ -403,6 +406,59 @@ async function run(id, flags) {
     quotes: { checked: quotes.checked, missing: quotes.missing.length }, ...(answer.fellBack ? { fellBack: answer.fellBack.from } : {}) });
   notify(`Saved “${prompt.title}”`, `${label}: a new note in Zotero` + (quotes.missing.length ? ` (${quotes.missing.length} quote${quotes.missing.length === 1 ? "" : "s"} not found in the text: check the note)` : ""));
   process.stdout.write(`saved note ${note.key} on ${ctx.key}\n`);
+}
+
+// ---------------------------------------------------------------- review tables
+
+// A review table's AI columns, filled (lib/reviews.mjs): the job on stdin, each paper read once, Jev's cells in one
+// request per paper (no tags written), the prompt columns in one request per model and what they read. One task in
+// Processes for the run, its count updated per paper. → { papers, cells, failed, stopped, costUsd }
+async function reviewRun() {
+  let raw;
+  try { raw = JSON.parse(readFileSync(0, "utf8")); } catch (e) { throw new Error("not JSON: " + e.message); }
+  const job = parseReviewJob(raw);
+  const dir = paths().reviews;
+  if (!dir) throw new Error("no review tables folder");
+  const b = bridgeClient();
+  const settings = loadSettings();
+  const taxonomies = loadTaxonomies().taxonomies;
+  const nCells = job.papers.reduce((n, p) => n + p.columns.length, 0);
+  const nCols = new Set(job.papers.flatMap((p) => p.columns)).size;
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+  currentTask = startTask({ kind: "review", title: `Review “${job.name}”`, review: job.review, paper: plural(nCols, "column", "columns") + ", " + plural(nCells, "cell", "cells"), stage: "0 of " + plural(job.papers.length, "paper", "papers") });
+  const deps = {
+    taxonomies,
+    paper: async (id) => {
+      const [lib, key] = id.split(":");
+      const details = await b.post("/item", { key, libraryID: Number(lib) });
+      if (!details.paper) throw new Error("not a paper");
+      const p = details.paper;
+      let extracted = "";
+      const saved = (details.notes || []).find((n) => n.fulltext);
+      if (saved) {
+        try { extracted = (await b.post("/note", { key: saved.key, libraryID: saved.libraryID, format: "export" })).markdown || ""; } catch (e) { log("review-run: text failed", { key, error: e.message }); }
+      }
+      return { title: p.title, abstract: p.abstract, extracted, full: async () => { const t = await paperText(b, details); return { text: t.text, source: t.grounding.source }; } };
+    },
+    classify: (ts, text) => classifyText(ts, text, settings),
+    ask: async ({ model, system, message }) => {
+      const target = resolveModel(model, settings, "prompts");
+      const answer = await generate({ settings, ctx: providerCtx(), target, effort: "low", system, messages: [{ role: "user", content: message }],
+        onFallback: (t) => log("fallback", { reviewRun: true, note: t }) });
+      return { text: answer.text, spec: answer.spec, costUsd: costOf(answer) };
+    },
+    previous: (col, paper) => readCell(cellsPath(dir, col), paper),
+    write: (col, paper, record) => writeCell(cellsPath(dir, col), paper, record),
+    progress: (s) => updateTask(currentTask, { stage: s.done + " of " + plural(s.papers, "paper", "papers") + (s.failed ? ", " + s.failed + " failed" : ""), model: s.models.join(", ") }),
+  };
+  const r = await runReview(job, deps);
+  const detail = plural(r.cells, "cell", "cells") + " filled" + (r.failed ? ", " + r.failed + " failed" : "") + (r.stopped ? "; stopped: " + r.stopped : "");
+  if (!r.cells && r.failed) failTask(currentTask, r.stopped || r.error || "failed");
+  else finishTask(currentTask, { stage: "", detail, model: r.models.join(", "), costUsd: r.costUsd });
+  currentTask = null;
+  log("review-run", { review: job.review, papers: r.papers, cells: r.cells, failed: r.failed, costUsd: r.costUsd });
+  notify(`Review “${job.name}”`, detail, r.failed ? "normal" : "low");
+  return { papers: r.papers, done: r.done, cells: r.cells, failed: r.failed, stopped: r.stopped, error: r.error, costUsd: r.costUsd };
 }
 
 // ---------------------------------------------------------------- extract
@@ -1295,6 +1351,8 @@ async function main() {
       return process.stdout.write(JSON.stringify(taxonomyRemove(rest[0], flags)) + "\n");
     case "classify":
       return classify(flags);
+    case "review-run":
+      return process.stdout.write(JSON.stringify(await reviewRun()) + "\n");
     case "classify-show": {
       // one paper's result, label by label (its menu › Audit the taxonomies)
       const id = String(flags.item || "");

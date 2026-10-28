@@ -11,7 +11,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: 0.4.13
+    MARKETING_VERSION: 0.4.14
     CURRENT_PROJECT_VERSION: 1
     CODE_SIGN_IDENTITY: "-"
     CODE_SIGN_STYLE: Manual
@@ -38,7 +38,7 @@ targets:
         buildPhase: resources
     dependencies:
       - package: KeyboardShortcuts
-    # The AI features' installer (decision 7): the runner without its packages, its three scripts,
+    # The AI features' installer (decision 7): the runner without its packages, its four scripts,
     # contracts/Paths.js and the bridge's manifest, laid out as install-runner.sh expects them.
     postCompileScripts:
       - name: RunnerKit
@@ -49,7 +49,7 @@ targets:
           mkdir -p "$KIT/macos/scripts" "$KIT/contracts"
           # only the runner's own files: no packages, nothing hidden (.env), no logs
           rsync -a --delete --exclude node_modules --exclude '.*' --exclude '*.log' --exclude '*.env' "${PROJECT_DIR}/runner/" "$KIT/macos/runner/"
-          cp "${PROJECT_DIR}/scripts/install-runner.sh" "${PROJECT_DIR}/scripts/safe-dest.sh" "${PROJECT_DIR}/scripts/copy-shared-paths.sh" "$KIT/macos/scripts/"
+          cp "${PROJECT_DIR}/scripts/install-runner.sh" "${PROJECT_DIR}/scripts/brew-install.sh" "${PROJECT_DIR}/scripts/safe-dest.sh" "${PROJECT_DIR}/scripts/copy-shared-paths.sh" "$KIT/macos/scripts/"
           cp "${PROJECT_DIR}/../contracts/Paths.js" "$KIT/contracts/Paths.js"
           cp "${PROJECT_DIR}/../zotero-bridge/manifest.in.json" "$KIT/bridge-manifest.json"
     settings:

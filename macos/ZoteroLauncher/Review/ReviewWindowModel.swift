@@ -124,7 +124,8 @@ final class ReviewWindowModel: ObservableObject {
             "problem": problem,
             "loading": loading,
             "pinned": pinned,
-            "preview": preview ?? NSNull()
+            "preview": preview ?? NSNull(),
+            "run": runTask ?? NSNull()
         ])
     }
 
@@ -166,6 +167,15 @@ final class ReviewWindowModel: ObservableObject {
                 }
             }
         case "csv": exportCSV(name: m["name"] as? String ?? title, text: m["text"] as? String ?? "")
+        case "run": runAI(m["jobs"] as? [[String: Any]] ?? [])
+        case "restore":
+            guard let core = launcher.core, let files, let column = m["column"] as? String, let paper = m["paper"] as? String else { return }
+            do {
+                if try files.restoreCell(column: column, paper: paper, core) { page?.flash("Back to the AI's answer") }
+                send()
+            } catch {
+                refused(launcher.reviewProblem(error))
+            }
         default: break
         }
     }
@@ -224,6 +234,39 @@ final class ReviewWindowModel: ObservableObject {
     private func addColumn(_ column: [String: Any]?) {
         guard let core = launcher.core, let files, let column else { return }
         do { try files.writeColumn(column, core) } catch { refused(launcher.reviewProblem(error)) }
+    }
+
+    // ---- AI columns (phase 11b)
+
+    // This table's AI run, while one runs: { stage, started } (its task in Processes).
+    private var runTask: [String: Any]? {
+        guard let t = launcher.ai.tasks.first(where: { $0["kind"] as? String == "review" && $0["review"] as? String == id && $0["status"] as? String == "running" }) else { return nil }
+        return ["stage": t["stage"] ?? "", "started": t["started"] ?? ""]
+    }
+
+    // Run… › Run: the plan's cells to review-run, the job made from the column files (their fingerprint now). The
+    // cells come back as it writes them (the launcher draws the open tables again as the run's task moves).
+    private func runAI(_ jobs: [[String: Any]]) {
+        guard let core = launcher.core, let files, let review else { return }
+        if launcher.syncFolderGone || files.readOnly { return refused("Not run: " + launcher.syncFolderAway) } // (the cells are in the sync folder)
+        if runTask != nil { return refused("This table's AI run is still going: it's in Processes (Stop all stops it)") }
+        let job = (try? core.glueJSON("reviewRunJob", [review, files.columns(core), launcher.reviewContext(), jobs])).flatMap(ReviewFiles.object) ?? ["error": "Couldn't make the run"]
+        if let e = job["error"] as? String { return refused(e) }
+        guard let data = try? JSONSerialization.data(withJSONObject: job), let stdin = String(data: data, encoding: .utf8) else { return }
+        let n = (job["jobs"] as? [Any])?.count ?? 0
+        page?.flash("Running \(n) \(n == 1 ? "cell" : "cells"): they fill in as each paper is done (Processes has the run)")
+        launcher.tasksSoon()
+        launcher.runRunner(["review-run"], stdin: stdin, timeout: 3 * 3600, quiet: false) { [weak self] r in
+            guard let self else { return }
+            let out = r.json as? [String: Any]
+            if out == nil, !r.ok {
+                // (a runner from before 11b: review-run isn't one of its commands)
+                let old = r.status == 2 && r.stderr.contains("usage:")
+                self.page?.flash(old ? "The AI features here are older than the app: Settings › Setup › Install the AI features updates them" : "The run failed: " + r.problem)
+            }
+            self.launcher.refreshTasks()
+            self.send()
+        }
     }
 
     // ⌘E, Export ▾ › CSV: a save panel, the file written as the page made it.

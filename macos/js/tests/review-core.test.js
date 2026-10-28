@@ -174,3 +174,109 @@ test("cells: set by paper, an emptied one kept and dated, papers in order, junk 
   assert.equal(R.setCell(t, "../x", "v", "", ""), null);
   assert.deepEqual(R.parseCells('{"cells":{"x":{"v":1},"1:AAAAAAAA":"no","__proto__":{"v":2}}}'), {});
 });
+
+// ---------------------------------------------------------------- AI columns (phase 11b)
+
+const TAX = [{ id: "method", name: "Method", prefix: "method/", kind: "several", labels: ["survey", "case study"], threshold: 0.6, hash: "t-method" },
+  { id: "paper-type", name: "Paper type", prefix: "type/", kind: "one", labels: ["empirical", "conceptual", "not stated"], threshold: 0.6, hash: "t-type" }];
+
+test("an AI column's file both ways: each kind's keys, what's missing its default, what's wrong left out", () => {
+  const p = R.newAiColumn({ label: "Gap", kind: "prompt", description: "What gap does it fill?", reads: "full", shape: "text", length: 9999, evidence: true }, { taxonomies: TAX }, rand).column;
+  assert.match(p.id, /^c-[a-z0-9]{10}$/);
+  assert.deepEqual([p.reads, p.shape, p.length, p.evidence, p.model], ["full", "text", 500, true, "default"]);
+  const text = R.columnText(p);
+  assert.match(text, /^---\nlabel: "Gap"\nkind: prompt\nreads: full\nshape: text\nlength: 500\nevidence: true\nmodel: "default"\n---\nWhat gap does it fill\?\n$/);
+  assert.deepEqual(R.parseColumn(text, p.id), p);
+  const list = R.parseColumn("---\nlabel: Constructs\nkind: prompt\nshape: list\nreads: sideways\n---\nWhich constructs?\n", "c-0123456789");
+  assert.deepEqual([list.reads, list.shape, list.length, list.evidence], ["abstract", "list", 5, false]);
+  assert.equal(R.parseColumn("---\nlabel: L\nkind: prompt\nshape: choice\noptions: [\"one\"]\n---\nQ\n", "c-0123456789").shape, "text"); // (one choice isn't a list)
+  const rel = R.newAiColumn({ label: "Relevant?", kind: "jev-relevance", topic: "routines", description: "It studies routines" }, {}, rand).column;
+  assert.deepEqual(R.parseColumn(R.columnText(rel), rel.id), rel);
+  const several = R.newAiColumn({ label: "Method", kind: "jev-several", taxonomy: "method" }, { taxonomies: TAX }, rand).column;
+  assert.equal(R.parseColumn(R.columnText(several), several.id).taxonomy, "method");
+  assert.equal(R.parseColumn("---\nlabel: M\nkind: jev-one\ntaxonomy: ../x\n---\n", "c-0123456789").taxonomy, "");
+});
+
+test("newAiColumn: what each kind needs", () => {
+  const c = { taxonomies: TAX };
+  assert.equal(R.newAiColumn({ kind: "prompt" }, c).error, "A column needs a name");
+  assert.equal(R.newAiColumn({ label: "X", kind: "magic" }, c).error, "Pick what the AI does");
+  assert.match(R.newAiColumn({ label: "X", kind: "prompt" }, c).error, /Write the prompt/);
+  assert.match(R.newAiColumn({ label: "X", kind: "prompt", description: "Q", shape: "choice", options: "a" }, c).error, /two choices/);
+  assert.match(R.newAiColumn({ label: "X", kind: "jev-relevance", topic: "t" }, c).error, /what relevant means/);
+  assert.match(R.newAiColumn({ label: "X", kind: "jev-one", taxonomy: "gone" }, c).error, /Pick one of your taxonomies/);
+  assert.match(R.newAiColumn({ label: "X", kind: "jev-one", taxonomy: "method" }, c).error, /one-label kind/);
+  assert.match(R.newAiColumn({ label: "X", kind: "jev-several", taxonomy: "paper-type" }, c).error, /several-labels kind/);
+  assert.deepEqual(R.newAiColumn({ label: "X", kind: "prompt", description: "Q", shape: "choice", options: "firm, industry, firm" }, c, rand).column.options, ["firm", "industry"]);
+});
+
+test("an AI column in the table: how it draws and sorts, its fingerprint (the model left out), a taxonomy that's gone", () => {
+  const p = R.parseColumn("---\nlabel: N\nkind: prompt\nshape: number\nmodel: \"openai:gpt-5.5\"\n---\nSample size?\n", "c-0123456789");
+  const col = R.aiColumn(p, { taxonomies: TAX });
+  assert.deepEqual([col.type, col.ai, col.group, col.kindName, col.edit, col.model], ["number", true, "AI columns", "AI prompt", "", "openai:gpt-5.5"]);
+  assert.equal(col.hash, R.aiColumn(Object.assign({}, p, { model: "claude:sonnet" }), {}).hash); // (another model: Run it again, not "changed")
+  assert.notEqual(col.hash, R.aiColumn(Object.assign({}, p, { description: "Sample size, in firms?" }), {}).hash);
+  assert.match(col.hash, /^[0-9a-f]{12}$/);
+  assert.equal(R.aiColumn(Object.assign({}, p, { shape: "text" }), {}).edit, "text");
+  const one = R.aiColumn({ id: "c-1111111111", label: "Type", kind: "jev-one", taxonomy: "paper-type", description: "" }, { taxonomies: TAX });
+  assert.deepEqual([one.type, one.options, one.reads], ["choice", ["empirical", "conceptual", "not stated"], "tagging"]);
+  assert.notEqual(one.hash, R.aiColumn(one, { taxonomies: [Object.assign({}, TAX[1], { hash: "t-type-2" })] }).hash); // (the taxonomy changed)
+  const gone = R.aiColumn(one, { taxonomies: [] });
+  assert.match(gone.problem, /isn't there any more/);
+  assert.deepEqual(R.available({ taxonomies: TAX }, { "c-0123456789": p }).filter((c) => c.ai).map((c) => c.id), ["c-0123456789"]);
+  const cells = { "c-0123456789": { "1:AAAAAAAA": { v: 120, by: "ai" }, "1:BBBBBBBB": { v: "not stated", by: "ai" } } };
+  assert.equal(R.value(col, row("AAAAAAAA"), ctx, cells), 120);
+  assert.equal(R.value(col, row("BBBBBBBB"), ctx, cells), "not stated");
+  assert.deepEqual(R.value(R.aiColumn({ id: "c-2222222222", label: "M", kind: "jev-several", taxonomy: "method" }, { taxonomies: TAX }), row("AAAAAAAA"), ctx,
+    { "c-2222222222": { "1:AAAAAAAA": { v: ["survey"], by: "ai" } } }), ["survey"]);
+  assert.equal(R.band(70), "high");
+  assert.equal(R.band(69), "maybe");
+  assert.equal(R.band(10), "low");
+});
+
+test("a cell's state: not run, up to date, prompt changed, paper changed, yours, failed", () => {
+  const full = { ai: true, kind: "prompt", reads: "full", hash: "h1" }, abs = { ai: true, kind: "prompt", reads: "abstract", hash: "h1" };
+  const ai = { v: "x", by: "ai", hash: "h1", input: { text: "pdf" } };
+  assert.equal(R.cellState(full, null, row("A")), "empty");
+  assert.equal(R.cellState(full, ai, row("A")), "ok");
+  assert.equal(R.cellState(Object.assign({}, full, { hash: "h2" }), ai, row("A")), "prompt");
+  assert.equal(R.cellState(full, ai, row("A", { extracted: true })), "paper");
+  assert.equal(R.cellState(full, Object.assign({}, ai, { input: { text: "note" } }), row("A", { extracted: true })), "ok");
+  assert.equal(R.cellState(abs, ai, row("A", { extracted: true })), "ok"); // (the abstract doesn't change with the text)
+  assert.equal(R.cellState(full, { v: "mine", by: "Mac mini" }, row("A")), "yours");
+  assert.equal(R.cellState(full, { v: "", by: "ai", error: "no answer" }, row("A")), "failed");
+  assert.equal(R.cellState(full, { v: "", by: "ai", hash: "h1" }, row("A")), "ok"); // (an empty answer is an answer)
+});
+
+test("runPlan: the counts per state, what's skipped, the requests (Jev once a paper, prompts per model and reads), Jev's cost", () => {
+  const a = { id: "c-aaaaaaaaaa", ai: true, kind: "prompt", reads: "abstract", model: "default", hash: "h" }, b = Object.assign({}, a, { id: "c-bbbbbbbbbb" });
+  const m = { id: "c-mmmmmmmmmm", ai: true, kind: "jev-several", hash: "j" }, r = { id: "c-rrrrrrrrrr", ai: true, kind: "jev-relevance", hash: "k" };
+  const x = { id: "c-xxxxxxxxxx", ai: true, kind: "jev-one", hash: "z", problem: "gone" };
+  const rows = [row("AAAAAAAA"), row("BBBBBBBB")];
+  const cells = { "c-aaaaaaaaaa": { "1:AAAAAAAA": { v: "up", by: "ai", hash: "h" }, "1:BBBBBBBB": { v: "mine", by: "Mac" } } };
+  const plan = R.runPlan([a, b, m, r, x, { id: "title" }], rows, cells, {});
+  assert.deepEqual(plan.counts["c-aaaaaaaaaa"], { empty: 0, ok: 1, prompt: 0, paper: 0, yours: 1, failed: 0 });
+  assert.deepEqual(plan.skipped, { ok: 1, yours: 1, problem: 2 });
+  assert.equal(plan.jobs.length, 6);
+  assert.deepEqual(plan.requests, { jev: 2, prompt: 2 });
+  assert.equal(plan.papers, 2);
+  assert.equal(plan.jevUsd, Math.round(2 * 6000 * 0.042 / 1e6 * 10000) / 10000);
+  const again = R.runPlan([a], rows, cells, { again: true, yours: true });
+  assert.equal(again.jobs.length, 2);
+  assert.equal(R.runPlan([a], Array.from({ length: 250 }, (_, i) => row(String(i).padStart(8, "A"))), {}, {}).papers, 200);
+});
+
+test("an AI cell you edit keeps the AI's answer; Back to the AI's answer brings it back", () => {
+  const ai = { v: "the AI's", updated: "2026-10-28T10:00:00Z", by: "ai", model: "claude:sonnet", hash: "h", input: { text: "pdf" }, evidence: [{ quote: "q", page: "3", found: true }] };
+  const start = JSON.stringify({ cells: { "1:AAAAAAAA": ai } });
+  const edited = R.setCell(start, "1:AAAAAAAA", "mine", "2026-10-28T11:00:00Z", "Mac mini");
+  const c = R.parseCells(edited)["1:AAAAAAAA"];
+  assert.deepEqual([c.v, c.by], ["mine", "Mac mini"]);
+  assert.deepEqual(c.ai, ai);
+  const again = R.parseCells(R.setCell(edited, "1:AAAAAAAA", "mine, again", "2026-10-28T12:00:00Z", "Mac mini"))["1:AAAAAAAA"];
+  assert.deepEqual(again.ai, ai); // (still the AI's, not your first edit)
+  const back = R.parseCells(R.restoreCell(edited, "1:AAAAAAAA", "2026-10-28T13:00:00Z"))["1:AAAAAAAA"];
+  assert.deepEqual(back, Object.assign({}, ai, { updated: "2026-10-28T13:00:00Z" }));
+  assert.equal(R.restoreCell(start, "1:AAAAAAAA", "x"), null); // (nothing to go back to)
+  assert.deepEqual(R.parseCells(JSON.stringify({ cells: { "1:AAAAAAAA": { v: [1, "a"], p: 7, probs: { a: 2, __proto__: 1 }, by: "ai" } } }))["1:AAAAAAAA"], { v: ["1", "a"], updated: "", by: "ai", p: 1, probs: { a: 1 } });
+});

@@ -1,0 +1,65 @@
+AI columns in the review table, themes for the whole app, and Settings › Setup that installs what the AI features need, and checks it all came down.
+
+**Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
+(*Update to 0.4.14…*); otherwise:
+
+```bash
+curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.14/install.sh | bash
+```
+
+Updates keep your configuration: they replace the app and the runner's own folder, never your settings, prompts,
+taxonomies, saved searches, API keys or hotkey. The AI columns need the runner this app brings (0.2.3):
+*Settings › Setup › Install the AI features* offers it.
+
+**Four kinds of AI column**, from *+ Column › An AI column*:
+
+- *AI prompt*: your question, asked of each paper. It reads the title and abstract, or the full text (the extracted
+  text, else the PDF). The answer is text of at most N words, a list, a number or one of a list. With evidence on,
+  each answer comes with quotes and their pages, each checked word for word against the paper. It runs on your
+  prompts model, or any model the app lists.
+- *Jev, several labels* and *Jev, best fit*: one of your taxonomies, its labels from the threshold (the rest listed
+  as likely), or its best fit and how sure Jev is.
+- *Jev, relevance*: "Is this paper relevant to *topic*?", with your definition of relevant, scored 0 to 100 (high
+  from 70, maybe from 40).
+
+The Jev kinds read what tagging reads and use your prompts model when there's no Jev key. **A run from the table
+writes no tags in Zotero**: the results stay in the table.
+
+**Run… first shows what it would do** (the toolbar's ▷, a column's menu, or ⇧⌘R). It covers the selected papers or
+every one shown, this column or every AI column, the cells by state, what it leaves alone (up to date, and yours
+unless you tick it), and the requests it makes with Jev's cost. Nothing starts before *Run*. The run is one row in
+Processes. Cells fill in as each paper is done, and a run you stop keeps what it made.
+
+**Each cell says how current it is.** Amber means the column changed since it ran, or the paper's text was extracted
+since. ✎ means you edited it, and ⚠ means it failed, with the reason when you point at it. The panel shows a cell
+whole: its value, each label's probability, the evidence, which model made it, when, and from what text. *Run it
+again* reruns that one cell. *Back to the AI's answer* undoes your edit.
+
+**Pick a theme.** Settings › General › Appearance › Theme lists them, each with its accent beside it:
+
+- **Default**: the Mac's own colours and accent, as the app looked until now.
+- **Catppuccin** (Latte, Mocha), **Solarized**, **Gruvbox**, **Nord**, **Dracula** (Alucard, Dracula), **Tokyo Night**
+  (Day, Night), **One** (Light, Dark), **GitHub** and **Rosé Pine** (Dawn, Rosé Pine): each a light and a dark variant.
+
+The launcher (the overlay and the window), its search box, notes, chats and review tables all change at once, title
+bars included.
+
+**Light or dark**, just below: *As the Mac* follows System Settings › Appearance (the default); *Light* or *Dark*
+keeps the app in one, whatever the Mac does, menus and alerts too. Both settings are kept on this Mac, as Open as a
+window is; with a sync folder they say *this machine*. Typing "theme" in the search finds them.
+
+A theme's colours are its authors'. Where one would be hard to read as text on its background (Solarized Light's
+yellow, Nord Light's greens), it's darkened (or, on a dark theme, lightened) just enough to read.
+
+**Install buttons that install.** In Settings › Setup, Enter on *Install Node.js*, *Install pdftotext* or *Read scans
+by OCR* runs `brew install node`, `brew install poppler` or `brew install tesseract` in the background. It shows in
+Processes as *Install poppler* (and so on), and the row says it's installed when it's done. Before, Enter only copied
+the command, so the button looked like it did nothing. Without Homebrew, Enter still copies the command for Terminal,
+and says Homebrew isn't installed (brew.sh).
+
+**The AI features install all of themselves, or say what's missing.** npm skips an optional package whose download
+fails and still reports success. The Claude and Codex binaries are about 80 MB each, so a slow connection (a slow IPv6
+route to the npm registry is enough) could leave one out while Settings said *AI features installed*. The installer
+now checks that this Mac's binaries are there. If one is missing, it tries once more, preferring IPv4 (everything else
+comes from npm's cache). If it's still missing, the install fails with *npm didn't download …: check the connection,
+then install again*.

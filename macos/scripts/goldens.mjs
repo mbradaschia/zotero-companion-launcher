@@ -531,6 +531,20 @@ function cases() {
   add("reviewCells/prototype", "reviewCells", '{"cells": {"__proto__": {"v": "x"}, "constructor": {"v": "y"}, "1:AAAA0001": {"v": "ok"}}}');
   add("reviewValidId/review", "reviewValidId", "r-abcdefghij", "r-");
   add("reviewValidId/path", "reviewValidId", "r-../../x", "r-");
+
+  // phase 11b: AI columns (their files, the job review-run reads, Back to the AI's answer)
+  const aiCol = { id: "c-abcdefghij", label: "Gap", kind: "prompt", reads: "full", shape: "list", length: 3, evidence: true, model: "default", description: "Which gaps does it name?" };
+  add("reviewColumnText/ai-prompt", "reviewColumnText", aiCol);
+  add("reviewColumnParse/ai-prompt", "reviewColumnParse", Glue.reviewColumnText(aiCol), "c-abcdefghij");
+  add("reviewColumnParse/ai-relevance", "reviewColumnParse", "---\nlabel: Relevant?\nkind: jev-relevance\ntopic: \"routines\"\n---\nIt studies routines\n", "c-abcdefghij");
+  const aiDefs = { "c-abcdefghij": Glue.reviewColumnParse(Glue.reviewColumnText(aiCol), "c-abcdefghij"), "c-0123456789": Glue.reviewColumnParse(Glue.reviewColumnText(column), "c-0123456789") };
+  add("reviewRunJob/cells", "reviewRunJob", review, aiDefs, { taxonomies: [] }, [{ column: "c-abcdefghij", paper: "1:P3NM4G92" }, { column: "c-0123456789", paper: "1:P3NM4G92" }, { column: "c-abcdefghij", paper: "../x" }]);
+  add("reviewRunJob/nothing", "reviewRunJob", review, aiDefs, {}, [{ column: "c-0123456789", paper: "1:P3NM4G92" }]);
+  const aiCells = JSON.stringify({ cells: { "1:P3NM4G92": { v: ["a gap"], updated: "2026-10-28T10:00:00Z", by: "ai", model: "claude:sonnet", hash: "abc", input: { text: "note" } } } });
+  const edited = Glue.reviewSetCell(aiCells, "1:P3NM4G92", "my gap", "2026-10-28T11:00:00Z", "mac");
+  add("reviewSetCell/ai-kept", "reviewSetCell", aiCells, "1:P3NM4G92", "my gap", "2026-10-28T11:00:00Z", "mac");
+  add("reviewRestoreCell/back", "reviewRestoreCell", edited, "1:P3NM4G92", "2026-10-28T12:00:00Z");
+  add("reviewRestoreCell/nothing", "reviewRestoreCell", aiCells, "1:P3NM4G92", "2026-10-28T12:00:00Z");
   return list;
 }
 

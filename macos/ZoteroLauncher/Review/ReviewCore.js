@@ -10,6 +10,12 @@ var ReviewCore = (function () {
   var MIN_WIDTH = 16, MAX_WIDTH = 1200 // a column's width, in px: as narrow as a sliver (it's yours to judge)
   var MAX_COLUMNS = 80
   var MAX_SORT = 6
+  // AI columns (phase 11b, macos/docs/superpowers/specs/2026-10-28-phase-11b-ai-columns-design.md)
+  var AI_KINDS = ["prompt", "jev-several", "jev-one", "jev-relevance"]
+  var KIND_NAMES = { prompt: "AI prompt", "jev-several": "Jev, several labels", "jev-one": "Jev, best fit", "jev-relevance": "Jev, relevance" }
+  var SHAPES = ["text", "list", "number", "choice"]
+  var BANDS = [[70, "high"], [40, "maybe"], [0, "low"]] // relevance: from 70, from 40
+  var JEV_PRICE_IN = 0.042 // $ per million input tokens (the runner's taxonomies.mjs)
 
   // The attributes every paper has, in the order Columns ▾ and + Column list them. type: how a value
   // compares and shows (text, number, date, flag, pills); order: a sort of its own (statuses, grades).
@@ -84,8 +90,30 @@ var ReviewCore = (function () {
     Object.keys(defs || {}).sort().forEach(function (id) {
       var d = defs[id]
       if (d && d.kind === "own") out.push(ownColumn(d))
+      else if (d && AI_KINDS.indexOf(d.kind) >= 0) out.push(aiColumn(d, ctx))
     })
     return out
+  }
+
+  // An AI column as the table shows it: how it draws, sorts and groups (a number, one of a list, labels, text), and
+  // its fingerprint now (columnHash). A Jev column on a taxonomy that's gone says so (`problem`) and doesn't run.
+  function aiColumn(d, ctx) {
+    var t = d.taxonomy ? taxonomyOf(ctx, d.taxonomy) : null
+    var type = d.kind === "jev-relevance" || (d.kind === "prompt" && d.shape === "number") ? "number"
+      : d.kind === "jev-several" ? "pills" : (d.kind === "prompt" && d.shape === "choice") || d.kind === "jev-one" ? "choice" : "text"
+    var wide = d.kind === "prompt" && (d.shape === "text" || d.shape === "list")
+    var c = { id: d.id, label: d.label, group: "AI columns", type: type, options: d.kind === "jev-one" ? (t ? t.labels || [] : []) : d.options || [],
+      width: wide ? 260 : d.kind === "jev-several" ? 180 : 120, lines: wide ? 3 : d.kind === "jev-several" ? 2 : 1, edit: d.kind === "prompt" && type === "text" ? "text" : "",
+      ai: true, kind: d.kind, kindName: KIND_NAMES[d.kind], reads: d.kind === "prompt" ? d.reads : "tagging", shape: d.shape, length: d.length, evidence: !!d.evidence,
+      model: d.model || "default", taxonomy: d.taxonomy || "", topic: d.topic || "", description: d.description || "", hash: columnHash(d, t) }
+    if ((d.kind === "jev-several" || d.kind === "jev-one") && !t) c.problem = "Its taxonomy (" + d.taxonomy + ") isn't there any more: pick another in a new column"
+    return c
+  }
+
+  function taxonomyOf(ctx, id) {
+    var list = (ctx && ctx.taxonomies) || []
+    for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i]
+    return null
   }
 
   function ownColumn(d) {
@@ -116,6 +144,13 @@ var ReviewCore = (function () {
       var c = cells && cells[id] && own(cells[id], paperId(r)) ? cells[id][paperId(r)] : null
       return c && c.v !== undefined && c.v !== null ? str(c.v, 20000) : ""
     }
+    if (col.ai) {
+      var a = cellOf(cells, id, r)
+      if (!a || a.v === undefined || a.v === null) return ""
+      if (Array.isArray(a.v)) return a.v.slice()
+      if (col.type === "number" && typeof a.v !== "number") { var n = parseFloat(a.v); return isNaN(n) ? str(a.v, 200) : n }
+      return typeof a.v === "number" ? a.v : str(a.v, 20000)
+    }
     if (col.prefix) {
       var p = col.prefix.toLowerCase()
       return ((r && r.facets) || []).filter(function (t) { return String(t).toLowerCase().indexOf(p) === 0 }).map(function (t) { return String(t).slice(p.length) })
@@ -144,6 +179,8 @@ var ReviewCore = (function () {
     }
     return ""
   }
+
+  function cellOf(cells, colId, r) { return cells && cells[colId] && own(cells[colId], paperId(r)) ? cells[colId][paperId(r)] : null }
 
   function isEmpty(v) { return v === "" || v === null || v === undefined || (Array.isArray(v) && !v.length) }
 
@@ -392,17 +429,158 @@ var ReviewCore = (function () {
     var kind = meta.kind === "own" ? "own" : str(meta.kind, 20)
     var label = str(meta.label, 80).trim()
     if (!label || !kind) return null
+    if (AI_KINDS.indexOf(kind) >= 0) return aiDef(meta, kind, label, m[2], id)
     var type = COLUMN_TYPES.indexOf(meta.type) >= 0 ? meta.type : "text"
     var options = Array.isArray(meta.options) ? meta.options.map(function (o) { return str(o, 60).trim() }).filter(function (o, i, all) { return o && all.indexOf(o) === i }).slice(0, 20) : []
     if (type === "choice" && !options.length) type = "text"
     return { id: String(id || ""), label: label, kind: kind, type: type, options: type === "choice" ? options : [], description: m[2].replace(/\s+$/, "").slice(0, 20000) }
   }
 
+  // An AI column's file, made whole: what's missing takes its default, what's wrong is left out.
+  function aiDef(meta, kind, label, body, id) {
+    var shape = SHAPES.indexOf(meta.shape) >= 0 ? meta.shape : "text"
+    var options = cleanOptions(meta.options)
+    if (shape === "choice" && options.length < 2) shape = "text"
+    var length = Math.round(Number(meta.length) || 0)
+    var d = { id: String(id || ""), label: label, kind: kind, description: String(body || "").replace(/\s+$/, "").slice(0, 20000) }
+    if (kind === "prompt") {
+      d.reads = meta.reads === "full" ? "full" : "abstract"
+      d.shape = shape
+      d.length = shape === "text" ? Math.max(5, Math.min(500, length || 60)) : shape === "list" ? Math.max(1, Math.min(30, length || 5)) : 0
+      d.options = shape === "choice" ? options : []
+      d.evidence = meta.evidence === true || meta.evidence === "true"
+      d.model = str(meta.model, 120).trim() || "default"
+    } else if (kind === "jev-relevance") {
+      d.topic = str(meta.topic, 200).trim()
+    } else {
+      d.taxonomy = /^[a-z0-9][a-z0-9-]{0,59}$/.test(String(meta.taxonomy || "")) ? String(meta.taxonomy) : ""
+    }
+    return d
+  }
+
+  function cleanOptions(o) {
+    var list = Array.isArray(o) ? o : String(o || "").split(",")
+    return list.map(function (x) { return str(x, 60).trim() }).filter(function (x, i, all) { return x && all.indexOf(x) === i }).slice(0, 20)
+  }
+
   function columnText(c) {
+    if (AI_KINDS.indexOf(c.kind) >= 0) return aiColumnText(c)
     var lines = ["---", "label: " + JSON.stringify(str(c.label, 80).trim()), "kind: " + (c.kind || "own"), "type: " + (c.type === "choice" ? "choice" : "text")]
     if (c.type === "choice") lines.push("options: " + JSON.stringify(c.options || []))
     lines.push("---")
     return lines.join("\n") + "\n" + (c.description ? String(c.description).replace(/\s+$/, "") + "\n" : "")
+  }
+
+  function aiColumnText(c) {
+    var d = aiDef(c, c.kind, str(c.label, 80).trim(), c.description, c.id)
+    var lines = ["---", "label: " + JSON.stringify(d.label), "kind: " + d.kind]
+    if (d.kind === "prompt") {
+      lines.push("reads: " + d.reads, "shape: " + d.shape)
+      if (d.length) lines.push("length: " + d.length)
+      if (d.shape === "choice") lines.push("options: " + JSON.stringify(d.options))
+      lines.push("evidence: " + (d.evidence ? "true" : "false"), "model: " + JSON.stringify(d.model))
+    } else if (d.kind === "jev-relevance") lines.push("topic: " + JSON.stringify(d.topic))
+    else lines.push("taxonomy: " + d.taxonomy)
+    lines.push("---")
+    return lines.join("\n") + "\n" + (d.description ? d.description + "\n" : "")
+  }
+
+  // A new AI column, checked: spec { label, kind, description (the prompt; relevance: what relevant means), reads,
+  // shape, length, options, evidence, model, taxonomy, topic }; ctx: { taxonomies } (a Jev column's must be there,
+  // of its kind). → { column } or { error }.
+  function newAiColumn(spec, ctx, rand) {
+    var s = isObject(spec) ? spec : {}
+    var label = str(s.label, 80).trim()
+    if (!label) return { error: "A column needs a name" }
+    if (AI_KINDS.indexOf(s.kind) < 0) return { error: "Pick what the AI does" }
+    var d = aiDef({ reads: s.reads, shape: s.shape, length: s.length, options: s.options, evidence: s.evidence ? "true" : "false", model: s.model, taxonomy: s.taxonomy, topic: s.topic },
+      s.kind, label, str(s.description, 20000).trim(), randomId("c-", rand))
+    if (s.kind === "prompt") {
+      if (!d.description) return { error: "Write the prompt: what to ask of each paper" }
+      if (s.shape === "choice" && d.shape !== "choice") return { error: "One of a list needs two choices or more, separated by commas" }
+    }
+    if (s.kind === "jev-relevance" && (!d.topic || !d.description)) return { error: "Name the topic, and say what relevant means" }
+    if (s.kind === "jev-several" || s.kind === "jev-one") {
+      var t = taxonomyOf(ctx, d.taxonomy)
+      if (!t) return { error: "Pick one of your taxonomies" }
+      if ((t.kind === "one") !== (s.kind === "jev-one")) return { error: s.kind === "jev-one" ? "Best fit takes a taxonomy of the one-label kind" : "Several labels takes a taxonomy of the several-labels kind" }
+    }
+    return { column: d }
+  }
+
+  // ---- AI cells: the column's fingerprint, a cell's state, the plan of a run
+
+  // FNV-1a, 64 bits, as 16 hex (two 32-bit halves; ES5, no crypto in JavaScriptCore's page) → its first 12.
+  function hash12(text) {
+    var h1 = 0x811c9dc5, h2 = 0xcbf29ce4
+    var s = String(text)
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i)
+      h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0
+      h2 = Math.imul(h2 ^ (c + i), 0x01000193) >>> 0
+      h2 = (h2 ^ (h1 >>> 7)) >>> 0
+    }
+    var hex = function (n) { return ("0000000" + n.toString(16)).slice(-8) }
+    return (hex(h1) + hex(h2)).slice(0, 12)
+  }
+
+  // What decides a column's answers (the model doesn't: a switch of model is a Run it again). t: a Jev column's
+  // taxonomy ({ id, hash }: the runner's fingerprint of it).
+  function columnHash(d, t) {
+    var what = d.kind === "prompt" ? [d.kind, d.description, d.reads, d.shape, d.length, d.options || [], !!d.evidence]
+      : d.kind === "jev-relevance" ? [d.kind, d.topic, d.description] : [d.kind, d.taxonomy, t ? t.hash || "" : ""]
+    return hash12(JSON.stringify(what))
+  }
+
+  // A cell's state: "empty" (not run), "ok" (up to date), "prompt" (the column changed since), "paper" (the column
+  // reads the full text, and the paper's was extracted after the cell was made without it), "yours" (you edited it),
+  // "failed" (the last run failed: rec.error).
+  function cellState(col, rec, r) {
+    if (!rec || (isEmpty(rec.v) && !rec.error && rec.by !== "ai")) return "empty"
+    if (rec.error) return "failed"
+    if (rec.by !== "ai") return "yours"
+    if (rec.hash !== col.hash) return "prompt"
+    var reads = col.kind === "prompt" ? col.reads === "full" : true // (the Jev kinds read the extracted text when there is one)
+    if (reads && r && r.extracted && !(rec.input && rec.input.text === "note")) return "paper"
+    return "ok"
+  }
+
+  var STATE_NAMES = { empty: "not run", ok: "up to date", prompt: "prompt changed", paper: "paper changed", yours: "yours", failed: "failed" }
+
+  // What a run would do: cols (AI columns, as columns() resolves them), rows (the papers), cells; opts { yours: also
+  // the cells you edited, again: up to date ones too }. → { counts: { <column id>: { empty, ok, … } }, jobs: [{ column,
+  // paper }], papers, requests: { jev, prompt }, jevUsd, skipped: { ok, yours, problem } }. At most 200 papers.
+  function runPlan(cols, rows, cells, opts) {
+    var o = opts || {}
+    var counts = {}, jobs = [], papers = {}, jevPapers = {}, promptGroups = {}, skipped = { ok: 0, yours: 0, problem: 0 }
+    var ai = (cols || []).filter(function (c) { return c && c.ai && !c.missing })
+    var list = (rows || []).slice(0, 200)
+    ai.forEach(function (c) {
+      var n = counts[c.id] = { empty: 0, ok: 0, prompt: 0, paper: 0, yours: 0, failed: 0 }
+      list.forEach(function (r) {
+        var st = cellState(c, cellOf(cells, c.id, r), r)
+        n[st]++
+        if (c.problem) { skipped.problem++; return }
+        if (st === "ok" && !o.again) { skipped.ok++; return }
+        if (st === "yours" && !o.yours) { skipped.yours++; return }
+        var pid = paperId(r)
+        jobs.push({ column: c.id, paper: pid })
+        papers[pid] = true
+        if (c.kind === "prompt") promptGroups[pid + "|" + c.model + "|" + c.reads] = true
+        else jevPapers[pid] = true
+      })
+    })
+    var nJev = Object.keys(jevPapers).length
+    // (Jev reads about 6k tokens of a paper: its title, abstract and part of its text)
+    return { counts: counts, jobs: jobs, papers: Object.keys(papers).length, requests: { jev: nJev, prompt: Object.keys(promptGroups).length },
+      jevUsd: Math.round(nJev * 6000 * JEV_PRICE_IN / 1e6 * 10000) / 10000, skipped: skipped }
+  }
+
+  // An AI cell's band (relevance): "high", "maybe", "low".
+  function band(score) {
+    var n = Number(score)
+    for (var i = 0; i < BANDS.length; i++) if (n >= BANDS[i][0]) return BANDS[i][1]
+    return "low"
   }
 
   // A new column of your own, checked: → { column } or { error }.
@@ -425,8 +603,30 @@ var ReviewCore = (function () {
     var out = {}
     Object.keys(cells).forEach(function (k) {
       if (unsafeKey(k) || !/^\d+:[A-Z0-9]{8}$/.test(k) || !isObject(cells[k])) return
-      out[k] = { v: str(cells[k].v, 20000), updated: str(cells[k].updated, 40), by: str(cells[k].by, 80) }
+      out[k] = cellRecord(cells[k], true)
     })
+    return out
+  }
+
+  // A cell's record, made safe: its value (text; an AI cell's may be a number or a list of labels), who and when,
+  // and an AI cell's facts (the model, the column's fingerprint, what it read, probabilities, evidence, why it
+  // failed, and an edited cell's last AI answer).
+  function cellRecord(c, nested) {
+    var v = c.v
+    var out = { v: typeof v === "number" && isFinite(v) ? v : Array.isArray(v) ? v.slice(0, 60).map(function (x) { return str(x, 80) }) : str(v, 20000),
+      updated: str(c.updated, 40), by: str(c.by, 80) }
+    if (c.model) out.model = str(c.model, 120)
+    if (c.hash) out.hash = str(c.hash, 20)
+    if (isObject(c.input)) out.input = { text: str(c.input.text, 10) }
+    if (typeof c.p === "number" && isFinite(c.p)) out.p = Math.max(0, Math.min(1, c.p))
+    if (isObject(c.probs)) {
+      out.probs = {}
+      Object.keys(c.probs).slice(0, 60).forEach(function (l) { if (!unsafeKey(l) && typeof c.probs[l] === "number") out.probs[str(l, 80)] = Math.max(0, Math.min(1, c.probs[l])) })
+    }
+    if (Array.isArray(c.suggested)) out.suggested = c.suggested.slice(0, 30).map(function (x) { return str(x, 80) })
+    if (Array.isArray(c.evidence)) out.evidence = c.evidence.filter(isObject).slice(0, 12).map(function (e) { return { quote: str(e.quote, 1500), page: str(e.page, 20), found: e.found === true } })
+    if (c.error) out.error = str(c.error, 500)
+    if (nested && isObject(c.ai)) out.ai = cellRecord(c.ai, false)
     return out
   }
 
@@ -435,7 +635,24 @@ var ReviewCore = (function () {
   function setCell(textIn, paper, v, now, by) {
     if (!/^\d+:[A-Z0-9]{8}$/.test(String(paper))) return null
     var cells = parseCells(textIn)
+    var was = cells[paper]
+    var ai = was && was.by === "ai" && !was.error ? Object.assign({}, was) : was && was.ai ? was.ai : null // (an AI cell you edit: its answer kept)
+    if (ai) delete ai.ai
     cells[paper] = { v: str(v, 20000), updated: str(now, 40), by: str(by, 80) }
+    if (ai) cells[paper].ai = ai
+    return cellsText(cells)
+  }
+
+  // Back to the AI's answer: an edited AI cell's last answer, as it was (its state with it). → the file's text, or null.
+  function restoreCell(textIn, paper, now) {
+    var cells = parseCells(textIn)
+    var was = cells[paper]
+    if (!was || !was.ai) return null
+    cells[paper] = Object.assign({}, was.ai, { updated: str(now, 40) })
+    return cellsText(cells)
+  }
+
+  function cellsText(cells) {
     var sorted = {}
     Object.keys(cells).sort().forEach(function (k) { sorted[k] = cells[k] })
     return JSON.stringify({ cells: sorted }, null, 2) + "\n"
@@ -450,7 +667,9 @@ var ReviewCore = (function () {
     csvCell: csvCell, csv: csv,
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
     sourceName: sourceName, newReview: newReview, searchScope: searchScope,
-    parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell
+    parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,
+    AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, columnHash: columnHash, hash12: hash12,
+    cellOf: cellOf, cellState: cellState, runPlan: runPlan, band: band
   }
 })()
 

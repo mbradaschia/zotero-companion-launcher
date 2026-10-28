@@ -38,6 +38,7 @@ extension LauncherModel {
                 }
             }
         case "install": installRunner()
+        case let a where a.hasPrefix("brew:"): brewInstall(String(a.dropFirst("brew:".count)))
         case let a where a.hasPrefix("copy:"):
             let command = String(a.dropFirst("copy:".count))
             _ = desktop.copy(command)
@@ -97,6 +98,33 @@ extension LauncherModel {
             self.refreshProviders()
             self.refreshModels()
             self.refreshRequirements() // the version installed now
+        }
+    }
+
+    // Install Node.js, pdftotext, OCR: the bundled brew-install.sh (it shows itself in Processes);
+    // without Homebrew (exit 3), the command copied for Terminal.
+    func brewInstall(_ formula: String) {
+        let command = "brew install " + formula
+        guard !runnerState.brewing.contains(formula) else { return flashMessage("Installing \(formula) already") }
+        guard let script = RunnerKit.brewScript() else {
+            _ = desktop.copy(command)
+            return flashMessage("Copied “\(command)”: paste it in Terminal, then come back here when it's done")
+        }
+        runnerState.brewing.insert(formula)
+        flashMessage("Installing \(formula) with Homebrew: it's in Processes (\(keyName(".")))")
+        tasksSoon()
+        runner.run(["/bin/bash", script.path, formula], stdin: nil, timeout: 1800) { [weak self] r in
+            guard let self else { return }
+            self.runnerState.brewing.remove(formula)
+            if r.ok {
+                self.flashMessage("Installed \(formula)")
+            } else if r.status == 3 {
+                _ = self.desktop.copy(command)
+                self.flashMessage("Homebrew isn't installed (brew.sh): copied “\(command)” for Terminal, once it is")
+            } else {
+                self.flashMessage("Couldn't install \(formula): " + r.problem)
+            }
+            self.refreshRequirements() // the row shows it installed
         }
     }
 
