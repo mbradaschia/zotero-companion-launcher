@@ -91,6 +91,7 @@ import { loadTests, saveTest, testFor } from "../lib/keytests.mjs";
 import { loadTaxonomies, DEFAULTS_DIR, userDir as taxonomyDir, classificationText, jevQuestions, fromJev, jevCost, LLM_SYSTEM, llmPrompt, parseLlm, decide, tagChanges, loadStore, saveStore, savePaperResult, jevRefusalHint, reviewList, fingerprint, staleTaxonomies, toFile as taxonomyFile, checkEdit as checkTaxonomy, template as taxonomyTemplate, DRAFT_SYSTEM, draftMessages, parseDraft, auditView } from "../lib/taxonomies.mjs";
 import { jevClassify } from "../lib/providers/jev.mjs";
 import { fitTitle } from "../lib/titles.mjs";
+import { fatalKind } from "../lib/fatal.mjs";
 import { versionsFor, promptNotes, promptRuns, stalePromptJobs, staleTaxonomyJobs, recentJobs, paperCount, doneInZotero, parseGenerated } from "../lib/catchup.mjs";
 import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
@@ -586,7 +587,9 @@ async function classify(flags) {
   const items = String(flags.items || "").split(",").map((x) => x.trim()).filter((x) => /^\d+:[A-Z0-9]{8}$/.test(x)).slice(0, 200);
   if (!items.length) throw new Error("--items <libraryID:key,…> is required");
   const results = [];
+  let fatal = ""; // (a problem every paper would meet: the rest stopped, not failed one by one)
   for (const id of items) {
+    if (fatal) { results.push({ id, status: "stopped", reason: fatal }); continue; }
     const [lib, key] = id.split(":");
     let task = null;
     try {
@@ -633,10 +636,12 @@ async function classify(flags) {
     } catch (e) {
       if (task) failTask(task, e.message);
       results.push({ id, status: "failed", reason: e.message });
+      if (fatalKind(e.message)) fatal = e.message;
     }
   }
   log("classify", { items: items.length, tagged: results.filter((x) => x.status === "tagged").length });
-  if (items.length > 1) notify("Tagged by taxonomies", results.filter((x) => x.status === "tagged").length + " of " + items.length + " papers" + (results.some((x) => x.suggested) ? "; suggestions wait in Settings › Taxonomies" : ""), "low");
+  if (items.length > 1) notify("Tagged by taxonomies", results.filter((x) => x.status === "tagged").length + " of " + items.length + " papers" + (results.some((x) => x.suggested) ? "; suggestions wait in Settings › Taxonomies" : "")
+    + (fatal ? "; stopped: " + fatal : ""), fatal ? "normal" : "low");
   process.stdout.write(JSON.stringify({ results }) + "\n");
 }
 

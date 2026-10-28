@@ -102,10 +102,17 @@ test("Settings › Defaults › Bring papers up to date: taxonomies and prompts 
   assert.equal(r[2].detail, "7 days · what Catch up looks at");
   assert.equal(r[3].label, "Catch up the last 7 days");
   assert.match(r[3].detail, /^1 paper added in the last 7 days misses their taxonomies, “Findings” \(another computer's count too\)/);
-  // running: a row to stop it, first
-  r = sec(state({ catchUp: { plan: {}, running: { title: "Catching up the last 7 days", left: 3, done: 2, failed: 1 } } }));
-  assert.deepEqual([r[0].rowId, r[0].label, r[0].detail], ["set-catchup-stop", "Catching up the last 7 days", "3 left · 2 done, 1 failed · Enter stops it"]);
-  assert.match(r[1].detail, /^Can't tell/); // the plan had no taxonomies part
+  // running: a row to stop it, in place of the three to start one (one runs at a time; their counts hold its papers)
+  r = sec(state({ catchUp: { plan: st.catchUp.plan, running: { title: "Catching up the last 7 days", kind: "recent", left: 58, papers: 23, done: 0, failed: 2 } } }));
+  assert.deepEqual(r.map((x) => [x.rowId, x.value]), [["set-catchup-stop", ""], ["set-edit", "defaults.catchUpDays"]]);
+  assert.deepEqual([r[0].label, r[0].detail], ["Catching up the last 7 days", "58 processes left on 23 papers · 0 done, 2 failed · Enter stops it"]);
+  r = sec(state({ catchUp: { plan: {}, running: { title: "Catching up the last 7 days", left: 3, done: 2, failed: 1 } } })); // (the Omarchy launcher's: no papers)
+  assert.equal(r[0].detail, "3 left · 2 done, 1 failed · Enter stops it");
+  // stopped by a problem every paper would meet: said, first, until one starts again
+  r = sec(state({ catchUp: { plan: {}, stopped: { title: "Catching up the last 7 days", reason: "Claude isn't signed in (its login expired?): in Terminal, run claude, then /login" } } }));
+  assert.deepEqual([r[0].rowId, r[0].label, r[0].available], ["set-info", "Stopped: Catching up the last 7 days", false]);
+  assert.equal(r[0].detail, "Claude isn't signed in (its login expired?): in Terminal, run claude, then /login · then start it again below");
+  assert.deepEqual(r.slice(1).map((x) => x.value), ["taxonomies", "prompts", "defaults.catchUpDays", "recent"]);
   // the setting
   assert.equal(C.normalizeSettings(null).settings.defaults.catchUpDays, 30);
   assert.deepEqual(C.normalizeSettings({ defaults: { catchUpDays: 0 } }).problems, ["defaults.catchUpDays must be a whole number of days from 1 to 3650"]);
