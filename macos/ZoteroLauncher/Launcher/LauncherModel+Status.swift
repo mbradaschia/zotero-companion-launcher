@@ -109,6 +109,12 @@ extension LauncherModel {
         return out
     }
 
+    // Each paper's default task by its id ("1:ABCD"), its name: the results' rows show it.
+    func refreshRowTasks() {
+        let names = defaultTasks.compactMapValues { $0["name"] as? String }
+        if names != rowTasks { rowTasks = names }
+    }
+
     func taskTarget() -> (item: [String: Any], id: String)? {
         if store.inSearch {
             guard store.pickFor.isEmpty, let r = selectedSearchRow, r.kind == "item", !["note", "attachment"].contains(r.itemType) else { return nil }
@@ -129,6 +135,7 @@ extension LauncherModel {
         if next.isEmpty { return true }
         marks.taskShown[t.id] = next
         marks.taskPending[t.id] = (t.item, next)
+        refreshRowTasks()
         if !store.inSearch && !store.inNote {
             store.followTop = false
             rebuildList()
@@ -162,6 +169,7 @@ extension LauncherModel {
             todos = file
         }
         for id in pending.keys where marks.taskPending[id] == nil { marks.taskShown[id] = nil }
+        refreshRowTasks()
         guard status == "ready" else { tasks.missedTaskTags += tagChanges; return } // Zotero gets them when it's back (catchUpTags)
         for change in tagChanges {
             guard let item = change["item"] as? [String: Any] else { continue }

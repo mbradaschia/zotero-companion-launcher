@@ -14905,7 +14905,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15005,7 +15007,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15090,7 +15094,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15119,7 +15125,7 @@
     }
    }
   ],
-  "expect": "{\"artifactsDir\":null,\"syncDir\":null,\"machineName\":null,\"automationHost\":null,\"enterAction\":\"reader\",\"maxResults\":60,\"port\":23119,\"externalPdfCommand\":null,\"accelerators\":true,\"emptyQuery\":null,\"promptCommand\":null,\"zoteroCommand\":null,\"keys\":\"alt\",\"keysStart\":\"list\",\"keyDelay\":300,\"citationStyle\":\"apa\",\"providers\":{\"claude\":{\"enabled\":true},\"chatgpt\":{\"enabled\":false},\"openai\":{\"enabled\":false},\"anthropic\":{\"enabled\":false},\"google\":{\"enabled\":false},\"openrouter\":{\"enabled\":false},\"ollama\":{\"enabled\":false}},\"endpoints\":[],\"defaults\":{\"prompts\":{\"model\":\"\",\"effort\":\"high\"},\"chat\":{\"model\":\"\",\"effort\":\"high\"},\"fallback\":\"\",\"autoExtract\":false,\"autoExtractNew\":false,\"extractMaxMB\":40,\"autoTagNew\":false,\"extractOnOpen\":false,\"tagOnOpen\":false,\"autoPrompts\":[],\"catchUpDays\":30,\"processesAtOnce\":1,\"catchUpPrompts\":\"missing\",\"catchUpTaxonomies\":\"missing\"},\"rules\":{},\"tasks\":null,\"paperStatuses\":[\"to read\",\"reading\",\"read\"],\"configured\":false}"
+  "expect": "{\"artifactsDir\":null,\"syncDir\":null,\"machineName\":null,\"automationHost\":null,\"enterAction\":\"reader\",\"maxResults\":60,\"port\":23119,\"externalPdfCommand\":null,\"accelerators\":true,\"emptyQuery\":null,\"promptCommand\":null,\"zoteroCommand\":null,\"keys\":\"alt\",\"keysStart\":\"list\",\"keyDelay\":300,\"citationStyle\":\"apa\",\"providers\":{\"claude\":{\"enabled\":true},\"chatgpt\":{\"enabled\":false},\"openai\":{\"enabled\":false},\"anthropic\":{\"enabled\":false},\"google\":{\"enabled\":false},\"openrouter\":{\"enabled\":false},\"ollama\":{\"enabled\":false}},\"endpoints\":[],\"defaults\":{\"prompts\":{\"model\":\"\",\"effort\":\"high\"},\"chat\":{\"model\":\"\",\"effort\":\"high\"},\"fallback\":\"\",\"autoExtract\":false,\"autoExtractNew\":false,\"extractMaxMB\":40,\"autoTagNew\":false,\"extractOnOpen\":false,\"tagOnOpen\":false,\"autoPrompts\":[],\"catchUpDays\":30,\"processesAtOnce\":1,\"catchUpPrompts\":\"missing\",\"catchUpTaxonomies\":\"missing\",\"launchCatchUp\":true,\"launchCatchUpWhat\":{}},\"rules\":{},\"tasks\":null,\"paperStatuses\":[\"to read\",\"reading\",\"read\"],\"configured\":false}"
  },
  {
   "name": "searchBody/empty-with-pins",
@@ -15190,7 +15196,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15327,7 +15335,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15449,7 +15459,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15575,7 +15587,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -15683,7 +15697,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -22028,7 +22044,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -33419,7 +33437,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -33696,7 +33716,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -33809,7 +33831,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34122,7 +34146,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34210,7 +34236,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34294,7 +34322,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -34912,7 +34942,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -35641,7 +35673,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -35963,7 +35997,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -36174,7 +36210,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -36913,7 +36951,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37098,6 +37138,776 @@
   ]
  },
  {
+  "name": "settingsPage/general-window",
+  "wrapper": "settingsPage",
+  "args": [
+   "general",
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": false,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "bridge": {
+     "status": "ready",
+     "version": "0.2.1",
+     "zoteroVersion": "7.0.11",
+     "expected": "0.2.1"
+    },
+    "styles": [
+     {
+      "id": "apa",
+      "title": "APA 7th"
+     },
+     {
+      "id": "chicago-author-date",
+      "title": "Chicago"
+     }
+    ]
+   },
+   {
+    "openAsWindow": true
+   }
+  ],
+  "expect": [
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Open as a window",
+    "labelHtml": "Open as a window",
+    "detail": "On · the hotkey opens a regular window: it stays when you click away, and window managers such as Raycast's can move and tile it; W switches to the overlay",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "The launcher",
+    "promptId": "",
+    "value": "mac.openAsWindow",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "How keys act",
+    "labelHtml": "How keys act",
+    "detail": "One key, once you leave the search box (Esc); / or Tab goes back to it",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Keys",
+    "promptId": "",
+    "value": "general.keys",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Where the keys start",
+    "labelHtml": "Where the keys start",
+    "detail": "The list: one key acts; type or / to search (the search box when something is typed)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Keys",
+    "promptId": "",
+    "value": "general.keysStart",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Typing or a key",
+    "labelHtml": "Typing or a key",
+    "detail": "300 · ms: keys closer than this are typing, and go to the search box (100 to 1000)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Keys",
+    "promptId": "",
+    "value": "general.keyDelay",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Keys on the results",
+    "labelHtml": "Keys on the results",
+    "detail": "On · o, w, n, #, p, l, i, r act on the highlighted paper",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Keys",
+    "promptId": "",
+    "value": "general.accelerators",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Results per search",
+    "labelHtml": "Results per search",
+    "detail": "60 · 10 to 200",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Search",
+    "promptId": "",
+    "value": "general.maxResults",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Papers open in Zotero",
+    "labelHtml": "Papers open in Zotero",
+    "detail": "On · Listed first, under Open in Zotero",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Before you type",
+    "promptId": "",
+    "value": "general.emptyQuery.showOpen",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Open papers, listed by",
+    "labelHtml": "Open papers, listed by",
+    "detail": "The one you used last first",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Before you type",
+    "promptId": "",
+    "value": "general.emptyQuery.tabOrder",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Recent papers",
+    "labelHtml": "Recent papers",
+    "detail": "Newest added or changed",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Before you type",
+    "promptId": "",
+    "value": "general.emptyQuery.recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "How many recent papers",
+    "labelHtml": "How many recent papers",
+    "detail": "15 · 0 to 50",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Before you type",
+    "promptId": "",
+    "value": "general.emptyQuery.recentLimit",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "⇧↵ or z on a paper",
+    "labelHtml": "⇧↵ or z on a paper",
+    "detail": "Opens it in Zotero, with its PDF in the reader",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Opening papers",
+    "promptId": "",
+    "value": "general.enterAction",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-styles",
+    "icon": "",
+    "label": "Citation style",
+    "labelHtml": "Citation style",
+    "detail": "American Psychological Association 7th edition (default) · Copy citation (i) and Copy bibliography entry (r) use it; the styles installed in Zotero",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Citations",
+    "promptId": "",
+    "value": "general.citationStyle",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Artifacts folder",
+    "labelHtml": "Artifacts folder",
+    "detail": "~/.local/state/oma-zotero/artifacts (default) · Diagrams, mind maps, images, pages and documents, a folder per paper; empty: the default",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Artifacts",
+    "promptId": "",
+    "value": "general.artifactsDir",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Sync folder",
+    "labelHtml": "Sync folder",
+    "detail": "none: this machine's files only (default) · A folder you sync between your machines (Syncthing, Dropbox): pins, searches, to-dos, prompts, chats and artifacts go there",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Sync",
+    "promptId": "",
+    "value": "general.syncDir",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "This machine's name",
+    "labelHtml": "This machine's name",
+    "detail": "its hostname (default) · How your other machine knows this one",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Sync",
+    "promptId": "",
+    "value": "general.machineName",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Automation runs on",
+    "labelHtml": "Automation runs on",
+    "detail": "every machine (default) · The one machine that extracts, tags and runs prompts on new papers: its name",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Sync",
+    "promptId": "",
+    "value": "general.automationHost",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Zotero's HTTP port",
+    "labelHtml": "Zotero's HTTP port",
+    "detail": "23119 · Only if you changed it in Zotero",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Advanced",
+    "promptId": "",
+    "value": "general.port",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-edit",
+    "icon": "",
+    "label": "Prompt runner command",
+    "labelHtml": "Prompt runner command",
+    "detail": "Default · How to start the AI features' runner, only if oma-zotero-prompt isn't on your PATH",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Advanced",
+    "promptId": "",
+    "value": "general.promptCommand",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
   "name": "settingsPage/choice",
   "wrapper": "settingsPage",
   "args": [
@@ -37163,7 +37973,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37339,7 +38151,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37533,7 +38347,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37653,7 +38469,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37841,7 +38659,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -37938,7 +38758,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38057,7 +38879,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38137,7 +38961,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38166,6 +38992,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -38257,7 +39084,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38286,6 +39115,7 @@
     "taxonomies": "/h/Sync/shared/taxonomies",
     "taxonomyState": "/h/Sync/shared/taxonomy.json",
     "chats": "/h/Sync/shared/chats",
+    "reviews": "/h/Sync/shared/reviews",
     "artifacts": "/h/Sync/shared/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -38379,7 +39209,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38408,6 +39240,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -38496,7 +39329,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -38525,6 +39360,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -39942,7 +40778,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40189,7 +41027,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40366,7 +41206,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40577,7 +41419,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -40992,7 +41836,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -41091,7 +41937,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -41607,7 +42455,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -42799,7 +43649,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -43895,7 +44747,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44341,7 +45195,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44426,7 +45282,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44535,7 +45393,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44622,7 +45482,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -44717,7 +45579,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45130,7 +45994,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45438,7 +46304,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45627,7 +46495,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -45893,7 +46763,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46147,7 +47019,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46272,7 +47146,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46415,7 +47291,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46512,7 +47390,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46652,7 +47532,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46771,7 +47653,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -46885,7 +47769,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47002,7 +47888,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47133,7 +48021,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47300,7 +48190,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47460,7 +48352,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47583,7 +48477,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47709,7 +48605,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -47890,7 +48788,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -48102,7 +49002,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -48314,7 +49216,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -48488,7 +49392,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": {
@@ -55720,7 +56626,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -55992,7 +56900,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -58421,7 +59331,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -59041,7 +59953,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -59956,7 +60870,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -60874,7 +61790,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -61419,7 +62337,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -61558,7 +62478,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -62260,7 +63182,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -62918,7 +63842,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -63354,7 +64280,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -63717,7 +64645,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -64569,7 +65499,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -64623,6 +65553,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Nothing: no question when the app opens (turn one on)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -64817,7 +65821,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -66155,7 +67161,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -66961,7 +67969,7 @@
     "page": "defaults",
     "pageTitle": "Defaults",
     "label": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "section": "Bring papers up to date",
     "rowId": "set-edit",
     "value": "defaults.catchUpDays"
@@ -66974,6 +67982,24 @@
     "section": "Bring papers up to date",
     "rowId": "set-catchup",
     "value": "recent"
+   },
+   {
+    "page": "defaults",
+    "pageTitle": "Defaults",
+    "label": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "section": "When the app opens",
+    "rowId": "set-toggle",
+    "value": "defaults.launchCatchUp"
+   },
+   {
+    "page": "launch-catchup",
+    "pageTitle": "What the app checks when it opens",
+    "label": "What the app checks when it opens",
+    "detail": "Nothing: no question when the app opens (turn one on)",
+    "section": "When the app opens",
+    "rowId": "",
+    "value": ""
    },
    {
     "page": "defaults",
@@ -67788,7 +68814,7 @@
      "page": "defaults",
      "pageTitle": "Defaults",
      "label": "Papers added lately: the last",
-     "detail": "30 days · what Catch up looks at",
+     "detail": "30 days · what Catch up and the check when the app opens look at",
      "section": "Bring papers up to date",
      "rowId": "set-edit",
      "value": "defaults.catchUpDays"
@@ -67801,6 +68827,24 @@
      "section": "Bring papers up to date",
      "rowId": "set-catchup",
      "value": "recent"
+    },
+    {
+     "page": "defaults",
+     "pageTitle": "Defaults",
+     "label": "Ask to catch up when the app opens",
+     "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+     "section": "When the app opens",
+     "rowId": "set-toggle",
+     "value": "defaults.launchCatchUp"
+    },
+    {
+     "page": "launch-catchup",
+     "pageTitle": "What the app checks when it opens",
+     "label": "What the app checks when it opens",
+     "detail": "Nothing: no question when the app opens (turn one on)",
+     "section": "When the app opens",
+     "rowId": "",
+     "value": ""
     },
     {
      "page": "defaults",
@@ -68177,7 +69221,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68206,6 +69252,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -68297,7 +69344,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68325,6 +69374,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -68416,7 +69466,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68445,6 +69497,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -68543,7 +69596,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68571,6 +69626,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -68670,7 +69726,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68699,6 +69757,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -68790,7 +69849,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -68818,6 +69879,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -68917,7 +69979,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69010,7 +70074,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69103,7 +70169,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69229,7 +70297,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69309,7 +70379,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69389,7 +70461,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69479,7 +70553,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69567,7 +70643,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -69666,7 +70744,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -70055,7 +71135,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -73304,7 +74386,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {
      "ground-paper": false
@@ -74364,7 +75448,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -75280,7 +76366,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -75334,6 +76420,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Nothing: no question when the app opens (turn one on)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -75527,7 +76687,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -75561,6 +76723,7 @@
     "taxonomies": "/h/.config/omarchy/oma-zotero-launcher/taxonomies",
     "taxonomyState": "/h/.local/state/oma-zotero/taxonomy.json",
     "chats": "/h/.local/state/oma-zotero/chats",
+    "reviews": "/h/.config/omarchy/oma-zotero-launcher/reviews",
     "artifacts": "/h/.local/state/oma-zotero/artifacts",
     "extract": "/h/.config/omarchy/oma-zotero-launcher/extract.json",
     "runnerTasks": "/h/.local/state/oma-zotero/tasks",
@@ -75765,7 +76928,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -76673,7 +77838,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -76727,6 +77892,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -76923,7 +78162,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -77869,7 +79110,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -77923,6 +79164,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -78119,7 +79434,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -79036,7 +80353,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -79090,6 +80407,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked · on “lab-mac”, the machine automation runs on",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -79286,7 +80677,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -80203,7 +81596,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -80257,6 +81650,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -80453,7 +81920,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -81370,7 +82839,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -81424,6 +82893,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Their text and “Summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -81618,7 +83161,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -82573,7 +84118,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -82627,6 +84172,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Nothing: no question when the app opens (turn one on)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -82823,7 +84442,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -83674,7 +85295,7 @@
     "icon": "",
     "label": "Papers added lately: the last",
     "labelHtml": "Papers added lately: the last",
-    "detail": "30 days · what Catch up looks at",
+    "detail": "30 days · what Catch up and the check when the app opens look at",
     "available": true,
     "submenu": true,
     "showCheck": false,
@@ -83728,6 +85349,80 @@
     "section": "Bring papers up to date",
     "promptId": "",
     "value": "recent",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Ask to catch up when the app opens",
+    "labelHtml": "Ask to catch up when the app opens",
+    "detail": "On · as it starts, the app checks the papers (What the app checks when it opens) and asks before bringing them up to date; nothing to do, nothing asked",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "defaults.launchCatchUp",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-nav",
+    "icon": "",
+    "label": "What the app checks when it opens",
+    "labelHtml": "What the app checks when it opens",
+    "detail": "Their text and “summary”",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "When the app opens",
+    "promptId": "",
+    "value": "launch-catchup",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -83922,7 +85617,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -84880,7 +86577,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -85301,7 +87000,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -85637,6 +87338,2434 @@
     "section": "",
     "promptId": "",
     "value": "concept-map",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/all",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "all",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--stale-taxonomies",
+   "--stale-prompts",
+   "--since",
+   "2026-09-18 10:00:00",
+   "--extract",
+   "--prompts",
+   "summary",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/taxonomies",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "taxonomies",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--stale-taxonomies",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/prompts",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "prompts",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--stale-prompts",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/recent",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "recent",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--since",
+   "2026-09-18 10:00:00",
+   "--extract",
+   "--prompts",
+   "summary",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/launch",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "launch",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": [
+   "catchup-plan",
+   "--since",
+   "2026-09-18 10:00:00",
+   "--extract",
+   "--prompts",
+   "summary",
+   "--prompts-mode",
+   "missing",
+   "--tag-mode",
+   "missing"
+  ]
+ },
+ {
+  "name": "catchUpPlanArgs/launch-nothing",
+  "wrapper": "catchUpPlanArgs",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": false,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   "launch",
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "2026-09-18 10:00:00"
+  ],
+  "expect": []
+ },
+ {
+  "name": "catchUpJobs/launch-skipped",
+  "wrapper": "catchUpJobs",
+  "args": [
+   {
+    "taxonomies": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K1",
+       "op": "classify"
+      }
+     ]
+    },
+    "recent": {
+     "papers": 2,
+     "added": 2,
+     "jobs": [
+      {
+       "id": "1:K2",
+       "op": "extract"
+      },
+      {
+       "id": "1:K3",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ]
+    },
+    "prompts": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K4",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ],
+     "unknown": 0
+    }
+   },
+   "launch",
+   {
+    "1:K2": "scan"
+   }
+  ],
+  "expect": [
+   {
+    "id": "1:K3",
+    "op": "prompt",
+    "prompt": "summary"
+   },
+   {
+    "id": "1:K1",
+    "op": "classify"
+   },
+   {
+    "id": "1:K4",
+    "op": "prompt",
+    "prompt": "summary"
+   }
+  ]
+ },
+ {
+  "name": "catchUpJobs/recent",
+  "wrapper": "catchUpJobs",
+  "args": [
+   {
+    "taxonomies": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K1",
+       "op": "classify"
+      }
+     ]
+    },
+    "recent": {
+     "papers": 2,
+     "added": 2,
+     "jobs": [
+      {
+       "id": "1:K2",
+       "op": "extract"
+      },
+      {
+       "id": "1:K3",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ]
+    },
+    "prompts": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K4",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ],
+     "unknown": 0
+    }
+   },
+   "recent",
+   {}
+  ],
+  "expect": [
+   {
+    "id": "1:K2",
+    "op": "extract"
+   },
+   {
+    "id": "1:K3",
+    "op": "prompt",
+    "prompt": "summary"
+   }
+  ]
+ },
+ {
+  "name": "launchCatchUpAsk/found",
+  "wrapper": "launchCatchUpAsk",
+  "args": [
+   {
+    "taxonomies": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K1",
+       "op": "classify"
+      }
+     ]
+    },
+    "recent": {
+     "papers": 2,
+     "added": 2,
+     "jobs": [
+      {
+       "id": "1:K2",
+       "op": "extract"
+      },
+      {
+       "id": "1:K3",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ]
+    },
+    "prompts": {
+     "papers": 1,
+     "jobs": [
+      {
+       "id": "1:K4",
+       "op": "prompt",
+       "prompt": "summary"
+      }
+     ],
+     "unknown": 0
+    }
+   },
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   {}
+  ],
+  "expect": {
+   "title": "Bring 4 papers up to date?",
+   "yes": "Bring them up to date (in Processes)",
+   "no": "Not now",
+   "detail": "Added in the last 30 days: 1 paper needs their text, 1 “Summary” · 1 paper tagged by an older taxonomy · 1 note from an older prompt",
+   "noDetail": "Settings › Defaults › Ask to catch up when the app opens turns this question off",
+   "jobs": 4,
+   "papers": 4
+  }
+ },
+ {
+  "name": "launchCatchUpAsk/nothing",
+  "wrapper": "launchCatchUpAsk",
+  "args": [
+   {},
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   {}
+  ],
+  "expect": null
+ },
+ {
+  "name": "launchCatchUpToggled/text",
+  "wrapper": "launchCatchUpToggled",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "text"
+  ],
+  "expect": {
+   "text": false
+  }
+ },
+ {
+  "name": "launchCatchUpToggled/prompt",
+  "wrapper": "launchCatchUpToggled",
+  "args": [
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   [
+    {
+     "id": "summary",
+     "title": "Summary",
+     "model": "default",
+     "effort": "",
+     "output": "note",
+     "brief": true,
+     "excerpt": "A one-page summary of the paper's argument",
+     "body": "Summarise the paper."
+    },
+    {
+     "id": "concept-map",
+     "title": "Concept map",
+     "model": "claude:opus",
+     "effort": "high",
+     "output": "mindmap",
+     "brief": false,
+     "excerpt": "Its concepts and how they relate",
+     "body": "Map the concepts."
+    }
+   ],
+   "prompt:summary"
+  ],
+  "expect": {
+   "prompts": []
+  }
+ },
+ {
+  "name": "settingsPage/launch-catchup",
+  "wrapper": "settingsPage",
+  "args": [
+   "launch-catchup",
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "now": "2026-10-14T10:00:00.000Z",
+    "bridge": {
+     "status": "ready",
+     "version": "0.2.1",
+     "zoteroVersion": "7.0.11",
+     "expected": "0.2.1"
+    },
+    "info": {
+     "configured": true,
+     "keyring": {
+      "ok": true,
+      "detail": "macOS Keychain"
+     },
+     "providers": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "enabled": true,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": true,
+        "detail": "Claude Code is signed in"
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "Anthropic's terms for your plan",
+       "cost": "Your subscription",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "openai",
+       "name": "OpenAI",
+       "kind": "api",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": true,
+       "takesKey": true,
+       "key": {
+        "set": true,
+        "from": "keyring",
+        "masked": "sk-…abcd"
+       },
+       "envNames": [
+        "OPENAI_API_KEY"
+       ],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "OpenAI's API terms",
+       "cost": "Per token",
+       "keyUrl": "https://platform.openai.com/api-keys",
+       "signIn": "",
+       "test": {
+        "ok": true,
+        "detail": "2 models",
+        "at": "2026-10-12T10:00:00.000Z",
+        "stale": false
+       }
+      },
+      {
+       "id": "ollama",
+       "name": "Ollama (on this computer)",
+       "kind": "local",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": "Ollama answers on localhost"
+       },
+       "baseURL": "http://localhost:11434/v1",
+       "context": 0,
+       "privacy": "Stays on this computer",
+       "cost": "Free",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "enabled": true,
+       "endpoint": true,
+       "needsKey": false,
+       "takesKey": true,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "https://gateway.example.edu/v1",
+       "context": 32768,
+       "privacy": "Your institution's",
+       "cost": "Your institution's",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      }
+     ],
+     "suggested": {
+      "claude": "opus[1m]"
+     },
+     "requirements": {
+      "node": "22.4.1",
+      "pdftotext": true
+     }
+    },
+    "models": {
+     "models": [
+      {
+       "value": "claude:opus",
+       "displayName": "Claude Opus",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "claude:sonnet",
+       "displayName": "Claude Sonnet",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "lab-gateway:llama-3-70b",
+       "displayName": "llama-3-70b",
+       "group": "lab-gateway",
+       "context": 32768,
+       "efforts": [],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": true,
+       "description": ""
+      }
+     ],
+     "groups": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "ok": true,
+       "detail": "",
+       "count": 2
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "ok": true,
+       "detail": "",
+       "count": 1
+      }
+     ],
+     "defaults": {
+      "prompts": "claude:opus",
+      "chat": "claude:sonnet"
+     },
+     "configured": true
+    },
+    "defaults": {
+     "prompts": "claude:opus",
+     "chat": "claude:sonnet"
+    },
+    "tests": {
+     "openai": {
+      "running": false,
+      "ok": true,
+      "detail": "2 models",
+      "models": [
+       {
+        "value": "openai:gpt-5",
+        "displayName": "GPT-5"
+       }
+      ],
+      "at": "2026-10-12T10:00:00.000Z"
+     }
+    },
+    "runner": {
+     "installed": true,
+     "installing": false,
+     "update": null
+    },
+    "reqs": {
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "setup": {
+     "zotero": true,
+     "running": true,
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "prompts": [
+     {
+      "id": "summary",
+      "title": "Summary",
+      "model": "default",
+      "effort": "",
+      "output": "note",
+      "brief": true,
+      "excerpt": "A one-page summary of the paper's argument",
+      "body": "Summarise the paper."
+     },
+     {
+      "id": "concept-map",
+      "title": "Concept map",
+      "model": "claude:opus",
+      "effort": "high",
+      "output": "mindmap",
+      "brief": false,
+      "excerpt": "Its concepts and how they relate",
+      "body": "Map the concepts."
+     }
+    ]
+   },
+   {}
+  ],
+  "expect": [
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their text",
+    "labelHtml": "Their text",
+    "detail": "On · extracted where a paper with a PDF has none (as Extract new papers' text, until you change it)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.text",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their taxonomies",
+    "labelHtml": "Their taxonomies",
+    "detail": "Off · tagged where a taxonomy is missing (as Tag new papers by taxonomies, until you change it)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.taxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-auto-prompt",
+    "icon": "",
+    "label": "Summary",
+    "labelHtml": "Summary",
+    "detail": "On · run where it hasn't run (as Prompts to run on new papers, until you change one)",
+    "available": true,
+    "submenu": false,
+    "showCheck": true,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "launch:summary",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-auto-prompt",
+    "icon": "",
+    "label": "Concept map",
+    "labelHtml": "Concept map",
+    "detail": "Off · run where it hasn't run (as Prompts to run on new papers, until you change one)",
+    "available": true,
+    "submenu": false,
+    "showCheck": true,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "launch:concept-map",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Taxonomies that changed",
+    "labelHtml": "Taxonomies that changed",
+    "detail": "Off · papers tagged by an older version of a taxonomy are tagged again",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedTaxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Prompts that changed",
+    "labelHtml": "Prompts that changed",
+    "detail": "Off · notes and artifacts from an older version of their prompt are made again (a new note beside the old one); it can cost a lot",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedPrompts",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
+  "name": "settingsPage/launch-catchup-chosen",
+  "wrapper": "settingsPage",
+  "args": [
+   "launch-catchup",
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": true,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [
+      "summary"
+     ],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {
+      "text": false,
+      "changedPrompts": true,
+      "prompts": []
+     }
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "now": "2026-10-14T10:00:00.000Z",
+    "bridge": {
+     "status": "ready",
+     "version": "0.2.1",
+     "zoteroVersion": "7.0.11",
+     "expected": "0.2.1"
+    },
+    "info": {
+     "configured": true,
+     "keyring": {
+      "ok": true,
+      "detail": "macOS Keychain"
+     },
+     "providers": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "enabled": true,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": true,
+        "detail": "Claude Code is signed in"
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "Anthropic's terms for your plan",
+       "cost": "Your subscription",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "openai",
+       "name": "OpenAI",
+       "kind": "api",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": true,
+       "takesKey": true,
+       "key": {
+        "set": true,
+        "from": "keyring",
+        "masked": "sk-…abcd"
+       },
+       "envNames": [
+        "OPENAI_API_KEY"
+       ],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "",
+       "context": 0,
+       "privacy": "OpenAI's API terms",
+       "cost": "Per token",
+       "keyUrl": "https://platform.openai.com/api-keys",
+       "signIn": "",
+       "test": {
+        "ok": true,
+        "detail": "2 models",
+        "at": "2026-10-12T10:00:00.000Z",
+        "stale": false
+       }
+      },
+      {
+       "id": "ollama",
+       "name": "Ollama (on this computer)",
+       "kind": "local",
+       "enabled": false,
+       "endpoint": false,
+       "needsKey": false,
+       "takesKey": false,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": "Ollama answers on localhost"
+       },
+       "baseURL": "http://localhost:11434/v1",
+       "context": 0,
+       "privacy": "Stays on this computer",
+       "cost": "Free",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "enabled": true,
+       "endpoint": true,
+       "needsKey": false,
+       "takesKey": true,
+       "key": {
+        "set": false,
+        "from": "",
+        "masked": ""
+       },
+       "envNames": [],
+       "detected": {
+        "available": true,
+        "signedIn": null,
+        "detail": ""
+       },
+       "baseURL": "https://gateway.example.edu/v1",
+       "context": 32768,
+       "privacy": "Your institution's",
+       "cost": "Your institution's",
+       "keyUrl": "",
+       "signIn": "",
+       "test": null
+      }
+     ],
+     "suggested": {
+      "claude": "opus[1m]"
+     },
+     "requirements": {
+      "node": "22.4.1",
+      "pdftotext": true
+     }
+    },
+    "models": {
+     "models": [
+      {
+       "value": "claude:opus",
+       "displayName": "Claude Opus",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "claude:sonnet",
+       "displayName": "Claude Sonnet",
+       "group": "claude",
+       "context": 200000,
+       "efforts": [
+        "low",
+        "medium",
+        "high"
+       ],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": false,
+       "description": ""
+      },
+      {
+       "value": "lab-gateway:llama-3-70b",
+       "displayName": "llama-3-70b",
+       "group": "lab-gateway",
+       "context": 32768,
+       "efforts": [],
+       "priceIn": 0,
+       "priceOut": 0,
+       "free": true,
+       "description": ""
+      }
+     ],
+     "groups": [
+      {
+       "id": "claude",
+       "name": "Claude (your subscription)",
+       "kind": "subscription",
+       "ok": true,
+       "detail": "",
+       "count": 2
+      },
+      {
+       "id": "lab-gateway",
+       "name": "Lab gateway",
+       "kind": "endpoint",
+       "ok": true,
+       "detail": "",
+       "count": 1
+      }
+     ],
+     "defaults": {
+      "prompts": "claude:opus",
+      "chat": "claude:sonnet"
+     },
+     "configured": true
+    },
+    "defaults": {
+     "prompts": "claude:opus",
+     "chat": "claude:sonnet"
+    },
+    "tests": {
+     "openai": {
+      "running": false,
+      "ok": true,
+      "detail": "2 models",
+      "models": [
+       {
+        "value": "openai:gpt-5",
+        "displayName": "GPT-5"
+       }
+      ],
+      "at": "2026-10-12T10:00:00.000Z"
+     }
+    },
+    "runner": {
+     "installed": true,
+     "installing": false,
+     "update": null
+    },
+    "reqs": {
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "setup": {
+     "zotero": true,
+     "running": true,
+     "node": "22.4.1",
+     "pdftotext": true
+    },
+    "prompts": [
+     {
+      "id": "summary",
+      "title": "Summary",
+      "model": "default",
+      "effort": "",
+      "output": "note",
+      "brief": true,
+      "excerpt": "A one-page summary of the paper's argument",
+      "body": "Summarise the paper."
+     },
+     {
+      "id": "concept-map",
+      "title": "Concept map",
+      "model": "claude:opus",
+      "effort": "high",
+      "output": "mindmap",
+      "brief": false,
+      "excerpt": "Its concepts and how they relate",
+      "body": "Map the concepts."
+     }
+    ]
+   },
+   {}
+  ],
+  "expect": [
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their text",
+    "labelHtml": "Their text",
+    "detail": "Off · extracted where a paper with a PDF has none",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.text",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Their taxonomies",
+    "labelHtml": "Their taxonomies",
+    "detail": "Off · tagged where a taxonomy is missing (as Tag new papers by taxonomies, until you change it)",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.taxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-auto-prompt",
+    "icon": "",
+    "label": "Summary",
+    "labelHtml": "Summary",
+    "detail": "Off · run where it hasn't run",
+    "available": true,
+    "submenu": false,
+    "showCheck": true,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "launch:summary",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-auto-prompt",
+    "icon": "",
+    "label": "Concept map",
+    "labelHtml": "Concept map",
+    "detail": "Off · run where it hasn't run",
+    "available": true,
+    "submenu": false,
+    "showCheck": true,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Papers added in the last 30 days",
+    "promptId": "",
+    "value": "launch:concept-map",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Taxonomies that changed",
+    "labelHtml": "Taxonomies that changed",
+    "detail": "Off · papers tagged by an older version of a taxonomy are tagged again",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedTaxonomies",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-toggle",
+    "icon": "",
+    "label": "Prompts that changed",
+    "labelHtml": "Prompts that changed",
+    "detail": "On · notes and artifacts from an older version of their prompt are made again (a new note beside the old one); it can cost a lot",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": true,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Every paper",
+    "promptId": "",
+    "value": "defaults.launchCatchUpWhat.changedPrompts",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -87435,7 +91564,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -88087,7 +92218,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -88988,7 +93121,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -89446,7 +93581,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -90276,7 +94413,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -91172,7 +95311,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -91540,7 +95681,9 @@
      "catchUpDays": 30,
      "processesAtOnce": 1,
      "catchUpPrompts": "missing",
-     "catchUpTaxonomies": "missing"
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
     },
     "rules": {},
     "tasks": null,
@@ -93080,8 +97223,8 @@
    {
     "rowId": "key-info",
     "icon": "",
-    "label": "The launcher as a window, and back as the overlay",
-    "labelHtml": "The launcher as a window, and back as the overlay",
+    "label": "The launcher as a window or as the overlay, for this opening",
+    "labelHtml": "The launcher as a window or as the overlay, for this opening",
     "detail": "",
     "available": true,
     "submenu": false,
@@ -93386,6 +97529,43 @@
     "swatch": "",
     "badge": "",
     "trailing": "⌘S",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "The search box",
+    "promptId": "",
+    "value": "",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "key-info",
+    "icon": "",
+    "label": "Open the results as a review table, in its own window",
+    "labelHtml": "Open the results as a review table, in its own window",
+    "detail": "",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "⌘T",
     "attKey": "",
     "attLibraryID": 1,
     "attContentType": "",
@@ -96623,8 +100803,8 @@
    {
     "rowId": "key-info",
     "icon": "",
-    "label": "The launcher as a window, and back as the overlay",
-    "labelHtml": "The launcher as a window, and back as the overlay",
+    "label": "The launcher as a window or as the overlay, for this opening",
+    "labelHtml": "The launcher as a window or as the overlay, for this opening",
     "detail": "",
     "available": true,
     "submenu": false,
@@ -96929,6 +101109,43 @@
     "swatch": "",
     "badge": "",
     "trailing": "⌘S",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "The search box",
+    "promptId": "",
+    "value": "",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "key-info",
+    "icon": "",
+    "label": "Open the results as a review table, in its own window",
+    "labelHtml": "Open the results as a review table, in its own window",
+    "detail": "",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "⌘T",
     "attKey": "",
     "attLibraryID": 1,
     "attContentType": "",
@@ -99790,5 +104007,363 @@
     "Close the window (a running answer stops)"
    ]
   ]
+ },
+ {
+  "name": "reviewText/whole",
+  "wrapper": "reviewText",
+  "args": [
+   {
+    "id": "r-abcdefghij",
+    "name": "Capabilities",
+    "source": {
+     "type": "query",
+     "query": "dynamic capabilities"
+    },
+    "columns": [
+     {
+      "id": "title"
+     },
+     {
+      "id": "year",
+      "width": 70
+     },
+     {
+      "id": "c-0123456789"
+     }
+    ],
+    "sort": [
+     {
+      "column": "year",
+      "asc": false
+     }
+    ],
+    "lines": 2,
+    "panel": false,
+    "created": "2026-10-27T10:00:00Z"
+   },
+   "2026-10-27T11:00:00Z"
+  ],
+  "expect": "{\n  \"id\": \"r-abcdefghij\",\n  \"name\": \"Capabilities\",\n  \"source\": {\n    \"type\": \"query\",\n    \"query\": \"dynamic capabilities\",\n    \"key\": \"\",\n    \"libraryID\": 1,\n    \"title\": \"\"\n  },\n  \"columns\": [\n    {\n      \"id\": \"title\"\n    },\n    {\n      \"id\": \"year\",\n      \"width\": 70\n    },\n    {\n      \"id\": \"c-0123456789\"\n    }\n  ],\n  \"sort\": [\n    {\n      \"column\": \"year\",\n      \"dir\": \"asc\"\n    }\n  ],\n  \"lines\": 2,\n  \"panel\": false,\n  \"created\": \"2026-10-27T10:00:00Z\",\n  \"updated\": \"2026-10-27T11:00:00Z\"\n}\n"
+ },
+ {
+  "name": "reviewParse/back",
+  "wrapper": "reviewParse",
+  "args": [
+   "{\n  \"id\": \"r-abcdefghij\",\n  \"name\": \"Capabilities\",\n  \"source\": {\n    \"type\": \"query\",\n    \"query\": \"dynamic capabilities\",\n    \"key\": \"\",\n    \"libraryID\": 1,\n    \"title\": \"\"\n  },\n  \"columns\": [\n    {\n      \"id\": \"title\"\n    },\n    {\n      \"id\": \"year\",\n      \"width\": 70\n    },\n    {\n      \"id\": \"c-0123456789\"\n    }\n  ],\n  \"sort\": [\n    {\n      \"column\": \"year\",\n      \"dir\": \"asc\"\n    }\n  ],\n  \"lines\": 2,\n  \"panel\": false,\n  \"created\": \"2026-10-27T10:00:00Z\",\n  \"updated\": \"2026-10-27T11:00:00Z\"\n}\n",
+   "r-abcdefghij"
+  ],
+  "expect": {
+   "id": "r-abcdefghij",
+   "name": "Capabilities",
+   "source": {
+    "type": "query",
+    "query": "dynamic capabilities",
+    "key": "",
+    "libraryID": 1,
+    "title": ""
+   },
+   "columns": [
+    {
+     "id": "title"
+    },
+    {
+     "id": "year",
+     "width": 70
+    },
+    {
+     "id": "c-0123456789"
+    }
+   ],
+   "sort": [
+    {
+     "column": "year",
+     "dir": "asc"
+    }
+   ],
+   "lines": 2,
+   "panel": false,
+   "created": "2026-10-27T10:00:00Z",
+   "updated": "2026-10-27T11:00:00Z"
+  }
+ },
+ {
+  "name": "reviewParse/not-json",
+  "wrapper": "reviewParse",
+  "args": [
+   "{ half",
+   "r-abcdefghij"
+  ],
+  "expect": null
+ },
+ {
+  "name": "reviewParse/title-first",
+  "wrapper": "reviewParse",
+  "args": [
+   "{\"name\":\"x\",\"columns\":[{\"id\":\"year\"},{\"id\":\"title\",\"hidden\":true}],\"lines\":9,\"source\":{\"type\":\"tag\",\"title\":\"to-read\"}}",
+   "r-abcdefghij"
+  ],
+  "expect": {
+   "id": "r-abcdefghij",
+   "name": "x",
+   "source": {
+    "type": "tag",
+    "query": "",
+    "key": "",
+    "libraryID": 1,
+    "title": "to-read"
+   },
+   "columns": [
+    {
+     "id": "title"
+    },
+    {
+     "id": "year"
+    }
+   ],
+   "sort": [],
+   "lines": 3,
+   "panel": true,
+   "created": "",
+   "updated": ""
+  }
+ },
+ {
+  "name": "reviewSourceName/query",
+  "wrapper": "reviewSourceName",
+  "args": [
+   {
+    "type": "query",
+    "query": "teece"
+   }
+  ],
+  "expect": "“teece”"
+ },
+ {
+  "name": "reviewSourceName/tag",
+  "wrapper": "reviewSourceName",
+  "args": [
+   {
+    "type": "tag",
+    "title": "to-read"
+   }
+  ],
+  "expect": "#to-read"
+ },
+ {
+  "name": "reviewScope/query",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "query",
+    "query": "teece"
+   },
+   []
+  ],
+  "expect": {
+   "scope": null,
+   "query": "teece"
+  }
+ },
+ {
+  "name": "reviewScope/saved",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "search",
+    "key": "s1",
+    "title": "Old"
+   },
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities"
+    }
+   ]
+  ],
+  "expect": {
+   "scope": {
+    "type": "search",
+    "key": "s1",
+    "libraryID": 1,
+    "title": "Capabilities",
+    "query": "dynamic capabilities"
+   },
+   "query": "",
+   "gone": false
+  }
+ },
+ {
+  "name": "reviewScope/saved-gone",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "search",
+    "key": "s1",
+    "title": "Old",
+    "query": "dc"
+   },
+   []
+  ],
+  "expect": {
+   "scope": {
+    "type": "search",
+    "key": "s1",
+    "libraryID": 1,
+    "title": "Old",
+    "query": "dc"
+   },
+   "query": "",
+   "gone": true
+  }
+ },
+ {
+  "name": "reviewScope/collection",
+  "wrapper": "reviewScope",
+  "args": [
+   {
+    "type": "collection",
+    "key": "WXYZ9876",
+    "libraryID": 1,
+    "title": "c"
+   },
+   []
+  ],
+  "expect": {
+   "scope": {
+    "type": "collection",
+    "key": "WXYZ9876",
+    "libraryID": 1,
+    "title": "c"
+   },
+   "query": ""
+  }
+ },
+ {
+  "name": "reviewColumnText/choice",
+  "wrapper": "reviewColumnText",
+  "args": [
+   {
+    "id": "c-0123456789",
+    "label": "Method",
+    "kind": "own",
+    "type": "choice",
+    "options": [
+     "case study",
+     "survey"
+    ]
+   }
+  ],
+  "expect": "---\nlabel: \"Method\"\nkind: own\ntype: choice\noptions: [\"case study\",\"survey\"]\n---\n"
+ },
+ {
+  "name": "reviewColumnParse/back",
+  "wrapper": "reviewColumnParse",
+  "args": [
+   "---\nlabel: \"Method\"\nkind: own\ntype: choice\noptions: [\"case study\",\"survey\"]\n---\n",
+   "c-0123456789"
+  ],
+  "expect": {
+   "id": "c-0123456789",
+   "label": "Method",
+   "kind": "own",
+   "type": "choice",
+   "options": [
+    "case study",
+    "survey"
+   ],
+   "description": ""
+  }
+ },
+ {
+  "name": "reviewColumnParse/no-name",
+  "wrapper": "reviewColumnParse",
+  "args": [
+   "---\nkind: own\n---\n",
+   "c-0123456789"
+  ],
+  "expect": null
+ },
+ {
+  "name": "reviewSetCell/first",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "",
+   "1:P3NM4G92",
+   "survey",
+   "2026-10-27T10:00:00Z",
+   "mac"
+  ],
+  "expect": "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n"
+ },
+ {
+  "name": "reviewSetCell/emptied",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n",
+   "1:P3NM4G92",
+   "",
+   "2026-10-27T11:00:00Z",
+   "laptop"
+  ],
+  "expect": "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"\",\n      \"updated\": \"2026-10-27T11:00:00Z\",\n      \"by\": \"laptop\"\n    }\n  }\n}\n"
+ },
+ {
+  "name": "reviewSetCell/bad-paper",
+  "wrapper": "reviewSetCell",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n",
+   "../x",
+   "v",
+   "2026-10-27T11:00:00Z",
+   "mac"
+  ],
+  "expect": null
+ },
+ {
+  "name": "reviewCells/back",
+  "wrapper": "reviewCells",
+  "args": [
+   "{\n  \"cells\": {\n    \"1:P3NM4G92\": {\n      \"v\": \"survey\",\n      \"updated\": \"2026-10-27T10:00:00Z\",\n      \"by\": \"mac\"\n    }\n  }\n}\n"
+  ],
+  "expect": {
+   "1:P3NM4G92": {
+    "v": "survey",
+    "updated": "2026-10-27T10:00:00Z",
+    "by": "mac"
+   }
+  }
+ },
+ {
+  "name": "reviewCells/prototype",
+  "wrapper": "reviewCells",
+  "args": [
+   "{\"cells\": {\"__proto__\": {\"v\": \"x\"}, \"constructor\": {\"v\": \"y\"}, \"1:AAAA0001\": {\"v\": \"ok\"}}}"
+  ],
+  "expect": {
+   "1:AAAA0001": {
+    "v": "ok",
+    "updated": "",
+    "by": ""
+   }
+  }
+ },
+ {
+  "name": "reviewValidId/review",
+  "wrapper": "reviewValidId",
+  "args": [
+   "r-abcdefghij",
+   "r-"
+  ],
+  "expect": true
+ },
+ {
+  "name": "reviewValidId/path",
+  "wrapper": "reviewValidId",
+  "args": [
+   "r-../../x",
+   "r-"
+  ],
+  "expect": false
  }
 ]

@@ -1,7 +1,7 @@
 import Foundation
 
 // The paper whose menu is open (ZoteroSearch.qml's actionItem).
-struct PaperRef: Equatable {
+struct PaperRef: Equatable, Codable {
     var key: String
     var libraryID: Int
     var title: String

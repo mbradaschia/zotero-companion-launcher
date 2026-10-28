@@ -47,6 +47,32 @@ final class WindowsAndPinTests: XCTestCase {
         XCTAssertTrue(menu, "back on the paper's menu in the launcher")
     }
 
+    // Settings › General › Open as a window: off, the overlay (the default); on, the hotkey opens the window, and W
+    // switches one opening only.
+    func testOpenAsAWindowIsASettingOffByDefault() throws {
+        XCTAssertFalse(model.openAsWindow)
+        model.openSettings("general")
+        let row = try XCTUnwrap(model.listRows.first { $0.value == "mac.openAsWindow" })
+        XCTAssertEqual(row.section, "The launcher")
+        XCTAssertFalse(row.checked)
+        XCTAssertTrue(row.detail.hasPrefix("Off · the hotkey opens the overlay"), row.detail)
+        model.store.selectedIndex = try XCTUnwrap(model.listRows.firstIndex { $0.value == "mac.openAsWindow" })
+        model.execute(.activate)
+        XCTAssertTrue(model.openAsWindow)
+        XCTAssertTrue(model.flash.hasPrefix("On: the hotkey opens a window from now on"), model.flash)
+        XCTAssertTrue(model.listRows.first { $0.value == "mac.openAsWindow" }?.checked ?? false)
+        // closed: back to what the setting says, not to the overlay
+        model.windowed = false
+        model.dismiss()
+        XCTAssertTrue(model.windowed)
+        // W, this opening only
+        model.toggleWindowed()
+        XCTAssertFalse(model.windowed)
+        XCTAssertTrue(model.flash.hasPrefix("The overlay now: "), model.flash)
+        model.toggleWindowed()
+        XCTAssertEqual(model.flash, "")
+    }
+
     func testTheLauncherCanBeMoved() {
         XCTAssertTrue(LauncherPanel(content: NSView()).isMovableByWindowBackground)
     }

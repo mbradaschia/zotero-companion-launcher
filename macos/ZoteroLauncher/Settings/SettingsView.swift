@@ -10,6 +10,7 @@ struct SettingsView: View {
         Form {
             Section("Keys") {
                 KeyboardShortcuts.Recorder("Open the launcher:", name: .toggleLauncher)
+                Toggle("Open as a window", isOn: $model.openAsWindow)
             }
             Section("This Mac") {
                 Toggle("Open at login", isOn: Binding(get: { login.enabled }, set: { login.set($0) }))

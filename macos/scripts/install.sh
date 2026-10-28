@@ -19,6 +19,24 @@ APP="$DEST/ZoteroLauncher.app"
 
 fail() { echo "install: $*" >&2; exit 1; }
 
+# The running app quit, and gone (at most 10 seconds, then killed): opened while the old one is still going away,
+# macOS brings that one forward instead of starting the new copy, and nothing is open once it's gone.
+# -a: macOS's pkill and pgrep leave out their own ancestors, and from the app's Update the app is one (it runs this
+# script), so without it the app was never quit: the new copy was installed and the old one kept running.
+quit_app() {
+  pkill -a -x ZoteroLauncher 2>/dev/null || return 0
+  for _ in $(seq 50); do pgrep -a -x ZoteroLauncher >/dev/null || return 0; sleep 0.2; done
+  pkill -9 -a -x ZoteroLauncher 2>/dev/null || true
+  sleep 0.5
+}
+
+# The new copy opened, and running (opened once more if it isn't after 5 seconds).
+open_app() {
+  open "$APP" || true
+  for _ in $(seq 25); do pgrep -a -x ZoteroLauncher >/dev/null && return 0; sleep 0.2; done
+  open "$APP" || echo "install: it's installed but didn't open: open ZoteroLauncher from Applications" >&2
+}
+
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
@@ -61,14 +79,14 @@ if [[ -e $APP ]]; then
     fail "$APP exists and isn't Zotero Launcher: not replacing it"
   [[ -w $APP ]] || fail "can't replace $APP (installed by another user?)"
   old="$work/old.app"
-  pkill -x ZoteroLauncher 2>/dev/null && sleep 1 || true
+  quit_app
   mv "$APP" "$old" || fail "couldn't move the installed copy aside: it's still there"
 fi
 if ! mv "$new" "$APP"; then
-  [[ -n $old ]] && mv "$old" "$APP" && open "$APP"
+  [[ -n $old ]] && mv "$old" "$APP" && open_app
   fail "couldn't put the new copy in $DEST: the old one is back"
 fi
 xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
 
-[[ -n ${NO_OPEN:-} ]] || open "$APP"
+[[ -n ${NO_OPEN:-} ]] || open_app
 echo "Installed $APP ($app_archs, macOS $need+). It's in the menu bar; press ⌃⌥Z with Zotero running."

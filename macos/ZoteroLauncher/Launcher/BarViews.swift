@@ -55,7 +55,8 @@ struct TaxonomyGroup: View {
 }
 
 // The breadcrumb (above the search box, below the top level): where you came from, then where you are, in bold.
-// A click on an earlier level goes back there; a long path keeps its first level and its last ones.
+// A click on an earlier level goes back there; a long path keeps its first level and its last ones. A path too wide
+// for one line goes on onto a second (each level with the › before it), where you are taking up to two lines itself.
 struct BreadcrumbBar: View {
     let crumbs: [String]
     let jump: (Int) -> Void
@@ -65,20 +66,11 @@ struct BreadcrumbBar: View {
         let names = Breadcrumb.fit(crumbs, max: Self.shown)
         // (each shown name's level, nil for "…")
         let levels: [Int?] = crumbs.count > Self.shown ? [0, nil] + Array(crumbs.count - (Self.shown - 2) ..< crumbs.count) : Array(crumbs.indices)
-        HStack(spacing: 4) {
+        FlowLayout(spacing: 4, lineSpacing: 2) {
             ForEach(Array(names.enumerated()), id: \.offset) { i, name in
-                if i > 0 { Text("›").font(.callout).foregroundStyle(.tertiary) }
-                let level = levels[i]
-                if i == names.count - 1 {
-                    Text(name).font(.callout.weight(.semibold)).lineLimit(1).truncationMode(.middle).layoutPriority(1)
-                } else if let level {
-                    Text(name).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
-                        .onTapGesture { jump(level) }
-                        // (set, not pushed: a click can take the crumb away before the pointer leaves it)
-                        .onContinuousHover { phase in if case .active = phase { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() } }
-                        .help("Back to " + name)
-                } else {
-                    Text(name).font(.callout).foregroundStyle(.tertiary)
+                HStack(spacing: 4) {
+                    if i > 0 { Text("›").font(.callout).foregroundStyle(.tertiary) }
+                    crumb(name, level: levels[i], last: i == names.count - 1)
                 }
             }
         }
@@ -88,6 +80,20 @@ struct BreadcrumbBar: View {
             ForEach(Array(crumbs.dropLast().enumerated()), id: \.offset) { i, name in
                 Button("Back to " + name) { jump(i) }
             }
+        }
+    }
+
+    @ViewBuilder private func crumb(_ name: String, level: Int?, last: Bool) -> some View {
+        if last {
+            Text(name).font(.callout.weight(.semibold)).lineLimit(2).truncationMode(.middle)
+        } else if let level {
+            Text(name).font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
+                .onTapGesture { jump(level) }
+                // (set, not pushed: a click can take the crumb away before the pointer leaves it)
+                .onContinuousHover { phase in if case .active = phase { NSCursor.pointingHand.set() } else { NSCursor.arrow.set() } }
+                .help("Back to " + name)
+        } else {
+            Text(name).font(.callout).foregroundStyle(.tertiary)
         }
     }
 }

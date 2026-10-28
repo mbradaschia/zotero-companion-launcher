@@ -44,6 +44,7 @@ extension LauncherModel {
         extra["taxProblem"] = tax.problem
         extra["taxEditId"] = tax.editId
         extra["home"] = NSHomeDirectory()
+        extra["openAsWindow"] = openAsWindow
         if let review = tax.review { extra["review"] = review }
         return try core.glue("settingsPage", [settingsPageName, settingsJSON, settingsContext, extra], as: [ListRow].self)
     }
@@ -88,9 +89,27 @@ extension LauncherModel {
     }
 
     func toggleSetting(_ path: String) {
+        // Settings › General › Open as a window: this Mac's, not the settings file's
+        if path == "mac.openAsWindow" {
+            openAsWindow.toggle()
+            flashMessage(openAsWindow ? "On: the hotkey opens a window from now on (\(keyName("W")) switches to the overlay)" : "Off: the hotkey opens the overlay from now on")
+            return
+        }
         guard let core else { return }
+        // Settings › Defaults › What it checks: a switch writes its own key of launchCatchUpWhat (the others keep following
+        // their defaults)
+        let what = "defaults.launchCatchUpWhat."
+        if path.hasPrefix(what) {
+            let next = (try? core.glueJSON("launchCatchUpToggled", [settingsJSON, ai.promptsJSON, String(path.dropFirst(what.count))]))
+                .flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) }
+            if let next { saveSetting("defaults.launchCatchUpWhat", next, "") }
+            return
+        }
         let on = (try? core.glue("settingValue", [settingsJSON, path], as: Bool.self)) ?? false
         guard saveSetting(path, !on, "") else { return }
+        if path == "defaults.launchCatchUp" {
+            flashMessage(on ? "Off: the app no longer asks when it opens" : "On: when the app opens" + onHost + ", it checks what needs catching up and asks first")
+        }
         if path == "defaults.autoExtractNew" && !on {
             extractNewTurnedOn()
             flashMessage("On: a paper's text is extracted when its PDF arrives" + onHost + " (the ones from before: Extract every paper's text)")
@@ -155,7 +174,7 @@ extension LauncherModel {
             store.push("settings-" + row.value)
             if row.value == "styles" { refreshStyles() }
             if row.value == "defaults" { refreshCatchUp() }
-            if row.value == "auto-prompts" { refreshPrompts() }
+            if row.value == "auto-prompts" || row.value == "launch-catchup" { refreshPrompts() }
             // a link that names its row ("rowId|value", the tag) lands on it, not on the page's first row
             let target = row.tag.split(separator: "|", maxSplits: 1).map(String.init)
             if let id = target.first, !id.isEmpty { navTarget = ("settings-" + row.value, id, target.count > 1 ? target[1] : "") }

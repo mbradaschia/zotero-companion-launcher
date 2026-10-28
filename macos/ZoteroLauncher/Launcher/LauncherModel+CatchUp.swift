@@ -4,13 +4,12 @@ import Foundation
 // out of date (`catchup-plan`), Enter runs one part's jobs one at a time (extract, classify, a
 // prompt), kept in extract.json's `update` so it resumes; the waiting ones are in Processes.
 extension LauncherModel {
-    // The plan's argv: stale taxonomies and prompts, and what New papers runs on the papers added lately.
-    var catchUpArgs: [String] {
-        let prompts = autoPromptIds
-        let mode = { (k: String) in (self.defaultsRaw[k] as? String) == "replace" ? "replace" : "missing" } // (R13: what's there, kept or replaced)
-        return ["catchup-plan", "--stale-taxonomies", "--stale-prompts", "--since", Self.zoteroDate(daysAgo: Double(catchUpDays))]
-            + (defaultOn("autoTagNew") ? ["--tag"] : []) + (defaultOn("autoExtractNew") ? ["--extract"] : []) + (prompts.isEmpty ? [] : ["--prompts", prompts.joined(separator: ",")])
-            + ["--prompts-mode", mode("catchUpPrompts"), "--tag-mode", mode("catchUpTaxonomies")]
+    // catchup-plan's argv for a kind (GlueSettings.js's catchUpPlanArgs): "all" (the page's counts), "taxonomies",
+    // "prompts", "recent" (what New papers runs, on the papers added lately), "launch" (what the app's opening checks).
+    // [] when it checks nothing.
+    func catchUpArgs(_ kind: String) -> [String] {
+        guard let core else { return [] }
+        return (try? core.glue("catchUpPlanArgs", [settingsJSON, kind, ai.promptsJSON, Self.zoteroDate(daysAgo: Double(catchUpDays))], as: [String].self)) ?? []
     }
 
     func refreshCatchUp() {
@@ -18,7 +17,7 @@ extension LauncherModel {
         _ = once("catchup-plan") {
             sched.plan = nil // "Counting…"
             settingsShowChange()
-            runRunner(catchUpArgs, timeout: 300, quiet: false) { [weak self] r in // (as the QML: it notifies nothing)
+            runRunner(catchUpArgs("all"), timeout: 300, quiet: false) { [weak self] r in // (as the QML: it notifies nothing)
                 guard let self else { return }
                 let plan = r.json as? [String: Any]
                 self.sched.planProblem = plan == nil ? (r.ok ? "the runner didn't answer" : r.problem) : ""
@@ -29,16 +28,91 @@ extension LauncherModel {
         }
     }
 
-    // One part's jobs (taxonomies, prompts, recent). → "" when started, else why not.
-    func startCatchUp(_ kind: String, title: String) -> String {
+    // A catch-up (taxonomies, prompts, recent; launch: what the app's opening checks), checked first: the runner asked
+    // again what needs it (the page's counts may be old), exactly those jobs started. `plan`: one made moments ago
+    // (the app's opening), used as it is. done: what to say (started, nothing to do, or why not).
+    func startCatchUp(_ kind: String, title: String, plan fresh: [String: Any]? = nil, _ done: @escaping @MainActor (String) -> Void) {
+        if extractFile?.upToDate != nil { return done("One is running: stop it first") }
+        if sched.checking || sched.launchCheck == .checking { return done("Still checking which papers need it") }
+        if let fresh { return done(startCatchUpJobs(kind, title: title, plan: fresh)) }
+        let args = catchUpArgs(kind)
+        guard !args.isEmpty else { return done("Nothing to do: every paper is up to date") }
+        sched.checking = true
+        runRunner(args, timeout: 300, quiet: false) { [weak self] r in
+            guard let self else { return }
+            self.sched.checking = false
+            guard let plan = r.json as? [String: Any] else { return done("Couldn't check which papers need it: " + (r.ok ? "the runner didn't answer" : r.problem)) }
+            if kind != "launch", self.sched.plan != nil, let part = plan[kind] as? [String: Any], part["jobs"] is [Any] { self.sched.plan?[kind] = part } // (the page counts the fresh one)
+            done(self.startCatchUpJobs(kind, title: title, plan: plan))
+            self.settingsShowChange()
+        }
+    }
+
+    // The plan's jobs for the kind (each once; the extractions skipped before left out), kept in extract.json's `update`
+    // so they resume, and started. → what to say.
+    private func startCatchUpJobs(_ kind: String, title: String, plan: [String: Any]) -> String {
         if extractFile?.upToDate != nil { return "One is running: stop it first" }
-        guard let part = sched.plan?[kind] as? [String: Any] else { return "Still counting" }
-        let skipped = extractFile?.skipped ?? [:]
-        let jobs = (part["jobs"] as? [[String: Any]] ?? []).filter { $0["op"] as? String != "extract" || skipped[$0["id"] as? String ?? ""] == nil }
-        if jobs.isEmpty { return "Nothing to do" }
+        let jobs = (try? core?.glueJSON("catchUpJobs", [plan, kind, extractFile?.skipped ?? [:]])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [[String: Any]] ?? []
+        if jobs.isEmpty { return "Nothing to do: every paper is up to date" }
         saveExtractState(["update": ["kind": kind, "title": title, "jobs": jobs, "done": 0, "failed": 0, "started": Self.isoNow()]])
         if status == "ready" { catchUpTick() } else { pingZotero() } // on when Zotero answers (status becoming ready)
-        return ""
+        let papers = Set(jobs.map { $0["id"] as? String ?? "" }).count
+        return "Started: \(jobs.count) \(jobs.count == 1 ? "process" : "processes") on \(papers) \(papers == 1 ? "paper" : "papers"), in the background (in Processes)"
+    }
+
+    // Said in the launcher, or when it opens next.
+    func sayLater(_ text: String) {
+        if opened { flashMessage(text) } else { laterNote = text }
+    }
+
+    // ---- when the app opens: the dry run of what Settings › Defaults › What it checks selects, then a question
+
+    // Once a run of the app (appLaunched), on the machine automation runs on, with nothing catching up already and Ask to
+    // catch up when the app opens on; Zotero not answering yet: when it first does (zoteroIsBack). Nothing to do (or no
+    // answer): nothing said.
+    func launchCatchUpCheck() {
+        guard sched.launchCheck == .waiting else { return }
+        guard defaultsRaw["launchCatchUp"] as? Bool != false, automationHere, runnerInstalled, extractFile?.upToDate == nil else { sched.launchCheck = .done; return }
+        guard status == "ready" else { return pingZotero() }
+        let args = catchUpArgs("launch")
+        guard !args.isEmpty else { sched.launchCheck = .done; return }
+        sched.launchCheck = .checking
+        runRunner(args, timeout: 300, quiet: false) { [weak self] r in
+            guard let self else { return }
+            self.sched.launchCheck = .done
+            guard self.extractFile?.upToDate == nil, let plan = r.json as? [String: Any], let core = self.core,
+                  let ask = (try? core.glueJSON("launchCatchUpAsk", [plan, self.settingsJSON, self.ai.promptsJSON, self.extractFile?.skipped ?? [:]]))
+                    .flatMap({ try? JSONSerialization.jsonObject(with: Data($0.utf8)) }) as? [String: Any] else { return }
+            let at = Date()
+            self.sched.launchAsk = ConfirmAsk(title: ask["title"] as? String ?? "", yes: ask["yes"] as? String ?? "", no: ask["no"] as? String ?? "",
+                                              detail: ask["detail"] as? String ?? "", noDetail: ask["noDetail"] as? String ?? "", run: { [weak self] in
+                guard let self else { return }
+                self.sched.launchAsk = nil
+                // (the plan just made, while it's fresh; else checked again)
+                let fresh = Date().timeIntervalSince(at) < 300 ? plan : nil
+                if fresh == nil { self.flashMessage("Checking which papers need it…") }
+                self.startCatchUp("launch", title: "Bringing papers up to date", plan: fresh) { [weak self] in self?.sayLater($0) }
+            }, cancel: { [weak self] in self?.sched.launchAsk = nil }, tag: Self.launchAskTag)
+            self.presentLaunchAsk()
+        }
+    }
+
+    static let launchAskTag = "launch-catchup"
+
+    // The question in the launcher: asked where it is, or the launcher opened for it (its willShow asks it). Kept until
+    // answered: closed, or left for another view, it's asked when the launcher opens next. It comes unasked for, so Not
+    // now is highlighted: a Return meant for something else leaves the papers be.
+    func presentLaunchAsk() {
+        guard let ask = sched.launchAsk else { return }
+        guard opened else { showLauncher?(); return }
+        if store.view == "confirm" && confirmAsk?.tag == ask.tag { return } // (still there: the launcher kept its place)
+        askConfirm(ask)
+        store.selectedIndex = 1
+    }
+
+    // esc (or ⇧esc) on the question is Not now; another view opened over it (Go to…, a note's menu) isn't an answer.
+    func escLaunchAsk() {
+        if store.view == "confirm", confirmAsk?.tag == Self.launchAskTag { sched.launchAsk = nil }
     }
 
     func stopCatchUp() {
@@ -130,12 +204,15 @@ extension LauncherModel {
             let days = catchUpDays
             let title = row.value == "taxonomies" ? "Tagging again where a taxonomy changed" : row.value == "prompts" ? "Running prompts again where they changed"
                 : "Catching up the last \(days) \(days == 1 ? "day" : "days")"
-            let why = startCatchUp(row.value, title: title)
-            flashMessage(why.isEmpty ? "Started: one at a time, in the background (in Processes)" : why)
+            flashMessage("Checking which papers need it…")
+            startCatchUp(row.value, title: title) { [weak self] in self?.sayLater($0) }
         case "set-catchup-stop":
             stopCatchUp()
             flashMessage("Stopped: the one running finishes (in Processes)")
-        case "set-auto-prompt": toggleAutoPrompt(row.value); return true
+        case "set-auto-prompt":
+            // What the app checks when it opens: its prompts (launch:<id>), checkboxes as on Prompts to run on new papers
+            if row.value.hasPrefix("launch:") { toggleSetting("defaults.launchCatchUpWhat.prompt:" + String(row.value.dropFirst("launch:".count))) } else { toggleAutoPrompt(row.value) }
+            return true
         case "pe-auto":
             guard let id = ai.promptEdit?["id"] as? String else { return true }
             toggleAutoPrompt(id)

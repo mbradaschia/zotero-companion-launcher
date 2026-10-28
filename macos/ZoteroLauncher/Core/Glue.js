@@ -17,6 +17,8 @@ var Glue = (function () {
   var Mk = typeof Marked !== "undefined" ? Marked : require("../../js/vendor/marked.umd.js")
   var chatGlue = (typeof GlueChat !== "undefined" ? GlueChat : require("./GlueChat.js"))(V, F, Mk)
   var taxGlue = (typeof GlueTaxonomies !== "undefined" ? GlueTaxonomies : require("./GlueTaxonomies.js"))(V, S)
+  var RV = typeof ReviewCore !== "undefined" ? ReviewCore : require("../Review/ReviewCore.js")
+  var reviewGlue = (typeof GlueReviews !== "undefined" ? GlueReviews : require("./GlueReviews.js"))(RV)
 
   // Go to with only the places the Mac has (`have`: their kinds; a Settings row found by name
   // stays): the rest of the launcher's places come in later phases. With none left above the
@@ -146,6 +148,7 @@ var Glue = (function () {
   for (var r in runnerGlue) core[r] = runnerGlue[r]
   for (var ch in chatGlue) core[ch] = chatGlue[ch]
   for (var tg in taxGlue) core[tg] = taxGlue[tg]
+  for (var rg in reviewGlue) core[rg] = reviewGlue[rg]
 
   // The Mac's key notation (decision 9) in the texts the view logic writes for the launcher's own
   // rows: modifiers as ⌥ ⇧ ⌃ ⌘ (⌘V pastes, as Ctrl+V does). Never on a paper's or a task's own text.
@@ -197,7 +200,8 @@ var Glue = (function () {
     [/[Aa]lt\+/g, "⌥"], [/Shift\+/g, "⇧"], [/[Cc]trl\+/g, "⌃"], [/\bEnter\b/g, "↵"], [/\bEsc\b/g, "esc"], [/\bBackspace\b/g, "⌫"], [/\bDelete\b/g, "⌘⌫"], // (⌘⌫ the Mac's delete in a list; ⌦ works too)
     [/\bTab\b/g, "tab"], [/\bSpace\b/g, "space"]]
   var MAC_KEY_LINES = [["(your Hyprland keybinding)", "(the app's hotkey: menu bar icon › Hotkey and Login…)"], ["Close the launcher when it's open (with the README's rebinding)", "Close the launcher"],
-    ["Clear the search box", "Clear the search box (⌥⌫ deletes a word)"], ["Stop the answer, or close a menu", "Stop the answer, or hide these keys"]]
+    ["Clear the search box", "Clear the search box (⌥⌫ deletes a word)"], ["Stop the answer, or close a menu", "Stop the answer, or hide these keys"],
+    ["The launcher as a window, and back as the overlay", "The launcher as a window or as the overlay, for this opening"]]
   var macKeyColumn = function (t) {
     if (typeof t !== "string") return t
     for (var i = 0; i < MAC_KEY_COLUMN.length; i++) t = t.replace(MAC_KEY_COLUMN[i][0], MAC_KEY_COLUMN[i][1])
@@ -221,6 +225,7 @@ var Glue = (function () {
     ["⌘⌫", "delete del"], ["esc", "escape"]]
   // The keys view (? or F1): Here first, then every section, in the Mac's notation; typing finds a key by the words
   // shown (and the symbols' names), never by Omarchy's.
+  var REVIEW_KEY = "Open the results as a review table, in its own window"
   core.keyRows = function (query, here) {
     var alt = !!(here && here.alt)
     var rows = V.buildKeyRows("", here ? Object.assign({}, here, { alt: false }) : null).map(function (r) {
@@ -228,6 +233,12 @@ var Glue = (function () {
       var label = macKeyLine(r.label) // (and the HTML the row draws, from it)
       return Object.assign({}, r, { trailing: macKeyColumn(mine ? macAlt(r.trailing) : r.trailing), label: label, labelHtml: V.escapeHtml(label), section: macKeyLine(r.section) })
     })
+    // the Mac's own: ⌘T, after ⌘S, wherever ⌘S is (phase 11a's review tables)
+    rows = rows.reduce(function (out, r) {
+      out.push(r)
+      if (r.trailing === "⌘S") out.push(Object.assign({}, r, { trailing: "⌘T", label: REVIEW_KEY, labelHtml: V.escapeHtml(REVIEW_KEY) }))
+      return out
+    }, [])
     var words = String(query || "").toLowerCase().split(/\s+/).filter(function (w) { return w })
     if (!words.length) return rows
     return rows.filter(function (r) {

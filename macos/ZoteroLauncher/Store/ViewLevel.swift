@@ -1,7 +1,7 @@
 import Foundation
 
 // One level of the view stack: what push saves and back restores (ZoteroSearch.qml's viewStack).
-struct ViewLevel: Equatable {
+struct ViewLevel: Equatable, Codable {
     var view: String
     var filterText: String
     var caretBack: Int // the caret's distance from the end of filterText

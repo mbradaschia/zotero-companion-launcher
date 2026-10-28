@@ -89,7 +89,7 @@ final class NavConsistencyTests: XCTestCase {
         wrong += crawlList("tags")
         model.goHome()
         // Settings and its pages
-        for page in ["", "general", "providers", "defaults", "rules", "tasks", "paper-status", "styles", "taxonomies", "auto-prompts"] {
+        for page in ["", "general", "providers", "defaults", "rules", "tasks", "paper-status", "styles", "taxonomies", "auto-prompts", "launch-catchup"] {
             model.goHome()
             model.openSettings(page)
             settle()

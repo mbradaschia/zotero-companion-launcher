@@ -505,7 +505,7 @@ above.
 | `KeyRouter` | one XCTest per rule, in order; dead keys, ⌘V | this repo's CI |
 | Bridge client, runner client (a fake runner script), directory watchers, conflict handling, scheduler | XCTest | this repo's CI |
 | Parity tracker | `scripts/parity.sh` on every PR; a phase PR fails if its ids aren't ported | this repo's CI |
-| Views | SwiftUI previews with fixtures; a few XCUITest smoke flows | CI, best effort, never gating on a flaky test |
+| Views | SwiftUI previews with fixtures; a few XCUITest smoke flows | CI, gating: a flaky test is fixed, not tolerated |
 | The real thing | per-phase checklist on your Mac, your library; the two-machine sync checklist from 4b on | you, ~10 minutes per phase |
 
 **Fixtures and goldens.**

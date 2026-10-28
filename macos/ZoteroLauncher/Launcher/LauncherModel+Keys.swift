@@ -17,6 +17,7 @@ extension LauncherModel {
         s.selectedKind = selectedSearchRow?.kind ?? ""
         s.tabTodo = !tabTodoId.isEmpty
         s.pinnedSearches = !pinnedSearches.isEmpty
+        s.pickingAtTop = store.inSearch && store.scope == nil && !store.pickFor.isEmpty
         s.searchEditQuery = store.view == "search-edit" && searchState.editMode == "query"
         s.statusTarget = statusTarget() != nil
         s.taskTarget = taskTarget() != nil
@@ -41,6 +42,7 @@ extension LauncherModel {
     func execute(_ command: KeyCommand) -> Bool {
         switch command {
         case .home:
+            escLaunchAsk()
             goHome()
             if store.atRoot {
                 if !store.filterText.isEmpty { setFilter("") }
@@ -48,7 +50,7 @@ extension LauncherModel {
             }
         case .leaveSearch: store.searchFocus = false
         case .clearFilter: setFilter("")
-        case .back: back()
+        case .back: escLaunchAsk(); back()
         case .close: if pinnedOpen { flashMessage("Pinned: it stays open (⌘W, or the pin, closes it)") } else { dismiss() }
         case .openKeys: openKeys()
         case .alternate:
@@ -125,6 +127,7 @@ extension LauncherModel {
             store.push("todo-tags")
             rebuildList()
         case .saveSearch: saveSearchPrompt()
+        case .openReview: openReviewHere()
         case .openPicker: openPicker()
         case .cycleSearch(let d): cycleSearch(d)
         case .rejectSuggestion: // Delete on a suggestion (Settings › Taxonomies › Review): dismissed
@@ -256,7 +259,7 @@ extension LauncherModel {
         case "?":
             openKeys()
             return true
-        case "g" where store.inSearch && store.pickFor.isEmpty, "G" where store.inSearch && store.pickFor.isEmpty:
+        case "g" where store.inSearch, "G" where store.inSearch:
             cycleGrouping(c == "g" ? 1 : -1)
             return true
         case "x" where store.view == "actions" || (store.inSearch && selectedSearchRow?.kind == "item"):
@@ -338,6 +341,6 @@ extension LauncherModel {
     // W: the launcher as a window, and back.
     func toggleWindowed() {
         windowed.toggle()
-        flashMessage(windowed ? "A window now: \(keyName("W")) puts it back" : "")
+        flashMessage(windowed == openAsWindow ? "" : windowed ? "A window now: \(keyName("W")) puts it back" : "The overlay now: \(keyName("W")) puts the window back")
     }
 }

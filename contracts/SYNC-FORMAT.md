@@ -28,7 +28,7 @@ both launchers must reproduce exactly (`contracts/tests/paths.test.js`).
 
 - **Synced** (under `<syncDir>/shared/` when a sync folder is set, else their usual place):
   `settings.json` (the shared settings), `pins.json`, `searches.json`, `todos.json`, `view.json`,
-  `instructions.md`, `prompts/`, `taxonomies/`, `taxonomy.json`, `chats/`, `artifacts/`.
+  `instructions.md`, `prompts/`, `taxonomies/`, `taxonomy.json`, `chats/`, `artifacts/`, `reviews/`.
 - **Never synced:** the machine settings file, `extract.json`, the runner's `tasks/`, its state
   and caches (`prompt-versions.json`, `key-tests.json`, `models.json`), `sync-backups/`, and API
   keys (each machine's own secret store).
@@ -50,6 +50,9 @@ both launchers must reproduce exactly (`contracts/tests/paths.test.js`).
 | `taxonomies/<id>.json`, `taxonomy.json` | a taxonomy's definition; each paper's labels and the review queue |
 | `chats/<lib>-<KEY>/<id>.json` | one chat; **its `id` is its file name**, or it isn't read |
 | `artifacts/<paper>_<lib>-<KEY>/<id>/meta.json` | `{ id, title, format, key, libraryID, paper, current, versions: [{ n, at, format, ... }] }`; `id` a slug, `current` and each `n` positive integers, formats known, or it isn't an artifact |
+| `reviews/<id>.json` | a review table: `{ id, name, source: { type, query, key, libraryID, title }, columns: [{ id, width, lines, hidden }], sort: [{ column, dir }], lines, panel, created, updated }`; **its `id` is its file name** |
+| `reviews/columns/<id>.md` | a column of a review table: frontmatter (`label`, `kind`, `type`, `options`), then its description (a prompt column: its prompt) |
+| `reviews/cells/<column id>.cells.json` | that column's values: `{ "cells": { "<libraryID:key>": { "v", "updated", "by" } } }` |
 | `instructions.md` | your standing instructions, Markdown |
 
 The last two rows' checks exist because these files arrive from another machine: what a file says
@@ -118,7 +121,8 @@ the file (atomically), then deletes the copy. Both write the same bytes from the
 | `view.json` | per top-level key, and per view inside `menuPins`, `menuOther`, `menuOrder`, `sectionOrder`, `noteOrder`; the newer file wins a key both have differently |
 | `settings.json` (shared) | per top-level key, as `view.json` |
 | `taxonomy.json` | by paper (`papers.<libraryID:key>`); the record with the later `updated` (else `at`) wins, the newer file on a tie |
-| anything else (Markdown, a chat, an artifact's `meta.json`, a taxonomy) | the newer file wins; the other is kept beside it as `<name>.conflict-<machine>.<ext>` |
+| `reviews/cells/<column id>.cells.json` | by paper (`cells.<libraryID:key>`), as `taxonomy.json` |
+| anything else (Markdown, a chat, an artifact's `meta.json`, a taxonomy, a review) | the newer file wins; the other is kept beside it as `<name>.conflict-<machine>.<ext>` |
 
 **Tombstones.** A list file's deletions are kept in its `deleted` list, `[{ "id", "at" }]` (`id`
 as the table above keys the file), so a record removed on one machine isn't brought back by the

@@ -26,7 +26,7 @@ trap cleanup EXIT
 
 echo "== A. the release bridge in a fresh Zotero profile"
 "$ROOT/scripts/build-xpi.sh" >/dev/null || { echo "✖ build-xpi failed"; exit 1; }
-XPI="$ROOT/dist/oma-zotero-launcher-$(jq -r .version "$ROOT/zotero-bridge/manifest.in.json").xpi"
+XPI="$ROOT/dist/zotero-companion-bridge-$(jq -r .version "$ROOT/zotero-bridge/manifest.in.json").xpi"
 ADDON_ID=$(jq -r .applications.zotero.id "$ROOT/zotero-bridge/manifest.in.json")
 P="$WORK/profile"
 mkdir -p "$P/extensions" "$WORK/data" "$WORK/run"

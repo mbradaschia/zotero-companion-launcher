@@ -33,6 +33,15 @@ final class LauncherModel: ObservableObject {
         }
     }
     @Published var windowed = false
+    // Settings › General › Open as a window (this Mac's): the hotkey opens a regular window, not the overlay. (Under
+    // the tests, each model's own: the test host is the app, its defaults this Mac's.)
+    @Published var openAsWindow = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLOpenAsWindow") {
+        didSet {
+            if !Self.underTests { UserDefaults.standard.set(openAsWindow, forKey: "ZLOpenAsWindow") }
+            if opened && store.view == "settings-general" { store.followTop = false; rebuildList() } // (also from the app's Settings window)
+        }
+    }
+    static let underTests = NSClassFromString("XCTestCase") != nil
     @Published private(set) var shown = 0 // counts openings: the view focuses on each
     private(set) var opened = false // shown: answers and timers for a launcher that closed do nothing
 
@@ -42,7 +51,7 @@ final class LauncherModel: ObservableObject {
     var settings: AppSettings?
     var pins: PinsFile?
     var prefs: ViewPrefs?
-    var todos: TodosFile?
+    var todos: TodosFile? { didSet { refreshRowTasks() } }
     var searchesFile: SearchesFile?
     let env: [String: String]
 
@@ -87,12 +96,15 @@ final class LauncherModel: ObservableObject {
     // The paper's pills (the footer's, the taxonomy strip's), made as the list is (not at every redraw: each is a
     // JavaScriptCore call over the paper's details).
     @Published private(set) var paperPills: [Pill] = []
+    @Published var rowTasks: [String: String] = [:] // each paper's default task, by its id (refreshRowTasks)
     @Published private(set) var taxonomyStrip: [String: Any]?
     func refreshPaperPills() {
         paperPills = computePaperPills
         taxonomyStrip = computeTaxonomyStrip
     }
     var openChat: (PaperRef, String) -> Void = { _, _ in } // a paper's chat window, on a past chat or its latest (LauncherPanel's ChatWindows)
+    var openReviewWindow: (String) -> Void = { _ in } // a review table's window, by the review's id (LauncherPanel's ReviewWindows)
+    var reviewsRefresh: () -> Void = {} // the open review tables drawn again (the taxonomies read again)
     var showMenuFor: ((PaperRef, [String: Any]) -> Void)? // the launcher shown, on a paper's menu (a chat window's Menu)
     var showLauncher: (() -> Void)? // the launcher shown (a chat window's About another paper…)
     var chatDeleted: (PaperRef, String) -> Void = { _, _ in } // a chat deleted in the launcher: its window, if open on it, starts anew
@@ -110,6 +122,9 @@ final class LauncherModel: ObservableObject {
     var watching = ""
     var openWindow: ([String: Any]) -> Void = { _ in } // a note window (LauncherController's)
     var closeNoteWindow: (String) -> Void = { _ in } // a deleted note's window, if open
+
+    var spotDefaults: UserDefaults? // where you are is kept there (the app's; none under the tests: LauncherModel+Spot)
+    var spotSink: AnyCancellable?
 
     private var flashTimer: Timer?
     private var keyTimer: Timer?
@@ -150,6 +165,7 @@ final class LauncherModel: ObservableObject {
         opened = true
         bridge.reload()
         loadFiles()
+        if shown == 1 && query == nil { restoreSpot() } // (the app just started: where the last run left it)
         let resuming = store.open(query: query)
         flash = ""
         lastError = ""
@@ -186,11 +202,26 @@ final class LauncherModel: ObservableObject {
             if actionItem != nil && ["actions", "notes", "files"].contains(store.view) { refreshDetails() }
             rebuildList()
         }
+        presentLaunchAsk() // the catch-up's question, found while the launcher was closed
+    }
+
+    // The app started (AppDelegate): the files read, so the background automation runs from now on (not only once the
+    // launcher has opened), and the catch-up's question (Settings › Defaults › Ask to catch up when the app opens).
+    // Not under the tests (the test host is the app: its files and runner are this Mac's) nor in fixture mode.
+    static func startsAtLaunch(_ env: [String: String]) -> Bool {
+        ["XCTestConfigurationFilePath", "XCTestBundlePath", "XCTestSessionIdentifier", "ZL_FIXTURES"].allSatisfy { env[$0] == nil }
+    }
+
+    func appLaunched() {
+        loadFiles()
+        sched.launchCheck = .waiting
+        refreshPrompts() // (What it checks names them)
+        launchCatchUpCheck()
     }
 
     func dismiss() {
         close()
-        windowed = false
+        windowed = openAsWindow // (as the hotkey opens it next)
     }
 
     // The launcher is hidden (dismissed, or it lost the keys): nothing waits to act.
@@ -277,6 +308,7 @@ final class LauncherModel: ObservableObject {
     func rebuildSearch() {
         guard let core else { return }
         refreshPaperPills() // (none in the results)
+        refreshRowTasks()
         let previous = backToKey ?? selectedSearchRow?.key ?? ""
         var rows: [SearchRow] = []
         if let response {

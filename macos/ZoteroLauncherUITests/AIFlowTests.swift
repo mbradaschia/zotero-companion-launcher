@@ -32,6 +32,8 @@ final class AIFlowTests: LauncherUITestCase {
         press(.return, wait: 0.2)
         XCTAssertTrue(eventually(8) { texts(chat).contains("resources matter") }, texts(chat))
         XCTAssertTrue(calls().contains { $0.hasPrefix("chat") }, "\(calls())")
+        // (the answer done first: a question sent while one is running isn't sent)
+        XCTAssertTrue(eventually(5) { chat.buttons["Send"].exists }, "the first answer didn't end")
         type("And its method?", wait: 0.2)
         press(.return, wait: 0.7)
         press(.escape, wait: 1)
