@@ -40,7 +40,8 @@ says so.
   oma-zotero-prompt), and the place is *Settings › Setup*.
 - **Names:** a *task* is a to-do, a *process* is a runner job; a *saved search*; a *paper*, not
   an item; the *Zotero Omarchy Bridge*; the *Keychain* (not a keyring) on the Mac; *Homebrew*
-  commands (`brew install …`), copied for Terminal, where Omarchy runs `omarchy …`.
+  commands (`brew install …`), run by Setup (in Processes; copied for Terminal without Homebrew), where Omarchy
+  runs `omarchy …`.
 - **Not on the Mac yet**, one shape: `Not on the Mac yet: chat (c) comes in a later version`
   (`notYet(what, key:)`); a page: `Not on the Mac yet: this page comes in a later version`.
 - **Flashes:** sentence case, no final period; `Not saved: why`, `Couldn't <verb> “X”: why`,

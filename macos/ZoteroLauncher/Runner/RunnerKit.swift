@@ -2,13 +2,19 @@ import Foundation
 
 // What the app carries to install the AI features (decision 7): Resources/RunnerKit, as a build
 // phase lays it out for install-runner.sh: macos/runner (without node_modules), macos/scripts
-// (install-runner.sh, safe-dest.sh, copy-shared-paths.sh), contracts/Paths.js, and the bridge's
+// (install-runner.sh, brew-install.sh, safe-dest.sh, copy-shared-paths.sh), contracts/Paths.js, and the bridge's
 // manifest (the plugin version the launcher expects).
 enum RunnerKit {
     static var folder: URL? { Bundle.main.resourceURL?.appendingPathComponent("RunnerKit") }
 
     static func installScript(in folder: URL? = folder) -> URL? {
         guard let script = folder?.appendingPathComponent("macos/scripts/install-runner.sh"), FileManager.default.isExecutableFile(atPath: script.path) else { return nil }
+        return script
+    }
+
+    // Homebrew's install of node, poppler or tesseract, for the setup checklist (brew-install.sh).
+    static func brewScript(in folder: URL? = folder) -> URL? {
+        guard let script = folder?.appendingPathComponent("macos/scripts/brew-install.sh"), FileManager.default.isExecutableFile(atPath: script.path) else { return nil }
         return script
     }
 
