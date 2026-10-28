@@ -34,6 +34,8 @@ extension LauncherModel {
     func startCatchUp(_ kind: String, title: String, plan fresh: [String: Any]? = nil, _ done: @escaping @MainActor (String) -> Void) {
         if extractFile?.upToDate != nil { return done("One is running: stop it first") }
         if sched.checking || sched.launchCheck == .checking { return done("Still checking which papers need it") }
+        sched.hold = nil // (started again: what stopped the last one is fixed, presumably; if not, it stops again at once)
+        sched.catchUpStopped = nil
         if let fresh { return done(startCatchUpJobs(kind, title: title, plan: fresh)) }
         let args = catchUpArgs(kind)
         guard !args.isEmpty else { return done("Nothing to do: every paper is up to date") }
@@ -124,7 +126,7 @@ extension LauncherModel {
 
     // The next jobs, up to Processes at once, never two on one paper at a time (R16); none left and none running: done.
     func catchUpTick() {
-        guard let u = extractFile?.upToDate, status == "ready", runnerInstalled else { return }
+        guard let u = extractFile?.upToDate, status == "ready", runnerInstalled, !aiOnHold else { return }
         let jobs = u["jobs"] as? [[String: Any]] ?? []
         if jobs.isEmpty {
             guard sched.catchUpClaimed.isEmpty else { return }
@@ -159,7 +161,10 @@ extension LauncherModel {
             let results = (r.json as? [String: Any])?["results"] as? [[String: Any]] ?? []
             let ok = op == "extract" ? results.first?["status"] as? String == "saved"
                 : op == "classify" ? !results.isEmpty && results.allSatisfy { $0["status"] as? String == "tagged" } : r.ok
-            if ok { return self.catchUpJobDone(job, ok: true, results) }
+            if ok {
+                if op != "extract" { self.aiWorks() }
+                return self.catchUpJobDone(job, ok: true, results)
+            }
             // failed: Zotero gone? Then the job waits for it (not counted failed, nor the rest after it)
             self.bridge.post("/sync/status", [:], timeout: 4) { [weak self] status in
                 MainActor.assumeIsolated {
@@ -169,6 +174,9 @@ extension LauncherModel {
                         self.sched.catchUpClaimed.removeAll { $0 == Self.jobKey(job) }
                         return self.refreshTasks()
                     }
+                    // a problem every paper would meet (signed out, out of credit, no network): the catch-up stops there
+                    let fatal = op == "extract" ? nil : op == "classify" ? self.fatalProblem(in: results) ?? self.fatalProblem(r.ok ? "" : r.problem) : self.fatalProblem(r.problem)
+                    if let fatal { return self.catchUpStopped(job, fatal) }
                     self.catchUpJobDone(job, ok: false, results)
                 }
             }
@@ -195,6 +203,19 @@ extension LauncherModel {
         if !changes.isEmpty { saveExtractState(changes) }
         refreshTasks()
         catchUpTick()
+    }
+
+    // A problem every paper would meet: the catch-up stops (its job not counted failed: the paper isn't at fault), said
+    // once with what to fix; the next one is started by you once it's fixed. Already stopped (a job beside it met the
+    // same): only its slot freed.
+    private func catchUpStopped(_ job: [String: Any], _ problem: FatalProblem) {
+        sched.catchUpClaimed.removeAll { $0 == Self.jobKey(job) }
+        guard let u = extractFile?.upToDate else { return refreshTasks() }
+        let title = u["title"] as? String ?? "Catch up"
+        saveExtractState(["update": nil])
+        sched.catchUpStopped = (title, problem.message)
+        holdAI(problem, "“\(title)”")
+        refreshCatchUp()
     }
 
     // set-catchup, set-catchup-stop, set-auto-prompt, pe-auto. → handled.
@@ -227,7 +248,7 @@ extension LauncherModel {
     // What waits its turn, for Processes: a catch-up's jobs after the running one, the papers left
     // in Extract every paper's text, the papers queued to tag (Service.qml's pendingTasks).
     var pendingTasks: [[String: Any]] {
-        var out: [[String: Any]] = []
+        var out: [[String: Any]] = holdTask.map { [$0] } ?? []
         let title = { (id: String) in (self.ai.prompts?.first { $0["id"] as? String == id }?["title"] as? String).map { "“\($0)”" } ?? id }
         if let u = extractFile?.upToDate {
             let jobs = (u["jobs"] as? [[String: Any]] ?? []).filter { !sched.catchUpClaimed.contains(Self.jobKey($0)) } // (the running ones are in Processes already)
@@ -253,11 +274,14 @@ extension LauncherModel {
 
     var pendingCount: Int { pendingTasks.count }
 
-    // Settings.js's catchUp: { plan, running: { title, left, done, failed } | null, problem }.
+    // Settings.js's catchUp: { plan, running: { title, kind, left, papers, done, failed } | null, stopped: { title, reason } | null, problem }.
     var catchUpContext: [String: Any] {
         let running: Any = extractFile?.upToDate.map { u -> Any in
-            ["title": u["title"] ?? "", "left": (u["jobs"] as? [Any])?.count ?? 0, "done": u["done"] ?? 0, "failed": u["failed"] ?? 0]
+            let jobs = u["jobs"] as? [[String: Any]] ?? []
+            return ["title": u["title"] ?? "", "kind": u["kind"] ?? "", "left": jobs.count, "papers": Set(jobs.map { $0["id"] as? String ?? "" }).count,
+                    "done": u["done"] ?? 0, "failed": u["failed"] ?? 0]
         } ?? NSNull()
-        return ["plan": sched.plan ?? NSNull(), "running": running, "problem": sched.planProblem]
+        let stopped: Any = sched.catchUpStopped.map { ["title": $0.title, "reason": $0.reason] as [String: Any] } ?? NSNull()
+        return ["plan": sched.plan ?? NSNull(), "running": running, "stopped": stopped, "problem": sched.planProblem]
     }
 }

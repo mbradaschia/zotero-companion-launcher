@@ -382,6 +382,8 @@ function cases() {
   add("taskRows/all", "taskRows", runnerTasks, "", COLOR, T0);
   add("taskRows/typed", "taskRows", runnerTasks, "barney", COLOR, T0);
   add("taskSummary/three", "taskSummary", runnerTasks, 0);
+  add("fatalProblem/signin", "fatalProblem", "Claude: Invalid API key · Please run /login");
+  add("fatalProblem/own", "fatalProblem", "the model sent an empty answer");
   add("fulltextNote/item", "fulltextNote", item);
   add("extractMenu/item", "extractMenu", item, false);
   add("extractMenu/no-runner", "extractMenu", item, true);

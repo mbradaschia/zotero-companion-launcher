@@ -13,12 +13,25 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (`macos-v0.4.7`)
+### The Mac app (`macos-v0.4.8`)
 
 - **Settings › Setup installs Node.js, pdftotext and Tesseract itself**: Enter on *Install Node.js*, *Install
   pdftotext* or *Read scans by OCR* runs `brew install …` (node, poppler, tesseract) in the background, shown in
   Processes, and the row says it's installed when it's done. It used to only copy the command, with nothing on screen
   but a short flash, so the button looked broken. Without Homebrew it still copies the command, and says so.
+
+### The Mac app (`macos-v0.4.7`)
+
+- **One catch-up row while one runs.** Settings › Defaults › Bring papers up to date showed the running catch-up and,
+  under it, the offer to start one, with counts that didn't match (processes left vs papers). While one runs, its row
+  takes the place of the three offers and says both: "58 processes left on 23 papers · 0 done, 2 failed".
+- **A problem every paper would meet stops the batch** instead of failing paper by paper: Claude or ChatGPT signed out,
+  a refused API key, out of credit or over the usage limit, the AI overloaded, no model set up, no network. The
+  catch-up stops at the first one (that paper isn't counted failed) and says what to fix (e.g. "in Terminal, run
+  claude, then /login"); Settings shows it stopped until you start it again. The tagging queue drops the papers queued
+  behind it, and the runner's `classify` stops a multi-paper batch there too (the rest `stopped`, not tried). New
+  papers' taxonomies and prompts hold (Processes: AI work on hold) and try again later (5 minutes for the network, 30
+  for the rest), and the papers they skipped aren't marked done or failed, so they run once it's fixed.
 
 ### The Mac app (`macos-v0.4.6`)
 

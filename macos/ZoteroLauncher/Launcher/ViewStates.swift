@@ -152,6 +152,8 @@ struct SchedulerState {
     enum LaunchCheck { case off, waiting, checking, done }
     var launchCheck = LaunchCheck.off
     var launchAsk: ConfirmAsk? // the question when the app opens, until answered
+    var hold: (problem: FatalProblem, what: String, until: Date)? // a problem every paper would meet: no AI work started by itself till then
+    var catchUpStopped: (title: String, reason: String)? // the last catch-up such a problem stopped (Settings says so)
 }
 
 // Chats and artifacts (phase 8): the runner's lists (`chats --all`, `artifacts --all`; nil until read), and the
