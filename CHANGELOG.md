@@ -13,7 +13,7 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.6`)
 
 - **Review tables** (phase 11a, `macos/docs/superpowers/specs/2026-10-27-phase-11a-review-table-design.md`): ⌘T in
   the results opens what they list (a query, a collection, a tag, a saved search) as a review table, in its own
