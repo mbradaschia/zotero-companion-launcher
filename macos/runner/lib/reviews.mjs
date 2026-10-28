@@ -317,3 +317,57 @@ export async function runReview(job, deps) {
   stats.costUsd = Math.round(stats.costUsd * 1e6) / 1e6;
   return stats;
 }
+
+// ---------------------------------------------------------------- Write it with AI (review-draft)
+
+// + Column › An AI column › Write it with AI: what you describe becomes the column (a prompt column's question, what
+// it reads, its answer's shape; a relevance column's topic and what relevant means), for you to change before Add.
+export const DRAFT_SYSTEM = [
+  "You write one column of a literature review table, from what a researcher says they want to know about each paper.",
+  "An AI model will later answer the column's question for every paper on its own, from that paper's text, so the question must stand alone: specific, answerable from a paper, and saying what to do when the paper doesn't say.",
+  "Answer with one JSON object and nothing else.",
+].join("\n");
+
+const DRAFT_SHAPES = {
+  prompt: '{"label": "a short column name (1-4 words)", "prompt": "the question asked of each paper, one to three sentences", "reads": "abstract" or "full" (the full text when the answer is usually in the body: methods, samples, results, measures), "shape": "text" | "list" | "number" | "choice", "length": words for text (10-150) or items for a list (2-10), "options": ["…"] (only for choice: 2-8 short choices), "evidence": true when quotes from the paper would help check the answer, "notes": "one sentence on your choices"}',
+  "jev-relevance": '{"label": "a short column name (1-4 words)", "topic": "the topic, a few words", "definition": "what relevant means: what a paper must do to count, and what doesn\'t count, one or two sentences", "notes": "one sentence on your choices"}',
+};
+
+// The request for the model: what the researcher asked, the column as it is in the form (to change, not start
+// over), and the JSON to answer with.
+export function draftMessage(kind, request, current) {
+  const k = kind === "jev-relevance" ? "jev-relevance" : "prompt";
+  const cur = current && typeof current === "object" ? current : {};
+  const has = k === "prompt" ? String(cur.description || "").trim() : String(cur.topic || cur.description || "").trim();
+  const now = !has ? "" : "\n\nThe column as it is now (change it as asked, keep what isn't asked about):\n" + JSON.stringify(k === "prompt"
+    ? { label: cur.label || "", prompt: cur.description || "", reads: cur.reads || "", shape: cur.shape || "", length: cur.length || "", options: cur.options || "", evidence: !!cur.evidence }
+    : { label: cur.label || "", topic: cur.topic || "", definition: cur.description || "" });
+  const what = k === "prompt" ? "an AI prompt column: a question asked of each paper" : "a relevance column: each paper scored 0 to 100 for how relevant it is to a topic";
+  return `Write ${what}.\n\nWhat the researcher wants:\n${String(request || "").trim()}${now}\n\nAnswer with this JSON:\n${DRAFT_SHAPES[k]}`;
+}
+
+// The model's answer → { column: { label, prompt, reads, shape, length, options, evidence } or { label, topic,
+// definition }, notes }, or { error }.
+export function parseColumnDraft(text, kind) {
+  const s = String(text || "");
+  const start = s.indexOf("{"), end = s.lastIndexOf("}");
+  if (start < 0 || end <= start) return { error: "the model's answer has no JSON" };
+  let j;
+  try { j = JSON.parse(s.slice(start, end + 1)); } catch (e) { return { error: "the model's answer isn't valid JSON: " + e.message }; }
+  if (!j || typeof j !== "object" || Array.isArray(j)) return { error: "the model's answer isn't a column" };
+  const str = (v, n) => (typeof v === "string" ? v : v === undefined || v === null ? "" : String(v)).trim().slice(0, n);
+  const label = str(j.label, 80);
+  const notes = str(j.notes, 400);
+  if (kind === "jev-relevance") {
+    const topic = str(j.topic, 200), definition = str(j.definition, 2000);
+    if (!topic) return { error: "the model's answer has no topic" };
+    return { column: { label: label || topic.slice(0, 40), topic, definition }, notes };
+  }
+  const prompt = str(j.prompt, 4000);
+  if (!prompt) return { error: "the model's answer has no question" };
+  const shape = ["text", "list", "number", "choice"].includes(j.shape) ? j.shape : "text";
+  const options = shape === "choice" ? (Array.isArray(j.options) ? j.options : String(j.options || "").split(",")).map((o) => str(o, 60)).filter((o, i, all) => o && all.indexOf(o) === i).slice(0, 20) : [];
+  const n = Math.round(Number(j.length));
+  const length = shape === "text" ? (n >= 5 && n <= 400 ? n : 60) : shape === "list" ? (n >= 1 && n <= 30 ? n : 5) : "";
+  return { column: { label: label || "AI column", prompt, reads: j.reads === "full" ? "full" : "abstract", shape: shape === "choice" && options.length < 2 ? "text" : shape, length: shape === "choice" && options.length < 2 ? 60 : length, options, evidence: j.evidence === true }, notes };
+}

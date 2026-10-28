@@ -187,3 +187,21 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .plan .pl { display: flex; gap: 8px; flex-wrap: wrap; }
 .plan .pl span { color: var(--muted); }
 .plan .pl.total { margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--line); }
+
+/* Round two: what scrolls inside itself stops at its end (the table doesn't scroll on); the selected cell whole
+   (peek); + Column's first choice and the AI column's kinds; Write it with AI; the Columns list's groups */
+.cv, .panel, .pop, .sheet .sb, .peek, textarea.ed, .keys { overscroll-behavior: contain; }
+.peek { position: absolute; z-index: 2; background: var(--win); border: 2px solid var(--accent); border-radius: 3px; box-shadow: 0 6px 20px rgba(0,0,0,.18); max-height: 50vh; overflow: auto; -webkit-user-select: text; user-select: text; }
+.peek .cv { max-height: none; overflow: visible; white-space: pre-wrap; }
+.sheet .choice { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--head); }
+.sheet .choice:hover, .sheet .choice:focus { border-color: var(--accent); background: var(--accent-soft); outline: none; }
+.sheet .choice span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.sheet .kinds { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.sheet label.kind { display: grid; grid-template-columns: auto 1fr; gap: 1px 6px; align-items: baseline; padding: 6px 8px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); }
+.sheet label.kind input { grid-row: span 2; margin: 0; }
+.sheet label.kind span { color: var(--muted); font-size: 11.5px; }
+.sheet label.kind:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.sheet .draft { display: flex; flex-direction: column; gap: 6px; border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
+.sheet .draft .arow { align-items: center; }
+.sheet footer .fill { flex: 1; }
+.pop .ph.grp { text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px; padding-top: 8px; }

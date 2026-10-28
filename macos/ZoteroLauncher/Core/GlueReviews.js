@@ -6,6 +6,8 @@ function GlueReviews(RV) {
     reviewText: function (review, now) { return RV.reviewText(review, now || "") },
     reviewNew: function (source, ctx, now) { return RV.newReview(source || {}, ctx || {}, now || "") },
     reviewSourceName: function (source) { return RV.sourceName(source || {}) },
+    // ⌘T on a list with a review already: its id (the newest changed), else "".
+    reviewFor: function (reviews, source) { return RV.reviewFor(reviews || [], source || {}) },
     // A review's source as the launcher's search scope (Glue.searchBody's) and query; `gone`: its saved search deleted.
     reviewScope: function (source, searches) { return RV.searchScope(source || {}, searches || []) },
     reviewColumnParse: function (text, id) { return RV.parseColumn(text, id) },

@@ -280,3 +280,21 @@ test("an AI cell you edit keeps the AI's answer; Back to the AI's answer brings 
   assert.equal(R.restoreCell(start, "1:AAAAAAAA", "x"), null); // (nothing to go back to)
   assert.deepEqual(R.parseCells(JSON.stringify({ cells: { "1:AAAAAAAA": { v: [1, "a"], p: 7, probs: { a: 2, __proto__: 1 }, by: "ai" } } }))["1:AAAAAAAA"], { v: ["1", "a"], updated: "", by: "ai", p: 1, probs: { a: 1 } });
 });
+
+test("reviewFor: ⌘T on a list with a review opens that one (the newest changed); else none", () => {
+  const reviews = [
+    { id: "r-aaaaaaaaaa", source: { type: "query", query: "dynamic  capabilities" }, updated: "2026-10-27T10:00:00Z" },
+    { id: "r-bbbbbbbbbb", source: { type: "query", query: "dynamic capabilities" }, updated: "2026-10-28T10:00:00Z" },
+    { id: "r-cccccccccc", source: { type: "collection", key: "WXYZ9876", libraryID: 2 }, updated: "2026-10-28T11:00:00Z" },
+    { id: "r-dddddddddd", source: { type: "search", key: "s1", libraryID: 1 }, updated: "" },
+    { id: "../x", source: { type: "tag", key: "to-read", libraryID: 1 } }
+  ];
+  assert.equal(R.reviewFor(reviews, { type: "query", query: " dynamic capabilities " }), "r-bbbbbbbbbb");
+  assert.equal(R.reviewFor(reviews, { type: "collection", key: "WXYZ9876", libraryID: 2 }), "r-cccccccccc");
+  assert.equal(R.reviewFor(reviews, { type: "collection", key: "WXYZ9876", libraryID: 1 }), "", "the same key in another library is another list");
+  assert.equal(R.reviewFor(reviews, { type: "search", key: "s1", libraryID: 3 }), "r-dddddddddd", "a saved search is the same whatever the library");
+  assert.equal(R.reviewFor(reviews, { type: "tag", key: "to-read", libraryID: 1 }), "", "a review with a bad id isn't one");
+  assert.equal(R.reviewFor(reviews, { type: "query", query: "" }), "");
+  assert.equal(R.reviewFor(null, { type: "query", query: "x" }), "");
+  assert.ok(!R.sameSource({ type: "tag", key: "a" }, { type: "collection", key: "a" }));
+});

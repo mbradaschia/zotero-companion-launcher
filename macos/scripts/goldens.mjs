@@ -519,6 +519,12 @@ function cases() {
   add("reviewScope/saved", "reviewScope", { type: "search", key: "s1", title: "Old" }, [{ id: "s1", name: "Capabilities", query: "dynamic capabilities" }]);
   add("reviewScope/saved-gone", "reviewScope", { type: "search", key: "s1", title: "Old", query: "dc" }, []);
   add("reviewScope/collection", "reviewScope", { type: "collection", key: "WXYZ9876", libraryID: 1, title: "c" }, []);
+  const kept = [{ id: "r-aaaaaaaaaa", source: { type: "query", query: "dynamic  capabilities" }, updated: "2026-10-27T10:00:00Z" },
+    { id: "r-bbbbbbbbbb", source: { type: "query", query: "dynamic capabilities" }, updated: "2026-10-28T10:00:00Z" },
+    { id: "r-cccccccccc", source: { type: "collection", key: "WXYZ9876", libraryID: 2 }, updated: "2026-10-28T11:00:00Z" }];
+  add("reviewFor/newest-of-the-query", "reviewFor", kept, { type: "query", query: " dynamic capabilities " });
+  add("reviewFor/other-library", "reviewFor", kept, { type: "collection", key: "WXYZ9876", libraryID: 1 });
+  add("reviewFor/none", "reviewFor", [], { type: "tag", key: "to-read", libraryID: 1 });
   const column = { id: "c-0123456789", label: "Method", kind: "own", type: "choice", options: ["case study", "survey"] };
   add("reviewColumnText/choice", "reviewColumnText", column);
   add("reviewColumnParse/back", "reviewColumnParse", Glue.reviewColumnText(column), "c-0123456789");

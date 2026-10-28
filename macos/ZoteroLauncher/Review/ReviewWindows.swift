@@ -45,12 +45,17 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
         window.center()
         model.close = { [weak window] in window?.close() }
         model.pin = { [weak self] on in self?.pinAll(on) } // (one setting: every table's window)
+        model.zoomed = { [weak self] z in self?.zoomAll(z) }
         if model.pinned { window.level = .floating }
         let title = model.$title.sink { [weak window] t in window?.title = "Review · " + t }
         open[id] = (window, model, title)
         startMonitor()
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+    }
+
+    private func zoomAll(_ z: Double) {
+        for entry in open.values { entry.model.page?.zoom(z) }
     }
 
     private func pinAll(_ on: Bool) {

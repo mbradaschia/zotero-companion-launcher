@@ -94,6 +94,9 @@ final class FixtureRunner: Runner {
         case "taxonomy-draft":
             return ["taxonomy": ["name": "Fixture methods", "prefix": "fixmethod/", "kind": "several", "question": "Which methods?", "threshold": 0.6, "low": 0.3, "show": true,
                                  "labels": [["name": "survey", "definition": "Questionnaires"], ["name": "experiment", "definition": "A designed test"]]], "notes": "a made-up proposal"]
+        case "review-draft":
+            return ["column": ["label": "Fixture sample", "prompt": "How many firms did the study look at?", "reads": "full", "shape": "number", "length": 1, "options": [String](),
+                               "evidence": true], "notes": "a made-up proposal", "by": "fixture"]
         case "taxonomy-remove": return ["ok": true]
         case "classify":
             let ids = (Self.value(argv, "--items") ?? "").split(separator: ",").map(String.init)

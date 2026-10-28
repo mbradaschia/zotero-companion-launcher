@@ -34,8 +34,9 @@ extension LauncherModel {
         ]
     }
 
-    // ⌘T: the results as a review table, a new one: the scope (a collection, a tag, a saved search), else the query
-    // typed. Its window opens; the launcher stays as it is.
+    // ⌘T: the results as a review table: the scope (a collection, a tag, a saved search), else the query typed. A list
+    // with a review already opens that one (its columns, widths, order, sort and grouping are the list's); else a new
+    // one. Its window opens; the launcher stays as it is.
     func openReviewHere() {
         guard let core, let files = reviewFiles else { return flashMessage("Couldn't open a review table: " + (coreError ?? "the files didn't load")) }
         let query = store.filterText.trimmingCharacters(in: .whitespaces)
@@ -47,6 +48,12 @@ extension LauncherModel {
             source = ["type": "query", "query": query]
         } else {
             return flashMessage("Type a query, or open a collection, a tag or a saved search: ⌘T opens its papers as a review table")
+        }
+        let reviews = files.list(core).compactMap { ($0["id"] as? String).flatMap { files.review($0, core) } }
+        if let id = try? core.glue("reviewFor", [reviews, source], as: String.self), !id.isEmpty {
+            openReviewWindow(id)
+            let name = reviews.first { $0["id"] as? String == id }?["name"] as? String ?? ""
+            return flashMessage("Opened “\(name)”: this list's review table, as you left it")
         }
         guard !syncFolderGone, !files.readOnly else { return flashMessage("Not saved: " + syncFolderAway) }
         do {

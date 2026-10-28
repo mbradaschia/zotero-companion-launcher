@@ -242,6 +242,43 @@ var RT = (function () {
     gw.appendChild(table)
     var box = $("edbox")
     if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length) }
+    showPeek()
+  }
+
+  // The selected cell, when what it holds doesn't fit (its lines, its width): the whole of it, over the cells below.
+  // It scrolls inside itself (the table doesn't scroll on past its end), and moves with the table.
+  function showPeek() {
+    var old = $("peek")
+    if (old) old.remove()
+    if (editing) return
+    var td = cellEl(act.pid, act.c), c = colById(act.c), r = actRow()
+    var cv = td && td.querySelector(".cv")
+    // (a pill's few pixels over the line's height isn't text cut off: half a line is)
+    if (!cv || !c || !r) return
+    var lh = parseFloat(getComputedStyle(cv).lineHeight) || 16
+    if ((cv.scrollHeight - cv.clientHeight < lh / 2 && cv.scrollWidth <= cv.clientWidth + 1)) return
+    var gw = $("gw"), g = gw.getBoundingClientRect(), b = td.getBoundingClientRect()
+    var full = cellView(c, r)
+    full.classList.remove("one")
+    full.style.maxHeight = ""
+    var pk = el("div", { class: "peek", id: "peek", "aria-hidden": "true" }, [full])
+    pk.style.left = (b.left - g.left + gw.scrollLeft) + "px"
+    pk.style.top = (b.top - g.top + gw.scrollTop) + "px"
+    pk.style.minWidth = b.width + "px"
+    pk.style.maxWidth = Math.max(b.width, 440) + "px"
+    gw.appendChild(pk)
+  }
+
+  // The cell under the peek where it was clicked (it covers the cells below the selected one), unless that click
+  // ended a selection of its text.
+  function cellUnder(e) {
+    var pk = $("peek"), s = window.getSelection()
+    if (!pk || (s && !s.isCollapsed && pk.contains(s.anchorNode))) return null
+    pk.style.pointerEvents = "none"
+    var at = document.elementFromPoint(e.clientX, e.clientY)
+    pk.style.pointerEvents = ""
+    var td = at && at.closest("td.cell")
+    return td && !(td.getAttribute("data-p") === act.pid && td.getAttribute("data-c") === act.c) ? td : null
   }
 
   function paperRow(r, vc) {
@@ -308,6 +345,7 @@ var RT = (function () {
         td.classList.add("active")
         if (scroll) td.scrollIntoView({ block: "nearest", inline: "nearest" })
       }
+      showPeek()
     }
     drawPanel()
     drawFoot()
@@ -411,7 +449,7 @@ var RT = (function () {
 
   function drawFoot() {
     var f = clear($("foot"))
-    f.appendChild(el("span", { text: editing ? "⌘↵ keep · esc drop" : "↑↓←→ move · space select · ↵ edit · ⌥→← status · ⇧⌥→← task · ⌥⌘←→ move column · ⌥⌘I panel · ⇧⌘R run · ? keys" }))
+    f.appendChild(el("span", { text: editing ? "⌘↵ keep · esc drop" : "↑↓←→ move · space select · ↵ edit · ⌥→← status · ⇧⌥→← task · ⌥⌘←→ move column · ⌥⌘I panel · ⌘- ⌘+ text · ⇧⌘R run · ? keys" }))
     var n = rows.length
     var count = D.loading && !n ? "…" : n + (n === 1 ? " paper" : " papers") + (D.total > n ? " (the first " + n + " of " + D.total + ")" : "")
     var nsel = Object.keys(sel).length
@@ -464,6 +502,7 @@ var RT = (function () {
       var td = cellEl(pid, c.id)
       if (td) { clear(td).appendChild(cellView(c, r)) }
     })
+    showPeek()
     drawPanel()
   }
 
@@ -550,9 +589,10 @@ var RT = (function () {
   // ------------------------------------------------------------ pop-ups
 
   var popEl = null
+  var popFor = null // the button the pop-up hangs from: a second click on it closes it
   // Closed: a query searched as you typed and not kept (↵) goes, the table back to its source.
   function closePop() {
-    if (popEl) { popEl.remove(); popEl = null }
+    if (popEl) { popEl.remove(); popEl = null; popFor = null }
     if (previewing) { previewing = false; clearTimeout(previewTimer); post("preview", { query: null }) }
   }
   function openPop(anchor, kids, bind) {
@@ -563,9 +603,18 @@ var RT = (function () {
     var w = popEl.offsetWidth
     popEl.style.top = Math.min(b.bottom + 4, window.innerHeight - popEl.offsetHeight - 8) + "px"
     popEl.style.left = Math.max(8, Math.min(b.left, window.innerWidth - w - 8)) + "px"
+    popFor = anchor
     if (bind) bind(popEl)
     var first = popEl.querySelector("input[type=search], input[type=text]")
     if (first) first.focus()
+  }
+  // A toolbar button's pop-up: opened by a click, closed by the next click on the same button (or anywhere outside).
+  function toggle(open) {
+    return function (e) {
+      var b = e.currentTarget
+      if (popEl && popFor === b) return closePop()
+      open(b)
+    }
   }
   function item(label, attrs, small) { return el("button", Object.assign({ class: "pi", type: "button", role: "menuitem" }, attrs), [el("span", { text: label }), small ? el("small", { text: small }) : null]) }
   function linesSeg(current, attr) {
@@ -660,18 +709,25 @@ var RT = (function () {
     })
   }
 
+  // Every column there is, by its group: ticked, it's shown; unticked, hidden (it keeps its place, its width and its
+  // values). Zotero's fields, the rankings, your taxonomies, your own columns and the AI ones, this review's or not.
   function colsPop(anchor) {
-    var kids = [el("div", { class: "ph", text: "Show and hide (nothing is lost)" })]
-    cols.forEach(function (c) {
-      if (c.missing) return
-      kids.push(el("label", { class: "pi" }, [el("span", { text: c.label }), el("input", { type: "checkbox", "data-show": c.id, checked: !c.hidden, disabled: c.id === "title" })]))
+    var kids = [el("div", { class: "ph", text: "Show and hide columns (nothing is lost)" })]
+    var shown = {}
+    cols.forEach(function (c) { if (!c.missing) shown[c.id] = !c.hidden })
+    var all = C.available(D.ctx, D.columns)
+    var last = ""
+    all.forEach(function (c) {
+      if (c.group !== last) { last = c.group; kids.push(el("div", { class: "ph grp", text: c.group })) }
+      kids.push(el("label", { class: "pi" }, [el("span", { text: c.label }), el("input", { type: "checkbox", "data-show": c.id, checked: !!shown[c.id], disabled: c.id === "title" })]))
     })
-    kids.push(el("hr"), item("Add columns…", { "data-addcols": "1" }))
+    kids.push(el("hr"), item("A new column…", { "data-addcols": "1" }, "yours, or an AI one"))
     openPop(anchor, kids, function (p) {
       p.addEventListener("change", function (e) {
         var id = e.target.getAttribute("data-show")
         if (!id) return
         var l = layoutOf(id)
+        if (!l) { if (!e.target.checked) return; l = { id: id }; review.columns.push(l); act.c = id }
         if (e.target.checked) delete l.hidden; else l.hidden = true
         layoutChanged()
       })
@@ -821,80 +877,134 @@ var RT = (function () {
     })
   }
 
-  function addDialog() {
-    var have = {}
-    review.columns.forEach(function (l) { have[l.id] = true })
-    var all = C.available(D.ctx, D.columns).filter(function (c) { return !have[c.id] })
-    var groups = []
-    all.forEach(function (c) { if (groups.indexOf(c.group) < 0) groups.push(c.group) })
-    var attrs = groups.length ? groups.map(function (g) {
-      return el("div", {}, [el("div", { class: "agroup", text: g }), el("div", { class: "agrid" }, all.filter(function (c) { return c.group === g }).map(function (c) {
-        return el("label", {}, [el("input", { type: "checkbox", "data-attr": c.id }), c.label])
-      }))])
-    }) : [el("div", { class: "hint", text: "Every attribute is in this review already." })]
-    openModal([el("header", {}, [el("h2", { text: "Add columns" }), el("p", { text: "Attributes from Zotero and the launcher, or a column of your own." })]),
-      el("div", { class: "sb" }, attrs.concat([
-        el("div", { class: "agroup", text: "A column of your own" }),
-        el("label", {}, ["Its name", el("input", { type: "text", id: "nname", placeholder: "Include?, My notes, Chapter…", maxlength: "80" })]),
-        el("label", {}, ["It holds", el("select", { id: "ntype" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "choice", text: "One of a list" })])]),
-        el("label", { id: "noptsl", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "nopts", placeholder: "include, maybe, exclude" })]),
-        el("div", { class: "agroup", text: "An AI column" }),
-        el("label", {}, ["What the AI does", el("select", { id: "akind" }, [el("option", { value: "", text: "Nothing: no AI column" })].concat(C.AI_KINDS.map(function (k) {
-          return el("option", { value: k, text: C.KIND_NAMES[k] + ": " + { prompt: "your question, asked of each paper", "jev-several": "the labels of one of your taxonomies", "jev-one": "the best fit of one of your taxonomies", "jev-relevance": "how relevant each paper is to a topic, 0 to 100" }[k] })
-        })))]),
-        el("div", { id: "aform", class: "aform", hidden: true }, aiFields()),
+  // + Column: first what fills it, yours or the AI; then that kind's fields. (Zotero's fields, the rankings and your
+  // taxonomies aren't made: the Columns button lists them all, to tick.)
+  var KIND_HINTS = { prompt: "your question, asked of each paper", "jev-several": "the labels of one of your taxonomies", "jev-one": "the best fit of one of your taxonomies", "jev-relevance": "how relevant each paper is to a topic, 0 to 100" }
+  function addDialog(step) {
+    if (D.readOnly) return flash("Not saved: the sync folder isn't there")
+    var back = el("button", { class: "tb", type: "button", "data-step": "", text: "‹ Back" })
+    var foot = function (go) { return el("footer", {}, [step ? back : null, el("span", { class: "fill" }), el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), go]) }
+    if (!step) {
+      return openModal([el("header", {}, [el("h2", { text: "Add a column" }), el("p", { text: "Who fills it in?" })]),
+        el("div", { class: "sb" }, [
+          el("button", { class: "choice", type: "button", "data-step": "own" }, [el("b", { text: "You: a column of your own" }), el("span", { text: "Text, or one of a list (include, maybe, exclude…), filled in by you" })]),
+          el("button", { class: "choice", type: "button", "data-step": "ai" }, [el("b", { text: "The AI: an AI column" }), el("span", { text: "Your question asked of each paper, Jev's labels from a taxonomy, or how relevant each paper is to a topic" })]),
+          el("div", { class: "hint", text: "Zotero's fields, the rankings and your taxonomies are there already: tick them in the Columns button's list." })
+        ]), foot(null)], function (m) {
+        m.addEventListener("click", function (e) { var b = e.target.closest("[data-step]"); if (b) addDialog(b.getAttribute("data-step")) })
+        var first = m.querySelector(".choice")
+        if (first) first.focus()
+      })
+    }
+    if (step === "own") {
+      return openModal([el("header", {}, [el("h2", { text: "A column of your own" }), el("p", { text: "You fill it in: a click on a cell selects it, the panel on the right sets it." })]),
+        el("div", { class: "sb" }, [
+          el("label", {}, ["Its name", el("input", { type: "text", id: "nname", placeholder: "Include?, My notes, Chapter…", maxlength: "80" })]),
+          el("label", {}, ["It holds", el("select", { id: "ntype" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "choice", text: "One of a list" })])]),
+          el("label", { id: "noptsl", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "nopts", placeholder: "include, maybe, exclude" })]),
+          el("div", { class: "err", id: "nerr" })
+        ]), foot(el("button", { class: "tb primary", type: "button", id: "nadd", text: "Add" }))], function (m) {
+        m.addEventListener("click", function (e) { var b = e.target.closest("[data-step]"); if (b) addDialog(b.getAttribute("data-step")) })
+        $("ntype").addEventListener("change", function () { $("noptsl").hidden = $("ntype").value !== "choice" })
+        var go = function () {
+          var made = C.newColumn({ label: $("nname").value.trim(), type: $("ntype").value, options: $("nopts").value })
+          if (made.error) { $("nerr").textContent = made.error; return }
+          addMade(made.column)
+        }
+        $("nadd").addEventListener("click", go)
+        $("nname").addEventListener("keydown", function (e) { if (e.key === "Enter") go() })
+      })
+    }
+    // an AI column: its kind, then its fields (data-for: the kinds a field is for); a prompt or a relevance can be
+    // written by the AI from what you describe (Write it with AI), then changed before Add
+    openModal([el("header", {}, [el("h2", { text: "An AI column" }), el("p", { text: "The AI fills it, paper by paper, when you Run it (⇧⌘R): nothing runs before." })]),
+      el("div", { class: "sb" }, [
+        el("div", { class: "kinds", role: "radiogroup", "aria-label": "What the AI does" }, C.AI_KINDS.map(function (k, i) {
+          return el("label", { class: "kind" }, [el("input", { type: "radio", name: "akind", value: k, checked: i === 0 }), el("b", { text: C.KIND_NAMES[k] }), el("span", { text: KIND_HINTS[k] })])
+        })),
+        el("div", { class: "draft", "data-for": "prompt jev-relevance" }, [
+          el("label", {}, ["Describe what you want to know, and the AI writes the column", el("textarea", { id: "adesc", rows: "2", placeholder: "" })]),
+          el("div", { class: "arow" }, [el("button", { class: "tb", type: "button", id: "adraft", text: "Write it with AI" }), el("span", { class: "hint", id: "adnote" })])
+        ]),
+        el("div", { id: "aform", class: "aform" }, aiFields()),
         el("div", { class: "err", id: "nerr" })
-      ])),
-      el("footer", {}, [el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), el("button", { class: "tb primary", type: "button", id: "nadd", text: "Add" })])], function () {
-      $("ntype").addEventListener("change", function () { $("noptsl").hidden = $("ntype").value !== "choice" })
+      ]), foot(el("button", { class: "tb primary", type: "button", id: "nadd", text: "Add" }))], function (m) {
+      m.addEventListener("click", function (e) { var b = e.target.closest("[data-step]"); if (b) addDialog(b.getAttribute("data-step")) })
+      var kind = function () { return (m.querySelector("input[name=akind]:checked") || {}).value || "prompt" }
       var showAi = function () {
-        var k = $("akind").value
-        $("aform").hidden = !k
-        Array.prototype.forEach.call(modalEl.querySelectorAll("[data-for]"), function (x) { x.hidden = x.getAttribute("data-for").split(" ").indexOf(k) < 0 })
+        var k = kind()
+        Array.prototype.forEach.call(m.querySelectorAll("[data-for]"), function (x) { x.hidden = x.getAttribute("data-for").split(" ").indexOf(k) < 0 })
         if (k === "prompt") $("aoptsl").hidden = $("ashape").value !== "choice"
         if (k === "prompt") $("alenl").hidden = !($("ashape").value === "text" || $("ashape").value === "list")
+        $("adesc").placeholder = k === "jev-relevance" ? "Papers on how firms build dynamic capabilities, not ones that only cite the idea" : "Each study's sample: how many firms or people, and from which countries"
         if (k === "jev-several" || k === "jev-one") {
           var ts = (D.ctx.taxonomies || []).filter(function (t) { return t.id && (t.kind === "one") === (k === "jev-one") })
           clear($("atax"))
           ts.forEach(function (t) { $("atax").appendChild(el("option", { value: t.id, text: t.name + " (" + t.prefix + ")" })) })
           if (!ts.length) $("atax").appendChild(el("option", { value: "", text: k === "jev-one" ? "No taxonomy of the one-label kind" : "No taxonomy of the several-labels kind" }))
         }
-        $("anote").textContent = k && k !== "prompt" ? (D.ctx.jev ? "Jev answers, as tagging does (it reads the title, abstract and extracted text). No tags are written: the result stays in the column." : "No Jev key: your prompts model answers, as tagging does without one (Settings › Taxonomies sets the key). No tags are written.") : ""
+        $("anote").textContent = k !== "prompt" ? (D.ctx.jev ? "Jev answers, as tagging does (it reads the title, abstract and extracted text). No tags are written: the result stays in the column." : "No Jev key: your prompts model answers, as tagging does without one (Settings › Taxonomies sets the key). No tags are written.") : ""
       }
-      ;["akind", "ashape"].forEach(function (id) { $(id).addEventListener("change", showAi) })
-      $("nadd").addEventListener("click", function () {
-        var picked = Array.prototype.map.call(modalEl.querySelectorAll("[data-attr]:checked"), function (x) { return x.getAttribute("data-attr") })
-        var name = $("nname").value.trim()
-        var specs = []
-        if ((name || $("akind").value) && D.readOnly) { $("nerr").textContent = "Not saved: the sync folder isn't there"; return }
-        if (name) {
-          var made = C.newColumn({ label: name, type: $("ntype").value, options: $("nopts").value })
-          if (made.error) { $("nerr").textContent = made.error; return }
-          specs.push(made.column)
-        }
-        if ($("akind").value) {
-          var k = $("akind").value
-          var ai = C.newAiColumn({ label: $("aname").value, kind: k, description: k === "prompt" ? $("aprompt").value : $("adef").value, reads: $("areads").value, shape: $("ashape").value,
-            length: $("alen").value, options: $("aopts").value, evidence: $("aev").checked, model: $("amodel").value, taxonomy: $("atax").value, topic: $("atopic").value }, D.ctx)
-          if (ai.error) { $("nerr").textContent = ai.error; return }
-          specs.push(ai.column)
-        }
-        if (!picked.length && !specs.length) { $("nerr").textContent = "Tick an attribute, name a column of your own, or pick what the AI does"; return }
-        picked.forEach(function (id) { review.columns.push({ id: id }) })
-        closeModal()
-        specs.forEach(function (spec) {
-          D.columns[spec.id] = spec
-          review.columns.push({ id: spec.id })
-          post("addColumn", { column: spec })
-        })
-        act.c = specs.length ? specs[specs.length - 1].id : picked.length ? picked[0] : act.c
-        layoutChanged()
-        var aiNew = specs.filter(function (x) { return x.kind !== "own" })[0]
-        flash("Added: " + picked.map(function (id) { var c = colById(id); return c ? c.label : id }).concat(specs.map(function (x) { return x.label })).join(", ") + (aiNew ? ". Run… (⇧⌘R) fills it" : ""))
-        var td = cellEl(act.pid, act.c)
-        if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" })
+      m.addEventListener("change", function (e) { if (e.target.name === "akind" || e.target.id === "ashape") showAi() })
+      showAi()
+      $("adraft").addEventListener("click", function () {
+        var ask = $("adesc").value.trim()
+        if (!ask) { $("adnote").textContent = "Describe it first: what should the column tell you about each paper?"; return $("adesc").focus() }
+        $("adraft").disabled = true
+        $("adraft").textContent = "Writing…"
+        $("adnote").textContent = "Your prompts model is writing it (a few seconds)."
+        $("nerr").textContent = ""
+        post("draftColumn", { kind: kind(), request: ask, current: aiValues(kind()) })
       })
+      $("nadd").addEventListener("click", function () {
+        var ai = C.newAiColumn(aiValues(kind()), D.ctx)
+        if (ai.error) { $("nerr").textContent = ai.error; return }
+        addMade(ai.column)
+      })
+      $("adesc").focus()
     })
+  }
+
+  // What the AI column's fields hold, as C.newAiColumn reads them.
+  function aiValues(k) {
+    return { label: $("aname").value, kind: k, description: k === "prompt" ? $("aprompt").value : $("adef").value, reads: $("areads").value, shape: $("ashape").value,
+      length: $("alen").value, options: $("aopts").value, evidence: $("aev").checked, model: $("amodel").value, taxonomy: $("atax").value, topic: $("atopic").value }
+  }
+
+  // Write it with AI's answer (review-draft): the fields filled with it, to change before Add; or why not.
+  function drafted(out) {
+    var b = $("adraft")
+    if (!b) return // (the dialog was closed meanwhile)
+    b.disabled = false
+    b.textContent = "Write it again"
+    var o = out || {}
+    if (o.error || !o.column) { $("adnote").textContent = ""; $("nerr").textContent = "The AI couldn't: " + (o.error || "no answer"); return }
+    var c = o.column
+    var set = function (id, v) { if (v !== undefined && v !== null && $(id)) $(id).value = Array.isArray(v) ? v.join(", ") : String(v) }
+    set("aname", c.label)
+    set("aprompt", c.prompt)
+    set("areads", c.reads === "full" ? "full" : c.reads ? "abstract" : undefined)
+    if (["text", "list", "number", "choice"].indexOf(c.shape) >= 0) set("ashape", c.shape)
+    set("alen", c.length)
+    set("aopts", c.options)
+    if (typeof c.evidence === "boolean") $("aev").checked = c.evidence
+    set("atopic", c.topic)
+    set("adef", c.definition)
+    $("ashape").dispatchEvent(new Event("change", { bubbles: true }))
+    $("adnote").textContent = (o.notes ? o.notes + " " : "") + "Change anything, then Add; or describe it again."
+  }
+
+  // A column made in + Column: saved (its file), added to this review and selected.
+  function addMade(spec) {
+    closeModal()
+    D.columns[spec.id] = spec
+    review.columns.push({ id: spec.id })
+    post("addColumn", { column: spec })
+    act.c = spec.id
+    layoutChanged()
+    flash("Added “" + spec.label + "”" + (spec.kind !== "own" ? ": Run… (⇧⌘R) fills it" : ""))
+    var td = cellEl(act.pid, act.c)
+    if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" })
   }
 
   // + Column's AI column: each kind's fields (shown for its kind: data-for).
@@ -987,7 +1097,7 @@ var RT = (function () {
     showKeys = true
     var K = [["↑↓←→", "Move between cells"], ["home end", "The row's first and last column"], ["pgup pgdn", "A page up or down"], ["space", "Select the paper's row"],
       ["↵", "Edit a cell of yours (text)"], ["⌘↵ esc", "Keep, or drop, what you typed"], ["⌥→ ⌥←", "The paper's status"], ["⇧⌥→ ⇧⌥←", "Its task's status"],
-      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⇧⌘R", "Run the AI columns…"], ["⌘O", "Show the paper in Zotero"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
+      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"], ["⌘O", "Show the paper in Zotero"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
       ["⇧-click", "A header: add it to the sort"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
     var dl = el("dl")
     K.forEach(function (k) { dl.appendChild(el("dt", { text: k[0] })); dl.appendChild(el("dd", { text: k[1] })) })
@@ -1012,19 +1122,20 @@ var RT = (function () {
   // ------------------------------------------------------------ events
 
   function wire() {
-    $("bSource").addEventListener("click", function (e) { sourcePop(e.currentTarget) })
-    $("bGroup").addEventListener("click", function (e) { groupPop(e.currentTarget) })
-    $("bSort").addEventListener("click", function (e) { sortPop(e.currentTarget) })
+    $("bSource").addEventListener("click", toggle(sourcePop))
+    $("bGroup").addEventListener("click", toggle(groupPop))
+    $("bSort").addEventListener("click", toggle(sortPop))
     $("bOrder").addEventListener("click", turnOrder)
-    $("bLines").addEventListener("click", function (e) { linesPop(e.currentTarget) })
-    $("bCols").addEventListener("click", function (e) { colsPop(e.currentTarget) })
-    $("bAdd").addEventListener("click", addDialog)
+    $("bLines").addEventListener("click", toggle(linesPop))
+    $("bCols").addEventListener("click", toggle(colsPop))
+    $("bAdd").addEventListener("click", function () { addDialog("") })
     $("bRun").addEventListener("click", function () { runDialog(null) })
-    $("bExport").addEventListener("click", function (e) { exportPop(e.currentTarget) })
+    $("bExport").addEventListener("click", toggle(exportPop))
     $("bPanel").addEventListener("click", togglePanel)
     $("bRefresh").addEventListener("click", function () { post("refresh") })
     $("bPin").addEventListener("click", function () { D.pinned = !D.pinned; drawToolbar(); post("pin", { on: D.pinned }) })
-    document.addEventListener("mousedown", function (e) { if (popEl && !popEl.contains(e.target) && !e.target.closest(".tools, #bSource, .hmenu")) closePop() })
+    // a press outside the pop-up closes it; on its own button the click that follows does (toggle)
+    document.addEventListener("mousedown", function (e) { if (popEl && !popEl.contains(e.target) && !(popFor && popFor.contains(e.target))) closePop() })
     document.addEventListener("dragstart", function (e) { e.preventDefault() }) // (nothing here is dragged out: a drag moves a column)
 
     var gw = $("gw")
@@ -1033,16 +1144,21 @@ var RT = (function () {
       if (ck) { toggleSel(ck.getAttribute("data-sel"), ck.checked); return }
       if (e.target.id === "ckall") { rows.forEach(function (r) { if (e.target.checked) sel[C.paperId(r)] = true; else delete sel[C.paperId(r)] }); drawGrid(); drawFoot(); return }
       var mb = e.target.closest("[data-menu]")
-      if (mb) { e.stopPropagation(); return headerMenu(colById(mb.getAttribute("data-menu")), mb) }
+      if (mb) { e.stopPropagation(); if (popEl && popFor === mb) return closePop(); return headerMenu(colById(mb.getAttribute("data-menu")), mb) }
       if (e.target.closest(".rz") || noClick) return
       var th = e.target.closest("th[data-c]")
       if (th) return setSort(C.clickSort(review.sort, th.getAttribute("data-c"), e.shiftKey))
-      var td = e.target.closest("td.cell")
+      var td = e.target.closest("td.cell") || (e.target.closest("#peek") ? cellUnder(e) : null)
       if (td && !editing) { setActive(td.getAttribute("data-p"), td.getAttribute("data-c")); gw.focus({ preventScroll: true }) }
     })
     gw.addEventListener("dblclick", function (e) {
       var rz = e.target.closest("[data-rz]")
       if (rz) return fitColumn(rz.getAttribute("data-rz"))
+      if (e.target.closest("#peek") && !editing) { // (the selected cell, whole)
+        if (act.c === "title") return openPaper(actRow())
+        var pc = colById(act.c)
+        return pc && pc.edit === "text" ? startEdit() : undefined
+      }
       var td = e.target.closest("td.cell")
       if (!td || editing) return
       act = { pid: td.getAttribute("data-p"), c: td.getAttribute("data-c") }
@@ -1210,7 +1326,7 @@ var RT = (function () {
     setActive(C.paperId(rows[nr]), vc[nc].id, true)
   }
 
-  return { load: load, flash: flash, segments: segments, ready: function () { post("ready") } }
+  return { load: load, flash: flash, segments: segments, drafted: drafted, ready: function () { post("ready") } }
 })()
 
 RT.ready()

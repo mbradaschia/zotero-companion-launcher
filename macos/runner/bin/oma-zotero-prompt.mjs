@@ -56,6 +56,8 @@
 //   oma-zotero-prompt artifact-libs     fetch the diagram and mind map libraries (once), redraw the views
 //   oma-zotero-prompt review-run        stdin { review, name, columns, jobs: [{ column, paper }] }: a review table's AI
 //                                       columns filled paper by paper (one task; each paper's cells written as made)
+//   oma-zotero-prompt review-draft      stdin { kind, request, current }: an AI column written by your prompts model
+//                                       from what you describe (Write it with AI), nothing saved
 //   oma-zotero-prompt tasks [--clear]   the task queue: prompt runs and extractions (JSON)
 //
 // The model comes from a provider (lib/providers/: a Claude or ChatGPT subscription, an API key,
@@ -98,7 +100,7 @@ import { versionsFor, promptNotes, promptRuns, stalePromptJobs, staleTaxonomyJob
 import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
 import { checkQuotes, quoteCheckLine, groundingText as quoteSources } from "../lib/quotes.mjs";
-import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell } from "../lib/reviews.mjs";
+import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell, DRAFT_SYSTEM as COLUMN_DRAFT_SYSTEM, draftMessage as columnDraftMessage, parseColumnDraft } from "../lib/reviews.mjs";
 
 // On macOS an app that starts the runner hands it a PATH without Homebrew or ~/.local/bin, where
 // pdftotext, ollama and the claude / codex CLIs live; every lookup and spawn below uses this one.
@@ -459,6 +461,23 @@ async function reviewRun() {
   log("review-run", { review: job.review, papers: r.papers, cells: r.cells, failed: r.failed, costUsd: r.costUsd });
   notify(`Review “${job.name}”`, detail, r.failed ? "normal" : "low");
   return { papers: r.papers, done: r.done, cells: r.cells, failed: r.failed, stopped: r.stopped, error: r.error, costUsd: r.costUsd };
+}
+
+// + Column › An AI column › Write it with AI: stdin { kind, request, current } → { column, notes, by } or { error },
+// on your prompts model.
+async function reviewDraft() {
+  let input;
+  try { input = JSON.parse(readFileSync(0, "utf8")); } catch (e) { throw new Error("not JSON: " + e.message); }
+  const request = String(input.request || "").trim();
+  if (!request) throw new Error("say what you want the column to tell you");
+  const kind = input.kind === "jev-relevance" ? "jev-relevance" : "prompt";
+  const settings = loadSettings();
+  const target = resolveModel("default", settings, "prompts");
+  const answer = await generate({ settings, ctx: providerCtx(), target, effort: "low", system: COLUMN_DRAFT_SYSTEM, messages: [{ role: "user", content: columnDraftMessage(kind, request, input.current) }],
+    onFallback: (t) => log("fallback", { reviewDraft: true, note: t }) });
+  const r = parseColumnDraft(answer.text, kind);
+  log("review-draft", { kind, ok: !r.error, by: answer.spec });
+  return Object.assign(r, { by: answer.spec });
 }
 
 // ---------------------------------------------------------------- extract
@@ -1351,6 +1370,8 @@ async function main() {
       return process.stdout.write(JSON.stringify(taxonomyRemove(rest[0], flags)) + "\n");
     case "classify":
       return classify(flags);
+    case "review-draft":
+      return process.stdout.write(JSON.stringify(await reviewDraft()) + "\n");
     case "review-run":
       return process.stdout.write(JSON.stringify(await reviewRun()) + "\n");
     case "classify-show": {
