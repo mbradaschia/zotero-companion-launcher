@@ -13,7 +13,7 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (`macos-v0.4.14`)
+### The Mac app (next)
 
 - **Themes.** Settings › General › Appearance › Theme picks the app's colours: Default (the Mac's own colours and
   accent, as before) or one of ten well-known themes, each with a light and a dark variant: Catppuccin (Latte, Mocha),
@@ -25,6 +25,18 @@ bridge and the prompt runner share one version.
 - A theme's colours are its authors'; one used as text that would read poorly on the background (Solarized Light's
   yellow, Nord Light's greens) is darkened, or lightened on a dark one, until it reads (4.5:1 for the second line and
   the accent, 3:1 for the pills).
+
+### The Mac app (`macos-v0.4.13`)
+
+- **The review table's toolbar is icons** (Group, Sort, Order, Lines, Columns, add a column, Export, Panel, search
+  again, Pin), each named when you point at it and to VoiceOver.
+- **A pin keeps the table over other apps' windows**, as the launcher's pin does; it's remembered for the next table.
+- **Columns as narrow as you drag them** (16 px at the least, from 40-48), and the resize grip no longer starts a
+  column move: it lies inside its own header's right edge, and a column moves when you drag its header past a few px
+  (a click still sorts; ending a drag or a resize doesn't).
+- **The source box's query works as the launcher's search box**: the table follows as you type, the query is read as
+  the launcher reads it (its blocks: `y:2015..` as *Year: 2015..*, `!#excluded` as *NOT # excluded*), ↵ keeps it, esc
+  goes back to the source, and ⌘S saves it as a search, which the launcher lists too.
 
 ### The Mac app (`macos-v0.4.10`)
 

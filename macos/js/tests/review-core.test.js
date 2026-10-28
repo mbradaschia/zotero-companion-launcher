@@ -120,6 +120,9 @@ test("a review's file: made whole, the paper column first, its id its file's nam
   assert.deepEqual(Object.assign({}, again, { updated: "" }), Object.assign({}, r, { updated: "" }));
   const none = R.parseReview("{}", "r-0123456789");
   assert.deepEqual(none.columns, [{ id: "title" }]);
+  // no width floor beyond a sliver: a column is as narrow as you drag it
+  const thin = R.parseReview(JSON.stringify({ columns: [{ id: "title" }, { id: "year", width: 20 }, { id: "abs", width: 3 }] }), "r-0123456789");
+  assert.deepEqual(thin.columns.map((c) => c.width), [undefined, 20, R.MIN_WIDTH]);
 });
 
 test("a new review: named after its source, the default columns and each taxonomy's", () => {

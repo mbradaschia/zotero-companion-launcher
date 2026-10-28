@@ -81,6 +81,7 @@ struct ReviewWebView: NSViewRepresentable {
         // (the data as a JSON literal, run in the page's world: the app's own call, which the page's CSP doesn't stop)
         func load(_ data: [String: Any]) { call("RT.load", data) }
         func flash(_ text: String) { call("RT.flash", [text]) }
+        func segments(_ text: String, _ list: [Any]) { call("RT.segments", [text, list]) }
 
         private func call(_ function: String, _ value: Any) {
             guard JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) else { return }
@@ -113,4 +114,5 @@ struct ReviewWebView: NSViewRepresentable {
 protocol ReviewPage: AnyObject {
     func load(_ data: [String: Any])
     func flash(_ text: String)
+    func segments(_ text: String, _ list: [Any]) // the source box's query, read as the launcher reads it
 }

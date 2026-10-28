@@ -44,11 +44,20 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
         window.delegate = self
         window.center()
         model.close = { [weak window] in window?.close() }
+        model.pin = { [weak self] on in self?.pinAll(on) } // (one setting: every table's window)
+        if model.pinned { window.level = .floating }
         let title = model.$title.sink { [weak window] t in window?.title = "Review · " + t }
         open[id] = (window, model, title)
         startMonitor()
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+    }
+
+    private func pinAll(_ on: Bool) {
+        for entry in open.values {
+            entry.window.level = on ? .floating : .normal
+            entry.model.send()
+        }
     }
 
     private func startMonitor() {

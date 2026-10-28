@@ -63,6 +63,7 @@ await pg.setContent(shell());
 await pg.evaluate((d) => RT.load(d), data);
 const sent = () => pg.evaluate(() => (window.RT_SENT || []).splice(0));
 const cell = (p, c) => `td.cell[data-p="1:${p}"][data-c="${c}"]`;
+let heads = "";
 
 ok((await sent()).some((m) => m.type === "ready"), "the page says it's ready");
 ok((await pg.locator("tbody tr").count()) === 4, "four rows");
@@ -120,16 +121,18 @@ await pg.waitForTimeout(500);
 m = await sent();
 const layout = m.filter((x) => x.type === "layout").pop();
 ok(layout && layout.review.sort.length === 2 && layout.review.sort[1].column === "year", "the sort is saved with the review");
-ok((await pg.textContent("#bSort")) === "Sort: ABS +1 ▾" && (await pg.textContent("#bOrder")) === "↑ Asc", "Sort ▾ names the first key, Order says its direction");
+const label = (sel) => pg.getAttribute(sel, "aria-label");
+ok((await label("#bSort")).startsWith("Sort: ABS, then Year") && (await label("#bOrder")).startsWith("Ascending by ABS"), "Sort names its keys, Order says its direction");
+ok((await pg.textContent(".tools")).trim() === "" && (await pg.locator(".tools button svg").count()) === 10, "the toolbar is icons, each with its name");
 
 // the order and the groups
 await pg.click("#bOrder");
-ok((await pg.textContent("#bOrder")) === "↓ Desc", "Order turns the first key: descending");
+ok((await label("#bOrder")).startsWith("Descending by ABS") && (await pg.getAttribute("#bOrder", "data-icon")) === "desc", "Order turns the first key: descending");
 await pg.click("#bGroup");
 await pg.click('.pop [data-g="year"]');
 const heads2 = await pg.$$eval("tbody tr.grp .gl", (t) => t.map((x) => x.textContent));
 ok(heads2.length >= 2 && heads2[heads2.length - 1] === "Year · none", "Group ▾ › Year: a header per year, the papers without one last: " + heads2.join(", "));
-ok((await pg.textContent("#bGroup")) === "Group: Year ▾", "Group ▾ names the column");
+ok((await label("#bGroup")).startsWith("Group: Year"), "Group names the column");
 await pg.waitForTimeout(500);
 m = await sent();
 ok(m.filter((x) => x.type === "layout").pop().review.group === "year", "the grouping is saved with the review");
@@ -142,8 +145,33 @@ ok((await pg.locator("tbody tr.grp").count()) === 0, "Group ▾ › None: no hea
 // moving and hiding columns, the panel
 await pg.click(cell("AAAAAAAA", "year"));
 await pg.keyboard.press("Meta+Alt+ArrowRight");
-let heads = await pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")).join(","));
+heads = await pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")).join(","));
 ok(heads.startsWith("title,authors,abs,year"), "⌥⌘→ moves the column: " + heads);
+// a header dragged moves its column; its edge resizes it and moves nothing; neither sorts
+const sortNow = async () => JSON.stringify(await pg.evaluate(() => { RT_SENT.splice(0); return null }));
+await sortNow();
+const hb = async (c) => pg.locator(`th[data-c="${c}"]`).boundingBox();
+let yb = await hb("year"), ab = await hb("authors");
+await pg.mouse.move(yb.x + 12, yb.y + yb.height / 2);
+await pg.mouse.down();
+await pg.mouse.move(ab.x + 20, ab.y + ab.height / 2, { steps: 6 });
+await pg.mouse.up();
+heads = await pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")).join(","));
+ok(heads.startsWith("title,year,authors"), "dragging a header moves its column: " + heads);
+ok((await label("#bOrder")).startsWith("Descending by ABS"), "and doesn't sort by it");
+ab = await hb("authors");
+const grip = { x: ab.x + ab.width - 3, y: ab.y + ab.height / 2 };
+await pg.mouse.move(grip.x, grip.y);
+await pg.mouse.down();
+await pg.mouse.move(ab.x + 20, grip.y, { steps: 6 });
+await pg.mouse.up();
+const ab2 = await hb("authors");
+heads = await pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")).join(","));
+ok(Math.round(ab2.width) < 40 && heads.startsWith("title,year,authors"), "its edge resizes it, narrower than before's floor, and moves nothing: " + Math.round(ab2.width) + " px");
+ok((await label("#bOrder")).startsWith("Descending by ABS"), "and the resize doesn't sort");
+await pg.waitForTimeout(500);
+m = await sent();
+ok(m.filter((x) => x.type === "layout").pop().review.columns.find((c) => c.id === "authors").width < 40, "the width is saved");
 await pg.click('th[data-c="authors"] .hmenu');
 await pg.click('.pop [data-m="hide"]');
 heads = await pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")).join(","));
@@ -153,7 +181,7 @@ await pg.keyboard.press("Meta+Alt+KeyI");
 const w1 = await pg.evaluate(() => document.getElementById("gw").clientWidth);
 ok(w1 > w0 && !(await pg.isVisible("#panel")), "⌥⌘I folds the panel away, the grid takes the width");
 await pg.click("#bPanel");
-ok(await pg.isVisible("#panel"), "◨ Panel brings it back");
+ok(await pg.isVisible("#panel"), "the Panel button brings it back");
 
 // adding a column of your own
 await pg.click("#bAdd");
@@ -176,6 +204,36 @@ await pg.click("#bSource");
 await pg.click('.pop [data-search="s2"]');
 m = await sent();
 ok(m[0] && m[0].type === "source" && m[0].source.key === "s2", "a saved search picked in the box");
+
+// the query box: the table follows as you type, read as the launcher reads it; esc goes back, ↵ keeps, ⌘S saves
+await pg.click("#bSource");
+await pg.fill("#srcq", "resilience y:2015..");
+await pg.waitForTimeout(400);
+m = await sent();
+ok(m.some((x) => x.type === "segments" && x.text === "resilience y:2015..") && m.some((x) => x.type === "preview" && x.query === "resilience y:2015.."), "typing asks for its blocks and searches as you type");
+await pg.evaluate(() => RT.segments("resilience y:2015..", [{ text: "resilience", label: "resilience", block: false, role: "" }, { text: " ", label: " ", block: false, role: "" }, { text: "y:2015..", label: "Year: 2015..", block: true, role: "field" }]));
+ok((await pg.textContent("#srcsegs")).includes("Year: 2015..") && (await pg.locator("#srcsegs .qb").count()) === 1, "the query's blocks, as the launcher shows them");
+await pg.keyboard.press("Escape");
+m = await sent();
+ok(m.some((x) => x.type === "preview" && x.query === null) && !(await pg.locator(".pop").count()), "esc closes it, and the table goes back to its source");
+await pg.click("#bSource");
+await pg.fill("#srcq", "teece");
+await pg.keyboard.press("Enter");
+m = await sent();
+ok(m.some((x) => x.type === "source" && x.source.type === "query" && x.source.query === "teece") && !m.some((x) => x.type === "preview" && x.query === null), "↵ keeps the query");
+await pg.click("#bSource");
+await pg.fill("#srcq", "capabilities a:teece");
+await pg.keyboard.press("Meta+s");
+await pg.fill("#ssname", "Teece on capabilities");
+await pg.click("#sssave");
+m = await sent();
+const saved = m.find((x) => x.type === "saveSearch");
+ok(saved && saved.name === "Teece on capabilities" && saved.query === "capabilities a:teece" && !m.some((x) => x.type === "preview" && x.query === null), "⌘S saves it as a search, named");
+
+// pinned over other apps' windows
+await pg.click("#bPin");
+m = await sent();
+ok(m.some((x) => x.type === "pin" && x.on === true) && (await pg.getAttribute("#bPin", "aria-pressed")) === "true", "the pin asks for the window on top");
 
 // narrow
 await pg.setViewportSize({ width: 520, height: 700 });
