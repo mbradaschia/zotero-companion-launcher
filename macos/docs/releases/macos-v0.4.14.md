@@ -1,10 +1,10 @@
 AI columns in the review table: a prompt, Jev's labels or relevance, asked of each paper, with a plan before each run and every cell's state in sight.
 
 **Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
-(*Update to 0.4.15…*); otherwise:
+(*Update to 0.4.14…*); otherwise:
 
 ```bash
-curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.15/install.sh | bash
+curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.14/install.sh | bash
 ```
 
 Updates keep your configuration: they replace the app and the runner's own folder, never your settings, prompts,
@@ -34,3 +34,9 @@ Processes. Cells fill in as each paper is done, and a run you stop keeps what it
 since. ✎ means you edited it, and ⚠ means it failed, with the reason when you point at it. The panel shows a cell
 whole: its value, each label's probability, the evidence, which model made it, when, and from what text. *Run it
 again* reruns that one cell. *Back to the AI's answer* undoes your edit.
+
+**Install buttons that install.** In Settings › Setup, Enter on *Install Node.js*, *Install pdftotext* or *Read scans
+by OCR* runs `brew install node`, `brew install poppler` or `brew install tesseract` in the background. It shows in
+Processes as *Install poppler* (and so on), and the row says it's installed when it's done. Before, Enter only copied
+the command, so the button looked like it did nothing. Without Homebrew, Enter still copies the command for Terminal,
+and says Homebrew isn't installed (brew.sh).

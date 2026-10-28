@@ -85,6 +85,7 @@ struct RunnerState {
     var tests: [String: [String: Any]] = [:] // `provider-test <id>`, or { running: true }
     var installing = false
     var installProblem = ""
+    var brewing: Set<String> = [] // Homebrew installs running (node, poppler, tesseract)
     var busy: Set<String> = [] // providers, models: one run each at a time
     var again: Set<String> = [] // asked again while running: run once more after
     var provider = "" // settings-provider's

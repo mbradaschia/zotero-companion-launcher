@@ -13,7 +13,7 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (`macos-v0.4.15`)
+### The Mac app (`macos-v0.4.14`)
 
 - **AI columns in the review table** (phase 11b). *+ Column › An AI column* makes one of four kinds:
   - *AI prompt*: your question, asked of each paper. It reads the title and abstract or the full text (the extracted
@@ -35,6 +35,10 @@ bridge and the prompt runner share one version.
   the date and the text it read. It has *Run it again*, and *Back to the AI's answer* for a cell you edited; an AI
   prompt's text cell edits as your own columns do.
 - The runner is 0.2.3 (`review-run`): *Settings › Setup › Install the AI features* offers the update.
+- **Settings › Setup installs Node.js, pdftotext and Tesseract itself**: Enter on *Install Node.js*, *Install
+  pdftotext* or *Read scans by OCR* runs `brew install …` (node, poppler, tesseract) in the background, shown in
+  Processes, and the row says it's installed when it's done. It used to only copy the command, with nothing on screen
+  but a short flash, so the button looked broken. Without Homebrew it still copies the command, and says so.
 
 ### The Mac app (`macos-v0.4.13`)
 
