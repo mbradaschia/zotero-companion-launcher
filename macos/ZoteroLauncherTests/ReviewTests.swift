@@ -132,8 +132,10 @@ final class ReviewTests: XCTestCase {
     private final class FakePage: ReviewPage {
         var loads: [[String: Any]] = []
         var flashes: [String] = []
+        var segments: [(text: String, list: [Any])] = []
         func load(_ data: [String: Any]) { loads.append(data) }
         func flash(_ text: String) { flashes.append(text) }
+        func segments(_ text: String, _ list: [Any]) { segments.append((text, list)) }
     }
 
     private func openWindow() throws -> (ReviewWindowModel, FakePage) {
@@ -190,6 +192,61 @@ final class ReviewTests: XCTestCase {
         window.handle(["type": "cell", "column": "../../settings", "paper": "1:P3NM4G92", "value": "x"])
         XCTAssertEqual(page.flashes.count, 1)
         XCTAssertFalse(FileManager.default.fileExists(atPath: reviewsDir.appendingPathComponent("cells").path))
+    }
+
+    func testAQueryTypedInTheBoxIsSearchedAsYouTypeThenKeptOrDropped() throws {
+        let (window, page) = try openWindow()
+        window.handle(["type": "preview", "query": "teece y:2015.."])
+        XCTAssertEqual(bridge.bodies("/search").last?["query"] as? String, "teece y:2015..")
+        XCTAssertEqual(page.loads.last?["preview"] as? String, "teece y:2015..")
+        XCTAssertEqual((model.reviewFiles?.review(window.id, try core())?["source"] as? [String: Any])?["query"] as? String, "dynamic capabilities") // not kept yet
+        window.handle(["type": "preview", "query": NSNull()]) // esc
+        XCTAssertEqual(bridge.bodies("/search").last?["query"] as? String, "dynamic capabilities")
+        XCTAssertTrue(page.loads.last?["preview"] is NSNull)
+        window.handle(["type": "preview", "query": "teece"])
+        window.handle(["type": "source", "source": ["type": "query", "query": "teece"]]) // ↵
+        XCTAssertEqual((model.reviewFiles?.review(window.id, try core())?["source"] as? [String: Any])?["query"] as? String, "teece")
+        XCTAssertTrue(page.loads.last?["preview"] is NSNull)
+    }
+
+    func testTheQueryIsReadAsTheLaunchersSearchBoxReadsIt() throws {
+        let (window, page) = try openWindow()
+        window.handle(["type": "segments", "text": "resilience y:2015.. x", "caret": 21])
+        let answer = try XCTUnwrap(page.segments.last)
+        XCTAssertEqual(answer.text, "resilience y:2015.. x")
+        let blocks = answer.list.compactMap { $0 as? [String: Any] }.filter { $0["block"] as? Bool == true }
+        XCTAssertEqual(blocks.compactMap { $0["text"] as? String }, ["y:2015.."])
+    }
+
+    func testCommandSInTheBoxSavesTheQueryAsASearchAndTheTableFollowsIt() throws {
+        let (window, page) = try openWindow()
+        let before = model.savedSearches.count
+        window.handle(["type": "preview", "query": "capabilities a:teece"])
+        window.handle(["type": "saveSearch", "name": "Teece on capabilities", "query": "capabilities a:teece"])
+        XCTAssertEqual(model.savedSearches.count, before + 1)
+        let s = try XCTUnwrap(model.savedSearches.last)
+        XCTAssertEqual(s["name"] as? String, "Teece on capabilities")
+        XCTAssertEqual(s["query"] as? String, "capabilities a:teece")
+        let source = try XCTUnwrap(model.reviewFiles?.review(window.id, try core())?["source"] as? [String: Any])
+        XCTAssertEqual(source["type"] as? String, "search")
+        XCTAssertEqual(source["key"] as? String, s["id"] as? String)
+        XCTAssertEqual(page.flashes.last, "Saved “Teece on capabilities” as a search: the launcher lists it too (Searches)")
+        XCTAssertTrue(page.loads.last?["preview"] is NSNull)
+    }
+
+    func testThePinKeepsTheWindowsOnTopAndIsRemembered() throws {
+        UserDefaults.standard.removeObject(forKey: "ZLReviewPinned")
+        defer { UserDefaults.standard.removeObject(forKey: "ZLReviewPinned") }
+        let (window, page) = try openWindow()
+        var levels: [Bool] = []
+        window.pin = { levels.append($0) }
+        XCTAssertEqual(page.loads.last?["pinned"] as? Bool, false)
+        window.handle(["type": "pin", "on": true])
+        XCTAssertEqual(levels, [true])
+        XCTAssertEqual(page.loads.last?["pinned"] as? Bool, true)
+        XCTAssertTrue(ReviewWindowModel(id: window.id, launcher: model).pinned) // the next table's too
+        window.handle(["type": "pin", "on": false])
+        XCTAssertEqual(levels, [true, false])
     }
 
     func testAFileNameFromAReviewsName() {
