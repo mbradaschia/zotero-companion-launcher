@@ -241,7 +241,7 @@ struct RowChrome: ViewModifier {
     let selected: Bool
     @Environment(\.palette) private var palette
 
-    func body(content: Content) -> some View {
+    func body(content: Self.Content) -> some View { // (Self.: the launcher has an enum named Content)
         content
             .font(RowMetrics.title)
             .padding(.horizontal, 12)

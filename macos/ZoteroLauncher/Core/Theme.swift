@@ -310,7 +310,7 @@ final class ThemeStore: ObservableObject {
     private let defaults: UserDefaults?
     private let windows = NSHashTable<NSWindow>.weakObjects()
 
-    init(defaults: UserDefaults? = LauncherModel.underTests ? nil : .standard) {
+    init(defaults: UserDefaults? = NSClassFromString("XCTestCase") != nil ? nil : .standard) { // (LauncherModel.underTests)
         self.defaults = defaults
         palette = Palette(.named(defaults?.string(forKey: Self.themeKey) ?? ""))
         mode = ThemeMode(rawValue: defaults?.string(forKey: Self.modeKey) ?? "") ?? .system
@@ -360,7 +360,7 @@ final class ThemeStore: ObservableObject {
 struct Themed: ViewModifier {
     @ObservedObject var theme: ThemeStore
 
-    func body(content: Content) -> some View {
+    func body(content: Self.Content) -> some View { // (Self.: the launcher has an enum named Content)
         content
             .environment(\.palette, theme.palette)
             .foregroundStyle(theme.palette.text)
