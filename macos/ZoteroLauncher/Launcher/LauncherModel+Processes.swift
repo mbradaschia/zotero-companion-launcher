@@ -44,6 +44,12 @@ extension LauncherModel {
     private func setTasks(_ list: [[String: Any]]) {
         objectWillChange.send() // (the bottom bar counts them; ai isn't published)
         ai.tasks = list
+        // a review table's AI run: its cells were written as its count moved (and when it ended)
+        let runs = list.filter { $0["kind"] as? String == "review" }.map { "\($0["id"] ?? "")|\($0["status"] ?? "")|\($0["stage"] ?? "")" }.joined(separator: ",")
+        if runs != ai.reviewRunState {
+            ai.reviewRunState = runs
+            reviewsRefresh()
+        }
         // a task about the paper whose menu is open, finished since its details were read: read again
         if let item = actionItem, ["actions", "notes", "extract-menu"].contains(store.view) {
             let iso = ISO8601DateFormatter()

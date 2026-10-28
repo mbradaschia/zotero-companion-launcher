@@ -13,6 +13,29 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.15`)
+
+- **AI columns in the review table** (phase 11b). *+ Column › An AI column* makes one of four kinds:
+  - *AI prompt*: your question, asked of each paper. It reads the title and abstract or the full text (the extracted
+    text, else the PDF). Its answer is text of at most N words, a list, a number or one of a list. Evidence is optional:
+    quotes with their page, each checked word for word against the paper. It runs on your prompts model or any model
+    the app lists.
+  - *Jev, several labels* and *Jev, best fit*: one of your taxonomies.
+  - *Jev, relevance*: a topic and what relevant means, scored 0 to 100 (high from 70, maybe from 40).
+  The Jev kinds read what tagging reads and run on your prompts model without a Jev key. A run from the table writes
+  no Zotero tags.
+- **Run… shows the plan before anything starts** (the toolbar's ▷, a column's menu, ⇧⌘R). It covers the selected
+  papers or every one shown, this column or every AI column, the cells by state, what's left alone (up to date, or
+  yours unless you ask), and the requests with Jev's cost. A run is one row in Processes. It makes one Jev request per
+  paper for all its Jev cells and one request per model and text for the prompt columns. Each paper's cells are
+  written as they're made, so a stopped run keeps them. At most 200 papers a run.
+- **A cell says when it's out of date.** Amber means the column changed since it ran, or the paper's text was
+  extracted since. ✎ means you edited it, and ⚠ means it failed, with the reason.
+- **The panel shows an AI cell whole**: the value, each label's probability, the evidence (found or not), the model,
+  the date and the text it read. It has *Run it again*, and *Back to the AI's answer* for a cell you edited; an AI
+  prompt's text cell edits as your own columns do.
+- The runner is 0.2.3 (`review-run`): *Settings › Setup › Install the AI features* offers the update.
+
 ### The Mac app (`macos-v0.4.13`)
 
 - **The review table's toolbar is icons** (Group, Sort, Order, Lines, Columns, add a column, Export, Panel, search

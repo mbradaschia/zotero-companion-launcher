@@ -51,8 +51,8 @@ both launchers must reproduce exactly (`contracts/tests/paths.test.js`).
 | `chats/<lib>-<KEY>/<id>.json` | one chat; **its `id` is its file name**, or it isn't read |
 | `artifacts/<paper>_<lib>-<KEY>/<id>/meta.json` | `{ id, title, format, key, libraryID, paper, current, versions: [{ n, at, format, ... }] }`; `id` a slug, `current` and each `n` positive integers, formats known, or it isn't an artifact |
 | `reviews/<id>.json` | a review table: `{ id, name, source: { type, query, key, libraryID, title }, columns: [{ id, width, lines, hidden }], sort: [{ column, dir }], group, lines, panel, created, updated }`; **its `id` is its file name** |
-| `reviews/columns/<id>.md` | a column of a review table: frontmatter (`label`, `kind`, `type`, `options`), then its description (a prompt column: its prompt) |
-| `reviews/cells/<column id>.cells.json` | that column's values: `{ "cells": { "<libraryID:key>": { "v", "updated", "by" } } }` |
+| `reviews/columns/<id>.md` | a column of a review table: frontmatter (`label`, `kind`: `own`, `prompt`, `jev-several`, `jev-one` or `jev-relevance`; yours: `type`, `options`; an AI prompt: `reads`, `shape`, `length`, `options`, `evidence`, `model`; Jev: `taxonomy`; relevance: `topic`), then its description (an AI prompt: its prompt; relevance: what relevant means) |
+| `reviews/cells/<column id>.cells.json` | that column's values: `{ "cells": { "<libraryID:key>": { "v", "updated", "by" } } }`; an AI column's cell (`by: "ai"`) also has `model`, `hash` (the column's fingerprint when it ran), `input` (`{ text }`: what it read), `p`, `probs`, `suggested`, `evidence: [{ quote, page, found }]`, `error`, and an edited one `ai` (the AI's last answer); `v` may be a number or a list of labels |
 | `instructions.md` | your standing instructions, Markdown |
 
 The last two rows' checks exist because these files arrive from another machine: what a file says

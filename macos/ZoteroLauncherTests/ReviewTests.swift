@@ -2,13 +2,14 @@ import CryptoKit
 import XCTest
 @testable import ZoteroLauncher
 
-// Phase 11a: the review tables' files (ReviewFiles), the grid page as the app builds it, ⌘T in the launcher and a
+// Phases 11a and 11b: the review tables' files (ReviewFiles), the grid page as the app builds it, ⌘T in the launcher and a
 // review window's messages, on the fake bridge.
 @MainActor
 final class ReviewTests: XCTestCase {
     private var home: URL!
     private var bridge: FakeBridge!
     private var model: LauncherModel!
+    private var runner: FakeRunner!
 
     override func setUp() async throws {
         home = FileManager.default.temporaryDirectory.appendingPathComponent("11a-\(UUID().uuidString)")
@@ -17,7 +18,8 @@ final class ReviewTests: XCTestCase {
         let typed = Fixture.bridge("search-typed")
         bridge.answers["/search"] = { body in var a = typed; a["query"] = body["query"] ?? ""; return .ok(a) }
         bridge.answers["/sync/status"] = { _ in .ok(["ok": true, "configured": true, "running": false]) }
-        model = LauncherModel(bridge: bridge, desktop: FakeDesktop(), env: ["HOME": home.path, "hostname": "mac"], runner: FakeRunner(), fetcher: FakeFetcher())
+        runner = FakeRunner()
+        model = LauncherModel(bridge: bridge, desktop: FakeDesktop(), env: ["HOME": home.path, "hostname": "mac"], runner: runner, fetcher: FakeFetcher())
     }
 
     override func tearDown() async throws { try? FileManager.default.removeItem(at: home) }
@@ -247,6 +249,70 @@ final class ReviewTests: XCTestCase {
         XCTAssertTrue(ReviewWindowModel(id: window.id, launcher: model).pinned) // the next table's too
         window.handle(["type": "pin", "on": false])
         XCTAssertEqual(levels, [true, false])
+    }
+
+    // ---- AI columns (phase 11b)
+
+    private func aiColumn(_ window: ReviewWindowModel) throws -> String {
+        let json = try core().glueJSON("reviewColumnParse", ["---\nlabel: \"Gap\"\nkind: prompt\nreads: full\nshape: text\n---\nWhat gap does it fill?\n", "c-0123456789"])
+        window.handle(["type": "addColumn", "column": try XCTUnwrap(ReviewFiles.object(json))])
+        return "c-0123456789"
+    }
+
+    func testRunSendsReviewRunTheJobFromTheColumnFiles() throws {
+        let (window, page) = try openWindow()
+        let id = try aiColumn(window)
+        var done = 0
+        runner.answers["review-run"] = { _, _ in done += 1; return FakeRunner.json(["papers": 1, "cells": 1, "failed": 0]) }
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:P3NM4G92"], ["column": "title", "paper": "1:P3NM4G92"], ["column": id, "paper": "../x"]]])
+        XCTAssertEqual(done, 1)
+        let call = try XCTUnwrap(runner.calls.last { $0.argv.contains("review-run") })
+        let job = try XCTUnwrap(ReviewFiles.object(try XCTUnwrap(call.stdin)))
+        XCTAssertEqual(job["review"] as? String, window.id)
+        let columns = try XCTUnwrap(job["columns"] as? [[String: Any]])
+        XCTAssertEqual(columns.map { $0["id"] as? String }, [id])
+        XCTAssertEqual(columns.first?["description"] as? String, "What gap does it fill?")
+        XCTAssertEqual((columns.first?["hash"] as? String)?.count, 12)
+        XCTAssertEqual((job["jobs"] as? [[String: Any]])?.count, 1) // (the title isn't an AI column; a bad paper id left out)
+        XCTAssertTrue(page.flashes.contains { $0.hasPrefix("Running 1 cell") })
+        // nothing an AI column asked: said, nothing run
+        window.handle(["type": "run", "jobs": [["column": "title", "paper": "1:P3NM4G92"]]])
+        XCTAssertEqual(done, 1)
+        XCTAssertEqual(page.flashes.last, "Nothing to run: no AI cell was asked for")
+    }
+
+    func testRunIsRefusedWhileTheSyncFolderIsAway() throws {
+        let (window, page) = try openWindow()
+        let id = try aiColumn(window)
+        model.paths?.readOnly = true
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:P3NM4G92"]]])
+        XCTAssertFalse(runner.calls.contains { $0.argv.contains("review-run") })
+        XCTAssertTrue(page.flashes.last?.hasPrefix("Not run: ") == true)
+    }
+
+    func testAnEditedAICellGoesBackToTheAIsAnswer() throws {
+        let (window, page) = try openWindow()
+        let id = try aiColumn(window)
+        let ai = "{\"cells\": {\"1:P3NM4G92\": {\"v\": \"the AI's\", \"updated\": \"2026-10-28T10:00:00Z\", \"by\": \"ai\", \"model\": \"claude:sonnet\", \"hash\": \"abc\"}}}"
+        let f = try XCTUnwrap(model.reviewFiles)
+        try FileManager.default.createDirectory(at: f.cellsDir, withIntermediateDirectories: true)
+        try Data(ai.utf8).write(to: f.cellsURL(id))
+        window.handle(["type": "cell", "column": id, "paper": "1:P3NM4G92", "value": "mine"])
+        var cell = (f.cells([id], try core())[id] as? [String: Any])?["1:P3NM4G92"] as? [String: Any]
+        XCTAssertEqual(cell?["v"] as? String, "mine")
+        XCTAssertEqual((cell?["ai"] as? [String: Any])?["v"] as? String, "the AI's")
+        window.handle(["type": "restore", "column": id, "paper": "1:P3NM4G92"])
+        cell = (f.cells([id], try core())[id] as? [String: Any])?["1:P3NM4G92"] as? [String: Any]
+        XCTAssertEqual(cell?["v"] as? String, "the AI's")
+        XCTAssertEqual(cell?["by"] as? String, "ai")
+        XCTAssertEqual(page.flashes.last, "Back to the AI's answer")
+    }
+
+    func testTheTableKnowsTheTaxonomiesFingerprintsAndTheModels() throws {
+        let ctx = model.reviewContext()
+        XCTAssertNotNil(ctx["jev"] as? Bool)
+        XCTAssertNotNil(ctx["models"] as? [[String: Any]])
+        XCTAssertNotNil(ctx["taxonomies"] as? [[String: Any]])
     }
 
     func testAFileNameFromAReviewsName() {

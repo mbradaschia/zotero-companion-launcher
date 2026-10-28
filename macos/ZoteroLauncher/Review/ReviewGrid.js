@@ -1,10 +1,10 @@
-// The review table's page (phase 11a): draws what the app sends (RT.load), and sends what you do (a message on
+// The review table's page (phases 11a, 11b): draws what the app sends (RT.load), and sends what you do (a message on
 // `review`). Runs after ReviewCore.js, inlined with it into one script (ReviewWebView: the CSP lets that script
 // alone run). Every value is drawn as text, never as HTML. A click only selects: values change in the panel on the
 // right, by editing a cell of your own, or with ⌥→← (status) and ⇧⌥→← (task).
 var RT = (function () {
   var C = ReviewCore
-  var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true, pinned: false, preview: null }
+  var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true, pinned: false, preview: null, run: null }
   var review = null // the review as you arrange it (sent back on each change)
   var cols = [] // its columns, resolved (ReviewCore.columns)
   var rows = [] // the papers, in the sort's order (and grouped: the groups' order)
@@ -55,7 +55,8 @@ var RT = (function () {
     export: "M12 15V3 M7 8l5-5 5 5 M5 12v8h14v-8",
     panel: "M3 4h18v16H3z M15 4v16 M17.5 8h1.5 M17.5 11h1.5",
     refresh: "M20 12a8 8 0 1 1-2.34-5.66 M20 4v5h-5",
-    pin: "M9 3h6 M10 3v6.5L7 13h10l-3-3.5V3 M12 13v8"
+    pin: "M9 3h6 M10 3v6.5L7 13h10l-3-3.5V3 M12 13v8",
+    run: "M7 4.5l12 7.5-12 7.5z"
   }
   function icon(name) {
     var ns = "http://www.w3.org/2000/svg"
@@ -85,7 +86,7 @@ var RT = (function () {
 
   function load(data) {
     var first = !D.review || !data.review || D.review.id !== data.review.id
-    D = Object.assign({ columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: false, pinned: false, preview: null }, data || {})
+    D = Object.assign({ columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: false, pinned: false, preview: null, run: null }, data || {})
     // your arrangement while a change is on its way stays yours (the file comes back the same a moment later)
     if (first || !layoutTimer) review = JSON.parse(JSON.stringify(D.review))
     if (!built) build()
@@ -139,6 +140,7 @@ var RT = (function () {
         iconButton("bLines", "lines", "Lines in each cell", { "aria-haspopup": "true" }),
         iconButton("bCols", "columns", "Show and hide columns", { "aria-haspopup": "true" }),
         iconButton("bAdd", "addcol", "Add a column"),
+        iconButton("bRun", "run", "Run the AI columns… (⇧⌘R)"),
         el("span", { class: "tsep" }),
         iconButton("bExport", "export", "Export", { "aria-haspopup": "true" }),
         iconButton("bPanel", "panel", "Show or hide the panel on the right (⌥⌘I)", { "aria-controls": "panel" }),
@@ -177,6 +179,9 @@ var RT = (function () {
     setIcon($("bOrder"), k && k.dir === "desc" ? "desc" : "asc")
     $("bOrder").disabled = !k
     label($("bOrder"), k ? (k.dir === "desc" ? "Descending by " : "Ascending by ") + (kc ? kc.label : k.column) + ": a click turns it" : "Order: sort by a column first")
+    var nai = visible().filter(function (c) { return c.ai }).length
+    $("bRun").className = "tb icon" + (D.run ? " on" : "")
+    label($("bRun"), D.run ? "An AI run is going (" + (D.run.stage || "starting") + "): it's in the launcher's Processes" : nai ? "Run the AI columns… (⇧⌘R): the plan first, nothing starts before Run" : "Run the AI columns: + Column adds one first (An AI column)")
     $("bPanel").className = "tb icon" + (review.panel ? " on" : "")
     $("bPanel").setAttribute("aria-pressed", String(!!review.panel))
     $("bPin").className = "tb icon" + (D.pinned ? " on" : "")
@@ -216,7 +221,7 @@ var RT = (function () {
       review.sort.forEach(function (k) { if (k.column === c.id) s = k.dir })
       hr.appendChild(el("th", { class: i === 0 ? "fz1" : "mv", "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
         el("div", { class: "hcell" }, [
-          el("span", { class: "hl", text: c.label, title: c.label + (c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }),
+          el("span", { class: "hl" + (c.ai ? " ai" : ""), text: c.label, title: c.label + (c.ai ? " (" + c.kindName + ")" : "") + (c.problem ? ". " + c.problem : c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }),
           mark ? el("span", { class: "sortmark", text: mark }) : null,
           el("button", { class: "hmenu", type: "button", "data-menu": c.id, text: "▾", "aria-label": c.label + ": its menu" }),
           el("div", { class: "rz", "data-rz": c.id, title: "Drag to resize it; a double-click fits it" })
@@ -258,6 +263,7 @@ var RT = (function () {
     var v = C.value(c, r, D.ctx, D.cells)
     var h = cellHeight(c)
     var cv = el("div", { class: "cv" + (c.lines === 1 ? " one" : "") + (typeof v === "number" ? " num" : ""), style: h ? "max-height:" + h + "px" : null })
+    if (c.ai) { aiCell(c, r, cv, v); return cv }
     if (C.isEmpty(v)) return cv
     if (c.id === "title") cv.appendChild(el("span", { class: "ptitle", text: v }))
     else if (c.id === "status") cv.appendChild(el("span", { class: "pill status", text: v }))
@@ -268,6 +274,27 @@ var RT = (function () {
     else if (c.type === "choice") cv.appendChild(el("span", { class: "pill own", text: v }))
     else cv.textContent = String(v)
     return cv
+  }
+
+  // An AI cell: its value, and its state when it isn't up to date (amber: the column or the paper changed since; ✎
+  // yours; ⚠ failed, with why).
+  function aiCell(c, r, cv, v) {
+    var rec = C.cellOf(D.cells, c.id, r)
+    var st = C.cellState(c, rec, r)
+    cv.className += " st-" + st
+    if (st !== "ok" && st !== "empty") cv.appendChild(el("span", { class: "smark", text: st === "yours" ? "✎" : st === "failed" ? "⚠" : "●", title: stateText(st, rec) }))
+    if (C.isEmpty(v)) return
+    if (c.kind === "jev-relevance" && typeof v === "number") cv.appendChild(el("span", { class: "pill band b-" + C.band(v), text: v + " " + C.band(v) }))
+    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(el("span", { class: "pill tax", text: l })) })
+    else if (c.type === "choice") cv.appendChild(el("span", { class: "pill tax", text: String(v) + (c.kind === "jev-one" && rec && typeof rec.p === "number" ? " " + Math.round(rec.p * 100) + "%" : "") }))
+    else cv.appendChild(document.createTextNode(String(v)))
+  }
+
+  var READS = { note: "the extracted text", pdf: "the PDF, read on the fly", zotero: "Zotero's full-text index", abstract: "the title and abstract", none: "no text" }
+  function stateText(st, rec) {
+    return st === "empty" ? "Run… (⇧⌘R) or Run it fills it" : st === "ok" ? "Up to date" : st === "prompt" ? "The column changed since this ran: run it again"
+      : st === "paper" ? "The paper's text was extracted since: run it again to read it" : st === "yours" ? "Yours: you edited it" + (rec && rec.ai ? " (the AI's answer is kept)" : "")
+        : "Failed" + (rec && rec.error ? ": " + rec.error : "")
   }
 
   // The active cell moved: the old and new cells redrawn in place (a double-click stays on its cell), the panel too.
@@ -328,6 +355,8 @@ var RT = (function () {
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
       p.appendChild(el("div", { class: "ibox you" }, [el("div", { class: "ptext", text: v || "Empty." }), el("div", { class: "hint", text: "↵ or a double-click edits it; ⌘↵ keeps it, esc drops it." })]))
+    } else if (c.ai) {
+      aiPanel(p, c, r, v)
     } else if (c.prefix) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
       p.appendChild(el("div", { class: "opts" }, (v.length ? v : ["none"]).map(function (l) { return el("span", { class: "pill tax", text: l }) })))
@@ -339,6 +368,41 @@ var RT = (function () {
     p.appendChild(el("div", {}, [el("button", { class: "tb", type: "button", "data-act": "open", text: "Show in Zotero", title: "⌘O, or a double-click on the paper" })]))
   }
 
+  // An AI cell whole: its value, its state, the labels' probabilities, its evidence (each quote, its page, found
+  // word for word or not), who made it and when; Run it again, and Back to the AI's answer for one you edited.
+  function aiPanel(p, c, r, v) {
+    var rec = C.cellOf(D.cells, c.id, r)
+    var st = C.cellState(c, rec, r)
+    p.appendChild(el("div", { class: "ilab" }, [el("span", { text: c.label }), el("span", { class: "k", text: c.kindName })]))
+    if (c.problem) p.appendChild(el("div", { class: "ibox warn", text: c.problem }))
+    var box = el("div", { class: "ibox ai st-" + st })
+    if (Array.isArray(v)) box.appendChild(el("div", { class: "opts" }, v.length ? v.map(function (l) { return el("span", { class: "pill tax", text: l }) }) : [el("span", { class: "hint", text: "No label from the threshold." })]))
+    else box.appendChild(el("div", { class: "ptext", text: C.isEmpty(v) ? (st === "empty" ? "Not run yet." : "Empty.") : c.kind === "jev-relevance" && typeof v === "number" ? v + " of 100: " + C.band(v) : C.text(c, v) }))
+    box.appendChild(el("div", { class: "hint stl", text: stateText(st, rec) }))
+    p.appendChild(box)
+    if (rec && rec.probs) {
+      var probs = Object.keys(rec.probs).map(function (l) { return [l, rec.probs[l]] }).sort(function (a, b) { return b[1] - a[1] }).slice(0, 10)
+      p.appendChild(el("div", { class: "probs" }, probs.map(function (x) {
+        return el("div", { class: "prob" }, [el("span", { text: x[0] }), el("span", { class: "bar" }, [el("i", { style: "width:" + Math.round(x[1] * 100) + "%" })]), el("span", { class: "pct", text: Math.round(x[1] * 100) + "%" })])
+      })))
+    }
+    if (rec && rec.suggested && rec.suggested.length) p.appendChild(el("div", { class: "hint", text: "Below the threshold, likely: " + rec.suggested.join(", ") }))
+    if (rec && rec.evidence && rec.evidence.length) {
+      p.appendChild(el("div", { class: "ilab", text: "Evidence" }))
+      rec.evidence.forEach(function (e) {
+        p.appendChild(el("div", { class: "ev" + (e.found ? "" : " nf") }, [el("div", { class: "evq", text: "“" + e.quote + "”" }),
+          el("div", { class: "hint", text: (e.page ? "p. " + e.page + " · " : "") + (e.found ? "found word for word in the paper's text" : "not found word for word in the text it read: check it before citing") })]))
+      })
+    }
+    var made = rec && rec.by === "ai" ? rec : rec && rec.ai
+    if (made && made.model) p.appendChild(el("div", { class: "hint", text: "By " + made.model + (made.updated ? " on " + String(made.updated).slice(0, 10) : "") + (made.input && READS[made.input.text] ? ", from " + READS[made.input.text] : "") }))
+    if (c.edit === "text") p.appendChild(el("div", { class: "hint", text: "↵ or a double-click edits it; it's yours then, and the AI's answer is kept." }))
+    p.appendChild(el("div", { class: "acts" }, [
+      el("button", { class: "tb", type: "button", "data-act": "run1", text: st === "empty" ? "Run it" : "Run it again", disabled: !!c.problem || !!D.run || D.readOnly }),
+      rec && rec.ai ? el("button", { class: "tb", type: "button", "data-act": "restore", text: "Back to the AI's answer", disabled: D.readOnly }) : null
+    ]))
+  }
+
   function matchCase(list, name) {
     var n = String(name).toLowerCase()
     for (var i = 0; i < list.length; i++) if (list[i].toLowerCase() === n) return list[i]
@@ -347,12 +411,13 @@ var RT = (function () {
 
   function drawFoot() {
     var f = clear($("foot"))
-    f.appendChild(el("span", { text: editing ? "⌘↵ keep · esc drop" : "↑↓←→ move · space select · ↵ edit · ⌥→← status · ⇧⌥→← task · ⌥⌘←→ move column · ⌥⌘I panel · ? keys" }))
+    f.appendChild(el("span", { text: editing ? "⌘↵ keep · esc drop" : "↑↓←→ move · space select · ↵ edit · ⌥→← status · ⇧⌥→← task · ⌥⌘←→ move column · ⌥⌘I panel · ⇧⌘R run · ? keys" }))
     var n = rows.length
     var count = D.loading && !n ? "…" : n + (n === 1 ? " paper" : " papers") + (D.total > n ? " (the first " + n + " of " + D.total + ")" : "")
     var nsel = Object.keys(sel).length
     if (nsel) count += " · " + nsel + " selected"
     if (D.readOnly) count += " · read only: the sync folder isn't there"
+    if (D.run) count += " · AI run: " + (D.run.stage || "starting")
     f.appendChild(el("span", { class: flashText ? "flash" : D.problem && n ? "problem" : "", text: flashText || (D.problem && n ? D.problem : count) }))
   }
 
@@ -384,7 +449,9 @@ var RT = (function () {
     D.cells[c.id] = D.cells[c.id] || {}
     var old = D.cells[c.id][pid] ? D.cells[c.id][pid].v : ""
     if (old === v) return
-    D.cells[c.id][pid] = { v: v }
+    var was = D.cells[c.id][pid]
+    var ai = was && was.by === "ai" && !was.error ? was : was && was.ai // (an AI cell you edit: its answer kept, as the file keeps it)
+    D.cells[c.id][pid] = ai ? { v: v, by: "you", ai: ai } : { v: v, by: "you" }
     post("cell", { column: c.id, paper: pid, value: v })
     flash(c.label + ": " + (v ? (v.length > 40 ? v.slice(0, 40) + "…" : v) : "cleared"))
     redrawRow(r)
@@ -431,7 +498,7 @@ var RT = (function () {
   function startEdit() {
     var c = colById(act.c), r = actRow()
     if (!c || !r) return
-    if (c.own && c.type === "text") {
+    if (c.edit === "text") {
       if (D.readOnly) return flash("Not saved: the sync folder isn't there")
       editing = { pid: act.pid, c: act.c }
       drawGrid()
@@ -439,6 +506,7 @@ var RT = (function () {
       return
     }
     if (c.own) return flash("Pick its value in the panel on the right")
+    if (c.ai) return flash("An AI column: Run… fills it (⇧⌘R); the panel on the right has its evidence")
     if (c.id === "status" || c.id === "task") return flash("Pick it in the panel on the right, or ⌥→← (status) and ⇧⌥→← (task)")
     if (c.prefix) return flash("Tag it from the paper's menu in the launcher (Taxonomies)")
     flash("A Zotero field: change it in Zotero")
@@ -513,7 +581,8 @@ var RT = (function () {
       el("hr"), el("div", { class: "ph", text: "Lines in each cell" }), linesSeg(c.lines, "data-lines"), el("hr"),
       item("Move left", { "data-m": "left", disabled: c.id === "title" }, "⌥⌘←"), item("Move right", { "data-m": "right", disabled: c.id === "title" }, "⌥⌘→"),
       item("Fit its width", { "data-m": "fit" }), item("Hide it", { "data-m": "hide", disabled: c.id === "title" })]
-    if (c.own) kids.push(item("Remove it from this review", { "data-m": "remove" }, "its values stay"))
+    if (c.ai) kids.splice(1, 0, item("Run this column…", { "data-m": "run", disabled: !!c.problem }, "⇧⌘R"), el("hr"))
+    if (c.own || c.ai) kids.push(item("Remove it from this review", { "data-m": "remove" }, "its values stay"))
     openPop(anchor, kids, function (p) {
       p.addEventListener("click", function (e) {
         var ln = e.target.closest("[data-lines]")
@@ -527,6 +596,7 @@ var RT = (function () {
         else if (m === "unsort") setSort(review.sort.filter(function (k) { return k.column !== c.id }))
         else if (m === "left" || m === "right") moveColumn(c.id, m === "left" ? -1 : 1)
         else if (m === "fit") fitColumn(c.id)
+        else if (m === "run") runDialog(c)
         else if (m === "hide") { layoutOf(c.id).hidden = true; layoutChanged(); flash("Hidden: “" + c.label + "” (the Columns button shows it again)") }
         else if (m === "remove") { review.columns = review.columns.filter(function (l) { return l.id !== c.id }); layoutChanged(); flash("Removed “" + c.label + "” from this review: its values stay, + Column adds it back") }
       })
@@ -768,35 +838,145 @@ var RT = (function () {
         el("label", {}, ["Its name", el("input", { type: "text", id: "nname", placeholder: "Include?, My notes, Chapter…", maxlength: "80" })]),
         el("label", {}, ["It holds", el("select", { id: "ntype" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "choice", text: "One of a list" })])]),
         el("label", { id: "noptsl", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "nopts", placeholder: "include, maybe, exclude" })]),
-        el("div", { class: "err", id: "nerr" }),
-        el("div", { class: "agroup", text: "AI columns" }),
-        el("div", { class: "hint", text: "Not on the Mac yet: AI columns (a prompt, Jev's taxonomies and relevance) come in a later version." })
+        el("div", { class: "agroup", text: "An AI column" }),
+        el("label", {}, ["What the AI does", el("select", { id: "akind" }, [el("option", { value: "", text: "Nothing: no AI column" })].concat(C.AI_KINDS.map(function (k) {
+          return el("option", { value: k, text: C.KIND_NAMES[k] + ": " + { prompt: "your question, asked of each paper", "jev-several": "the labels of one of your taxonomies", "jev-one": "the best fit of one of your taxonomies", "jev-relevance": "how relevant each paper is to a topic, 0 to 100" }[k] })
+        })))]),
+        el("div", { id: "aform", class: "aform", hidden: true }, aiFields()),
+        el("div", { class: "err", id: "nerr" })
       ])),
       el("footer", {}, [el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), el("button", { class: "tb primary", type: "button", id: "nadd", text: "Add" })])], function () {
       $("ntype").addEventListener("change", function () { $("noptsl").hidden = $("ntype").value !== "choice" })
+      var showAi = function () {
+        var k = $("akind").value
+        $("aform").hidden = !k
+        Array.prototype.forEach.call(modalEl.querySelectorAll("[data-for]"), function (x) { x.hidden = x.getAttribute("data-for").split(" ").indexOf(k) < 0 })
+        if (k === "prompt") $("aoptsl").hidden = $("ashape").value !== "choice"
+        if (k === "prompt") $("alenl").hidden = !($("ashape").value === "text" || $("ashape").value === "list")
+        if (k === "jev-several" || k === "jev-one") {
+          var ts = (D.ctx.taxonomies || []).filter(function (t) { return t.id && (t.kind === "one") === (k === "jev-one") })
+          clear($("atax"))
+          ts.forEach(function (t) { $("atax").appendChild(el("option", { value: t.id, text: t.name + " (" + t.prefix + ")" })) })
+          if (!ts.length) $("atax").appendChild(el("option", { value: "", text: k === "jev-one" ? "No taxonomy of the one-label kind" : "No taxonomy of the several-labels kind" }))
+        }
+        $("anote").textContent = k && k !== "prompt" ? (D.ctx.jev ? "Jev answers, as tagging does (it reads the title, abstract and extracted text). No tags are written: the result stays in the column." : "No Jev key: your prompts model answers, as tagging does without one (Settings › Taxonomies sets the key). No tags are written.") : ""
+      }
+      ;["akind", "ashape"].forEach(function (id) { $(id).addEventListener("change", showAi) })
       $("nadd").addEventListener("click", function () {
         var picked = Array.prototype.map.call(modalEl.querySelectorAll("[data-attr]:checked"), function (x) { return x.getAttribute("data-attr") })
         var name = $("nname").value.trim()
-        var spec = null
+        var specs = []
+        if ((name || $("akind").value) && D.readOnly) { $("nerr").textContent = "Not saved: the sync folder isn't there"; return }
         if (name) {
-          if (D.readOnly) { $("nerr").textContent = "Not saved: the sync folder isn't there"; return }
           var made = C.newColumn({ label: name, type: $("ntype").value, options: $("nopts").value })
           if (made.error) { $("nerr").textContent = made.error; return }
-          spec = made.column
+          specs.push(made.column)
         }
-        if (!picked.length && !spec) { $("nerr").textContent = "Tick an attribute, or name a column of your own"; return }
+        if ($("akind").value) {
+          var k = $("akind").value
+          var ai = C.newAiColumn({ label: $("aname").value, kind: k, description: k === "prompt" ? $("aprompt").value : $("adef").value, reads: $("areads").value, shape: $("ashape").value,
+            length: $("alen").value, options: $("aopts").value, evidence: $("aev").checked, model: $("amodel").value, taxonomy: $("atax").value, topic: $("atopic").value }, D.ctx)
+          if (ai.error) { $("nerr").textContent = ai.error; return }
+          specs.push(ai.column)
+        }
+        if (!picked.length && !specs.length) { $("nerr").textContent = "Tick an attribute, name a column of your own, or pick what the AI does"; return }
         picked.forEach(function (id) { review.columns.push({ id: id }) })
         closeModal()
-        if (spec) {
+        specs.forEach(function (spec) {
           D.columns[spec.id] = spec
           review.columns.push({ id: spec.id })
           post("addColumn", { column: spec })
-          act.c = spec.id
-        } else if (picked.length) act.c = picked[0]
+        })
+        act.c = specs.length ? specs[specs.length - 1].id : picked.length ? picked[0] : act.c
         layoutChanged()
-        flash("Added: " + picked.map(function (id) { var c = colById(id); return c ? c.label : id }).concat(spec ? [spec.label] : []).join(", "))
+        var aiNew = specs.filter(function (x) { return x.kind !== "own" })[0]
+        flash("Added: " + picked.map(function (id) { var c = colById(id); return c ? c.label : id }).concat(specs.map(function (x) { return x.label })).join(", ") + (aiNew ? ". Run… (⇧⌘R) fills it" : ""))
         var td = cellEl(act.pid, act.c)
         if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" })
+      })
+    })
+  }
+
+  // + Column's AI column: each kind's fields (shown for its kind: data-for).
+  function aiFields() {
+    var models = [el("option", { value: "default", text: "Your prompts model (Settings › Defaults)" })].concat((D.ctx.models || []).map(function (m) { return el("option", { value: m.value, text: m.label + (m.group ? " · " + m.group : "") }) }))
+    return [
+      el("label", {}, ["Its name", el("input", { type: "text", id: "aname", placeholder: "Research gap, Sample size, Relevant?…", maxlength: "80" })]),
+      el("label", { "data-for": "prompt" }, ["The prompt: what to ask of each paper", el("textarea", { id: "aprompt", rows: "3", placeholder: "What research gap does the paper say it fills?" })]),
+      el("div", { class: "arow", "data-for": "prompt" }, [
+        el("label", {}, ["It reads", el("select", { id: "areads" }, [el("option", { value: "abstract", text: "The title and abstract" }), el("option", { value: "full", text: "The full text (the extracted text, else the PDF)" })])]),
+        el("label", {}, ["The answer", el("select", { id: "ashape" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "list", text: "A list" }), el("option", { value: "number", text: "A number" }), el("option", { value: "choice", text: "One of a list" })])]),
+        el("label", { id: "alenl" }, ["At most (words, or items)", el("input", { type: "text", id: "alen", placeholder: "60 words, 5 items", inputmode: "numeric", size: "6" })])
+      ]),
+      el("label", { id: "aoptsl", "data-for": "prompt", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "aopts", placeholder: "firm, industry, country" })]),
+      el("label", { class: "row", "data-for": "prompt" }, [el("input", { type: "checkbox", id: "aev" }), "Evidence: quotes with their page, each checked word for word against the paper"]),
+      el("label", { "data-for": "prompt" }, ["The model", el("select", { id: "amodel" }, models)]),
+      el("label", { "data-for": "jev-several jev-one" }, ["The taxonomy", el("select", { id: "atax" })]),
+      el("label", { "data-for": "jev-relevance" }, ["The topic", el("input", { type: "text", id: "atopic", placeholder: "dynamic capabilities", maxlength: "200" })]),
+      el("label", { "data-for": "jev-relevance" }, ["Relevant means", el("textarea", { id: "adef", rows: "2", placeholder: "It theorizes, measures or tests dynamic capabilities, not only mentions them" })]),
+      el("div", { class: "hint", id: "anote" })
+    ]
+  }
+
+  // Run… (the toolbar's ▷, a column's menu, ⇧⌘R): the plan before anything starts. Which papers (the selected ones, or
+  // every one shown), which columns (this one, or every AI column), each column's cells by state, what's skipped and
+  // why, the requests it makes and Jev's cost. Run posts the plan's cells; the app hands them to the runner.
+  function runDialog(only) {
+    var all = visible().filter(function (c) { return c.ai })
+    if (!all.length) return flash("No AI column here yet: + Column adds one (An AI column)")
+    if (D.readOnly) return flash("Not run: the sync folder isn't there")
+    if (D.run) return flash("An AI run is going (" + (D.run.stage || "starting") + "): it's in the launcher's Processes")
+    var selected = rows.filter(function (r) { return sel[C.paperId(r)] })
+    var radio = function (name, value, on, text) { return el("label", { class: "row" }, [el("input", { type: "radio", name: name, value: value, checked: on }), text]) }
+    var n = function (k, one, many) { return k + " " + (k === 1 ? one : many) }
+    openModal([el("header", {}, [el("h2", { text: "Run the AI columns" }), el("p", { text: "What it would do: nothing starts before Run. It's one row in the launcher's Processes, and Stop all stops it." })]),
+      el("div", { class: "sb" }, [
+        el("div", { class: "agroup", text: "The papers" }),
+        selected.length ? radio("rrows", "sel", true, "The selected ones (" + selected.length + ")") : null,
+        radio("rrows", "all", !selected.length, "Every paper shown (" + rows.length + ")"),
+        el("div", { class: "agroup", text: "The columns" }),
+        only ? radio("rcols", "one", true, "“" + only.label + "”") : null,
+        radio("rcols", "all", !only, "Every AI column (" + all.length + ")"),
+        el("div", { class: "agroup", text: "Also" }),
+        el("label", { class: "row" }, [el("input", { type: "checkbox", id: "ryours" }), "Run the cells you edited again (the AI's new answer replaces yours)"]),
+        el("label", { class: "row" }, [el("input", { type: "checkbox", id: "ragain" }), "Run the up-to-date ones again (another model, say)"]),
+        el("div", { class: "plan", id: "rplan" })
+      ]),
+      el("footer", {}, [el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), el("button", { class: "tb primary", type: "button", id: "rgo", text: "Run" })])], function (m) {
+      var plan = null
+      var draw = function () {
+        var rr = (m.querySelector("input[name=rrows]:checked") || {}).value === "sel" ? selected : rows
+        var cc = (m.querySelector("input[name=rcols]:checked") || {}).value === "one" ? [only] : all
+        plan = C.runPlan(cc, rr, D.cells, { yours: $("ryours").checked, again: $("ragain").checked })
+        var box = clear($("rplan"))
+        cc.forEach(function (c) {
+          var k = plan.counts[c.id] || {}
+          var bits = Object.keys(C.STATE_NAMES).filter(function (st) { return k[st] }).map(function (st) { return k[st] + " " + C.STATE_NAMES[st] })
+          box.appendChild(el("div", { class: "pl" }, [el("b", { text: c.label }), el("span", { text: c.problem ? c.problem : bits.join(" · ") || "no cells" })]))
+        })
+        var sk = []
+        if (plan.skipped.ok) sk.push(n(plan.skipped.ok, "up to date", "up to date"))
+        if (plan.skipped.yours) sk.push(n(plan.skipped.yours, "of yours", "of yours"))
+        if (plan.skipped.problem) sk.push(plan.skipped.problem + " on a taxonomy that's gone")
+        if (sk.length) box.appendChild(el("div", { class: "hint", text: "Left as they are: " + sk.join(", ") + "." }))
+        var req = []
+        if (plan.requests.jev) req.push(n(plan.requests.jev, "Jev request", "Jev requests") + (D.ctx.jev ? " (about $" + plan.jevUsd.toFixed(4) + ")" : " (on your prompts model: no Jev key)"))
+        if (plan.requests.prompt) req.push(n(plan.requests.prompt, "prompt request", "prompt requests"))
+        box.appendChild(el("div", { class: "pl total" }, [el("b", { text: plan.jobs.length ? n(plan.jobs.length, "cell", "cells") + " on " + n(plan.papers, "paper", "papers") : "Nothing to run" }),
+          el("span", { text: req.join(" · ") })]))
+        if (rr.length > 200) box.appendChild(el("div", { class: "hint", text: "At most 200 papers a run: the first 200 here." }))
+        $("rgo").disabled = !plan.jobs.length
+      }
+      m.addEventListener("change", draw)
+      draw()
+      $("rgo").addEventListener("click", function () {
+        if (!plan || !plan.jobs.length) return
+        var jobs = plan.jobs
+        closeModal()
+        D.run = { stage: "starting" }
+        drawToolbar()
+        drawFoot()
+        post("run", { jobs: jobs })
       })
     })
   }
@@ -807,7 +987,7 @@ var RT = (function () {
     showKeys = true
     var K = [["↑↓←→", "Move between cells"], ["home end", "The row's first and last column"], ["pgup pgdn", "A page up or down"], ["space", "Select the paper's row"],
       ["↵", "Edit a cell of yours (text)"], ["⌘↵ esc", "Keep, or drop, what you typed"], ["⌥→ ⌥←", "The paper's status"], ["⇧⌥→ ⇧⌥←", "Its task's status"],
-      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘O", "Show the paper in Zotero"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
+      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⇧⌘R", "Run the AI columns…"], ["⌘O", "Show the paper in Zotero"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
       ["⇧-click", "A header: add it to the sort"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
     var dl = el("dl")
     K.forEach(function (k) { dl.appendChild(el("dt", { text: k[0] })); dl.appendChild(el("dd", { text: k[1] })) })
@@ -839,6 +1019,7 @@ var RT = (function () {
     $("bLines").addEventListener("click", function (e) { linesPop(e.currentTarget) })
     $("bCols").addEventListener("click", function (e) { colsPop(e.currentTarget) })
     $("bAdd").addEventListener("click", addDialog)
+    $("bRun").addEventListener("click", function () { runDialog(null) })
     $("bExport").addEventListener("click", function (e) { exportPop(e.currentTarget) })
     $("bPanel").addEventListener("click", togglePanel)
     $("bRefresh").addEventListener("click", function () { post("refresh") })
@@ -867,7 +1048,7 @@ var RT = (function () {
       act = { pid: td.getAttribute("data-p"), c: td.getAttribute("data-c") }
       if (act.c === "title") return openPaper(actRow())
       var c = colById(act.c)
-      if (c && c.own && c.type === "text") startEdit()
+      if (c && c.edit === "text") startEdit()
     })
     gw.addEventListener("keydown", function (e) {
       if (e.target.id !== "edbox") return
@@ -910,6 +1091,9 @@ var RT = (function () {
         return
       }
       if (e.target.closest("[data-act=open]")) openPaper(r)
+      var c = colById(act.c)
+      if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) { D.run = { stage: "starting" }; drawToolbar(); drawFoot(); post("run", { jobs: [{ column: c.id, paper: C.paperId(r) }] }) }
+      if (r && c && c.ai && e.target.closest("[data-act=restore]:not(:disabled)")) post("restore", { column: c.id, paper: C.paperId(r) })
     })
 
     document.addEventListener("keydown", onKey)
@@ -997,6 +1181,7 @@ var RT = (function () {
     if (typing || modalEl) return
     if (e.key === "F1" || (e.key === "?" && !meta)) { e.preventDefault(); return keysPanel() }
     if (meta && !alt && e.key.toLowerCase() === "e") { e.preventDefault(); return exportCsv() }
+    if (meta && shift && !alt && e.key.toLowerCase() === "r") { e.preventDefault(); var ac = colById(act.c); return runDialog(ac && ac.ai ? ac : null) }
     if (meta && !alt && e.key.toLowerCase() === "o") { e.preventDefault(); return openPaper(actRow()) }
     if (!rows.length) return
     var vc = visible()

@@ -16,7 +16,8 @@ extension LauncherModel {
     }
 
     // What a review window draws with besides its papers: your statuses, the task statuses, each paper's default
-    // task, the taxonomies, the saved searches.
+    // task, the taxonomies (their labels and fingerprint: the AI columns on them), the saved searches, whether Jev's key
+    // is set and the models (an AI column's).
     func reviewContext() -> [String: Any] {
         let statuses = todoStatuses
         let tasks = defaultTasks.mapValues { s -> [String: Any] in ["id": s["id"] ?? "", "name": s["name"] ?? "", "group": s["group"] ?? ""] }
@@ -25,8 +26,11 @@ extension LauncherModel {
             "taskStatusList": statuses.map { ["id": $0["id"] ?? "", "name": $0["name"] ?? "", "group": $0["group"] ?? ""] },
             "taskStatuses": statuses.compactMap { $0["name"] as? String },
             "tasks": tasks,
-            "taxonomies": tax.taxonomies.map { ["name": $0["name"] ?? "", "prefix": $0["prefix"] ?? "", "kind": $0["kind"] ?? ""] },
-            "searches": savedSearches.map { ["id": $0["id"] ?? "", "name": $0["name"] ?? "", "query": $0["query"] ?? ""] }
+            "taxonomies": tax.taxonomies.map { ["id": $0["id"] ?? "", "name": $0["name"] ?? "", "prefix": $0["prefix"] ?? "", "kind": $0["kind"] ?? "",
+                                                "labels": $0["labels"] ?? [], "threshold": $0["threshold"] ?? 0.6, "hash": $0["hash"] ?? ""] },
+            "searches": savedSearches.map { ["id": $0["id"] ?? "", "name": $0["name"] ?? "", "query": $0["query"] ?? ""] },
+            "jev": jevKeySet,
+            "models": ((runnerModels as? [[String: Any]]) ?? []).map { ["value": $0["value"] ?? "", "label": $0["displayName"] ?? $0["value"] ?? "", "group": $0["group"] ?? ""] }
         ]
     }
 

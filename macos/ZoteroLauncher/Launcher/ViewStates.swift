@@ -113,6 +113,7 @@ struct AIState {
     var titleMode = "create" // prompt-title's: "create" or "rename"
     var tasks: [[String: Any]] = [] // the runner's tasks (tasks.json)
     var tasksAsking = false // a `tasks` run out
+    var reviewRunState = "" // the review runs' tasks as last read (their status and count): a change draws the open tables again
     var tasksWatched = "" // the folders the watchers are on
     var instructionsWatched = ""
     var tasksRead = Date.distantPast // when the menu last read its paper (a task on it that ended since: read again)
