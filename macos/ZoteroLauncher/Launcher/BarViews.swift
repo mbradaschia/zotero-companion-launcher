@@ -114,6 +114,21 @@ struct PinButton: View {
     }
 }
 
+// ⌘T as a button, beside the pin: what the results list, as a review table in its own window.
+struct ReviewTableButton: View {
+    let tap: () -> Void
+
+    var body: some View {
+        Button(action: tap) {
+            Image(systemName: "tablecells").font(.callout).foregroundStyle(Color.secondary)
+                .frame(width: 20, height: 22).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Open the results as a review table (⌘T)")
+        .accessibilityLabel("Open the results as a review table")
+    }
+}
+
 // Processes' pills (R15): every state, or one (a click), each with its count; the one shown filled.
 struct ProcessFilterBar: View {
     @ObservedObject var model: LauncherModel

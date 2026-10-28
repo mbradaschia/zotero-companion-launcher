@@ -196,7 +196,17 @@ function cases() {
   add("styleName/default", "styleName", ctx.styles, null);
   add("nextGrouping/forward", "nextGrouping", "relevance", 1, []);
   add("groupingName/year", "groupingName", Glue.nextGrouping("relevance", 1, []), []);
-  add("results/grouped", "results", typed, COLOR, { noCommands: true }, null, { mode: Glue.nextGrouping("relevance", 1, []), info: { statuses: [] } }, null);
+  add("results/grouped", "results", typed, COLOR, { noCommands: true }, null, { group: "status", sort: "relevance", order: "desc", info: { statuses: [] } }, null);
+  add("results/sorted-oldest", "results", typed, COLOR, { noCommands: true }, null, { group: "", sort: "year", order: "asc", info: {} }, null);
+  add("results/grouped-and-sorted", "results", typed, COLOR, { noCommands: true }, null, { group: "status", sort: "added", order: "desc", info: { statuses: ["s/reading"] } }, null);
+  add("arrangement/none", "arrangement", {});
+  add("arrangement/set", "arrangement", { group: "tax:theory/", sort: "modified", order: "asc" });
+  add("arrangement/bad-values", "arrangement", { group: "nope", sort: "nope", order: "sideways" });
+  add("arrangement/old-sort", "arrangement", { grouping: "year:asc" });
+  add("arrangement/old-group", "arrangement", { grouping: "status" });
+  add("arrangement/new-wins-over-old", "arrangement", { grouping: "status", sort: "added" });
+  add("arrangeOptions/none", "arrangeOptions", []);
+  add("arrangeOptions/taxonomies", "arrangeOptions", [{ prefix: "theory/", name: "Theories" }]);
 
   // phase 4b (a fixed clock: 2026-10-13 12:00 UTC)
   const T0 = Date.UTC(2026, 9, 13, 12);

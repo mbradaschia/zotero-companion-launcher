@@ -49,6 +49,9 @@ table.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; 
 .grid thead th { position: sticky; top: 0; z-index: 3; background: var(--head); border-bottom: 1px solid var(--line); font-weight: 600; }
 .grid tbody tr:nth-child(even) td { background: var(--row-alt); }
 .grid tbody tr.selrow td { background: var(--sel); }
+.grid tbody tr.grp td { background: var(--head); position: sticky; left: 0; }
+.gh { display: flex; align-items: baseline; gap: 8px; padding: 5px 10px; font-weight: 600; font-size: 12px; position: sticky; left: 0; width: max-content; }
+.gh .gn { color: var(--muted); font-weight: 400; }
 .grid .fz0 { position: sticky; left: 0; z-index: 2; }
 .grid .fz1 { position: sticky; left: 30px; z-index: 2; box-shadow: 1px 0 0 var(--line); }
 .grid thead .fz0, .grid thead .fz1 { z-index: 4; }

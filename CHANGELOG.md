@@ -13,13 +13,18 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (`macos-v0.4.9`)
+### The Mac app (`macos-v0.4.10`)
 
-- **Installing the AI features no longer reports success without the Claude or Codex binary**: npm ci skips an
-  optional package whose download fails (each is ~80 MB; a slow IPv6 route to the registry is enough) and still
-  succeeds. The installer now checks that this machine's binaries are there, tries once more preferring IPv4 (the
-  rest comes from npm's cache), and fails with "npm didn't download …" if they're still missing. The Omarchy
-  launcher's installer too.
+- **The review table is easier to find.** The results' footer hints ⌘T table wherever the keys are (the search box or
+  the list), early enough that a narrow launcher keeps it, and a table button beside the pin opens the results as a
+  review table, as ⌘T does.
+- **Group, Sort and Order, apart.** The results' one pill (e.g. "Year ↑") is three controls on the bar: Group ▾
+  (none, paper status, task status, task group, or a taxonomy), Sort ▾ (relevance, date added, date changed, year
+  published) and Order (↓ Desc / ↑ Asc, off while the sort is relevance). g picks the next sort, G the next grouping.
+  The view keeps them as `group`, `sort` and `order` in view.json; an older `grouping` is read once and replaced.
+- **The review table groups too.** Its toolbar has Group ▾ (any column with values to share, such as year, type,
+  status or a taxonomy), Sort ▾ (the columns sorted, as before) and Order, which turns the first sort key. Each group
+  gets a header row with its count, the empty group last; the table remembers the grouping.
 
 ### The Mac app (`macos-v0.4.7`)
 
