@@ -140,7 +140,7 @@ extension LauncherModel {
     // ---- new papers' taxonomies
 
     func tagTick() {
-        guard defaultOn("autoTagNew"), automationHere, !sched.tagFetching, sched.classifyInFlight < processesAtOnce, status == "ready", runnerInstalled, let file = extractFile else { return }
+        guard defaultOn("autoTagNew"), automationHere, !sched.tagFetching, sched.classifyInFlight < processesAtOnce, status == "ready", runnerInstalled, !aiOnHold, let file = extractFile else { return }
         if file.tagSince.isEmpty { return tagNewTurnedOn() }
         // (the papers queued or being tagged left out: another slot never takes them again)
         let body: [String: Any] = ["since": file.tagSince, "exclude": Array(file.tagged.keys) + Array(sched.classifying), "textFirst": defaultOn("autoExtractNew"),
@@ -156,7 +156,8 @@ extension LauncherModel {
                 guard !items.isEmpty else { return }
                 self.classify(items) { results in
                     var tagged = self.extractFile?.tagged ?? [:]
-                    for r in results { tagged[r["id"] as? String ?? ""] = r["status"] ?? "failed" } // once each, tagged or not
+                    // once each, tagged or not; not those a problem every paper would meet stopped (tried again later)
+                    for r in results where !self.metFatal(r) { tagged[r["id"] as? String ?? ""] = r["status"] ?? "failed" }
                     self.saveExtractState(["tagged": tagged])
                 }
             }
@@ -188,8 +189,19 @@ extension LauncherModel {
             if !r.ok && results.isEmpty { results = ids.map { ["id": $0, "status": "failed", "reason": r.problem] } }
             ids.forEach { self.sched.classifying.remove($0) }
             self.sched.classifyInFlight -= 1
+            // a problem every paper would meet: the papers queued behind it aren't tried (each told it stopped), the
+            // automation held
+            let fatal = self.fatalProblem(in: results)
+            if results.contains(where: { $0["status"] as? String == "tagged" }) { self.aiWorks() }
+            let dropped = fatal == nil ? [] : self.sched.classifyQueue
+            if let fatal {
+                self.sched.classifyQueue = []
+                dropped.forEach { Self.paperIds($0.items).forEach { self.sched.classifying.remove($0) } }
+                self.holdAI(fatal, "Tagging by taxonomies")
+            }
             self.refreshTasks()
             job.done(results)
+            for d in dropped { d.done(Self.paperIds(d.items).map { ["id": $0, "status": "stopped", "reason": fatal?.reason ?? ""] as [String: Any] }) }
             self.classified() // the report, the paper's status and menu, as they are now
             self.nextClassify()
         }
@@ -200,7 +212,7 @@ extension LauncherModel {
 
     func promptTick() {
         let ids = autoPromptIds
-        guard !ids.isEmpty, automationHere, !sched.promptFetching, sched.promptInFlight < processesAtOnce, status == "ready", runnerInstalled, let file = extractFile else { return }
+        guard !ids.isEmpty, automationHere, !sched.promptFetching, sched.promptInFlight < processesAtOnce, status == "ready", runnerInstalled, !aiOnHold, let file = extractFile else { return }
         let missing = ids.filter { file.autoPrompts[$0] == nil }
         if !missing.isEmpty { autoPromptsTurnedOn(missing) } // on in the file: from now (one write, then on)
         nextPrompt(ids, 0)
@@ -233,6 +245,12 @@ extension LauncherModel {
                 self.runRunner(["run", ids[i], "--key", it["key"] as? String ?? "", "--library", String(lib), "--extract-first"], timeout: 3600, quiet: false) { r in
                     self.sched.promptInFlight -= 1
                     self.sched.promptClaimed.remove(claim)
+                    if r.ok { self.aiWorks() }
+                    // a problem every paper would meet: this paper not marked (it runs once that's fixed), the rest held
+                    if !r.ok, let fatal = self.fatalProblem(r.problem) {
+                        self.holdAI(fatal, "Prompts on new papers")
+                        return self.refreshTasks()
+                    }
                     var all = self.extractFile?.autoPrompts ?? [:]
                     if var s = all[ids[i]] as? [String: Any] {
                         var done = s["done"] as? [String: Any] ?? [:]

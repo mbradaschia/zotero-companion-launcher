@@ -969,8 +969,10 @@ function buildAutoPrompts(state, row) {
 }
 
 // Settings › Defaults › Bring papers up to date (state.catchUp: { plan: the runner's catchup-plan, null while
-// counted; running: { title, total, done, failed, left } or null; days }): taxonomies and prompts changed since they
-// ran on papers, and what papers added lately miss of what New papers runs.
+// counted; running: { title, total, done, failed, left, papers } or null; stopped: { title, reason } or null, the
+// last one stopped by a problem every paper would meet; days }): taxonomies and prompts changed since they ran on
+// papers, and what papers added lately miss of what New papers runs. One runs at a time: while it does, its row
+// takes the place of the three to start one (their counts include the papers it's on).
 function catchUpRows(state, row) {
   var d = state.settings.defaults
   var cu = state.catchUp || {}
@@ -982,14 +984,18 @@ function catchUpRows(state, row) {
   if (cu.running) {
     var r = cu.running
     rows.push(row({ section: sec, rowId: "set-catchup-stop", value: "", icon: ICON.back, label: r.title, available: true,
-      detail: r.left + " left · " + r.done + " done" + (r.failed ? ", " + r.failed + " failed" : "") + " · Enter stops it" }))
+      detail: (r.papers ? n(r.left, "process", "processes") + " left on " + n(r.papers, "paper", "papers") : r.left + " left") + " · " + r.done + " done" + (r.failed ? ", " + r.failed + " failed" : "") + " · Enter stops it" }))
+  } else if (cu.stopped) {
+    rows.push(row({ section: sec, rowId: "set-info", value: "", icon: ICON.info, label: "Stopped: " + cu.stopped.title, available: false,
+      detail: cu.stopped.reason + " · then start it again below" }))
   }
+  var start = function (r) { if (!cu.running) rows.push(r) }
   var noRunner = state.runner && state.runner.installed === false
   var part = function (p, none, some) { return noRunner ? "Settings › Setup installs the AI features first" : !plan ? "Counting…" : !p ? "Can't tell: " + (cu.problem || "the runner didn't answer") : p.jobs.length ? some(p) : none }
-  rows.push(row({ section: sec, rowId: "set-catchup", value: "taxonomies", icon: "\uf02c", label: "Tag again where a taxonomy changed", available: !noRunner,
+  start(row({ section: sec, rowId: "set-catchup", value: "taxonomies", icon: "\uf02c", label: "Tag again where a taxonomy changed", available: !noRunner,
     detail: part(plan && plan.taxonomies, "Every tagged paper is up to date with its taxonomies", function (p) {
       return n(p.papers, "paper was", "papers were") + " tagged by an older version of a taxonomy · Enter tags " + (p.papers === 1 ? "it" : "them") + " again, one at a time, in the background" }) }))
-  rows.push(row({ section: sec, rowId: "set-catchup", value: "prompts", icon: ICON.model, label: "Run prompts again where they changed", available: !noRunner,
+  start(row({ section: sec, rowId: "set-catchup", value: "prompts", icon: ICON.model, label: "Run prompts again where they changed", available: !noRunner,
     detail: part(plan && plan.prompts, "No note or artifact comes from an older version of its prompt", function (p) {
       return n(p.jobs.length, "note or artifact comes", "notes or artifacts come") + " from an older version of their prompt · Enter runs them again: a new note next to the old one, its title says the version" })
       + (plan && plan.prompts && plan.prompts.unknown ? " · " + n(plan.prompts.unknown, "note", "notes") + " from before versions were kept stay as they are" : "") }))
@@ -1000,7 +1006,7 @@ function catchUpRows(state, row) {
   rows.push(row({ section: sec, rowId: "set-edit", value: "defaults.catchUpDays", icon: ICON.defaults, label: "Papers added lately: the last", available: true, submenu: true,
     detail: n(days, "day", "days") + " · what Catch up looks at" }))
   var what = [d.autoExtractNew ? "their text" : "", d.autoTagNew ? "their taxonomies" : "", autoPromptTitles(state).join(", ")].filter(function (x) { return x })
-  rows.push(row({ section: sec, rowId: "set-catchup", value: "recent", icon: ICON.back, label: "Catch up the last " + n(days, "day", "days"), available: what.length > 0 && !noRunner,
+  start(row({ section: sec, rowId: "set-catchup", value: "recent", icon: ICON.back, label: "Catch up the last " + n(days, "day", "days"), available: what.length > 0 && !noRunner,
     detail: !what.length ? "Turn on something above first: it runs what New papers runs" : noRunner ? part(null)
       : part(plan && plan.recent, "Papers added in the last " + n(days, "day", "days") + " have " + what.join(", ") + ", up to date", function (p) {
         return n(p.papers, "paper", "papers") + " added in the last " + n(days, "day", "days") + (d.catchUpPrompts === "replace" || d.catchUpTaxonomies === "replace" ? (p.papers === 1 ? " gets " : " get ") + what.join(", ") + (p.papers === 1 ? " (again where it's there: Replace them)" : " (again where they're there: Replace them)") : (p.papers === 1 ? " misses " : " miss ") + what.join(", ") + " (another computer's count too)") + " · Enter runs it, in the background" }) }))
