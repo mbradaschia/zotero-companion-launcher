@@ -7,6 +7,7 @@ var ReviewCore = (function () {
   var ABS = ["4*", "4", "3", "2", "1"]
   var ABDC = ["A*", "A", "B", "C"]
   var LINES = [1, 2, 3, 6, 0] // 0: all of it
+  var MIN_WIDTH = 16, MAX_WIDTH = 1200 // a column's width, in px: as narrow as a sliver (it's yours to judge)
   var MAX_COLUMNS = 80
   var MAX_SORT = 6
 
@@ -294,7 +295,7 @@ var ReviewCore = (function () {
     var width = Math.round(Number(o.width) || 0)
     var lines = LINES.indexOf(Number(o.lines)) >= 0 ? Number(o.lines) : null
     var out = { id: str(o.id, 60) }
-    if (width) out.width = Math.max(40, Math.min(1200, width))
+    if (width) out.width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width))
     if (lines !== null) out.lines = lines
     if (o.hidden) out.hidden = true
     return out
@@ -441,7 +442,7 @@ var ReviewCore = (function () {
   }
 
   return {
-    FIELDS: FIELDS, DEFAULT_COLUMNS: DEFAULT_COLUMNS, LINES: LINES, ABS: ABS, ABDC: ABDC,
+    FIELDS: FIELDS, DEFAULT_COLUMNS: DEFAULT_COLUMNS, LINES: LINES, MIN_WIDTH: MIN_WIDTH, MAX_WIDTH: MAX_WIDTH, ABS: ABS, ABDC: ABDC,
     paperId: paperId, itemTypeName: itemTypeName, statusName: statusName,
     fieldById: fieldById, taxonomyColumn: taxonomyColumn, available: available, ownColumn: ownColumn, columns: columns,
     value: value, isEmpty: isEmpty, text: text, compareValues: compareValues, sortRows: sortRows, clickSort: clickSort,

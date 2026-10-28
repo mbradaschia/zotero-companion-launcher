@@ -30,7 +30,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .source .kind { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
 .source .what { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .source .q { font: 11.5px ui-monospace, "SF Mono", Menlo, monospace; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.tools { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.tb.icon { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 28px; padding: 0; }
+.tb.icon .ic { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#bPin:not(.on) .ic { transform: rotate(45deg); } /* (as the launcher's pin: upright when pinned) */
+.tsep { width: 1px; height: 18px; background: var(--line); margin: 0 3px; }
 .tb { border: 1px solid var(--line); background: var(--win); padding: 3px 10px; border-radius: 6px; font-size: 12.5px; white-space: nowrap; }
 .tb:hover:not(:disabled) { background: var(--head); }
 .tb:disabled { opacity: .45; }
@@ -44,8 +48,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .gridwrap { overflow: auto; position: relative; outline: none; min-height: 0; }
 .empty { padding: 40px 24px; text-align: center; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.5; }
 
-table.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; width: max-content; }
-.grid th, .grid td { border-right: 1px solid var(--line2); border-bottom: 1px solid var(--line2); vertical-align: top; text-align: left; padding: 0; background: var(--win); }
+table.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+.grid th, .grid td { border-right: 1px solid var(--line2); border-bottom: 1px solid var(--line2); vertical-align: top; text-align: left; padding: 0; background: var(--win); overflow: hidden; }
+.grid tbody tr.grp td { overflow: visible; }
 .grid thead th { position: sticky; top: 0; z-index: 3; background: var(--head); border-bottom: 1px solid var(--line); font-weight: 600; }
 .grid tbody tr:nth-child(even) td { background: var(--row-alt); }
 .grid tbody tr.selrow td { background: var(--sel); }
@@ -55,13 +60,16 @@ table.grid { border-collapse: separate; border-spacing: 0; table-layout: fixed; 
 .grid .fz0 { position: sticky; left: 0; z-index: 2; }
 .grid .fz1 { position: sticky; left: 30px; z-index: 2; box-shadow: 1px 0 0 var(--line); }
 .grid thead .fz0, .grid thead .fz1 { z-index: 4; }
-.hcell { display: flex; align-items: center; gap: 2px; padding: 6px 20px 6px 8px; position: relative; min-height: 30px; }
-.hcell .hl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; }
+.hcell { display: flex; align-items: center; gap: 2px; padding: 6px 26px 6px 8px; position: relative; min-height: 30px; }
+.hcell .hl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; min-width: 0; }
+.grid thead th.mv { cursor: grab; }
+body.moving, body.moving * { cursor: grabbing !important; }
 .hcell .sortmark { color: var(--accent); font-size: 11px; white-space: nowrap; }
-.hmenu { position: absolute; right: 3px; top: 6px; border: 0; background: transparent; color: var(--muted); padding: 0 4px; border-radius: 4px; font-size: 10px; }
+.hmenu { position: absolute; right: 9px; top: 6px; border: 0; background: transparent; color: var(--muted); padding: 0 4px; border-radius: 4px; font-size: 10px; }
 .hmenu:hover { background: var(--line); }
-.rz { position: absolute; right: -4px; top: 0; bottom: 0; width: 8px; cursor: col-resize; z-index: 5; }
-.rz:hover, .rz.on { background: linear-gradient(to right, transparent 3px, var(--accent) 3px, var(--accent) 5px, transparent 5px); }
+/* the resize grip: inside its own header, at its right edge, so it never lies over the next header (which moves) */
+.rz { position: absolute; right: 0; top: 0; bottom: 0; width: 7px; cursor: col-resize; z-index: 5; }
+.rz:hover, .rz.on { background: linear-gradient(to right, transparent 4px, var(--accent) 4px, var(--accent) 6px, transparent 6px); }
 th.dropL { box-shadow: inset 3px 0 0 var(--accent); } th.dropR { box-shadow: inset -3px 0 0 var(--accent); }
 th.dragging { opacity: .45; }
 .ck { display: flex; justify-content: center; padding-top: 7px; }
@@ -109,6 +117,16 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .pop .pi small { color: var(--faint); font-size: 11px; }
 .pop hr { border: 0; border-top: 1px solid var(--line2); margin: 4px 0; }
 .pop label.pi { cursor: default; }
+.qsegs { display: flex; flex-wrap: wrap; gap: 3px 4px; align-items: center; padding: 0 10px 4px; font-size: 11.5px; }
+.qsegs:empty { display: none; }
+.qsegs .qlab { color: var(--faint); margin-right: 2px; }
+.qsegs .qb { border: 1px solid var(--accent); color: var(--accent); background: var(--accent-soft); border-radius: 5px; padding: 0 5px; line-height: 16px; white-space: nowrap; }
+.qsegs .qb.r-neg { border-color: var(--red); color: var(--red); background: var(--red-soft); }
+.qsegs .qb.r-op { border-color: var(--rank); color: var(--rank); background: var(--rank-soft); font-weight: 600; }
+.qsegs .qt { color: var(--ink); }
+.qsegs .qt.r-field, .qsegs .qt.r-quote { color: var(--accent); }
+.qsegs .qt.r-neg { color: var(--red); }
+.qsegs .qt.r-paren { color: var(--muted); }
 .pop input[type=search], .pop input[type=text] { width: calc(100% - 12px); margin: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--head); -webkit-user-select: text; user-select: text; }
 .seg { display: flex; gap: 2px; padding: 4px 10px; }
 .seg button { border: 1px solid var(--line); background: var(--win); border-radius: 5px; padding: 2px 9px; }

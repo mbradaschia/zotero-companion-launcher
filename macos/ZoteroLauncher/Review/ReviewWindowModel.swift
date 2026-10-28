@@ -12,6 +12,7 @@ final class ReviewWindowModel: ObservableObject {
     @Published private(set) var title = "Review"
     weak var page: ReviewPage?
     var close: () -> Void = {}
+    var pin: (Bool) -> Void = { _ in } // the window kept over the others' (ReviewWindows)
     private(set) var review: [String: Any]?
     private var results: [[String: Any]] = []
     private var total = 0
@@ -20,6 +21,13 @@ final class ReviewWindowModel: ObservableObject {
     private var searchSerial = 0
     private var searchedAt = Date.distantPast
     private var ready = false
+    private var preview: String? // a query typed in the source's box, searched as you type; ↵ keeps it, esc drops it
+    private static let pinKey = "ZLReviewPinned"
+    // Pinned: the windows stay over other apps' (as the launcher's pin); kept for the next table.
+    var pinned: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.pinKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.pinKey); pin(newValue) }
+    }
 
     static let maxPapers = 200 // (the bridge's cap on a search)
 
@@ -52,7 +60,9 @@ final class ReviewWindowModel: ObservableObject {
         let serial = searchSerial
         searchedAt = Date()
         loading = true
-        let scoped = (try? core.glueJSON("reviewScope", [review["source"] ?? [:], launcher.reviewContext()["searches"] ?? []])).flatMap(ReviewFiles.object) ?? [:]
+        var source: Any = review["source"] ?? [String: Any]()
+        if let preview { source = ["type": "query", "query": preview] } // (typed in the box, not kept yet)
+        let scoped = (try? core.glueJSON("reviewScope", [source, launcher.reviewContext()["searches"] ?? []])).flatMap(ReviewFiles.object) ?? [:]
         if scoped["gone"] as? Bool == true { problem = "Its saved search was deleted: the table searches what it last held. Pick another in the box above" } else { problem = "" }
         var body: [String: Any]
         do {
@@ -112,7 +122,9 @@ final class ReviewWindowModel: ObservableObject {
             "ctx": launcher.reviewContext(),
             "readOnly": files?.readOnly ?? true,
             "problem": problem,
-            "loading": loading
+            "loading": loading,
+            "pinned": pinned,
+            "preview": preview ?? NSNull()
         ])
     }
 
@@ -126,13 +138,17 @@ final class ReviewWindowModel: ObservableObject {
             if let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty { change { $0["name"] = n } }
         case "source":
             guard let s = m["source"] as? [String: Any] else { return }
-            let oldName = review.flatMap { r in try? launcher.core?.glue("reviewSourceName", [r["source"] ?? [:]], as: String.self) }
-            change { r in
-                // a name you didn't give it follows the source
-                if oldName == nil || r["name"] as? String == oldName { r["name"] = (try? self.launcher.core?.glue("reviewSourceName", [s], as: String.self)) ?? r["name"] }
-                r["source"] = s
-            }
+            setSource(s)
+        case "preview":
+            let q = (m["query"] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
+            preview = q.isEmpty ? nil : q
             search()
+        case "segments": // the query as the launcher's search box reads it: its blocks and their labels
+            let text = m["text"] as? String ?? ""
+            let json = (try? launcher.core?.glueJSON("querySegments", [text, m["caret"] as? Int ?? text.utf16.count, true])) ?? "[]"
+            page?.segments(text, (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [Any] ?? [])
+        case "saveSearch": saveSearch(name: m["name"] as? String ?? "", query: m["query"] as? String ?? "")
+        case "pin": pinned = m["on"] as? Bool ?? !pinned; send()
         case "cell": setCell(m)
         case "addColumn": addColumn(m["column"] as? [String: Any])
         case "status":
@@ -152,6 +168,30 @@ final class ReviewWindowModel: ObservableObject {
         case "csv": exportCSV(name: m["name"] as? String ?? title, text: m["text"] as? String ?? "")
         default: break
         }
+    }
+
+    // The papers from another source: a saved search, a query. A name you didn't give it follows the source.
+    private func setSource(_ s: [String: Any]) {
+        preview = nil
+        let oldName = review.flatMap { r in try? launcher.core?.glue("reviewSourceName", [r["source"] ?? [:]], as: String.self) }
+        change { r in
+            if oldName == nil || r["name"] as? String == oldName { r["name"] = (try? self.launcher.core?.glue("reviewSourceName", [s], as: String.self)) ?? r["name"] }
+            r["source"] = s
+        }
+        search()
+    }
+
+    // ⌘S in the source's box: the query saved as a search (the launcher's, ⌘S there), and the table's source.
+    private func saveSearch(name: String, query: String) {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return }
+        if launcher.syncFolderGone || launcher.paths?.readOnly == true { return refused("Not saved: " + launcher.syncFolderAway) } // (searches.json)
+        guard launcher.saveSearches("addSearch", [name, q, false, launcher.nowMs]), let s = launcher.savedSearches.last, let id = s["id"] as? String else {
+            return refused("Couldn't save the search")
+        }
+        let title = s["name"] as? String ?? q
+        setSource(["type": "search", "key": id, "title": title, "query": q])
+        page?.flash("Saved “\(title)” as a search: the launcher lists it too (Searches)")
     }
 
     // The review changed and saved; a failure said, and the page given the file as it is.
