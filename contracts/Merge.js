@@ -12,8 +12,9 @@
 // view.json and the shared settings.json merge per key (and per view inside view.json): the newer
 // file wins a key both have differently. taxonomy.json merges by paper: the record changed last
 // (its `updated`, else its `at`) wins, so each machine keeps the papers it tagged and the labels
-// you confirmed or dismissed there. Anything else: the newer file wins, the other is kept
-// beside it as <name>.conflict-<machine>.<ext>.
+// you confirmed or dismissed there; a review column's cells (<column>.cells.json) merge by paper
+// the same way. Anything else: the newer file wins, the other is kept beside it as
+// <name>.conflict-<machine>.<ext>.
 
 var KEEP_DAYS = 30
 
@@ -66,7 +67,14 @@ function conflictOf(name) {
 // How a file merges: "list", "keyed" or "newer".
 function kindOf(base) {
   var b = String(base || "").split("/").pop()
-  return own(LISTS, b) ? "list" : own(KEYED, b) ? "keyed" : own(BY_PAPER, b) ? "papers" : "newer"
+  return own(LISTS, b) ? "list" : own(KEYED, b) ? "keyed" : byPaper(b) ? "papers" : "newer"
+}
+
+// The file's per-paper field, if it merges by paper: taxonomy.json's papers, a review column's cells
+// (reviews/cells/<column>.cells.json).
+function byPaper(b) {
+  if (own(BY_PAPER, b)) return BY_PAPER[b]
+  return /^[A-Za-z0-9_-]+\.cells\.json$/.test(b) ? "cells" : ""
 }
 
 // The loser of a "newer" merge, kept beside it: "notes.md" → "notes.conflict-laptop.md".
@@ -220,11 +228,11 @@ function merge(base, aText, bText, aTime, bTime, now) {
   }
   var sa = Math.floor((Number(aTime) || 0) / 1000), sb = Math.floor((Number(bTime) || 0) / 1000)
   var aNewer = sa !== sb ? sa > sb : String(aText) >= String(bText)
-  if (own(KEYED, b) || own(BY_PAPER, b)) {
+  if (own(KEYED, b) || byPaper(b)) {
     var x = parse(aText), y = parse(bText)
     if (!x && !y) return null
     if (!x || !y) return { text: x ? aText : bText }
-    return { text: text(own(BY_PAPER, b) ? mergePapers(BY_PAPER[b], x, y, aNewer) : mergeObjects(x, y, aNewer, KEYED[b])) }
+    return { text: text(byPaper(b) ? mergePapers(byPaper(b), x, y, aNewer) : mergeObjects(x, y, aNewer, KEYED[b])) }
   }
   if (!String(aText)) return { text: bText } // no file beside the copy: the copy is the file
   if (!String(bText)) return null // an empty copy: nothing to keep

@@ -33,7 +33,8 @@ enum KeyRouter {
         // (the note reader's text size: ⌘-/+/0 as Ctrl's)
         let sizeKey = s.inNote && [KeyEvent.Key.character("-"), .character("+"), .character("="), .character("0")].contains(k)
         let save = s.inSearch && (e.control || e.command) && !e.option && !e.shift && k == .character("s") // ⌘S as Ctrl+S
-        if e.command && !sizeKey && !save && !(paste && (s.view == "settings-edit" || s.textEntry)) { return .pass }
+        let table = s.inSearch && e.command && !e.option && !e.shift && !e.control && k == .character("t") // ⌘T: a review table
+        if e.command && !sizeKey && !save && !table && !(paste && (s.view == "settings-edit" || s.textEntry)) { return .pass }
         if s.inNote { return .note(e) }
         if k == .delete && plain && s.tabTodo && s.filterText.isEmpty { return .deleteTask } // (with text: the field's)
         if k == .delete && plain && !e.shift && s.filterText.isEmpty && ["actions", "notes", "chats"].contains(s.view)
@@ -67,6 +68,7 @@ enum KeyRouter {
         if (s.view == "settings-edit" || s.textEntry) && paste { return .paste }
         if s.view == "tags" && e.control && k == .enter { return .createTag }
         if save { return .saveSearch }
+        if table { return .openReview }
         if s.inSearch && e.text == "@" && plain { return .openPicker }
         if s.view == "todo-new" && e.text == "@" && plain { return .openTaskTags }
         if s.listKeys && e.printable { return .queue(e.text) }

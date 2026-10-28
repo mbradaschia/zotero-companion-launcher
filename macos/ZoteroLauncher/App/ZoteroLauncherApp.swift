@@ -13,7 +13,7 @@ struct ZoteroLauncherApp: App {
 
     var body: some Scene {
         MenuBarExtra("Zotero Launcher", systemImage: "books.vertical") {
-            MenuBarMenu(launcher: appDelegate.launcher, login: appDelegate.login, updates: appDelegate.updates)
+            MenuBarMenu(launcher: appDelegate.launcher, login: appDelegate.login, updates: appDelegate.updates, reviews: appDelegate.launcher.reviewShelf)
         }
         Settings {
             SettingsView(model: appDelegate.launcher.model, login: appDelegate.login)

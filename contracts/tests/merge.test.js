@@ -156,3 +156,18 @@ test("taxonomy.json merges by paper: each machine's papers kept, the record chan
   // no kept copy beside it: nothing is lost
   assert.equal(M.merge("taxonomy.json", mine, theirs, 1000, 9000, NOW).kept, undefined);
 });
+
+test("a review column's cells merge by paper: both machines' edits stay, the one changed last wins", () => {
+  assert.equal(M.kindOf("shared/reviews/cells/c-0123456789.cells.json"), "papers");
+  assert.equal(M.kindOf("shared/reviews/r-0123456789.json"), "newer"); // a review itself: the newer file
+  assert.equal(M.kindOf("notes.cells.json.bak"), "newer");
+  const cell = (v, updated) => ({ v, updated, by: "mac" });
+  const mine = JSON.stringify({ cells: { "1:AAAAAAAA": cell("include", "2026-10-27T10:00:00Z"), "1:BBBBBBBB": cell("maybe", "2026-10-20T00:00:00Z") } });
+  const theirs = JSON.stringify({ cells: { "1:AAAAAAAA": cell("exclude", "2026-10-26T00:00:00Z"), "1:CCCCCCCC": cell("include", "2026-10-25T00:00:00Z") } });
+  const out = JSON.parse(M.merge("c-0123456789.cells.json", mine, theirs, 1000, 9000, NOW).text);
+  assert.deepEqual(Object.keys(out.cells), ["1:AAAAAAAA", "1:BBBBBBBB", "1:CCCCCCCC"]);
+  assert.equal(out.cells["1:AAAAAAAA"].v, "include"); // changed last here, though the copy is the newer file
+  assert.equal(out.cells["1:CCCCCCCC"].v, "include");
+  assert.equal(M.merge("c-0123456789.cells.json", theirs, mine, 9000, 1000, NOW).text, M.merge("c-0123456789.cells.json", mine, theirs, 1000, 9000, NOW).text);
+  assert.equal(M.merge("c-0123456789.cells.json", mine, theirs, 1000, 9000, NOW).kept, undefined);
+});

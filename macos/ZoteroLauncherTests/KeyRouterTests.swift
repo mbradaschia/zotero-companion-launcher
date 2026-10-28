@@ -112,6 +112,8 @@ final class KeyRouterTests: XCTestCase {
         XCTAssertEqual(route(char("l", option: true)), .keyAction("l"))
         XCTAssertEqual(route(char("P", shift: true, option: true)), .keyAction("P")) // ⌥⇧P: P's action (the QML lost the Shift)
         XCTAssertEqual(route(char("s", command: true)), .saveSearch) // ⌘S as Ctrl+S
+        XCTAssertEqual(route(char("t", command: true)), .openReview) // ⌘T: the results as a review table
+        XCTAssertEqual(route(char("t", command: true), state(notRoot)), .pass) // (outside the results: the Mac's)
     }
 
     func testPasteInAPageForTyping() {

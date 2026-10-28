@@ -43,6 +43,7 @@ enum KeyCommand: Equatable {
     case paste
     case createTag
     case saveSearch
+    case openReview // ⌘T: the results as a review table (phase 11a)
     case openPicker
     case openTaskTags
     case queue(String) // a single key: it waits to be told from typing (KeyBuffer)

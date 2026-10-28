@@ -13,6 +13,17 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.6`)
+
+- **Review tables** (phase 11a, `macos/docs/superpowers/specs/2026-10-27-phase-11a-review-table-design.md`): ⌘T in
+  the results opens what they list (a query, a collection, a tag, a saved search) as a review table, in its own
+  window; the menu bar's Review Tables opens one again. The list is live (at most 200 papers). Columns: Zotero's and
+  the launcher's attributes, a column per taxonomy, and columns of your own (text, or one of a list). Drag to reorder
+  and resize, pick 1, 2, 3, 6 or all lines, hide, sort by several columns (⇧-click adds one), collapse the panel
+  (⌥⌘I). The panel changes a paper's status and its task (⌥→← and ⇧⌥→← too); a click on a cell never changes it.
+  ⌘E exports the table as CSV. Reviews, your columns and their values live in the sync folder (`reviews/`), and a
+  column's values merge by paper between machines. No AI columns yet (11b).
+
 ### The Mac app (`macos-v0.4.5`)
 
 - **The launcher opens where you left it, also after the app restarts** (an update, a login, a quit): the same view,

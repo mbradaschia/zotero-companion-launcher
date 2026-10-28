@@ -7,10 +7,16 @@ struct MenuBarMenu: View {
     let launcher: LauncherController
     @ObservedObject var login: LoginItem
     @ObservedObject var updates: UpdateCheck
+    @ObservedObject var reviews: ReviewShelf
 
     var body: some View {
         Button(openTitle) { launcher.toggle() }
+            .onAppear { reviews.refresh() } // (each time the menu opens: a review made on the other Mac shows)
         Divider()
+        Menu("Review Tables") {
+            if reviews.list.isEmpty { Text("None yet: ⌘T in the launcher opens its results as one") }
+            ForEach(reviews.list) { r in Button(r.name) { launcher.openReview(r.id) } }
+        }
         Button("Chats…") { launcher.show(place: "chats") }
         Button("Processes…") { launcher.show(place: "tasks") }
         Button("Settings…") { launcher.show(place: "settings") }
