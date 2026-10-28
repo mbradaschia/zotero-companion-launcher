@@ -13,7 +13,7 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
-### The Mac app (`macos-v0.4.16`)
+### The Mac app (next)
 
 - **Settings › Setup installs Node.js, pdftotext and Tesseract itself**: Enter on *Install Node.js*, *Install
   pdftotext* or *Read scans by OCR* runs `brew install …` (node, poppler, tesseract) in the background, shown in
