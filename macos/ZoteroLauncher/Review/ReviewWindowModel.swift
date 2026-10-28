@@ -121,7 +121,7 @@ final class ReviewWindowModel: ObservableObject {
         switch m["type"] as? String ?? "" {
         case "ready": ready = true; send()
         case "refresh": reload(); search()
-        case "layout": if let l = m["review"] as? [String: Any] { change { r in for k in ["columns", "sort", "lines", "panel"] { if let v = l[k] { r[k] = v } } } }
+        case "layout": if let l = m["review"] as? [String: Any] { change { r in for k in ["columns", "sort", "group", "lines", "panel"] { if let v = l[k] { r[k] = v } } } }
         case "rename":
             if let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty { change { $0["name"] = n } }
         case "source":

@@ -18,6 +18,13 @@ bridge and the prompt runner share one version.
 - **The review table is easier to find.** The results' footer hints ⌘T table wherever the keys are (the search box or
   the list), early enough that a narrow launcher keeps it, and a table button beside the pin opens the results as a
   review table, as ⌘T does.
+- **Group, Sort and Order, apart.** The results' one pill (e.g. "Year ↑") is three controls on the bar: Group ▾
+  (none, paper status, task status, task group, or a taxonomy), Sort ▾ (relevance, date added, date changed, year
+  published) and Order (↓ Desc / ↑ Asc, off while the sort is relevance). g picks the next sort, G the next grouping.
+  The view keeps them as `group`, `sort` and `order` in view.json; an older `grouping` is read once and replaced.
+- **The review table groups too.** Its toolbar has Group ▾ (any column with values to share, such as year, type,
+  status or a taxonomy), Sort ▾ (the columns sorted, as before) and Order, which turns the first sort key. Each group
+  gets a header row with its count, the empty group last; the table remembers the grouping.
 
 ### The Mac app (`macos-v0.4.7`)
 

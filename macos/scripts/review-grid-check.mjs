@@ -120,6 +120,24 @@ await pg.waitForTimeout(500);
 m = await sent();
 const layout = m.filter((x) => x.type === "layout").pop();
 ok(layout && layout.review.sort.length === 2 && layout.review.sort[1].column === "year", "the sort is saved with the review");
+ok((await pg.textContent("#bSort")) === "Sort: ABS +1 ▾" && (await pg.textContent("#bOrder")) === "↑ Asc", "Sort ▾ names the first key, Order says its direction");
+
+// the order and the groups
+await pg.click("#bOrder");
+ok((await pg.textContent("#bOrder")) === "↓ Desc", "Order turns the first key: descending");
+await pg.click("#bGroup");
+await pg.click('.pop [data-g="year"]');
+const heads2 = await pg.$$eval("tbody tr.grp .gl", (t) => t.map((x) => x.textContent));
+ok(heads2.length >= 2 && heads2[heads2.length - 1] === "Year · none", "Group ▾ › Year: a header per year, the papers without one last: " + heads2.join(", "));
+ok((await pg.textContent("#bGroup")) === "Group: Year ▾", "Group ▾ names the column");
+await pg.waitForTimeout(500);
+m = await sent();
+ok(m.filter((x) => x.type === "layout").pop().review.group === "year", "the grouping is saved with the review");
+await pg.keyboard.press("ArrowDown");
+ok(!(await pg.locator("tbody tr.grp td.active").count()), "the arrows skip the headers");
+await pg.click("#bGroup");
+await pg.click('.pop [data-g=""]');
+ok((await pg.locator("tbody tr.grp").count()) === 0, "Group ▾ › None: no headers");
 
 // moving and hiding columns, the panel
 await pg.click(cell("AAAAAAAA", "year"));

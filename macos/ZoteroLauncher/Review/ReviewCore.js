@@ -204,6 +204,35 @@ var ReviewCore = (function () {
     return decorated.map(function (d) { return d.r })
   }
 
+  // ------------------------------------------------------------ group
+
+  // A column the papers can be grouped by: one whose values repeat (not the paper, its authors, a date, your text).
+  function groupable(col) {
+    return !!col && !col.missing && col.id !== "title" && col.id !== "authors" && col.type !== "date" && !(col.own && col.type !== "choice")
+  }
+
+  // The rows (already sorted) in groups by a column's value: [{ label, value, rows }], the groups in the column's
+  // order (descending with desc), the papers without a value last; the rows keep their order inside each. No
+  // group (or one that can't group): one group, its label "".
+  function groupRows(rows, groupId, cols, ctx, cells, desc) {
+    var col = null
+    for (var i = 0; i < (cols || []).length; i++) if (cols[i].id === groupId) col = cols[i]
+    if (!groupId || !groupable(col)) return [{ label: "", value: "", rows: (rows || []).slice() }]
+    var byKey = {}, groups = []
+    ;(rows || []).forEach(function (r) {
+      var v = value(col, r, ctx, cells), t = text(col, v)
+      if (!own(byKey, t)) { byKey[t] = { label: col.label + " · " + (t || "none"), value: v, rows: [] }; groups.push(byKey[t]) }
+      byKey[t].rows.push(r)
+    })
+    groups.sort(function (a, b) {
+      var ea = isEmpty(a.value), eb = isEmpty(b.value)
+      if (ea || eb) return ea === eb ? 0 : ea ? 1 : -1
+      var c = compareValues(col, a.value, b.value, ctx)
+      return desc ? -c : c
+    })
+    return groups
+  }
+
   // A header's click (alone: this key only, ascending, then descending, then none) or ⇧-click (added as the next key,
   // or its direction turned, or taken out). → the new sort.
   function clickSort(sorts, column, add) {
@@ -295,6 +324,7 @@ var ReviewCore = (function () {
       source: normalizeSource(o.source),
       columns: cols,
       sort: sorts,
+      group: typeof o.group === "string" && seen[o.group] && o.group !== "title" ? o.group : "",
       lines: LINES.indexOf(Number(o.lines)) >= 0 ? Number(o.lines) : 3,
       panel: o.panel !== false,
       created: str(o.created, 40),
@@ -415,6 +445,7 @@ var ReviewCore = (function () {
     paperId: paperId, itemTypeName: itemTypeName, statusName: statusName,
     fieldById: fieldById, taxonomyColumn: taxonomyColumn, available: available, ownColumn: ownColumn, columns: columns,
     value: value, isEmpty: isEmpty, text: text, compareValues: compareValues, sortRows: sortRows, clickSort: clickSort,
+    groupable: groupable, groupRows: groupRows,
     csvCell: csvCell, csv: csv,
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
     sourceName: sourceName, newReview: newReview, searchScope: searchScope,

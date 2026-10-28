@@ -215,42 +215,72 @@ struct BadgeBar: View {
                 }
                 .onChange(of: model.searchState.active) { _, id in withAnimation(Motion.animation(reduce: reduceMotion)) { proxy.scrollTo(id) } }
             }
-            // how the papers are sorted, its direction an arrow: a click (or g) the next, ⇧G back
-            let sort = model.sortLabel
-            if !sort.isEmpty {
-                SortChip(label: sort, next: model.keyName("g"), back: model.keyName("G")) { model.cycleGrouping(1) }
-                    .padding(.trailing, 16)
-            }
+            // how the papers are arranged: Group ▾, Sort ▾ and the order (g the next sort, G the next grouping)
+            if model.arrangeable { ArrangeBar(model: model).padding(.trailing, 16) }
         }
         .padding(.bottom, 8)
     }
 }
 
-// The results' sort, at the badges' right: "↓ Newest published", "Grouped by paper status"; a click is the next one.
-struct SortChip: View {
-    let label: String
-    let next: String
-    let back: String
-    let tap: () -> Void
-
-    private var spoken: String {
-        let plain = label.replacingOccurrences(of: "↓ ", with: "").replacingOccurrences(of: "↑ ", with: "")
-        let way = label.hasPrefix("↑") ? ", ascending" : label.hasPrefix("↓") ? ", descending" : ""
-        return "Sorted: " + plain + way
-    }
+// The results' Group ▾, Sort ▾ and Order, at the badges' right: each menu lists its choices, a check on the one in use;
+// the order flips ascending and descending (relevance has one order).
+struct ArrangeBar: View {
+    @ObservedObject var model: LauncherModel
 
     var body: some View {
-        let fill: Color = Color.secondary.opacity(0.14)
-        Button(action: tap) {
-            Text(label).font(.caption.weight(.medium)).lineLimit(1)
-                .padding(.horizontal, 8).padding(.vertical, 2)
-                .background(Capsule().fill(fill))
+        let a = model.arrangement, o = model.arrangeOptions
+        HStack(spacing: 4) {
+            ArrangeMenu(title: "Group", options: o.groups, chosen: a.group, key: model.keyName("G")) { model.setGroup($0) }
+            ArrangeMenu(title: "Sort", options: o.sorts, chosen: a.sort, key: model.keyName("g")) { model.setSort($0) }
+            Button { model.toggleOrder() } label: {
+                ArrangeChip(text: a.order == "asc" ? "↑ Asc" : "↓ Desc")
+            }
+            .buttonStyle(.plain)
+            .disabled(a.sort == "relevance")
+            .opacity(a.sort == "relevance" ? 0.45 : 1)
+            .help(a.sort == "relevance" ? "Order: relevance has one order (sort by a date or the year to choose)" : a.order == "asc" ? "Ascending: oldest first. Click for descending" : "Descending: newest first. Click for ascending")
+            .accessibilityLabel(a.order == "asc" ? "Order: ascending" : "Order: descending")
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
         .fixedSize()
-        .help("Sort: " + next + " the next, " + back + " back")
-        .accessibilityLabel(spoken)
+    }
+}
+
+struct ArrangeMenu: View {
+    let title: String
+    let options: [[String]] // [id, name]
+    let chosen: String
+    let key: String
+    let pick: (String) -> Void
+
+    private var name: String { options.first { $0.first == chosen }?.last ?? chosen }
+
+    var body: some View {
+        Menu {
+            ForEach(options, id: \.self) { option in
+                Button { pick(option.first ?? "") } label: {
+                    if option.first == chosen { Label(option.last ?? "", systemImage: "checkmark") } else { Text(option.last ?? "") }
+                }
+            }
+        } label: {
+            ArrangeChip(text: title + ": " + name + " ▾")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(title + " the papers (" + key + " the next)")
+        .accessibilityLabel(title + ": " + name)
+    }
+}
+
+struct ArrangeChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text).font(.caption.weight(.medium)).lineLimit(1)
+            .padding(.horizontal, 8).padding(.vertical, 2)
+            .background(Capsule().fill(Color.secondary.opacity(0.14)))
+            .foregroundStyle(.secondary)
     }
 }
 

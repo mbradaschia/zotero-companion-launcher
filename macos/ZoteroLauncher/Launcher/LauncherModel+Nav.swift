@@ -84,19 +84,75 @@ extension LauncherModel {
     }
 }
 
-// The results' sort, named above them: "By relevance", "↓ Newest published", "↑ Oldest added", "Grouped by paper
-// status"; "" where the papers aren't sorted (nothing typed at the top level, or not the results).
+// The results' Group, Sort and Order (view.json's group, sort, order), set from the three menus above them, g (the next
+// sort) and G (the next grouping).
+struct Arrangement: Decodable, Equatable {
+    var group: String // "" none, "status", "task", "taskgroup", "tax:<prefix>"
+    var sort: String // "relevance", "added", "modified", "year"
+    var order: String // "desc", "asc"
+}
+
+struct ArrangeOptions: Decodable {
+    let groups: [[String]] // [id, name]
+    let sorts: [[String]]
+}
+
 extension LauncherModel {
+    var arrangement: Arrangement {
+        (try? core?.glue("arrangement", [prefs?.values ?? [String: Any]()], as: Arrangement.self)) ?? Arrangement(group: "", sort: "relevance", order: "desc")
+    }
+
+    var arrangeOptions: ArrangeOptions {
+        (try? core?.glue("arrangeOptions", [tax.taxonomies], as: ArrangeOptions.self)) ?? ArrangeOptions(groups: [["", "None"]], sorts: [["relevance", "Relevance"]])
+    }
+
+    // Whether the papers are arranged: a scope or a query (the top level's recent papers aren't).
+    var arrangeable: Bool {
+        guard store.inSearch, let response else { return false }
+        return (response["scope"] is [String: Any]) || !((response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+    }
+
+    // The arrangement in words, as the three menus show it: "By relevance", "↓ Date added", "Paper status · ↑ Year
+    // published"; "" where the papers aren't arranged.
     var sortLabel: String {
-        guard store.inSearch, let core, let response else { return "" }
-        let groupable = (response["scope"] is [String: Any]) || !((response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
-        guard groupable else { return "" }
-        let mode = prefs?.values["grouping"] as? String ?? "relevance"
-        if mode == "relevance" { return "By relevance" }
-        let name = (try? core.glue("groupingName", [mode, tax.taxonomies], as: String.self)) ?? ""
-        let direction = (try? core.glue("groupingDirection", [mode], as: String.self)) ?? ""
-        guard !name.isEmpty else { return "By relevance" }
-        if direction.isEmpty { return "Grouped " + name }
-        return (direction == "asc" ? "↑ " : "↓ ") + name.prefix(1).uppercased() + name.dropFirst()
+        guard arrangeable, core != nil else { return "" }
+        let a = arrangement, o = arrangeOptions
+        let group = o.groups.first { $0.first == a.group }?.last ?? ""
+        let sort = a.sort == "relevance" ? "By relevance" : (a.order == "asc" ? "↑ " : "↓ ") + (o.sorts.first { $0.first == a.sort }?.last ?? a.sort)
+        return a.group.isEmpty ? sort : group + " · " + sort
+    }
+
+    func setGroup(_ id: String) { var a = arrangement; a.group = id; setArrangement(a) }
+    func setSort(_ id: String) { var a = arrangement; a.sort = id; setArrangement(a) }
+    func toggleOrder() { var a = arrangement; a.order = a.order == "asc" ? "desc" : "asc"; setArrangement(a) }
+
+    // g / G: the next sort, the next grouping (each wraps around).
+    func cycleSort(_ delta: Int) {
+        let ids = arrangeOptions.sorts.compactMap(\.first), i = ids.firstIndex(of: arrangement.sort) ?? 0
+        setSort(ids[((i + delta) % ids.count + ids.count) % ids.count])
+    }
+
+    func cycleGroup(_ delta: Int) {
+        let ids = arrangeOptions.groups.compactMap(\.first), i = ids.firstIndex(of: arrangement.group) ?? 0
+        setGroup(ids[((i + delta) % ids.count + ids.count) % ids.count])
+    }
+
+    // Kept in view.json (defaults left out); the older one-key grouping goes, as these three replace it.
+    func setArrangement(_ a: Arrangement) {
+        guard var prefs else { return }
+        saved {
+            try prefs.set("group", a.group.isEmpty ? nil : a.group)
+            try prefs.set("sort", a.sort == "relevance" ? nil : a.sort)
+            try prefs.set("order", a.order == "desc" ? nil : a.order)
+            try prefs.set("grouping", nil)
+            self.prefs = prefs
+        }
+        store.followTop = false
+        if store.inSearch { rebuildSearch() }
+        let now = arrangement, o = arrangeOptions
+        let group = now.group.isEmpty ? "" : ", grouped by " + (o.groups.first { $0.first == now.group }?.last ?? now.group).lowercased()
+        let newest = now.order == "desc" ? "newest first" : "oldest first"
+        let sort = now.sort == "relevance" ? "by relevance" : "by " + (o.sorts.first { $0.first == now.sort }?.last ?? now.sort).lowercased() + ", " + newest
+        flashMessage("Papers: " + sort + group + (arrangeable || !store.inSearch ? "" : " (once you search)"))
     }
 }

@@ -1,8 +1,8 @@
 import XCTest
 @testable import ZoteroLauncher
 
-// The results' sort, named above them (R4): relevance, a sort with its direction, or a grouping; g cycles it,
-// newest then oldest for each date.
+// The results' Group, Sort and Order (R4, split in 0.4.10): each named, g the next sort, G the next grouping, and
+// the older one-key grouping read, then replaced.
 @MainActor
 final class SortLabelTests: XCTestCase {
     private var home: URL!
@@ -29,18 +29,45 @@ final class SortLabelTests: XCTestCase {
         XCTAssertEqual(model.sortLabel, "", "the top level's recent papers aren't sorted")
     }
 
-    func testEachModeNamedWithItsDirection() {
+    func testGroupSortAndOrderEachNamed() {
         model.setFilter("work")
         settle()
         XCTAssertEqual(model.sortLabel, "By relevance")
-        model.cycleGrouping(1)
-        XCTAssertEqual(model.sortLabel, "Grouped by paper status")
-        // on to the dates: newest, then oldest
-        while !model.sortLabel.hasSuffix("added") { model.cycleGrouping(1) }
-        XCTAssertEqual(model.sortLabel, "↓ Newest added")
-        model.cycleGrouping(1)
-        XCTAssertEqual(model.sortLabel, "↑ Oldest added")
-        model.cycleGrouping(-1)
-        XCTAssertEqual(model.sortLabel, "↓ Newest added")
+        model.setGroup("status")
+        XCTAssertEqual(model.sortLabel, "Paper status · By relevance")
+        model.setSort("added")
+        XCTAssertEqual(model.sortLabel, "Paper status · ↓ Date added")
+        model.toggleOrder()
+        XCTAssertEqual(model.sortLabel, "Paper status · ↑ Date added")
+        XCTAssertEqual(model.flash, "Papers: by date added, oldest first, grouped by paper status")
+        model.setGroup("")
+        XCTAssertEqual(model.sortLabel, "↑ Date added")
+    }
+
+    func testGTheNextSortShiftGTheNextGrouping() {
+        model.setFilter("work")
+        settle()
+        model.cycleSort(1)
+        XCTAssertEqual(model.arrangement.sort, "added")
+        model.cycleSort(-1)
+        XCTAssertEqual(model.arrangement.sort, "relevance")
+        model.cycleSort(-1)
+        XCTAssertEqual(model.arrangement.sort, "year") // (it wraps)
+        model.cycleGroup(1)
+        XCTAssertEqual(model.arrangement.group, "status")
+    }
+
+    func testTheOlderOneKeyGroupingIsReadThenReplaced() throws {
+        let url = home.appendingPathComponent(".config/omarchy/oma-zotero-launcher/view.json")
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(#"{"grouping": "year:asc"}"#.utf8).write(to: url)
+        model.willShow()
+        XCTAssertEqual(model.arrangement, Arrangement(group: "", sort: "year", order: "asc"))
+        model.setGroup("task")
+        let view = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        XCTAssertNil(view["grouping"])
+        XCTAssertEqual(view["group"] as? String, "task")
+        XCTAssertEqual(view["sort"] as? String, "year")
+        XCTAssertEqual(view["order"] as? String, "asc")
     }
 }
