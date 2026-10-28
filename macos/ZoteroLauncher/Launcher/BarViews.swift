@@ -102,10 +102,11 @@ struct BreadcrumbBar: View {
 struct PinButton: View {
     let pinned: Bool
     let tap: () -> Void
+    @Environment(\.palette) private var palette
 
     var body: some View {
         Button(action: tap) {
-            Image(systemName: pinned ? "pin.fill" : "pin").font(.callout).foregroundStyle(pinned ? Color.accentColor : Color.secondary)
+            Image(systemName: pinned ? "pin.fill" : "pin").font(.callout).foregroundStyle(pinned ? palette.accent : palette.subtext)
                 .rotationEffect(.degrees(pinned ? 0 : 45)).frame(width: 20, height: 22).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -120,7 +121,7 @@ struct ReviewTableButton: View {
 
     var body: some View {
         Button(action: tap) {
-            Image(systemName: "tablecells").font(.callout).foregroundStyle(Color.secondary)
+            Image(systemName: "tablecells").font(.callout).foregroundStyle(.secondary)
                 .frame(width: 20, height: 22).contentShape(Rectangle())
         }
         .buttonStyle(.plain)

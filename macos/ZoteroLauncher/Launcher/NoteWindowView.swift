@@ -66,7 +66,8 @@ final class NoteWindows: NSObject, NSWindowDelegate {
                               backing: .buffered, defer: false)
         window.title = note["title"] as? String ?? "Note"
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: NoteWindowView(model: model))
+        window.contentView = NSHostingView(rootView: NoteWindowView(model: model).themed())
+        ThemeStore.shared.adopt(window)
         window.delegate = self
         window.center()
         model.close = { [weak window] in window?.close() }
@@ -109,6 +110,7 @@ struct WindowKeys: View {
     let title: String
     let group: String
     let launcher: LauncherModel
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let keys = (try? launcher.core?.glue("windowKeys", [group], as: [[String]].self)) ?? []
@@ -124,8 +126,8 @@ struct WindowKeys: View {
         }
         .padding(12)
         .frame(width: 400, alignment: .leading)
-        .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.secondary.opacity(0.25)))
+        .background(palette.background, in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(palette.subtext.opacity(0.25)))
         .accessibilityElement(children: .combine)
     }
 }

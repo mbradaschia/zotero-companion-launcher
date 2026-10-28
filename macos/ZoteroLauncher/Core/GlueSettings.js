@@ -182,6 +182,34 @@ function GlueSettings(V, C, T, P, S) {
         : "Off · the hotkey opens the overlay: over any app, even full screen, gone when you click away; W switches to a window" })]
   }
 
+  // Settings › General › Appearance on a Mac: the theme and light or dark, this Mac's own (x.theme: { id, mode, themes:
+  // [{ id, name, light, dark, swatch }] }, the app's list; none when it isn't given). Each opens its choices.
+  var THEME_MODES = [["system", "As the Mac · light or dark as System Settings › Appearance says"], ["light", "Light · always"], ["dark", "Dark · always"]]
+  function themeText(f) {
+    return f.light ? f.name + " · " + f.light + " when light, " + f.dark + " when dark" : f.name + " · the Mac's own colours and accent"
+  }
+  function themeRows(x) {
+    var t = x.theme
+    if (!t || !Array.isArray(t.themes) || !t.themes.length) return []
+    var cur = t.themes.filter(function (f) { return f.id === t.id })[0] || t.themes[0]
+    var mode = THEME_MODES.filter(function (m) { return m[0] === t.mode })[0] || THEME_MODES[0]
+    var badge = x.machineOnly ? "this machine" : ""
+    return [L({ section: "Appearance", rowId: "set-choice", value: "mac.theme", icon: S.ICON.general, label: "Theme", detail: themeText(cur), swatch: cur.swatch || "",
+      badge: badge, available: true, submenu: true }),
+      L({ section: "Appearance", rowId: "set-choice", value: "mac.themeMode", icon: S.ICON.general, label: "Light or dark", detail: mode[1], badge: badge, available: true, submenu: true })]
+  }
+  // Their choices: Enter picks one and goes back, as a setting's choice does.
+  function themeChoice(path, x) {
+    var t = x.theme
+    if (!t || !Array.isArray(t.themes)) return []
+    if (path === "mac.themeMode") return THEME_MODES.map(function (m) {
+      return L({ rowId: "set-opt", value: path, tag: m[0], label: m[1], showCheck: true, checked: m[0] === t.mode, available: true })
+    })
+    return t.themes.map(function (f) {
+      return L({ rowId: "set-opt", value: path, tag: f.id, label: themeText(f), swatch: f.swatch || "", showCheck: true, checked: f.id === t.id, available: true })
+    })
+  }
+
   // Defaults with the Mac's rows: When the app opens after Bring papers up to date, Processes last.
   function defaultsRows(state, L) {
     var rows = S.buildDefaults(state, L)
@@ -259,11 +287,11 @@ function GlueSettings(V, C, T, P, S) {
     var state = settingsState(settings, ctx)
     var ps = state.settings.paperStatuses || []
     if (name === "") return macSetup(S.buildRoot(state, L), state.runner)
-    if (name === "general") return windowRows(x).concat(S.buildGeneral(Object.assign({}, state, { machineOnly: x.machineOnly || null }), L))
+    if (name === "general") return windowRows(x).concat(themeRows(x), S.buildGeneral(Object.assign({}, state, { machineOnly: x.machineOnly || null }), L))
     if (name === "paper-status") return S.buildPaperStatusSettings(ps, L).concat([L({ section: "In Zotero", rowId: "pstatus-migrate", icon: "",
       label: "Move the status tags to " + C.PAPER_TAG_PREFIX + "…", detail: "Papers tagged “" + (ps[0] || "reading") + "” before the prefix get “" + C.statusTag(ps[0] || "reading") + "”, and so on", available: ps.length > 0 })])
     if (name === "styles") return S.buildStylePicker(state, L)
-    if (name === "choice") return S.buildChoice(state, x.choice, L)
+    if (name === "choice") return /^mac\.theme/.test(x.choice || "") ? themeChoice(x.choice, x) : S.buildChoice(state, x.choice, L)
     if (name === "providers") return S.buildProviders(state, L)
     if (name === "provider") return S.buildProvider(state, x.provider, L)
     if (name === "models") return S.buildModelPicker(state, x.modelsPath, L, x.only || "")
@@ -336,11 +364,13 @@ function GlueSettings(V, C, T, P, S) {
       if (name === "edit") return taxonomyEditRows(x.edit, x.filter || "") || S.buildEditRows(x.edit, x.filter || "", L)
       return V.filterRows(macWords(page(name, settings, ctx, x)).map(function (r) { return tilde(r, x.home) }), x.filter || "")
     },
-    // Every row of the pages above, as the results' Go to and a menu's Settings rows find them.
-    settingsIndex: function (settings, ctx, todos) {
+    // Every row of the pages above, as the results' Go to and a menu's Settings rows find them (mac: this Mac's own
+    // rows' values, { theme }, when given).
+    settingsIndex: function (settings, ctx, todos, mac) {
       var out = []
+      var m = mac || {}
       INDEXED.forEach(function (p) {
-        macWords(page(p[0], settings, ctx, { todos: todos })).forEach(function (r) {
+        macWords(page(p[0], settings, ctx, { todos: todos, theme: m.theme })).forEach(function (r) {
           if (!r.label || (r.rowId === "set-info" && !r.available)) return
           var nav = r.rowId === "set-nav"
           out.push({ page: nav ? r.value : p[0], pageTitle: nav ? r.label : p[1], label: r.label, detail: r.detail, section: r.section, rowId: nav ? "" : r.rowId, value: nav ? "" : r.value })

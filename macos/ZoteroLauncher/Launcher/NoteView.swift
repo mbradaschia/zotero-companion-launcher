@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import WebKit
 
@@ -17,10 +18,10 @@ struct NoteView: NSViewRepresentable {
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'">
         <style>
         :root { color-scheme: light dark; }
-        body { font: \(size)px -apple-system, "SF Pro Text", sans-serif; margin: 14px 18px; color: CanvasText; background: transparent;
+        body { font: \(size)px -apple-system, "SF Pro Text", sans-serif; margin: 14px 18px; color: var(--zl-text, CanvasText); background: transparent;
                -webkit-user-select: text; }
-        a { color: AccentColor; }
-        table { border-collapse: collapse; } td, th { border: 1px solid GrayText; padding: 4px 6px; }
+        a { color: var(--zl-accent, AccentColor); }
+        table { border-collapse: collapse; } td, th { border: 1px solid var(--zl-line, GrayText); padding: 4px 6px; }
         img { max-width: 100%; }
         </style></head><body>\(body)</body></html>
         """
@@ -37,6 +38,7 @@ struct NoteView: NSViewRepresentable {
         view.allowsLinkPreview = false // a force-click preview would load the page outside the policy below
         view.navigationDelegate = context.coordinator
         context.coordinator.view = view
+        context.coordinator.watchTheme()
         display(context.coordinator)
         return view
     }
@@ -46,7 +48,7 @@ struct NoteView: NSViewRepresentable {
         let page = Self.page(html, size: size)
         if context.coordinator.loaded != page {
             context.coordinator.loaded = page
-            view.loadHTMLString(page, baseURL: nil)
+            view.loadHTMLString(ThemeStyle.page(page, ThemeStore.shared.palette.pageCSS), baseURL: nil)
         }
     }
 
@@ -55,9 +57,17 @@ struct NoteView: NSViewRepresentable {
         weak var view: WKWebView?
         var loaded = ""
         var onLink: (URL) -> Void
+        private var theme: AnyCancellable?
 
         init(onLink: @escaping (URL) -> Void) {
             self.onLink = onLink
+        }
+
+        // Settings › General › Theme changed: the page's colours, in place (where you were reading stays).
+        func watchTheme() {
+            theme = ThemeStore.shared.$palette.dropFirst().sink { [weak self] palette in
+                MainActor.assumeIsolated { self?.run(ThemeStyle.script(palette.pageCSS)) }
+            }
         }
 
         func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {

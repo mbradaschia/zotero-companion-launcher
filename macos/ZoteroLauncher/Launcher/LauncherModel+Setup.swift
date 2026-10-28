@@ -105,7 +105,7 @@ extension LauncherModel {
     // Every row of the pages the Mac has, for Go to and a menu's Settings rows.
     var settingsIndex: RawJSON {
         if let index = runnerState.index { return index }
-        let index = (try? core?.glueJSON("settingsIndex", [settingsJSON, settingsContext, todoList])).map { RawJSON(text: $0) } ?? RawJSON(text: "[]")
+        let index = (try? core?.glueJSON("settingsIndex", [settingsJSON, settingsContext, todoList, ["theme": themeSettings]])).map { RawJSON(text: $0) } ?? RawJSON(text: "[]")
         runnerState.index = index
         return index
     }
