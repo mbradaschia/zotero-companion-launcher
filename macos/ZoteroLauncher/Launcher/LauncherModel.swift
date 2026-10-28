@@ -38,7 +38,16 @@ final class LauncherModel: ObservableObject {
     @Published var openAsWindow = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLOpenAsWindow") {
         didSet {
             if !Self.underTests { UserDefaults.standard.set(openAsWindow, forKey: "ZLOpenAsWindow") }
+            runnerState.index = nil // (the search says it as it is now)
             if opened && store.view == "settings-general" { store.followTop = false; rebuildList() } // (also from the app's Settings window)
+        }
+    }
+    // Settings › General › In the Dock and ⌘Tab (this Mac's): on (the default), a regular app's icon; off, the menu bar's only.
+    @Published var showInDock = LauncherModel.underTests ? true : DockPresence.kept {
+        didSet {
+            if !Self.underTests { DockPresence.keep(showInDock) }
+            runnerState.index = nil
+            if opened && store.view == "settings-general" { store.followTop = false; rebuildList() }
         }
     }
     static let underTests = NSClassFromString("XCTestCase") != nil
@@ -148,6 +157,7 @@ final class LauncherModel: ObservableObject {
         }
         self.store.levelChanged = { [weak self] in self?.lastError = "" } // as pushView and back do
         self.store.crumbName = { [weak self] in self?.crumbTitle(current: false) ?? "" }
+        self.store.selectionChanged = { [weak self] in self?.previewTheme() }
     }
 
     var searchRows: [SearchRow] { if case .search(let rows) = content { return rows } else { return [] } }
@@ -203,6 +213,7 @@ final class LauncherModel: ObservableObject {
             rebuildList()
         }
         presentLaunchAsk() // the catch-up's question, found while the launcher was closed
+        previewTheme() // (back on a theme's list: the row you're on)
     }
 
     // The app started (AppDelegate): the files read, so the background automation runs from now on (not only once the
@@ -227,6 +238,7 @@ final class LauncherModel: ObservableObject {
     // The launcher is hidden (dismissed, or it lost the keys): nothing waits to act.
     func didHide() {
         opened = false
+        ThemeStore.shared.endPreview() // (a theme browsed, not chosen)
         keyTimer?.invalidate()
         store.keys.clear()
         quickAction = ""

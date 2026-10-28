@@ -118,6 +118,54 @@ final class ThemeTests: XCTestCase {
         XCTAssertEqual(model.listRows.first { $0.value == "mac.themeMode" }?.detail, "Dark · always")
     }
 
+    // Browsing the themes shows each at once; ↵ keeps the one you're on, esc or ⌫ (or closing the launcher) puts back yours.
+    func testBrowsingTheThemesPreviewsThem() throws {
+        let theme = ThemeStore.shared
+        model.openSettings("general")
+        func open(_ path: String) throws {
+            model.store.selectedIndex = try XCTUnwrap(model.listRows.firstIndex { $0.value == path && $0.rowId == "set-choice" })
+            model.execute(.activate)
+            XCTAssertEqual(model.store.view, "settings-choice")
+        }
+        func browse(to tag: String) throws { model.store.selectedIndex = try XCTUnwrap(model.listRows.firstIndex { $0.tag == tag }) }
+
+        try open("mac.theme")
+        XCTAssertFalse(theme.previewing, "on the one you have")
+        try browse(to: "nord")
+        XCTAssertEqual(theme.family.id, "nord", "drawn in it, no ↵ needed")
+        XCTAssertEqual(theme.chosen.id, "default", "not kept")
+        XCTAssertEqual(model.listRows.first { $0.checked }?.tag, "default", "the check stays on yours")
+        model.handle(KeyEvent(key: .down, text: ""))
+        XCTAssertEqual(theme.family.id, model.selectedListRow?.tag, "the arrows preview too")
+        XCTAssertTrue(model.handle(KeyEvent(key: .escape, text: "")))
+        XCTAssertEqual(model.store.view, "settings-general")
+        XCTAssertEqual(theme.family.id, "default", "esc puts yours back")
+
+        try open("mac.theme")
+        try browse(to: "dracula")
+        XCTAssertTrue(model.handle(KeyEvent(key: .backspace, text: "")))
+        XCTAssertEqual(model.store.view, "settings-general")
+        XCTAssertEqual(theme.family.id, "default", "⌫ too")
+
+        try open("mac.theme")
+        try browse(to: "gruvbox")
+        model.didHide()
+        XCTAssertEqual(theme.family.id, "default", "and closing the launcher")
+        model.willShow()
+        XCTAssertEqual(theme.family.id, "gruvbox", "back on the list: the row you're on again")
+        model.execute(.activate)
+        XCTAssertEqual(theme.chosen.id, "gruvbox", "↵ keeps it")
+        XCTAssertFalse(theme.previewing)
+        XCTAssertEqual(model.store.view, "settings-general")
+
+        try open("mac.themeMode")
+        try browse(to: "dark")
+        XCTAssertEqual(theme.mode, .dark)
+        XCTAssertEqual(theme.chosenMode, .system)
+        XCTAssertTrue(model.handle(KeyEvent(key: .escape, text: "")))
+        XCTAssertEqual(theme.mode, .system, "light or dark previews the same way")
+    }
+
     // The launcher draws in a theme, light and dark (its rows, the search box, a selected row on the accent).
     func testTheLauncherDrawsInATheme() throws {
         ThemeStore.shared.setFamily("dracula")
@@ -133,6 +181,22 @@ final class ThemeTests: XCTestCase {
             view.cacheDisplay(in: view.bounds, to: rep)
             XCTAssertGreaterThan(try XCTUnwrap(rep.representation(using: .png, properties: [:])).count, 1000)
         }
+    }
+
+    // Settings › General › In the Dock and ⌘Tab: this Mac's switch, on until turned off.
+    func testTheDockSwitch() throws {
+        model.openSettings("general")
+        let i = try XCTUnwrap(model.listRows.firstIndex { $0.value == "mac.dock" })
+        XCTAssertEqual(model.listRows[i].section, "The launcher")
+        XCTAssertTrue(model.listRows[i].checked, "on by default")
+        XCTAssertTrue(model.listRows[i].detail.hasPrefix("On · the app has a Dock icon"), model.listRows[i].detail)
+        model.store.selectedIndex = i
+        model.execute(.activate)
+        XCTAssertFalse(model.showInDock)
+        let off = try XCTUnwrap(model.listRows.first { $0.value == "mac.dock" })
+        XCTAssertFalse(off.checked)
+        XCTAssertTrue(off.detail.hasPrefix("Off · only the menu bar's icon"), off.detail)
+        XCTAssertTrue(model.settingsIndex.text.contains("\"value\":\"mac.dock\""), "the search finds it")
     }
 
     func testTheSearchFindsTheTheme() {
