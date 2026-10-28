@@ -30,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Icons.registerBundledFonts()
+        ThemeStore.shared.applyAppearance() // Settings › General › Light or dark, as it was left
         KeyboardShortcuts.onKeyUp(for: .toggleLauncher) { [weak self] in
             MainActor.assumeIsolated { self?.launcher.toggle() }
         }

@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import WebKit
 
@@ -15,23 +16,23 @@ struct ChatWebView: NSViewRepresentable {
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
     <style>
     :root { color-scheme: light dark; }
-    body { font: 14px -apple-system, "SF Pro Text", sans-serif; margin: 14px 22px 22px; color: CanvasText; background: transparent; -webkit-user-select: text; line-height: 1.45; }
-    a { color: AccentColor; }
+    body { font: 14px -apple-system, "SF Pro Text", sans-serif; margin: 14px 22px 22px; color: var(--zl-text, CanvasText); background: transparent; -webkit-user-select: text; line-height: 1.45; }
+    a { color: var(--zl-accent, AccentColor); }
     .empty { text-align: center; opacity: 0.55; max-width: 34em; margin: 1.2em auto; }
     .msg { margin: 14px 0; }
     .user { display: flex; justify-content: flex-end; }
-    .bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, AccentColor 14%, transparent); color: CanvasText; }
+    .bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--zl-accent, AccentColor) 14%, transparent); color: var(--zl-text, CanvasText); }
     .assistant { max-width: 100%; }
     .assistant.failed { opacity: 0.75; }
     .note { text-align: center; opacity: 0.6; font-size: 13px; }
     .status { opacity: 0.55; font-style: italic; }
     .info { opacity: 0.55; font-size: 12px; margin: 4px 0; }
-    .info.warn { opacity: 0.9; color: AccentColor; }
+    .info.warn { opacity: 0.9; color: var(--zl-accent, AccentColor); }
     .acts { font-size: 12px; opacity: 0.7; margin: 2px 0 0; }
     pre, code { font: 12.5px ui-monospace, "SF Mono", monospace; }
-    pre { padding: 8px 10px; border-radius: 6px; background: color-mix(in srgb, CanvasText 6%, transparent); overflow-x: auto; }
-    blockquote { margin-left: 0; padding-left: 12px; border-left: 3px solid color-mix(in srgb, CanvasText 25%, transparent); }
-    table { border-collapse: collapse; } td, th { border: 1px solid GrayText; padding: 4px 6px; }
+    pre { padding: 8px 10px; border-radius: 6px; background: color-mix(in srgb, var(--zl-text, CanvasText) 6%, transparent); overflow-x: auto; }
+    blockquote { margin-left: 0; padding-left: 12px; border-left: 3px solid color-mix(in srgb, var(--zl-text, CanvasText) 25%, transparent); }
+    table { border-collapse: collapse; } td, th { border: 1px solid var(--zl-line, GrayText); padding: 4px 6px; }
     </style></head><body></body></html>
     """
 
@@ -46,7 +47,8 @@ struct ChatWebView: NSViewRepresentable {
         view.allowsLinkPreview = false
         view.navigationDelegate = context.coordinator
         context.coordinator.view = view
-        view.loadHTMLString(Self.shell, baseURL: nil)
+        context.coordinator.watchTheme()
+        view.loadHTMLString(ThemeStyle.page(Self.shell, ThemeStore.shared.palette.pageCSS), baseURL: nil)
         return view
     }
 
@@ -62,8 +64,16 @@ struct ChatWebView: NSViewRepresentable {
         private var ready = false
         private var shown: String?
         private var waiting: String?
+        private var theme: AnyCancellable?
 
         init(onLink: @escaping (URL) -> Void) { self.onLink = onLink }
+
+        // Settings › General › Theme changed: the page's colours, in place.
+        func watchTheme() {
+            theme = ThemeStore.shared.$palette.dropFirst().sink { [weak self] palette in
+                MainActor.assumeIsolated { self?.view?.evaluateJavaScript(ThemeStyle.script(palette.pageCSS), in: nil, in: .defaultClient) { _ in } }
+            }
+        }
 
         func show(_ body: String) {
             guard body != shown else { return }
@@ -81,7 +91,7 @@ struct ChatWebView: NSViewRepresentable {
             ready = false
             if waiting == nil { waiting = shown }
             shown = nil
-            webView.loadHTMLString(ChatWebView.shell, baseURL: nil)
+            webView.loadHTMLString(ThemeStyle.page(ChatWebView.shell, ThemeStore.shared.palette.pageCSS), baseURL: nil)
         }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

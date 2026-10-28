@@ -25,6 +25,7 @@ struct StyledTextField: NSViewRepresentable {
     var segments: (String, Int) -> [TextSegment] // text, caret
     var onEdit: (String, Int) -> Void // text, caretBack
     var onCaret: (Int) -> Void // caretBack
+    @Environment(\.palette) var palette
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -59,6 +60,8 @@ struct StyledTextField: NSViewRepresentable {
     func updateNSView(_ field: NSTextField, context: Context) {
         let c = context.coordinator
         c.parent = self
+        c.palette = palette
+        field.textColor = palette.ns.text
         field.placeholderString = placeholder
         field.setAccessibilityLabel(placeholder) // what the box searches, or what you type there
         if field.stringValue != text {
@@ -94,8 +97,9 @@ struct StyledTextField: NSViewRepresentable {
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: StyledTextField
         var applying = false // the model's text going in: not an edit to report
+        var palette = Palette.system // (the theme's colours, as the view last had them)
         private var watched: NSTextView?
-        private var tinted: (text: String, caret: Int, live: Bool)? // what the colours were made for
+        private var tinted: (text: String, caret: Int, live: Bool, theme: String)? // what the colours were made for
 
         init(_ parent: StyledTextField) {
             self.parent = parent
@@ -132,8 +136,8 @@ struct StyledTextField: NSViewRepresentable {
 
         // Coloured again only when the text or the caret moved (each costs a call into the JS).
         func tintIfChanged(_ field: NSTextField) {
-            let now = (text: field.stringValue, caret: parent.caretBack, live: parent.live)
-            if let t = tinted, t.text == now.text, t.caret == now.caret, t.live == now.live { return }
+            let now = (text: field.stringValue, caret: parent.caretBack, live: parent.live, theme: palette.family.id)
+            if let t = tinted, t.text == now.text, t.caret == now.caret, t.live == now.live, t.theme == now.theme { return }
             tint(field)
         }
 
@@ -160,38 +164,39 @@ struct StyledTextField: NSViewRepresentable {
             let text = field.stringValue
             let caret = max(0, (text as NSString).length - parent.caretBack)
             let runs = parent.segments(text, caret)
-            tinted = (text, parent.caretBack, parent.live)
-            let base: [NSAttributedString.Key: Any] = [.font: parent.font, .foregroundColor: NSColor.labelColor]
+            tinted = (text, parent.caretBack, parent.live, palette.family.id)
+            let base: [NSAttributedString.Key: Any] = [.font: parent.font, .foregroundColor: palette.ns.text]
             if let editor = field.currentEditor() as? NSTextView, let storage = editor.textStorage {
                 guard !editor.hasMarkedText() else { return }
+                editor.insertionPointColor = palette.ns.text
                 let selection = editor.selectedRanges
                 storage.beginEditing()
                 storage.setAttributes(base, range: NSRange(location: 0, length: storage.length))
-                for run in runs { Self.apply(run, to: storage) }
+                for run in runs { Self.apply(run, to: storage, palette) }
                 storage.endEditing()
                 editor.selectedRanges = selection
                 editor.typingAttributes = base
             } else {
                 let out = NSMutableAttributedString(string: text, attributes: base)
-                for run in runs { Self.apply(run, to: out) }
+                for run in runs { Self.apply(run, to: out, palette) }
                 field.attributedStringValue = out
             }
         }
 
-        // The roles lib/Views.js's querySegments and lib/Todos.js's taskSegments give.
-        static func color(_ role: String) -> NSColor? {
+        // The roles lib/Views.js's querySegments and lib/Todos.js's taskSegments give, in the theme's colours.
+        static func color(_ role: String, _ palette: Palette = .system) -> NSColor? {
             switch role {
             case "": return nil
-            case "op": return .systemOrange
-            case "neg": return .systemRed
-            case "quote": return .systemGreen
-            case "paren": return .secondaryLabelColor
-            default: return .controlAccentColor // a field, a status, a due date, …
+            case "op": return palette.ns.orange
+            case "neg": return palette.ns.red
+            case "quote": return palette.ns.green
+            case "paren": return palette.ns.subtext
+            default: return palette.ns.accent // a field, a status, a due date, …
             }
         }
 
-        static func apply(_ run: TextSegment, to text: NSMutableAttributedString) {
-            guard run.end > run.start, run.start >= 0, run.end <= text.length, let color = color(run.role) else { return }
+        static func apply(_ run: TextSegment, to text: NSMutableAttributedString, _ palette: Palette = .system) {
+            guard run.end > run.start, run.start >= 0, run.end <= text.length, let color = color(run.role, palette) else { return }
             let range = NSRange(location: run.start, length: run.end - run.start)
             text.addAttribute(.foregroundColor, value: color, range: range)
             if run.block { text.addAttribute(.backgroundColor, value: color.withAlphaComponent(0.16), range: range) }

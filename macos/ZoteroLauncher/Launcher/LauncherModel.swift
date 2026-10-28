@@ -356,12 +356,8 @@ final class LauncherModel: ObservableObject {
         return store.view
     }
 
-    // The highlight color for matches: the system accent, as lib/Views.js wants it ("#rrggbb").
-    static var accentHex: String {
-        guard let color = NSColor.controlAccentColor.usingColorSpace(.sRGB) else { return "#0a84ff" }
-        let r = Int((color.redComponent * 255).rounded()), g = Int((color.greenComponent * 255).rounded()), b = Int((color.blueComponent * 255).rounded())
-        return String(format: "#%02x%02x%02x", r, g, b)
-    }
+    // The highlight color for matches: the theme's accent (Default's: the system's), as lib/Views.js wants it ("#rrggbb").
+    static var accentHex: String { ThemeStore.shared.palette.accentHex }
 
     // ---- the single-key wait
 
