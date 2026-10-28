@@ -13,6 +13,16 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.16`)
+
+- **An AI column ticked in the Columns menu shows its answers at once**: the ones another table's run made for these
+  papers. It used to come in empty until the table was drawn again, so *Run…* counted every cell as not run.
+- **A run doesn't redo a cell that has an answer already.** If the table showed a cell as not run but the column's
+  file has an up-to-date answer (or yours) for it, Run leaves it, shows it, and says how many it left. *Run it again*
+  and *Run…* with *up to date ones too* still run what you asked.
+- **Esc or a click puts away a cell's whole text**; selecting the cell again brings it back. A click on it over
+  another cell selects that cell.
+
 ### The Mac app (`macos-v0.4.15`)
 
 - **An icon of its own**, in the Dock, ⌘Tab and Finder: a shelf of books and a magnifier.

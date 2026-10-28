@@ -127,10 +127,14 @@ final class ReviewWindowModel: ObservableObject {
 
     // ---- the page
 
+    private func columnIds(_ review: [String: Any]?) -> [String] {
+        (review?["columns"] as? [[String: Any]] ?? []).compactMap { $0["id"] as? String }
+    }
+
     func send() {
         guard ready, let page, let core = launcher.core, let review else { return }
         let defs = files?.columns(core) ?? [:]
-        let ids = (review["columns"] as? [[String: Any]] ?? []).compactMap { $0["id"] as? String }
+        let ids = columnIds(review)
         page.load([
             "review": review,
             "columns": defs,
@@ -152,7 +156,11 @@ final class ReviewWindowModel: ObservableObject {
         switch m["type"] as? String ?? "" {
         case "ready": ready = true; send()
         case "refresh": reload(); search()
-        case "layout": if let l = m["review"] as? [String: Any] { change { r in for k in ["columns", "sort", "group", "lines", "panel"] { if let v = l[k] { r[k] = v } } } }
+        case "layout":
+            guard let l = m["review"] as? [String: Any] else { return }
+            let had = Set(columnIds(review))
+            change { r in for k in ["columns", "sort", "group", "lines", "panel"] { if let v = l[k] { r[k] = v } } }
+            if !Set(columnIds(review)).isSubset(of: had) { send() } // a column added from Columns: its cells (other tables' answers too)
         case "rename":
             if let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty { change { $0["name"] = n } }
         case "source":
@@ -269,11 +277,15 @@ final class ReviewWindowModel: ObservableObject {
         guard let core = launcher.core, let files, let review else { return }
         if launcher.syncFolderGone || files.readOnly { return refused("Not run: " + launcher.syncFolderAway) } // (the cells are in the sync folder)
         if runTask != nil { return refused("This table's AI run is still going: it's in Processes (Stop all stops it)") }
-        let job = (try? core.glueJSON("reviewRunJob", [review, files.columns(core), launcher.reviewContext(), jobs])).flatMap(ReviewFiles.object) ?? ["error": "Couldn't make the run"]
-        if let e = job["error"] as? String { return refused(e) }
+        let asked = Array(Set(jobs.compactMap { $0["column"] as? String })).sorted()
+        let job = (try? core.glueJSON("reviewRunJob", [review, files.columns(core), launcher.reviewContext(), jobs, files.cells(asked, core)])).flatMap(ReviewFiles.object) ?? ["error": "Couldn't make the run"]
+        if let e = job["error"] as? String { return refused(e) } // (refused draws the table again: the answers it hadn't shown too)
+        let skipped = job["skipped"] as? Int ?? 0
         guard let data = try? JSONSerialization.data(withJSONObject: job), let stdin = String(data: data, encoding: .utf8) else { return }
         let n = (job["jobs"] as? [Any])?.count ?? 0
-        page?.flash("Running \(n) \(n == 1 ? "cell" : "cells"): they fill in as each paper is done (Processes has the run)")
+        if skipped > 0 { send() } // (the answers the table hadn't shown)
+        page?.flash("Running \(n) \(n == 1 ? "cell" : "cells"): they fill in as each paper is done (Processes has the run)"
+                    + (skipped > 0 ? "; \(skipped) had an answer already, left as \(skipped == 1 ? "it is" : "they are")" : ""))
         launcher.tasksSoon()
         launcher.runRunner(["review-run"], stdin: stdin, timeout: 3 * 3600, quiet: false) { [weak self] r in
             guard let self else { return }

@@ -235,6 +235,16 @@ if (pkb.y + pkb.height > below.y + 4) {
   await pg.mouse.click(below.x + 10, below.y + below.height / 2);
   ok((await pg.getAttribute(cell("BBBBBBBB", "title"), "class")).includes("active"), "a click on it over the cell below selects that cell");
 }
+await pg.click(cell("AAAAAAAA", "title"), { force: true });
+ok((await pg.locator("#peek").count()) === 1, "back on the long cell: its whole text again");
+await pg.keyboard.press("Escape");
+ok(!(await pg.locator("#peek").count()) && (await pg.getAttribute(cell("AAAAAAAA", "title"), "class")).includes("active"), "esc puts it away, the cell still selected");
+await pg.keyboard.press("ArrowDown");
+await pg.keyboard.press("ArrowUp");
+ok((await pg.locator("#peek").count()) === 1, "and it's back when the cell is selected again");
+const pkt = await pg.locator("#peek").boundingBox(), own = await pg.locator(cell("AAAAAAAA", "title")).boundingBox();
+await pg.mouse.click(pkt.x + 20, own.y + Math.min(own.height, pkt.height) / 2);
+ok(!(await pg.locator("#peek").count()), "a click on it, over its own cell, puts it away too");
 await pg.evaluate((d) => RT.load(d), data);
 await sent();
 
