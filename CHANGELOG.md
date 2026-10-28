@@ -13,6 +13,12 @@ bridge and the prompt runner share one version.
   The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
   both names (the same file).
 
+### The Mac app (`macos-v0.4.10`)
+
+- **The review table is easier to find.** The results' footer hints ⌘T table wherever the keys are (the search box or
+  the list), early enough that a narrow launcher keeps it, and a table button beside the pin opens the results as a
+  review table, as ⌘T does.
+
 ### The Mac app (`macos-v0.4.7`)
 
 - **One catch-up row while one runs.** Settings › Defaults › Bring papers up to date showed the running catch-up and,

@@ -156,12 +156,15 @@ extension LauncherModel {
         if let k = cur?.kind, Self.goToPlaces.contains(k) { return ["↵ open", row] + places + slash + back }
         let badges: [String] = store.atRoot && !pinnedSearches.isEmpty ? ["tab next search"] : []
         let searchKeys: [String] = ["@ filters"] + badges + [K("s") + " save search"]
-        if !(settings?.values.accelerators ?? true) { return ["↵ menu", "⇧↵ zotero"] + searchKeys + slash + places + back }
+        // ⌘T: what the results list, as a review table (early, so a narrow footer keeps it)
+        let table = "⌘T table"
+        if !(settings?.values.accelerators ?? true) { return ["↵ menu", "⇧↵ zotero", table] + searchKeys + slash + places + back }
         var menu: [String] = ["↵ menu"]
         if cur?.kind == "item" {
             menu += ["⌥→← status", "⇧⌥→← task"]
             if (cur?.noteCount ?? 0) > 0 { menu.append("space notes") }
         }
+        menu.append(table)
         if cur?.section == "Pinned" { menu.append("⇧↑↓ reorder") }
         let letters: [String] = [row, "⇧↵ " + K("z") + " zotero", K("o") + "/" + K("w") + " pdf", K("n") + " notes", K("#") + " tags", K("p") + " pin",
                                  K("l") + " library", K("i") + "/" + K("r") + " cite", K("g") + " sort"]

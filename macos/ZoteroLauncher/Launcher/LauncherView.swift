@@ -51,6 +51,7 @@ struct LauncherView: View {
                                 onEdit: { model.typed($0, caretBack: $1) }, onCaret: { store.caretBack = $0 })
                     .id(model.shown) // each opening: the field takes the keys again if it should
                 Text(model.countText).font(.callout).foregroundStyle(.secondary)
+                if store.inSearch && store.pickFor.isEmpty { ReviewTableButton { model.openReviewHere() } } // (⌘T)
                 PinButton(pinned: model.pinnedOpen) { model.pinnedOpen.toggle() }
             }
             .padding(.horizontal, 16)
