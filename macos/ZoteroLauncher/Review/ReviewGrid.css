@@ -157,7 +157,7 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .keys dd { margin: 0; color: var(--muted); }
 
 /* AI columns (phase 11b): a cell's state, relevance's band, the panel's probabilities and evidence, + Column's form, Run… */
-.grid th .hl.ai::before { content: "✦ "; color: var(--accent); font-weight: 400; }
+.grid th .hl .ic-ai { width: 11px; height: 11px; margin: 0 3px -1px 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } /* (an AI column: its sparkle, as its row in Columns) */
 .cv .smark { font-size: 10.5px; margin-right: 4px; }
 .cv.st-prompt .smark, .cv.st-paper .smark { color: var(--amber); }
 .cv.st-prompt, .cv.st-paper { color: var(--amber); }
@@ -208,3 +208,23 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .pop .ph.grp { text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px; padding-top: 8px; }
 .foot input.find { font: inherit; width: min(320px, 50%); padding: 1px 6px; border: 1px solid var(--accent); border-radius: 5px; background: var(--win); color: var(--ink); outline: none; }
 .grid th.narrow .hmenu { display: none; } .grid th.narrow:hover .hmenu { display: inline-block; }
+
+/* Columns: one list (the shown ones in the table's order, a handle to drag each; then the others), each row its kind's icon */
+.pop .crow { justify-content: flex-start; gap: 4px; padding: 2px 6px 2px 2px; }
+.pop .crow label { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.pop .crow .cl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop .crow .ic { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pop .crow .grip { display: inline-flex; width: 16px; flex: none; justify-content: center; color: var(--faint); cursor: grab; touch-action: none; }
+.pop .crow .grip.none { cursor: default; }
+.pop .crow .grip .ic { width: 13px; height: 13px; stroke-width: 2; }
+.pop .crow:hover .grip { color: inherit; }
+.pop .crow.dragging { opacity: .45; }
+.pop .crow.dropT { box-shadow: inset 0 3px 0 var(--accent); } .pop .crow.dropB { box-shadow: inset 0 -3px 0 var(--accent); }
+
+/* The panel's notes: one row each, a click opens it in its own window */
+.panel .notes { display: flex; flex-direction: column; gap: 2px; }
+.panel button.note { display: flex; align-items: baseline; gap: 6px; width: 100%; padding: 4px 6px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; font: inherit; font-size: 12px; cursor: default; }
+.panel button.note:hover, .panel button.note:focus-visible { border-color: var(--line); background: var(--win); }
+.panel button.note .ic { width: 12px; height: 12px; flex: none; align-self: center; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.panel button.note .nt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.panel button.note small { color: var(--faint); font-size: 11px; white-space: nowrap; }

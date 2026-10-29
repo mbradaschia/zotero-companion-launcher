@@ -24,6 +24,7 @@ enum Icons {
         "group": "rectangle.3.group", "sort": "arrow.up.arrow.down", "asc": "arrow.up", "desc": "arrow.down",
         "lines": "text.alignleft", "columns": "rectangle.split.3x1", "addcol": "rectangle.badge.plus", "export": "square.and.arrow.up",
         "panel": "sidebar.right", "refresh": "arrow.clockwise", "pin": "pin", "run": "play",
+        "ai": "sparkles", "grip": "line.3.horizontal", "note": "note.text",
     ]
 
     // An SF Symbol for a list row, by what it does.

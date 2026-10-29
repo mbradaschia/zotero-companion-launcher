@@ -164,6 +164,8 @@ final class ReviewTests: XCTestCase {
         var zooms: [Double] = []
         func drafted(_ out: [String: Any]) { drafts.append(out) }
         func zoom(_ z: Double) { zooms.append(z) }
+        var notes: [(paper: String, out: [String: Any])] = []
+        func notes(_ paper: String, _ out: [String: Any]) { notes.append((paper, out)) }
     }
 
     private func openWindow() throws -> (ReviewWindowModel, FakePage) {
@@ -235,6 +237,27 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(model.actionItem?.key, "P3NM4G92", "on the paper's menu")
         window.handle(["type": "paper", "what": "external", "paper": ["key": "", "libraryID": 1]])
         XCTAssertEqual(shown, 1, "no paper, nothing")
+    }
+
+    // The panel's notes: the paper's own (not its extracted text), asked of the bridge; a click opens one in its window.
+    func testThePanelListsThePapersNotesAndAClickOpensOneInItsWindow() throws {
+        bridge.answers["/item"] = { _ in .ok(Fixture.bridge("item")) }
+        let (window, page) = try openWindow()
+        window.handle(["type": "notes", "paper": ["key": "P3NM4G92", "libraryID": 1]])
+        XCTAssertEqual(bridge.bodies("/item").last?["key"] as? String, "P3NM4G92")
+        let got = try XCTUnwrap(page.notes.last)
+        XCTAssertEqual(got.paper, "1:P3NM4G92")
+        XCTAssertEqual((got.out["notes"] as? [[String: Any]])?.compactMap { $0["key"] as? String }, ["JJ8XY5CM", "95IYVEX3", "SVSWPE6S"], "the extracted text isn't one")
+        bridge.answers["/item"] = { _ in .zoteroDown }
+        window.handle(["type": "notes", "paper": ["key": "P3NM4G92", "libraryID": 1]])
+        XCTAssertNotNil(page.notes.last?.out["error"] as? String, "or why not")
+        var opened: [[String: Any]] = []
+        model.openWindow = { opened.append($0) }
+        window.handle(["type": "note", "note": ["key": "JJ8XY5CM", "libraryID": 1, "title": ""]])
+        XCTAssertEqual(opened.first?["key"] as? String, "JJ8XY5CM")
+        XCTAssertEqual(opened.first?["title"] as? String, "Untitled note")
+        window.handle(["type": "note", "note": ["key": ""]])
+        XCTAssertEqual(opened.count, 1, "no note, nothing")
     }
 
     // Delete this table… (asked in the page): the file to the Trash, the window closed, gone from the list; refused for a

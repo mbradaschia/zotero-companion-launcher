@@ -84,6 +84,7 @@ struct ReviewWebView: NSViewRepresentable {
         func flash(_ text: String) { call("RT.flash", [text]) }
         func segments(_ text: String, _ list: [Any]) { call("RT.segments", [text, list]) }
         func drafted(_ out: [String: Any]) { call("RT.drafted", [out]) }
+        func notes(_ paper: String, _ out: [String: Any]) { call("RT.notes", [paper, out]) }
         func zoom(_ z: Double) { view?.pageZoom = CGFloat(z) }
 
         private func call(_ function: String, _ value: Any) {
@@ -119,5 +120,6 @@ protocol ReviewPage: AnyObject {
     func flash(_ text: String)
     func segments(_ text: String, _ list: [Any]) // the source box's query, read as the launcher reads it
     func drafted(_ out: [String: Any]) // Write it with AI's answer: { column, notes } or { error }
+    func notes(_ paper: String, _ out: [String: Any]) // the panel's paper's notes: { notes } or { error }
     func zoom(_ z: Double) // the text size (⌘- ⌘+ ⌘0)
 }

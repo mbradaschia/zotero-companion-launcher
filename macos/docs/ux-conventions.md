@@ -19,7 +19,7 @@ says so.
   ⌥⌫ deletes a word in both modes (the QML's Alt+Backspace cleared the box: Ctrl+U does that).
 - **Hints:** the help key first (`? keys`, or `F1 keys` while typing; always `? keys` in the
   reader; none in the keys view itself); `/ search` first only where `/` gives the box the keys; then key and a lowercase verb
-  (`↵ open`, `p pin`); the back keys last (`⌫ esc back`, `⇧esc home`; `esc close` at the top).
+  (`↵ open`, `p pin`); the back keys last (`⌫ esc back`, `⇧esc home`; `esc close` at the top of the overlay, `⌘W close` in the window or pinned).
 - **Places in the hints** are the ones the Mac has; a place of a later phase isn't hinted (its
   key still says it isn't on the Mac yet).
 - **Which keys act where:** a paper's letters (o, w, n, #, p, l, z) act only in the paper's own
@@ -199,6 +199,10 @@ says so.
   either way.
 - **The launcher moves** by its background. **The pin** keeps it open while other apps are used; esc then stops at
   the top level and the hint says `⌘W close`.
+- **esc never closes the window.** In the window, esc leaves the box, clears it and goes back a level as in the
+  overlay, then stops at the top level (the flash says ⌘W closes it; the hint says `⌘W close`). ⌘W and the window's
+  close button close it. The Omarchy launcher's floating window still closes on Esc; the Mac differs on purpose, as a
+  window on a Mac isn't closed by esc.
 
 ## Processes
 
