@@ -312,6 +312,8 @@ final class LauncherModel6aTests: XCTestCase {
         model.back()
         XCTAssertEqual(model.selectedListRow?.label, found.title)
         model.goHome()
+        XCTAssertEqual(model.store.filterText, "", "a setting chosen from the results: what was typed went")
+        model.setFilter("work")
         model.enterActions(try XCTUnwrap(model.searchRows.firstIndex { $0.kind == "item" }))
         model.setFilter("results per search")
         let go = try XCTUnwrap(model.listRows.firstIndex { $0.rowId == "setting-go" }) // below the menu's own rows
