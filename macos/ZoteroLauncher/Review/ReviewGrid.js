@@ -57,7 +57,17 @@ var RT = (function () {
     panel: "M3 4h18v16H3z M15 4v16 M17.5 8h1.5 M17.5 11h1.5",
     refresh: "M20 12a8 8 0 1 1-2.34-5.66 M20 4v5h-5",
     pin: "M9 3h6 M10 3v6.5L7 13h10l-3-3.5V3 M12 13v8",
-    run: "M7 4.5l12 7.5-12 7.5z"
+    run: "M7 4.5l12 7.5-12 7.5z",
+    // a pill's kind, as the launcher's (never told apart by its colour alone: a colour-blind eye can't)
+    status: "M5 21V4 M5 4h12l-2.5 4.5L17 13H5",
+    task: "M4 4h16v16H4z M8 12l3 3 5-6",
+    rank: "M12 3l2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.8z",
+    tax: "M3 3h8l10 10-8 8L3 11z M7.5 7.5h.01",
+    own: "M4 20l1-4L16 5l3 3L8 19z"
+  }
+  // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
+  function pill(kind, text) {
+    return el("span", { class: "pill " + kind }, [icon(kind), String(text)])
   }
   function icon(name) {
     var ns = "http://www.w3.org/2000/svg"
@@ -320,12 +330,12 @@ var RT = (function () {
     if (c.ai) { aiCell(c, r, cv, v); return cv }
     if (C.isEmpty(v)) return cv
     if (c.id === "title") cv.appendChild(el("span", { class: "ptitle", text: v }))
-    else if (c.id === "status") cv.appendChild(el("span", { class: "pill status", text: v }))
-    else if (c.id === "task") cv.appendChild(el("span", { class: "pill task", text: v }))
-    else if (c.order === "abs" || c.order === "abdc") cv.appendChild(el("span", { class: "pill rank", text: (c.order === "abs" ? "ABS " : "ABDC ") + v }))
+    else if (c.id === "status") cv.appendChild(pill("status", v))
+    else if (c.id === "task") cv.appendChild(pill("task", v))
+    else if (c.order === "abs" || c.order === "abdc") cv.appendChild(pill("rank", (c.order === "abs" ? "ABS " : "ABDC ") + v))
     else if (v === true) cv.appendChild(el("span", { text: "✓", title: c.label }))
-    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(el("span", { class: "pill tax", text: l })) })
-    else if (c.type === "choice") cv.appendChild(el("span", { class: "pill own", text: v }))
+    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill("tax", l)) })
+    else if (c.type === "choice") cv.appendChild(pill("own", v))
     else cv.textContent = String(v)
     return cv
   }
@@ -339,8 +349,8 @@ var RT = (function () {
     if (st !== "ok" && st !== "empty") cv.appendChild(el("span", { class: "smark", text: st === "yours" ? "✎" : st === "failed" ? "⚠" : "●", title: stateText(st, rec) }))
     if (C.isEmpty(v)) return
     if (c.kind === "jev-relevance" && typeof v === "number") cv.appendChild(el("span", { class: "pill band b-" + C.band(v), text: v + " " + C.band(v) }))
-    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(el("span", { class: "pill tax", text: l })) })
-    else if (c.type === "choice") cv.appendChild(el("span", { class: "pill tax", text: String(v) + (c.kind === "jev-one" && rec && typeof rec.p === "number" ? " " + Math.round(rec.p * 100) + "%" : "") }))
+    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill("tax", l)) })
+    else if (c.type === "choice") cv.appendChild(pill("tax", String(v) + (c.kind === "jev-one" && rec && typeof rec.p === "number" ? " " + Math.round(rec.p * 100) + "%" : "")))
     else cv.appendChild(document.createTextNode(String(v)))
   }
 

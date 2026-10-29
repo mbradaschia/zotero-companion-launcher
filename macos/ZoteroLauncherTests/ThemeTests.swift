@@ -18,6 +18,7 @@ final class ThemeTests: XCTestCase {
     }
 
     override func tearDown() async throws {
+        ThemeStore.shared.setSafe(true)
         ThemeStore.shared.setFamily("default")
         ThemeStore.shared.setMode(.system)
         try? FileManager.default.removeItem(at: home)
@@ -197,6 +198,87 @@ final class ThemeTests: XCTestCase {
         XCTAssertFalse(off.checked)
         XCTAssertTrue(off.detail.hasPrefix("Off · only the menu bar's icon"), off.detail)
         XCTAssertTrue(model.settingsIndex.text.contains("\"value\":\"mac.dock\""), "the search finds it")
+    }
+
+    // Colour-blind safe colours (on by default): in every theme, light and dark, the five pill kinds stay apart for a
+    // protanope's and a deuteranope's eye (Machado et al. 2009's simulation, CIELAB ΔE ≥ 15), and still read (3:1).
+    func testTheSafeColoursKeepThePillKindsApartForAColourBlindEye() {
+        func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+        let protan = [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]]
+        let deutan = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]]
+        func lab(_ c: RGB, _ m: [[Double]]) -> [Double] {
+            let l = [linear(c.r), linear(c.g), linear(c.b)]
+            let s = m.map { min(1, max(0, $0[0] * l[0] + $0[1] * l[1] + $0[2] * l[2])) }
+            let x = 0.4124 * s[0] + 0.3576 * s[1] + 0.1805 * s[2], y = 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]
+            let z = 0.0193 * s[0] + 0.1192 * s[1] + 0.9505 * s[2]
+            func f(_ t: Double) -> Double { t > 216 / 24389 ? cbrt(t) : (24389 / 27 * t + 16) / 116 }
+            let fx = f(x / 0.95047), fy = f(y), fz = f(z / 1.08883)
+            return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)]
+        }
+        func apart(_ t: Tokens<RGB>, _ name: String) {
+            let kinds = [("status", t.orange), ("priority", t.red), ("rank", t.purple), ("taxonomy", t.teal), ("task", t.green)]
+            for (eye, m) in [("protanope", protan), ("deuteranope", deutan)] {
+                for i in kinds.indices { for j in kinds.indices where j > i {
+                    let a = lab(kinds[i].1, m), b = lab(kinds[j].1, m)
+                    let d = sqrt(zip(a, b).map { ($0 - $1) * ($0 - $1) }.reduce(0, +))
+                    XCTAssertGreaterThanOrEqual(d, 15, "\(name): \(kinds[i].0) and \(kinds[j].0) look alike to a \(eye)")
+                } }
+            }
+            for (kind, c) in kinds { XCTAssertGreaterThanOrEqual(c.contrast(t.background), 3, "\(name): \(kind)") }
+        }
+        for family in ThemeFamily.all {
+            let palette = Palette(family, safe: true)
+            if family.isSystem { // (the Mac's window background as the hues were made to read on it)
+                var light = palette.rgb(dark: false), dark = palette.rgb(dark: true)
+                light.background = SafeColours.lightBackground
+                dark.background = SafeColours.darkBackground
+                apart(light, "Default (light)")
+                apart(dark, "Default (dark)")
+            } else {
+                apart(palette.rgb(dark: false), family.name + " (light)")
+                apart(palette.rgb(dark: true), family.name + " (dark)")
+            }
+        }
+    }
+
+    // On by default, a switch in General › Appearance; off, the theme's own colours.
+    func testTheSafeColoursSwitch() throws {
+        let theme = ThemeStore.shared
+        XCTAssertTrue(theme.safe, "on until turned off")
+        XCTAssertTrue(theme.palette.safe)
+        theme.setFamily("catppuccin")
+        XCTAssertEqual(theme.palette.rgb(dark: false).red, SafeColours.red.readable(on: RGB(0xeff1f5), ratio: 3))
+        model.openSettings("general")
+        let i = try XCTUnwrap(model.listRows.firstIndex { $0.value == "mac.safeColours" })
+        XCTAssertEqual(model.listRows[i].section, "Appearance")
+        XCTAssertTrue(model.listRows[i].checked)
+        model.store.selectedIndex = i
+        model.execute(.activate)
+        XCTAssertFalse(theme.safe)
+        XCTAssertFalse(theme.palette.safe)
+        XCTAssertEqual(theme.palette.rgb(dark: false).red, ThemeFamily.named("catppuccin").light?.tokens.red, "the theme's own")
+        XCTAssertNotEqual(Palette(.named("catppuccin")).id, Palette(.named("catppuccin"), safe: true).id, "a field's colours drawn again")
+        XCTAssertFalse(try XCTUnwrap(model.listRows.first { $0.value == "mac.safeColours" }).checked)
+        theme.setSafe(true)
+    }
+
+    // Every pill kind has a symbol, so two kinds are never told apart by colour alone (the form's choices and a text with
+    // its own sign excepted).
+    func testEachPillKindHasItsSymbol() {
+        let kinds = ["status", "task", "priority", "rank", "taxonomy"]
+        let symbols = kinds.compactMap(PillView.symbol)
+        XCTAssertEqual(symbols.count, kinds.count)
+        XCTAssertEqual(Set(symbols).count, kinds.count, "two kinds share a symbol")
+        for name in symbols { XCTAssertNotNil(NSImage(systemSymbolName: name, accessibilityDescription: nil), name) }
+        XCTAssertEqual(PillView.symbol("status"), Icons.symbol(rowId: "paper-status"), "as a status's row")
+        XCTAssertEqual(PillView.symbol("taxonomy"), Icons.symbol(rowId: "tag"), "as a tag's row")
+        XCTAssertNil(PillView.symbol("neutral"))
+        XCTAssertFalse(PillView.showsSymbol("\u{2713} text extracted"))
+        XCTAssertFalse(PillView.showsSymbol("\u{26a0} taxonomies: not tagged"))
+        XCTAssertTrue(PillView.showsSymbol("Reading"))
+        let text = NSMutableAttributedString(string: "!a:smith")
+        StyledTextField.Coordinator.apply(TextSegment(start: 0, end: 8, role: "neg", block: true), to: text)
+        XCTAssertNotNil(text.attribute(.strikethroughStyle, at: 3, effectiveRange: nil), "a negated block is struck through")
     }
 
     func testTheSearchFindsTheTheme() {

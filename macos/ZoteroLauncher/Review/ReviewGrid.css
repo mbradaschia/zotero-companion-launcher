@@ -82,6 +82,7 @@ td.cell.active { box-shadow: inset 0 0 0 2px var(--accent); z-index: 1; }
 .cv.none { color: var(--faint); }
 .ptitle { font-weight: 600; }
 .pill { display: inline-block; font-size: 11.5px; line-height: 16px; padding: 0 6px; border-radius: 9px; border: 1px solid currentColor; white-space: nowrap; margin: 1px 3px 1px 0; }
+.pill .ic { width: 10px; height: 10px; margin: 0 3px -1px 0; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 .pill.status { color: var(--status); background: var(--status-soft); }
 .pill.task { color: var(--task); background: var(--task-soft); }
 .pill.rank { color: var(--rank); background: var(--rank-soft); border-color: transparent; font-weight: 600; font-size: 11px; }
