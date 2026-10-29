@@ -2,12 +2,13 @@ import KeyboardShortcuts
 import SwiftUI
 
 // The menu bar menu (macos/PLAN.md phase 10): the launcher (its hotkey named), its places as Go to names them, the
-// login item, updates (GitHub's releases), and Quit. The app's own Settings window (the hotkey, this Mac) is "Hotkey and Login…".
+// reading companion (phase 12: the iPad's page, its link), the login item, updates (GitHub's releases), and Quit. The app's own Settings window (the hotkey, this Mac) is "Hotkey and Login…".
 struct MenuBarMenu: View {
     let launcher: LauncherController
     @ObservedObject var login: LoginItem
     @ObservedObject var updates: UpdateCheck
     @ObservedObject var reviews: ReviewShelf
+    @ObservedObject var companion: CompanionServer
 
     var body: some View {
         Button(openTitle) { UsageLog.shared.count("menu:open"); launcher.toggle() }
@@ -21,6 +22,12 @@ struct MenuBarMenu: View {
         Button("Processes…") { UsageLog.shared.count("menu:processes"); launcher.show(place: "tasks") }
         Button("Settings…") { UsageLog.shared.count("menu:settings"); launcher.show(place: "settings") }
         Button("Sync Zotero") { UsageLog.shared.count("menu:sync"); launcher.show(place: "sync") }
+        Menu("Reading Companion") {
+            Text(companion.statusLine)
+            Button("Show the iPad Link…") { UsageLog.shared.count("menu:companion-link"); companion.showLink() }
+                .disabled(companion.state != .running)
+            Toggle("Run It With the App", isOn: Binding(get: { companion.enabled }, set: { companion.set($0) }))
+        }
         Divider()
         Toggle("Open at Login", isOn: Binding(get: { login.enabled }, set: { login.set($0) }))
         if !login.problem.isEmpty || login.needsApproval { Text(login.detail) } // (a failure, said where it happened)

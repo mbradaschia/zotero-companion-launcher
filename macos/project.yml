@@ -11,7 +11,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: 0.4.22
+    MARKETING_VERSION: 0.4.23
     CURRENT_PROJECT_VERSION: 1
     CODE_SIGN_IDENTITY: "-"
     CODE_SIGN_STYLE: Manual
@@ -52,6 +52,13 @@ targets:
           cp "${PROJECT_DIR}/scripts/install-runner.sh" "${PROJECT_DIR}/scripts/brew-install.sh" "${PROJECT_DIR}/scripts/safe-dest.sh" "${PROJECT_DIR}/scripts/copy-shared-paths.sh" "$KIT/macos/scripts/"
           cp "${PROJECT_DIR}/../contracts/Paths.js" "$KIT/contracts/Paths.js"
           cp "${PROJECT_DIR}/../zotero-bridge/manifest.in.json" "$KIT/bridge-manifest.json"
+      # The reading companion (phase 12): its server and page, and the files it reads, as scripts/companion-kit.sh lays
+      # them out; the app runs it while it runs (CompanionServer.swift).
+      - name: CompanionKit
+        basedOnDependencyAnalysis: false
+        script: |
+          set -euo pipefail
+          "${PROJECT_DIR}/scripts/companion-kit.sh" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/CompanionKit"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.github.mbradaschia.zotero-launcher

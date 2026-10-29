@@ -1,0 +1,14 @@
+{
+  "name": "Reading Companion",
+  "short_name": "Companion",
+  "description": "Your Zotero papers' status, tasks, notes, chats and prompts, beside Zotero on the iPad.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F5F5F7",
+  "theme_color": "#F5F5F7",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
