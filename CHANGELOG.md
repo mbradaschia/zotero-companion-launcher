@@ -12,6 +12,8 @@ bridge and the prompt runner share one version.
 - **What you type is by relevance**, so typing an author's name lists their papers first. Group and Sort (g, G) arrange
   a list you browse: a collection, a tag or a saved search with nothing typed. A sort kept from before re-sorted typed
   results too.
+- **A place you type in full is where the cursor starts**: "settings", "new task" or a saved search's name puts the
+  cursor on it, above the papers. A part of a name still starts on the papers.
 - **The window W opens is a regular one**: the app launches as a regular app, so tiling window managers (TileMyMac,
   AeroSpace, yabai, Amethyst) manage it; it stays on its Space and can go full screen. With In the Dock and ⌘Tab off,
   the Dock icon shows a moment at launch.

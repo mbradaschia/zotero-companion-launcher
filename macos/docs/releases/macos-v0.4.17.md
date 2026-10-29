@@ -1,5 +1,5 @@
-What you type is ranked by relevance again, so an author's papers come first, and the window W opens is one your
-window manager tiles.
+What you type is ranked by relevance again, so an author's papers come first; a place you type in full gets the
+cursor; and the window W opens is one your window manager tiles.
 
 **Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
 (*Update to 0.4.17…*); otherwise:
@@ -14,6 +14,9 @@ taxonomies, saved searches, API keys or hotkey. The runner stays 0.2.4.
 **What you type is by relevance.** Typing "kong" lists Kong's papers first, as the bridge ranks them. Group and Sort
 (and g, G) arrange a list you browse: a collection, a tag or a saved search with nothing typed. In 0.4.16 a sort kept
 from before (a year, oldest first) re-sorted typed results too, so the best match could land far down.
+
+**A place you type in full is where the cursor starts.** Typing "settings", "new task" or a saved search's whole name
+puts the cursor on it, above the papers, so ↵ opens it. A part of a name ("sett") still starts on the papers.
 
 **The window is a regular one.** The app launches as a regular app, so tiling window managers (TileMyMac, AeroSpace,
 yabai, Amethyst) manage the window W opens: it stays on its Space, tiles, and can go full screen. With Settings ›
