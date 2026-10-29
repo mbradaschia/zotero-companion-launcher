@@ -279,7 +279,8 @@ final class ReviewWindowModel: ObservableObject {
     private func setCell(_ m: [String: Any]) {
         guard let core = launcher.core, let files, let column = m["column"] as? String, let paper = m["paper"] as? String else { return }
         do {
-            try files.setCell(column: column, paper: paper, value: m["value"] as? String ?? "", by: launcher.paths?.machine ?? "", core)
+            let value: Any = m["value"] as? [String] ?? m["value"] as? String ?? "" // (several of a list: its labels)
+            try files.setCell(column: column, paper: paper, value: value, by: launcher.paths?.machine ?? "", core)
         } catch {
             refused(launcher.reviewProblem(error))
         }

@@ -17,6 +17,19 @@ bridge and the prompt runner share one version.
   Tailscale for it and shows a QR code to open it on the iPad. It needs Tailscale on both, Node.js 22, and the Mac
   awake with Zotero open.
 
+### The Mac app (`macos-v0.4.22`)
+
+- **Edit a column.** A column's ▾ menu in a review table has *Edit it…*: the same form, filled in, for your columns
+  (name, type, choices) and the AI's (prompt, labels, topic…). Changing what decides an AI column's answers marks the
+  answers it has out of date, for Run… to redo.
+- **Jev on labels you write.** Jev's best fit and several labels take your own labels, one a line with what each
+  means (and a question, if you like), or a taxonomy as before.
+- **Several of a list.** A column of your own can hold several of its choices per paper: the panel's pills turn each
+  on (✓) or off.
+- **Group leaves out free text.** Group no longer offers your text columns or an AI's answers in words or as a list.
+- **The AI features update themselves.** After an app update brings newer AI features, the app installs them on its
+  own (once; it's in Processes). Runner 0.2.6.
+
 ### The Mac app (`macos-v0.4.21`)
 
 - **esc no longer closes the launcher's window.** In the window (Settings › General › Open as a window, or `W`), esc

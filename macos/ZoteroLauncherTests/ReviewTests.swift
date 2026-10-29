@@ -83,6 +83,21 @@ final class ReviewTests: XCTestCase {
         XCTAssertThrowsError(try f.setCell(column: "c-../x", paper: "1:A", value: "v", by: "mac", try core())) { XCTAssertEqual($0 as? ReviewFiles.WriteError, .badId) }
     }
 
+    // Several of a list (your column): the file keeps its type and choices, a cell its list of labels; a message's
+    // list is saved as one.
+    func testSeveralOfAListKeepsEachPapersLabels() throws {
+        let f = files()
+        try f.writeColumn(["id": "c-00000multi", "label": "Themes", "kind": "own", "type": "multi", "options": ["trust", "power"]], try core())
+        XCTAssertEqual(f.columns(try core())["c-00000multi"]?["type"] as? String, "multi")
+        try f.setCell(column: "c-00000multi", paper: "1:P3NM4G92", value: ["trust", "power"], by: "mac", try core())
+        var cells = try XCTUnwrap(f.cells(["c-00000multi"], try core())["c-00000multi"] as? [String: Any])
+        XCTAssertEqual((cells["1:P3NM4G92"] as? [String: Any])?["v"] as? [String], ["trust", "power"])
+        let (window, _) = try openWindow()
+        window.handle(["type": "cell", "column": "c-00000multi", "paper": "1:AAAA0001", "value": ["power"]])
+        cells = try XCTUnwrap(model.reviewFiles?.cells(["c-00000multi"], try core())["c-00000multi"] as? [String: Any])
+        XCTAssertEqual((cells["1:AAAA0001"] as? [String: Any])?["v"] as? [String], ["power"])
+    }
+
     // ---- the page
 
     func testThePageRunsOnlyItsOwnScriptByItsHash() {

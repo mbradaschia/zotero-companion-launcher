@@ -53,6 +53,22 @@ test("Jev's cells: several labels from the threshold (the rest suggested), the b
   assert.throws(() => jevTaxonomy(col("x", "jev-one", { taxonomy: "method" }), [METHOD]), /other kind/)
 });
 
+test("a Jev column on labels of its own: a taxonomy made of them, its description the question", async () => {
+  const { jevTaxonomy, jevCell } = await RV();
+  const labels = [{ name: "qualitative", definition: "Interviews, cases, ethnography" }, { name: "quantitative", definition: "Statistics on a sample" }]
+  const one = col("o", "jev-one", { taxonomy: "", labels, description: "How does the study collect its data?" })
+  const t = jevTaxonomy(one, [])
+  assert.equal(t.kind, "one")
+  assert.equal(t.id, one.id)
+  assert.equal(t.question, "How does the study collect its data?")
+  assert.deepEqual(t.labels, labels)
+  assert.equal(jevCell(one, t, { qualitative: 0.88, quantitative: 0.12 }).v, "qualitative")
+  const several = jevTaxonomy(col("s", "jev-several", { labels: [{ name: "firm" }] }), [])
+  assert.equal(several.kind, "several")
+  assert.equal(several.question, "Which of these fits the paper?")
+  assert.deepEqual(several.labels, [{ name: "firm", definition: "" }])
+});
+
 test("a prompt's answers: the shapes, not stated, the quotes checked word for word, a malformed part an error", async () => {
   const { promptMessage, parseAnswers, shapeValue } = await RV();
   const text = col("x", "prompt", { shape: "text", length: 40, evidence: true, description: "What is the gap?" })

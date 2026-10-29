@@ -450,6 +450,70 @@ await pg.click("[data-delete]");
 await pg.click("#ddel");
 ok((await sent()).some((x) => x.type === "delete"), "Delete it deletes it");
 
+// round 2: several of a list, Group without free text, Edit it…, Jev on labels of your own
+const multi = { id: "c-multi00000", label: "Themes", kind: "own", type: "multi", options: ["trust", "power"], description: "" };
+const notes2 = { id: "c-notes00000", label: "Remarks", kind: "own", type: "text", options: [], description: "" };
+const gap2 = { id: "c-gapai00000", label: "Gap", kind: "prompt", reads: "abstract", shape: "text", length: 60, options: [], evidence: false, model: "default", description: "What gap?" };
+const design = { id: "c-design0000", label: "Design", kind: "jev-one", taxonomy: "", labels: [{ name: "qualitative", definition: "interviews" }, { name: "quantitative", definition: "statistics" }], description: "" };
+const r2 = JSON.parse(JSON.stringify(data));
+r2.review.id = "r-round20000";
+r2.review.columns = [{ id: "title" }, { id: "year" }, { id: multi.id }, { id: notes2.id }, { id: gap2.id }, { id: design.id }];
+r2.columns = { [multi.id]: multi, [notes2.id]: notes2, [gap2.id]: gap2, [design.id]: design };
+r2.cells = {};
+await pg.evaluate((d) => RT.load(d), r2);
+await sent();
+await pg.click("#bGroup");
+const gopts = await pg.$$eval(".pop [data-g]", (b) => b.map((x) => x.getAttribute("data-g")));
+ok(gopts.includes(multi.id) && gopts.includes(design.id) && gopts.includes("year") && !gopts.includes(notes2.id) && !gopts.includes(gap2.id), "Group: no free text (yours, an AI's words); a choice, several of a list, a year: " + gopts.join(","));
+await pg.keyboard.press("Escape");
+ok(!(await pg.getAttribute(`th[data-c="${design.id}"] .hl`, "title")).includes("isn't there") && (await pg.locator(`th[data-c="${design.id}"] .hl svg.ic-ai`).count()) === 1, "a Jev column on your labels has no problem, and its sparkle");
+await pg.click(cell("AAAAAAAA", multi.id));
+await pg.click('#panel [data-set="multi"][data-val="trust"]');
+m = await sent();
+ok(m.some((x) => x.type === "cell" && JSON.stringify(x.value) === '["trust"]'), "several of a list: a pill turns one on");
+ok((await pg.textContent('#panel [data-set="multi"][data-val="trust"]')).startsWith("✓") && (await pg.getAttribute('#panel [data-set="multi"][data-val="trust"]', "aria-pressed")) === "true", "it shows ✓ (not its colour alone)");
+await pg.click('#panel [data-set="multi"][data-val="power"]');
+m = await sent();
+ok(m.some((x) => x.type === "cell" && JSON.stringify(x.value) === '["trust","power"]') && (await pg.locator(cell("AAAAAAAA", multi.id) + " .pill.own").count()) === 2, "another: both, in the column's order, a pill each in the cell");
+await pg.click('#panel [data-set="multi"][data-val="trust"]');
+m = await sent();
+ok(m.some((x) => x.type === "cell" && JSON.stringify(x.value) === '["power"]'), "a click again takes it off");
+// Edit it… on your column
+await pg.click(`th[data-c="${notes2.id}"] .hmenu`);
+await pg.click('.pop [data-m="edit"]');
+ok((await pg.inputValue("#nname")) === "Remarks" && (await pg.inputValue("#ntype")) === "text" && (await pg.textContent("#nadd")) === "Save" && !(await pg.locator(".sheet [data-step]").count()), "Edit it…: the form, filled, Save, no Back");
+await pg.fill("#nname", "Screening");
+await pg.selectOption("#ntype", "multi");
+await pg.fill("#nopts", "in, out");
+await pg.click("#nadd");
+m = await sent();
+const ed1 = m.find((x) => x.type === "addColumn");
+ok(ed1 && ed1.column.id === notes2.id && ed1.column.type === "multi" && ed1.column.options.join() === "in,out" && (await pg.textContent(`th[data-c="${notes2.id}"] .hl`)).includes("Screening"), "Save writes the same column over, the header follows");
+// Edit it… on a Jev column of your labels
+await pg.click(`th[data-c="${design.id}"] .hmenu`);
+await pg.click('.pop [data-m="edit"]');
+ok((await pg.inputValue("#atax")) === "" && (await pg.inputValue("#alabels")).startsWith("qualitative: interviews") && (await pg.isVisible("#alabels")) && (await pg.isDisabled('input[name="akind"][value="prompt"]')), "an AI column's form: its kind fixed, its own labels as lines");
+await pg.fill("#alabels", "qualitative: interviews\nquantitative: statistics\nmixed: both");
+await pg.click("#nadd");
+m = await sent();
+const ed2 = m.find((x) => x.type === "addColumn");
+ok(ed2 && ed2.column.id === design.id && ed2.column.labels.length === 3 && (await pg.textContent("#foot")).includes("out of date"), "Save: its labels changed, its answers said out of date");
+// + Column: Jev best fit on labels you write
+await pg.click("#bAdd");
+await pg.click('.sheet .choice[data-step="ai"]');
+await pg.check('input[name="akind"][value="jev-one"]');
+ok((await pg.inputValue("#atax")) === "" && (await pg.isVisible("#alabels")) && (await pg.isVisible("#aq")), "Jev best fit: your own labels first, a question if you like");
+await pg.fill("#aname", "Level");
+await pg.fill("#alabels", "firm");
+await pg.click("#nadd");
+ok((await pg.textContent("#nerr")).includes("two labels or more"), "one label isn't a best fit");
+await pg.fill("#alabels", "firm: one firm studied\nindustry: an industry");
+await pg.fill("#aq", "At what level is the study?");
+await pg.click("#nadd");
+m = await sent();
+const lv = m.find((x) => x.type === "addColumn");
+ok(lv && lv.column.kind === "jev-one" && lv.column.labels[1].name === "industry" && lv.column.description === "At what level is the study?", "Add: a Jev best fit on your labels, its question");
+
 // narrow
 await pg.setViewportSize({ width: 520, height: 700 });
 ok(!(await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "no page-wide horizontal scroll at 520 px");
