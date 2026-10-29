@@ -57,8 +57,11 @@ struct TaxonomyGroup: View {
 // The breadcrumb (above the search box, below the top level): where you came from, then where you are, in bold.
 // A click on an earlier level goes back there; a long path keeps its first level and its last ones. A path too wide
 // for one line goes on onto a second (each level with the › before it), where you are taking up to two lines itself.
+// In a paper's menu (`venue` set) the paper is a heading: on its own line under the path, no › before it, and where it
+// was published under it.
 struct BreadcrumbBar: View {
     let crumbs: [String]
+    var venue: String? = nil
     let jump: (Int) -> Void
     static let shown = 5
 
@@ -66,16 +69,26 @@ struct BreadcrumbBar: View {
         let names = Breadcrumb.fit(crumbs, max: Self.shown)
         // (each shown name's level, nil for "…")
         let levels: [Int?] = crumbs.count > Self.shown ? [0, nil] + Array(crumbs.count - (Self.shown - 2) ..< crumbs.count) : Array(crumbs.indices)
-        FlowLayout(spacing: 4, lineSpacing: 2) {
-            ForEach(Array(names.enumerated()), id: \.offset) { i, name in
-                HStack(spacing: 4) {
-                    if i > 0 { Text("›").font(.callout).foregroundStyle(.tertiary) }
-                    crumb(name, level: levels[i], last: i == names.count - 1)
+        let path: Int = venue == nil ? names.count : names.count - 1 // (a heading: the last name goes under the path)
+        let published: String = venue.map { $0.isEmpty ? "" : ", in " + $0 } ?? ""
+        VStack(alignment: .leading, spacing: 2) {
+            FlowLayout(spacing: 4, lineSpacing: 2) {
+                ForEach(Array(names.prefix(path).enumerated()), id: \.offset) { i, name in
+                    HStack(spacing: 4) {
+                        if i > 0 { Text("›").font(.callout).foregroundStyle(.tertiary) }
+                        crumb(name, level: levels[i], last: i == names.count - 1)
+                    }
+                }
+            }
+            if let venue, let title = names.last {
+                crumb(title, level: nil, last: true)
+                if !venue.isEmpty {
+                    Text(venue).font(.callout).italic().foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail).help(venue)
                 }
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Path: " + crumbs.joined(separator: ", "))
+        .accessibilityLabel("Path: " + crumbs.joined(separator: ", ") + published)
         .accessibilityActions {
             ForEach(Array(crumbs.dropLast().enumerated()), id: \.offset) { i, name in
                 Button("Back to " + name) { jump(i) }

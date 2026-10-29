@@ -16,6 +16,13 @@ extension LauncherModel {
         return cite.isEmpty ? title : cite + " · " + title
     }
 
+    // A paper's menu: where the paper was published (its journal, proceedings, book or university), under its title in
+    // the breadcrumb, "" when Zotero has none; nil elsewhere (the breadcrumb is a plain path there).
+    var paperVenue: String? {
+        guard store.view == "actions", actionItem != nil else { return nil }
+        return ((details?["paper"] as? [String: Any])?["publication"] as? String ?? "").trimmingCharacters(in: .whitespaces)
+    }
+
     // The journal rankings on the right of the context bar (ABS 4*, ABDC A*, FT50, UTD24).
     var menuRanks: [String] {
         guard Self.paperViews[store.view] != nil, actionItem != nil, !store.inNote || notePaperInView,

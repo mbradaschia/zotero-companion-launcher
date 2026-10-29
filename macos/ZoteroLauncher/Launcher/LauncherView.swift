@@ -19,7 +19,7 @@ struct LauncherView: View {
         VStack(spacing: 0) {
             if let context = model.context {
                 HStack(alignment: .top, spacing: 8) { // (the ranks and the count beside the breadcrumb's first line)
-                    BreadcrumbBar(crumbs: model.breadcrumb, jump: { model.jumpToCrumb($0) })
+                    BreadcrumbBar(crumbs: model.breadcrumb, venue: model.paperVenue, jump: { model.jumpToCrumb($0) })
                     Spacer(minLength: 8)
                     // (whole: the breadcrumb wraps in what's left, the pills never squeezed)
                     HStack(spacing: 8) {
