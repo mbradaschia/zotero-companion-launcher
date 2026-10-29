@@ -237,6 +237,23 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(shown, 1, "no paper, nothing")
     }
 
+    // Delete this table… (asked in the page): the file to the Trash, the window closed, gone from the list; refused for a
+    // bad id or while the sync folder is away.
+    func testDeletingATableTrashesItsFileAndClosesItsWindow() throws {
+        let (window, _) = try openWindow()
+        var closed = 0
+        window.close = { closed += 1 }
+        let url = try XCTUnwrap(model.reviewFiles).reviewURL(window.id)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertThrowsError(try files(readOnly: true).deleteReview(window.id)) { XCTAssertEqual($0 as? ReviewFiles.WriteError, .readOnly) }
+        XCTAssertThrowsError(try files().deleteReview("../../settings")) { XCTAssertEqual($0 as? ReviewFiles.WriteError, .badId) }
+        window.handle(["type": "delete"])
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+        XCTAssertEqual(closed, 1)
+        XCTAssertFalse(model.reviewList().contains { $0["id"] as? String == window.id })
+        XCTAssertTrue(model.flash.hasPrefix("Deleted the table “"), model.flash)
+    }
+
     func testAMessageForAnotherColumnIdIsRefusedAndSaid() throws {
         let (window, page) = try openWindow()
         window.handle(["type": "cell", "column": "../../settings", "paper": "1:P3NM4G92", "value": "x"])

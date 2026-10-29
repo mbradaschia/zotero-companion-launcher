@@ -860,7 +860,7 @@ var RT = (function () {
       el("div", { class: "ph", text: "The table follows as you type · ↵ keeps it · esc goes back · ⌘S saves it as a search" }),
       item("Save it as a search…", { "data-savesearch": "1" }, "⌘S"),
       el("div", { class: "ph", text: "A collection or a tag: open it in the launcher, then ⌘T." }),
-      el("hr"), item("Rename this review…", { "data-rename": "1" }))
+      el("hr"), item("Rename this review…", { "data-rename": "1" }), item("Delete this table…", { "data-delete": "1" }))
     openPop(anchor, kids, function (p) {
       var box = $("srcq")
       segFor = ""
@@ -876,6 +876,7 @@ var RT = (function () {
         }
         if (e.target.closest("[data-savesearch]")) return saveSearchDialog(box.value)
         if (e.target.closest("[data-rename]")) { closePop(); renameDialog() }
+        if (e.target.closest("[data-delete]")) { closePop(); deleteDialog() }
       })
       box.addEventListener("input", function () {
         askSegments(box)
@@ -962,6 +963,18 @@ var RT = (function () {
       var go = function () { var n = $("rname").value.trim(); if (!n) return; review.name = n; closeModal(); drawToolbar(); post("rename", { name: n }) }
       $("rsave").addEventListener("click", go)
       $("rname").addEventListener("keydown", function (e) { if (e.key === "Enter") go() })
+    })
+  }
+
+  // Delete this table…: asked first, the house way. Its file goes to the Trash; your columns and their values stay.
+  function deleteDialog() {
+    if (D.readOnly) return flash("Not saved: the sync folder isn't there")
+    openModal([el("header", {}, [el("h2", { text: "Delete the table “" + review.name + "”?" }),
+      el("p", { text: "Its file goes to the Trash. Your columns and what you wrote in them stay: other tables can show them." })]),
+      el("footer", {}, [el("span", { class: "fill" }), el("button", { class: "tb", type: "button", "data-close": "1", id: "dkeep", text: "Keep it" }),
+        el("button", { class: "tb danger", type: "button", id: "ddel", text: "Delete it" })])], function () {
+      $("ddel").addEventListener("click", function () { closeModal(); post("delete") })
+      $("dkeep").focus()
     })
   }
 

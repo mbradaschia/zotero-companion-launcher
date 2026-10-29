@@ -385,6 +385,18 @@ ok((await pg.locator("tbody tr[data-p]").count()) === 1, "(still one)");
 await pg.keyboard.press("Escape");
 ok((await pg.locator("tbody tr[data-p]").count()) === 4, "esc clears it");
 
+// Delete this table…: asked first (Keep it is the default), then sent
+await pg.click("#bSource");
+await pg.click("[data-delete]");
+ok((await pg.textContent(".sheet h2, .modal h2")).startsWith("Delete the table “"), "Delete this table… asks first");
+ok(await pg.evaluate(() => document.activeElement && document.activeElement.id === "dkeep"), "Keep it has the keys");
+await pg.click("#dkeep");
+ok(!(await sent()).some((x) => x.type === "delete"), "Keep it keeps it");
+await pg.click("#bSource");
+await pg.click("[data-delete]");
+await pg.click("#ddel");
+ok((await sent()).some((x) => x.type === "delete"), "Delete it deletes it");
+
 // narrow
 await pg.setViewportSize({ width: 520, height: 700 });
 ok(!(await pg.evaluate(() => document.documentElement.scrollWidth > innerWidth)), "no page-wide horizontal scroll at 520 px");

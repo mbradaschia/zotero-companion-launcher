@@ -165,6 +165,15 @@ final class ReviewWindowModel: ObservableObject {
             if !Set(columnIds(review)).isSubset(of: had) { send() } // a column added from Columns: its cells (other tables' answers too)
         case "rename":
             if let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty { change { $0["name"] = n } }
+        case "delete": // Delete this table… (asked in the page first): its file to the Trash, its window closed
+            guard let files else { return }
+            do {
+                try files.deleteReview(id)
+                launcher.flashMessage("Deleted the table “\(title)”: it's in the Trash")
+                close()
+            } catch {
+                refused(launcher.reviewProblem(error))
+            }
         case "source":
             guard let s = m["source"] as? [String: Any] else { return }
             setSource(s)
