@@ -52,7 +52,11 @@ extension LauncherModel {
         case .leaveSearch: store.searchFocus = false
         case .clearFilter: setFilter("")
         case .back: escLaunchAsk(); back()
-        case .close: if pinnedOpen { flashMessage("Pinned: it stays open (⌘W, or the pin, closes it)") } else { dismiss() }
+        // (esc at the top closes the overlay only: the window, like a pinned launcher, stays until ⌘W)
+        case .close:
+            if pinnedOpen { flashMessage("Pinned: it stays open (⌘W, or the pin, closes it)") }
+            else if windowed { flashMessage("A window: it stays open (⌘W closes it)") }
+            else { dismiss() }
         case .openKeys: openKeys()
         case .alternate:
             let row = selectedListRow

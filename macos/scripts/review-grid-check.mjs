@@ -185,7 +185,9 @@ ok(w1 > w0 && !(await pg.isVisible("#panel")), "⌥⌘I folds the panel away, th
 await pg.click("#bPanel");
 ok(await pg.isVisible("#panel"), "the Panel button brings it back");
 
-// adding a column of your own: + Column asks who fills it in first
+// adding a column of your own: + Column asks who fills it in first; it lands right after the selected cell's column
+await pg.click(cell("AAAAAAAA", "year"));
+await sent();
 await pg.click("#bAdd");
 ok((await pg.locator(".sheet .choice").count()) === 2 && !(await pg.locator("#nname").count()) && !(await pg.locator("#aprompt").count()), "+ Column: you or the AI, one at a time");
 await pg.click('.sheet .choice[data-step="own"]');
@@ -196,15 +198,41 @@ await pg.click("#nadd");
 m = await sent();
 const added = m.find((x) => x.type === "addColumn");
 ok(added && added.column.label === "Chapter" && added.column.options.join() === "2,3", "+ Column adds a column of your own");
+heads = await pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")));
+ok(heads[heads.indexOf("year") + 1] === added.column.id && (await pg.getAttribute("td.cell.active", "data-c")) === added.column.id, "right after the selected cell's column, and selected: " + heads.join(","));
 
-// the Columns menu: every column there is, ticked when shown; ticking one not in the table adds it
+// the Columns menu: one list, the shown ones first in the table's order (ticked), then the others; each row its kind's
+// icon; ticking one adds it right after the selected cell's column; a row's handle drags it, ⌥⌘↑ ⌥⌘↓ move it
+const shownCols = () => pg.$$eval(".pop .crow.on", (r) => r.map((x) => x.getAttribute("data-col")).join(","));
+const headCols = () => pg.$$eval("thead th[data-c]", (t) => t.map((x) => x.getAttribute("data-c")).join(","));
+await pg.click(cell("AAAAAAAA", "year"));
 await pg.click("#bCols");
-ok((await pg.locator('.pop input[data-show="title"]').isChecked()) && (await pg.locator(".pop .ph.grp").count()) > 1, "Columns: every column, grouped, the shown ones ticked");
+ok((await shownCols()) === (await headCols()) && (await pg.locator('.pop input[data-show="title"]').isChecked()) && (await pg.locator(".pop .ph.grp").count()) === 1, "Columns: one list, the shown ones first in the table's order, ticked");
+ok((await pg.locator('.pop .crow[data-col="status"] svg.ic-status').count()) === 1 && (await pg.locator('.pop .crow[data-col="tax:method"] svg.ic-tax').count()) === 1 && (await pg.locator('.pop .crow[data-col="abs"] svg.ic-rank').count()) === 1, "each row has its kind's icon");
+ok((await pg.locator('.pop .crow[data-col="title"] .grip svg').count()) === 0 && (await pg.locator('.pop .crow[data-col="year"] .grip svg').count()) === 1, "a handle on each shown row, but the paper's");
 const unshown = await pg.$$eval(".pop input[data-show]", (b) => (b.find((x) => !x.checked) || {}).dataset?.show || "");
 await pg.click(`.pop input[data-show="${unshown}"]`);
 await pg.waitForTimeout(500);
 m = await sent();
+heads = (await headCols()).split(",");
 ok(unshown && m.filter((x) => x.type === "layout").pop().review.columns.some((c) => c.id === unshown && !c.hidden), "ticking one adds it: " + unshown);
+ok(heads[heads.indexOf("year") + 1] === unshown && (await pg.locator(".pop").count()) === 1 && (await shownCols()) === heads.join(","), "right after the selected cell's column; the menu stays open, its list in the new order");
+const rowBox = (c) => pg.locator(`.pop .crow[data-col="${c}"]`).boundingBox();
+const gb = await pg.locator(`.pop .crow[data-col="${unshown}"] .grip`).boundingBox(), tb = await rowBox("abs");
+await pg.mouse.move(gb.x + gb.width / 2, gb.y + gb.height / 2);
+await pg.mouse.down();
+await pg.mouse.move(gb.x + gb.width / 2, tb.y + 3, { steps: 8 });
+ok((await pg.locator('.pop .crow[data-col="abs"].dropT').count()) === 1, "a drag marks where it lands");
+await pg.mouse.up();
+heads = (await headCols()).split(",");
+ok(heads[heads.indexOf("abs") - 1] === unshown && (await shownCols()) === heads.join(","), "dragging a row by its handle moves its column: " + heads.join(","));
+await pg.focus(`.pop input[data-show="${unshown}"]`);
+await pg.keyboard.press("Meta+Alt+ArrowDown");
+heads = (await headCols()).split(",");
+ok(heads[heads.indexOf("abs") + 1] === unshown && (await pg.evaluate(() => document.activeElement && document.activeElement.getAttribute("data-show"))) === unshown, "⌥⌘↓ moves it down one, its tick keeps the keys");
+await pg.click(`.pop input[data-show="${unshown}"]`);
+ok(!(await headCols()).split(",").includes(unshown) && !(await shownCols()).split(",").includes(unshown), "unticked: hidden, and out of the shown ones");
+await pg.keyboard.press("Escape");
 
 // the toolbar's menus: their button again closes them, and so does a click outside
 await pg.click("#bGroup");
@@ -309,6 +337,10 @@ ai.cells = {
 };
 await pg.evaluate((d) => RT.load(d), ai);
 await sent();
+ok((await pg.locator(`th[data-c="${gap.id}"] .hl svg.ic-ai`).count()) === 1 && (await pg.locator('th[data-c="title"] .hl svg').count()) === 0, "an AI column's header has the AI's sparkle");
+await pg.click("#bCols");
+ok((await pg.locator(`.pop .crow[data-col="${gap.id}"] svg.ic-ai`).count()) === 1 && (await pg.locator(`.pop .crow[data-col="${rel.id}"] svg.ic-ai`).count()) === 1 && !(await pg.textContent(".pop")).includes("AI columns"), "and so has its row in Columns: no AI section");
+await pg.keyboard.press("Escape");
 ok((await pg.textContent(cell("BBBBBBBB", gap.id))).startsWith("●") && (await pg.locator(cell("BBBBBBBB", gap.id) + " .cv.st-prompt").count()) === 1, "a cell made by an older version of its column: prompt changed");
 ok((await pg.textContent(cell("CCCCCCCC", gap.id))).startsWith("⚠") && (await pg.getAttribute(cell("CCCCCCCC", gap.id) + " .smark", "title")).includes("took longer"), "a failed cell says why");
 ok((await pg.textContent(cell("DDDDDDDD", gap.id))).startsWith("✎"), "an edited one is yours");
@@ -359,6 +391,27 @@ await pg.click('.sheet .choice[data-step="ai"]');
 await pg.check('input[name="akind"][value="jev-several"]');
 ok((await pg.textContent("#atax")).includes("Method (method/)") === false, "a taxonomy without an id isn't offered");
 await pg.keyboard.press("Escape");
+
+// the panel: the paper's notes, asked once, in your order; a click opens one in its own window
+const nd = JSON.parse(JSON.stringify(data));
+nd.results[1].noteCount = 2;
+nd.review.id = "r-notes00000"; // (another table: its own columns)
+await pg.evaluate((d) => RT.load(d), nd);
+await sent();
+await pg.click(cell("AAAAAAAA", "year"));
+ok((await pg.textContent("#panel .notes")).includes("No notes on this paper") && !(await sent()).some((x) => x.type === "notes"), "a paper without notes: says so, asks nothing");
+await pg.click(cell("BBBBBBBB", "year"));
+m = await sent();
+ok(m.some((x) => x.type === "notes" && x.paper.key === "BBBBBBBB") && (await pg.textContent("#panel .notes")).includes("Listing them"), "one with notes: they're asked for");
+await pg.evaluate(() => RT.notes("1:BBBBBBBB", { notes: [{ key: "N1", libraryID: 1, title: "Reading notes", dateModified: "2026-10-20 10:00:00", excerpt: "x" }, { key: "N2", libraryID: 1, title: "", dateModified: "" }] }));
+ok((await pg.locator("#panel button.note").count()) === 2 && (await pg.locator("#panel button.note svg.ic-note").count()) === 2 && (await pg.textContent("#panel .notes")).includes("Untitled note"), "its notes listed, each with the note icon");
+await pg.click(cell("BBBBBBBB", "authors"));
+ok(!(await sent()).some((x) => x.type === "notes") && (await pg.locator("#panel button.note").count()) === 2, "another column of the paper: not asked again");
+await pg.click("#panel button.note >> nth=0");
+m = await sent();
+ok(m.some((x) => x.type === "note" && x.note.key === "N1" && x.note.title === "Reading notes"), "a click opens it in its own window");
+await pg.evaluate(() => RT.notes("1:BBBBBBBB", { error: "Zotero isn't running" }));
+ok((await pg.textContent("#panel .notes")).includes("Couldn't list them: Zotero isn't running"), "or says why not");
 
 // the paper's letters, as the launcher's, and / to filter the rows
 await pg.keyboard.press("Escape");

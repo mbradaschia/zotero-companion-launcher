@@ -101531,8 +101531,8 @@
    {
     "rowId": "key-info",
     "icon": "",
-    "label": "Leave the search box; clear it; close",
-    "labelHtml": "Leave the search box; clear it; close",
+    "label": "Leave the search box; clear it; close the overlay (⌘W the window)",
+    "labelHtml": "Leave the search box; clear it; close the overlay (⌘W the window)",
     "detail": "",
     "available": true,
     "submenu": false,
@@ -101642,8 +101642,8 @@
    {
     "rowId": "key-info",
     "icon": "",
-    "label": "Leave the search box; then clear it; then back a level; at the top, close",
-    "labelHtml": "Leave the search box; then clear it; then back a level; at the top, close",
+    "label": "Leave the search box; then clear it; then back a level; at the top, close the overlay (the window and a pinned launcher stay: ⌘W closes them)",
+    "labelHtml": "Leave the search box; then clear it; then back a level; at the top, close the overlay (the window and a pinned launcher stay: ⌘W closes them)",
     "detail": "",
     "available": true,
     "submenu": false,
@@ -105222,8 +105222,8 @@
    {
     "rowId": "key-info",
     "icon": "",
-    "label": "Leave the search box; then clear it; then back a level; at the top, close",
-    "labelHtml": "Leave the search box; then clear it; then back a level; at the top, close",
+    "label": "Leave the search box; then clear it; then back a level; at the top, close the overlay (the window and a pinned launcher stay: ⌘W closes them)",
+    "labelHtml": "Leave the search box; then clear it; then back a level; at the top, close the overlay (the window and a pinned launcher stay: ⌘W closes them)",
     "detail": "",
     "available": true,
     "submenu": false,
