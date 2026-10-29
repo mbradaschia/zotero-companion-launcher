@@ -384,3 +384,54 @@ test("an author's exact surname ranks above a title word that only starts with i
   const lib = [entry(1, "Smithian economics", ["Brown, A."], 2001), entry(2, "Organizational resilience", ["Smith, Jane"], 2019)];
   assert.equal(S.search(lib, "smith", {}).results[0].entry.id, 2);
 });
+
+// The user's of 2026-10-29: "search is not using the authors". A surname matched; an author typed as a citation
+// writes it ("Ivanov et al.", "D. Ivanov", "Ivanov, D.", "Ivanov & Dolgui") or in the order it's said didn't.
+test("authors typed as a citation writes them", () => {
+  const lib = [
+    entry(1, "Supply chain resilience", ["Ivanov, Dmitry", "Dolgui, Alexandre"], 2020),
+    entry(2, "Dynamic capabilities and strategic management", ["Teece, David J.", "Pisano, Gary", "Shuen, Amy"], 1997),
+    entry(3, "Disruption tails", ["Smith, Jane"], 2021),
+  ];
+  const ids = (q) => S.search(lib, q, {}).results.map((r) => r.entry.id);
+  for (const q of ["Ivanov et al.", "Ivanov et al. (2020)", "ivanov et al., 2020", "D. Ivanov", "Ivanov, D.", "Ivanov, Dmitry", "Ivanov & Dolgui", "Ivanov & Dolgui, 2020;"]) {
+    assert.deepEqual(ids(q), [1], q);
+  }
+  assert.deepEqual(ids("Teece et al. 1997"), [2]);
+  assert.deepEqual(ids("Teece, D. J."), [2]);
+  assert.deepEqual(ids("Pisano & Shuen"), [2]);
+  // "et" alone, or "al" without "et", is still a word to match
+  assert.deepEqual(ids("ivanov et"), []);
+  // a quoted phrase stays as typed
+  assert.deepEqual(ids('"ivanov et al."'), []);
+});
+
+test("an author's name in the order it's said", () => {
+  const lib = [entry(1, "Supply chain resilience", ["Ivanov, Dmitry", "Dolgui, Alexandre"], 2020), entry(2, "Other", ["Dmitry, Ivan"], 2020),
+    entry(3, "A report", ["World Health Organization"], 2019)];
+  const ids = (q) => S.search(lib, q, {}).results.map((r) => r.entry.id);
+  assert.deepEqual(ids('"Dmitry Ivanov"'), [1]);
+  assert.deepEqual(ids('a:"Dmitry Ivanov"'), [1]);
+  assert.deepEqual(ids('a:"Alexandre Dolgui"'), [1], "a co-author");
+  assert.deepEqual(ids('a:"Ivanov, Dmitry"'), [1], "as Zotero keeps it, still");
+  assert.deepEqual(ids("a:ivanov$"), [1], "suffix$: the name as said ends with the surname");
+  assert.deepEqual(ids('a:"World Health Organization"'), [3]);
+  // the surname typed first ranks the paper whose first author it is first
+  assert.equal(S.search(lib, "dmitry", {}).results[0].entry.id, 2);
+});
+
+test("citation punctuation around a word isn't part of it; dates and year ranges keep their dots", () => {
+  const term = (q) => S.parseQuery(q).groups[0][0];
+  assert.equal(term("Ivanov,").value, "ivanov");
+  assert.equal(term("D.").value, "d");
+  assert.equal(term("al.,").value, "al");
+  assert.equal(term("resilience:").value, "resilience");
+  assert.equal(term("u.s.").value, "u.s");
+  assert.equal(term("2020,").kind, "year");
+  assert.deepEqual([term("y:2019..").from, term("y:2019..").to], [2019, Infinity]);
+  assert.deepEqual([term("y:..2021").from, term("y:..2021").to], [-Infinity, 2021]);
+  assert.equal(term("added:2026-01-01..2026-03-31").kind, "date");
+  assert.equal(term("'d.").value, "d");
+  assert.equal(term('"d."').value, "d.", "quoted: as typed");
+  assert.equal(S.parseQuery("&").groups.length, 0);
+});

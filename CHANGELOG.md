@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Search finds authors typed as a citation writes them** (the bridge; the launcher, saved searches and review
+  tables all search through it). `Ivanov et al.`, `Ivanov et al. (2020)`, `D. Ivanov`, `Ivanov, D.` and
+  `Ivanov & Dolgui` found nothing: the dots, commas, `et al.` and `&` had to be in the paper too. They're left out
+  now. A name quoted in the order it's said (`"Dmitry Ivanov"`, `a:"Dmitry Ivanov"`) finds *Ivanov, Dmitry*, and
+  `a:ivanov$` matches a surname. A plain surname (`ivanov`) always matched.
+
 ### Changed
 
 - **The Zotero plugin's file is `zotero-companion-bridge-<version>.xpi`** (it was `oma-zotero-launcher-<version>.xpi`).
