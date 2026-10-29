@@ -13,7 +13,8 @@ struct ZoteroLauncherApp: App {
 
     var body: some Scene {
         MenuBarExtra("Zotero Launcher", systemImage: "books.vertical") {
-            MenuBarMenu(launcher: appDelegate.launcher, login: appDelegate.login, updates: appDelegate.updates, reviews: appDelegate.launcher.reviewShelf)
+            MenuBarMenu(launcher: appDelegate.launcher, login: appDelegate.login, updates: appDelegate.updates, reviews: appDelegate.launcher.reviewShelf,
+                        companion: appDelegate.companion)
         }
         Settings {
             SettingsView(model: appDelegate.launcher.model, login: appDelegate.login)
@@ -26,6 +27,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let launcher = LauncherController()
     let login = LoginItem()
     let updates = UpdateCheck(fetcher: URLSessionFetcher())
+    lazy var companion = CompanionServer(runner: launcher.model.runner)
     private var updateTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -38,7 +40,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The UI tests (ZoteroLauncherUITests): the launcher open from the start, as the hotkey would open it; else the files
         // read (the background automation runs from now) and the catch-up's question (Settings › Defaults › When the app opens)
         if UserDefaults.standard.bool(forKey: "ZLOpenOnLaunch") { launcher.show() }
-        else if LauncherModel.startsAtLaunch(ProcessInfo.processInfo.environment), NSClassFromString("XCTestCase") == nil { launcher.model.appLaunched() }
+        else if LauncherModel.startsAtLaunch(ProcessInfo.processInfo.environment), NSClassFromString("XCTestCase") == nil {
+            launcher.model.appLaunched()
+            companion.start() // the iPad's reading companion, while the app runs (the menu bar's Reading Companion)
+        }
         // GitHub's releases, once a day (the check itself skips a day already asked)
         if UpdateCheck.automatic(ProcessInfo.processInfo.environment) {
             updates.check(now: false)
@@ -46,6 +51,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated { self?.updates.check(now: false) }
             }
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        companion.stop()
     }
 
     // Its Dock icon clicked: the launcher, unless a window of the app's is on screen (or in the Dock, which brings it back).
