@@ -220,7 +220,7 @@ struct BadgeBar: View {
                 .onChange(of: model.searchState.active) { _, id in withAnimation(Motion.animation(reduce: reduceMotion)) { proxy.scrollTo(id) } }
             }
             // how the papers are arranged: Group ▾, Sort ▾ and the order (g the next sort, G the next grouping)
-            if model.arrangeable { ArrangeBar(model: model).padding(.trailing, 16) }
+            if model.arrangeable || model.topList { ArrangeBar(model: model).padding(.trailing, 16) }
         }
         .padding(.bottom, 8)
     }
@@ -232,19 +232,22 @@ struct ArrangeBar: View {
     @ObservedObject var model: LauncherModel
 
     var body: some View {
-        let a = model.arrangement, o = model.arrangeOptions
+        // (before you type: only Sort and Order, the top level's own)
+        let top = model.topList
+        let a = top ? model.topArrangement : model.arrangement, o = model.arrangeOptions
         HStack(spacing: 4) {
-            ArrangeMenu(title: "Group", options: o.groups, chosen: a.group, key: model.keyName("G")) { model.setGroup($0) }
-            ArrangeMenu(title: "Sort", options: o.sorts, chosen: a.sort, key: model.keyName("g")) { model.setSort($0) }
+            if !top { ArrangeMenu(title: "Group", options: o.groups, chosen: a.group, key: model.keyName("G")) { model.setGroup($0) } }
+            ArrangeMenu(title: "Sort", options: top ? model.topSortOptions : o.sorts, chosen: a.sort, key: model.keyName("g")) { model.setSort($0) }
             Button { model.toggleOrder() } label: {
                 ArrangeChip(text: a.order == "asc" ? "↑ Asc" : "↓ Desc")
             }
             .buttonStyle(.plain)
-            .disabled(a.sort == "relevance" || a.sort == "manual")
-            .opacity(a.sort == "relevance" || a.sort == "manual" ? 0.45 : 1)
+            .disabled(["relevance", "manual", "recent"].contains(a.sort))
+            .opacity(["relevance", "manual", "recent"].contains(a.sort) ? 0.45 : 1)
             .help(a.sort == "relevance" ? "Order: relevance has one order (sort by a date or the year to choose)"
+                : a.sort == "recent" ? "Order: the recent papers, newest first (sort by a date, the year, the title or the author to choose)"
                 : a.sort == "manual" ? "Order: yours (⇧↑↓ or drag a paper to move it)"
-                : a.order == "asc" ? "Ascending: oldest first. Click for descending" : "Descending: newest first. Click for ascending")
+                : a.order == "asc" ? "Ascending: \(LauncherModel.orderWords(a)). Click for descending" : "Descending: \(LauncherModel.orderWords(a)). Click for ascending")
             .accessibilityLabel(a.order == "asc" ? "Order: ascending" : "Order: descending")
         }
         .fixedSize()

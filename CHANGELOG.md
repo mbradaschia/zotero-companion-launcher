@@ -7,8 +7,22 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Added
+
+- **The bridge sorts a list before it cuts it.** A search with nothing typed can ask for a sort (`sort: { by:
+  "added" | "modified" | "year" | "title" | "author", order }`): the top level then lists the library's first papers
+  in it (up to the results limit, not only the recent few), and a collection's or a tag's papers are picked in it, so
+  "year, oldest first" in a big collection shows its oldest papers, not the newest 60 re-sorted. A paper without the
+  value comes last either way.
+
 ### The Mac app (next)
 
+- **Sort before you type.** The top level has a Sort and an Order of its own: Recent (as before), date added, date
+  changed, year published, title or first author. Sorted, it lists your library's first papers in that order (the
+  results limit, 60 by default), under Papers; your pins and the papers open in Zotero stay above them. `g` sorts the
+  next way there too. It needs bridge 0.2.6; an older one sorts only the recent few.
+- **Title and first author** are sorts in a collection, a tag or a saved search too, and a collection's or a tag's
+  papers come from the bridge already in the sort you chose.
 - **What you typed goes once you choose a row from it.** Typing "settings", a setting's name or a saved search's and
   pressing Enter empties the search box, so back from there (or the next time the launcher opens) you're on your
   library, not on "settings". A paper, a collection or a tag keeps what you typed: back from it, the results you chose

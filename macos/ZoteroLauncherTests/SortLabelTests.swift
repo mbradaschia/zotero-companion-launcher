@@ -41,9 +41,33 @@ final class SortLabelTests: XCTestCase {
         XCTAssertNotNil(model.store.scope)
     }
 
-    func testNothingTypedNothingSorted() {
+    func testTheTopLevelHasItsOwnSort() throws {
         settle()
-        XCTAssertEqual(model.sortLabel, "", "the top level's recent papers aren't sorted")
+        XCTAssertTrue(model.topList)
+        XCTAssertFalse(model.arrangeable)
+        XCTAssertEqual(model.sortLabel, "Recent", "before you type: the recent papers")
+        XCTAssertNil(model.bridgeSort)
+        model.setSort("year")
+        XCTAssertEqual(model.topArrangement.sort, "year")
+        XCTAssertEqual(model.arrangement.sort, "relevance", "a list's sort is its own")
+        XCTAssertEqual(model.sortLabel, "↓ Year published")
+        XCTAssertEqual(model.bridgeSort, ["by": "year", "order": "desc"])
+        model.toggleOrder()
+        XCTAssertEqual(model.sortLabel, "↑ Year published")
+        XCTAssertEqual(model.flash, "Papers: your library's first 60 by year published, oldest first")
+        model.cycleSort(1)
+        XCTAssertEqual(model.topArrangement.sort, "title")
+        XCTAssertEqual(model.flash, "Papers: your library's first 60 by title, A to Z")
+        model.cycleGroup(1)
+        XCTAssertTrue(model.flash.hasPrefix("Group works in a collection"))
+        let url = home.appendingPathComponent(".config/omarchy/oma-zotero-launcher/view.json")
+        let view = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+        XCTAssertEqual(view["topSort"] as? String, "title")
+        XCTAssertEqual(view["topOrder"] as? String, "asc")
+        XCTAssertNil(view["sort"])
+        model.setSort("recent")
+        XCTAssertEqual(model.sortLabel, "Recent")
+        XCTAssertNil(model.bridgeSort)
     }
 
     func testGroupSortAndOrderEachNamed() throws {

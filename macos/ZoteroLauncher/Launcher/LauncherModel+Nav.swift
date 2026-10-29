@@ -88,7 +88,8 @@ extension LauncherModel {
 // sort) and G (the next grouping).
 struct Arrangement: Decodable, Equatable {
     var group: String // "" none, "status", "task", "taskgroup", "tax:<prefix>"
-    var sort: String // "relevance", "added", "modified", "year", "manual" (your order, per list: view.json's paperOrder)
+    var sort: String // "relevance", "added", "modified", "year", "title", "author", "manual" (your order, per list:
+    // view.json's paperOrder); before you type, "recent" or one of the bridge's
     var order: String // "desc", "asc"
 }
 
@@ -106,8 +107,30 @@ extension LauncherModel {
         (try? core?.glue("arrangeOptions", [tax.taxonomies], as: ArrangeOptions.self)) ?? ArrangeOptions(groups: [["", "None"]], sorts: [["relevance", "Relevance"]])
     }
 
+    // The top level's sort (view.json's topSort, topOrder): only a sort and its order, no grouping or your own order.
+    var topArrangement: Arrangement {
+        (try? core?.glue("topArrangement", [prefs?.values ?? [String: Any]()], as: Arrangement.self)) ?? Arrangement(group: "", sort: "recent", order: "desc")
+    }
+
+    var topSortOptions: [[String]] { (try? core?.glue("topSortOptions", [], as: [[String]].self)) ?? [["recent", "Recent"]] }
+
+    // The top level with nothing typed (no saved search's badge either): its papers have a Sort and an Order.
+    var topList: Bool {
+        guard store.inSearch, store.atRoot, store.pickFor.isEmpty, searchScope == nil, let response else { return false }
+        return !(response["scope"] is [String: Any]) && (response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    // What the bridge sorts before it cuts the list to its limit (Glue.searchBody's sort): the top level's, or a
+    // collection's or a tag's by a date, the year, the title or the author; nil for the list's own order.
+    var bridgeSort: [String: String]? {
+        guard store.filterText.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        let a = searchScope == nil ? topArrangement : arrangement
+        guard ["added", "modified", "year", "title", "author"].contains(a.sort) else { return nil }
+        return ["by": a.sort, "order": a.order]
+    }
+
     // Whether the papers are arranged: a list you browse (a collection, a tag, a saved search) with nothing typed. What
-    // you type is by relevance, and the top level's recent papers aren't arranged.
+    // you type is by relevance; the top level has its own sort (topList).
     var arrangeable: Bool {
         guard store.inSearch, let response else { return false }
         return (response["scope"] is [String: Any]) && (response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty
@@ -116,6 +139,10 @@ extension LauncherModel {
     // The arrangement in words, as the three menus show it: "By relevance", "↓ Date added", "Paper status · ↑ Year
     // published", "Your order"; "" where the papers aren't arranged.
     var sortLabel: String {
+        if topList, core != nil {
+            let a = topArrangement
+            return a.sort == "recent" ? "Recent" : (a.order == "asc" ? "↑ " : "↓ ") + (topSortOptions.first { $0.first == a.sort }?.last ?? a.sort)
+        }
         guard arrangeable, core != nil else { return "" }
         let a = arrangement, o = arrangeOptions
         let group = o.groups.first { $0.first == a.group }?.last ?? ""
@@ -125,16 +152,24 @@ extension LauncherModel {
     }
 
     func setGroup(_ id: String) { var a = arrangement; a.group = id; setArrangement(a) }
-    func setSort(_ id: String) { var a = arrangement; a.sort = id; setArrangement(a) }
-    func toggleOrder() { var a = arrangement; a.order = a.order == "asc" ? "desc" : "asc"; setArrangement(a) }
+    func setSort(_ id: String) {
+        if topList { var a = topArrangement; a.sort = id; return setTopArrangement(a) }
+        var a = arrangement; a.sort = id; setArrangement(a)
+    }
+    func toggleOrder() {
+        if topList { var a = topArrangement; a.order = a.order == "asc" ? "desc" : "asc"; return setTopArrangement(a) }
+        var a = arrangement; a.order = a.order == "asc" ? "desc" : "asc"; setArrangement(a)
+    }
 
     // g / G: the next sort, the next grouping (each wraps around).
     func cycleSort(_ delta: Int) {
-        let ids = arrangeOptions.sorts.compactMap(\.first), i = ids.firstIndex(of: arrangement.sort) ?? 0
+        let ids = (topList ? topSortOptions : arrangeOptions.sorts).compactMap(\.first)
+        let i = ids.firstIndex(of: topList ? topArrangement.sort : arrangement.sort) ?? 0
         setSort(ids[((i + delta) % ids.count + ids.count) % ids.count])
     }
 
     func cycleGroup(_ delta: Int) {
+        if topList { return flashMessage("Group works in a collection, a tag or a saved search (\(keyName("g")) sorts these)") }
         let ids = arrangeOptions.groups.compactMap(\.first), i = ids.firstIndex(of: arrangement.group) ?? 0
         setGroup(ids[((i + delta) % ids.count + ids.count) % ids.count])
     }
@@ -148,12 +183,35 @@ extension LauncherModel {
         }
         store.followTop = false
         if store.inSearch { rebuildSearch() }
+        if arrangeable { requestSearch() } // (the bridge picks a collection's first papers in this sort)
         let now = arrangement, o = arrangeOptions
         let group = now.group.isEmpty ? "" : ", grouped by " + (o.groups.first { $0.first == now.group }?.last ?? now.group).lowercased()
-        let newest = now.order == "desc" ? "newest first" : "oldest first"
         let sort = now.sort == "relevance" ? "by relevance" : now.sort == "manual" ? "in your order (⇧↑↓ or drag moves one)"
-            : "by " + (o.sorts.first { $0.first == now.sort }?.last ?? now.sort).lowercased() + ", " + newest
+            : "by " + (o.sorts.first { $0.first == now.sort }?.last ?? now.sort).lowercased() + ", " + Self.orderWords(now)
         flashMessage("Papers: " + sort + group + (arrangeable || !store.inSearch ? "" : " (in a collection, a tag or a saved search: what you type is by relevance)"))
+    }
+
+    // "newest first", "oldest first"; a title or an author: "A to Z", "Z to A".
+    static func orderWords(_ a: Arrangement) -> String {
+        if a.sort == "title" || a.sort == "author" { return a.order == "asc" ? "A to Z" : "Z to A" }
+        return a.order == "asc" ? "oldest first" : "newest first"
+    }
+
+    // The top level's sort, kept in view.json (topSort, topOrder; defaults left out), and the papers asked for again:
+    // the bridge picks the library's first ones in it.
+    func setTopArrangement(_ a: Arrangement) {
+        guard var prefs else { return }
+        saved {
+            try prefs.set("topSort", a.sort == "recent" ? nil : a.sort)
+            try prefs.set("topOrder", a.order == "desc" ? nil : a.order)
+            self.prefs = prefs
+        }
+        store.followTop = true
+        rebuildSearch()
+        requestSearch()
+        let now = topArrangement
+        let name = (topSortOptions.first { $0.first == now.sort }?.last ?? now.sort).lowercased()
+        flashMessage(now.sort == "recent" ? "Papers: the recent ones" : "Papers: your library's first \(settings?.values.maxResults ?? 60) by \(name), " + Self.orderWords(now))
     }
 
     func writeArrangement(_ a: Arrangement, _ prefs: inout ViewPrefs) throws {

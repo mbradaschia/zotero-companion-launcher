@@ -172,6 +172,9 @@ says so.
   `↓ Newest published` / `↑ Oldest published` (the arrow is the direction), `Grouped by paper status`; a click is
   `g`. The count beside the box doesn't repeat it; it shows with or without badges (in a collection too). The hint is
   `g sort`.
+- **Before you type** the bar shows Sort and Order only (no Group, no Manual): `Recent` is the default (the label says
+  so); another sort asks the bridge for the library's first papers in it, under the Papers heading, and the flash says
+  how many. The top level's sort is its own (view.json `topSort`, `topOrder`), apart from the lists' `sort`.
 - **Sort › Manual** is your order, kept per list (view.json's `paperOrder`, synced): a collection, a tag or a saved
   search, with nothing typed. `⇧↑↓` moves the highlighted paper past the next one (within its group when grouped);
   dragging a paper onto another puts it there, the target outlined. Either one, in another sort, switches the list to

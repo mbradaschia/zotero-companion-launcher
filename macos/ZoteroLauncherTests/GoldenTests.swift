@@ -59,7 +59,8 @@ final class GoldenTests: XCTestCase {
              "defaultTaskDescription", "nextGrouping", "groupingName":
             XCTAssertNoThrow(try decoder.decode(String.self, from: data), name)
         case "styleName": XCTAssertNoThrow(try decoder.decode(String.self, from: data), name)
-        case "arrangement": XCTAssertNoThrow(try decoder.decode(Arrangement.self, from: data), name)
+        case "arrangement", "topArrangement": XCTAssertNoThrow(try decoder.decode(Arrangement.self, from: data), name)
+        case "topSortOptions": XCTAssertNoThrow(try decoder.decode([[String]].self, from: data), name)
         case "arrangeOptions": XCTAssertNoThrow(try decoder.decode(ArrangeOptions.self, from: data), name)
         case "statusTags": XCTAssertNoThrow(try decoder.decode([String].self, from: data), name)
         default: break // JSON the model reads as JSON (the bridge's bodies, settings, todos)
