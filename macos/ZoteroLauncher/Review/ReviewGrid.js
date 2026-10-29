@@ -252,7 +252,8 @@ var RT = (function () {
       var mark = sortMark(c.id)
       var s = null
       review.sort.forEach(function (k) { if (k.column === c.id) s = k.dir })
-      hr.appendChild(el("th", { class: i === 0 ? "fz1" : "mv", "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
+      // (a narrow column shows its name's first letters, its ▾ on hover: never a header of a ▾ alone)
+      hr.appendChild(el("th", { class: (i === 0 ? "fz1" : "mv") + (c.width < 64 ? " narrow" : ""), "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
         el("div", { class: "hcell" }, [
           el("span", { class: "hl" + (c.ai ? " ai" : ""), text: c.label, title: c.label + (c.ai ? " (" + c.kindName + ")" : "") + (c.problem ? ". " + c.problem : c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }),
           mark ? el("span", { class: "sortmark", text: mark }) : null,
