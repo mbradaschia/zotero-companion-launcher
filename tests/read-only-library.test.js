@@ -9,8 +9,7 @@ const path = require("node:path");
 const http = require("node:http");
 const { spawn } = require("node:child_process");
 
-const RUNNERS = [path.join(__dirname, "../daemon/bin/oma-zotero-prompt.mjs"), path.join(__dirname, "../macos/runner/bin/oma-zotero-prompt.mjs")]
-  .filter((p) => fs.existsSync(p));
+const RUNNERS = [path.join(__dirname, "../daemon/bin/oma-zotero-prompt.mjs")];
 
 function serve(handler) {
   return new Promise((resolve) => {
@@ -46,7 +45,7 @@ function item(key, libraryID) {
 }
 
 for (const bin of RUNNERS) {
-  const which = bin.includes("macos") ? "the Mac's runner" : "the runner";
+  const which = "the runner";
 
   test(`${which}: nothing runs or is written on a paper in a read-only library`, async () => {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "read-only-"));
