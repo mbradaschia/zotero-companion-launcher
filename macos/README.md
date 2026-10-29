@@ -81,7 +81,8 @@ app on the Mac where Zotero runs, so everything goes through that Mac's Zotero, 
 own rules.
 
 - **It runs with the app**, on `127.0.0.1:8787` only (menu bar › *Reading Companion* › *Run It With the App*, on by
-  default). It needs Node 22 (Settings › Setup); chats and prompts need the AI features.
+  default; turned off, Tailscale stops serving it too). It needs Node.js 22 (Settings › Setup › Install Node.js);
+  chats, prompts and tagging need the AI features.
 - **Your iPad reaches it through [Tailscale](https://tailscale.com)**: install it on the Mac and the iPad, sign in to
   the same account, and turn on *HTTPS certificates* in the Tailscale admin console (DNS). Then menu bar ›
   *Reading Companion* › *Show the iPad Link…* serves it on your tailnet (`tailscale serve`, on its own port 8787, never

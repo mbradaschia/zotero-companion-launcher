@@ -25,10 +25,11 @@ function paperOf(key, title, authors, year, tags) {
   return {
     item: { key, itemType: "journalArticle", title },
     paper: { title, authors, year, publication: "Strategic Management Journal", rank: { ajg: "4*", ft50: true }, abstract: "" },
-    notes: [{ key: "N" + key.slice(1), libraryID: 1, title: "Extracted text", dateModified: "2026-10-01", excerpt: "p. 1", fulltext: true }],
+    notes: [{ key: "F" + key.slice(1), libraryID: 1, title: "Extracted text", dateModified: "2026-10-01", excerpt: "p. 1", fulltext: true },
+      { key: "N" + key.slice(1), libraryID: 1, title: "My reading", dateModified: "2026-10-02", excerpt: "Compare with Barney" }],
     tags: tags.map((tag) => ({ tag })),
     attachments: [{ contentType: "application/pdf" }],
-    noteCount: 1,
+    noteCount: 2,
     library: { editable: true },
   };
 }

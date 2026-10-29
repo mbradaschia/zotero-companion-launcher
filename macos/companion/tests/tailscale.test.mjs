@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync, readFileSync, chmodSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { tailscaleState, tailscaleServe } from "../lib/tailscale.mjs";
+import { tailscaleState, tailscaleServe, tailscaleUnserve } from "../lib/tailscale.mjs";
 import { share } from "../server.mjs";
 import { makeContext } from "../lib/context.mjs";
 import { makeHome, KEY } from "./helpers.mjs";
@@ -22,6 +22,7 @@ echo "$*" >> "${log}"
 case "$1 $2" in
   "status --json") ${name ? `echo '{"Self":{"DNSName":"${name}"}}'` : "echo '{}'; exit 1"} ;;
   "serve status") cat "${conf}" 2>/dev/null || echo '{}' ;;
+  "serve --https=8787") rm -f "${conf}" ;;
   "serve --bg") echo '{"Web":{"${name.replace(/\.$/, "")}:8787":{"Handlers":{"/":{"Proxy":"http://127.0.0.1:8787"}}}}}' > "${conf}" ;;
 esac
 `);
@@ -58,4 +59,10 @@ test("share: the tailnet link with the key; none when Tailscale can't serve it",
   const off = share(ctx, 8787, fake({ name: "" }).env);
   assert.equal(off.link, "");
   assert.match(off.tailscale.problem, /isn't connected/);
+});
+
+test("tailscale: the companion turned off, its port isn't served any more", () => {
+  const t = fake({ served: true });
+  assert.equal(tailscaleUnserve(8787, t.env).serving, false);
+  assert.ok(t.calls().includes("serve --https=8787 off"));
 });

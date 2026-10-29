@@ -25,8 +25,8 @@ test("the page beside Zotero", { skip: !chromium && "Playwright isn't installed"
     await page.goto(s.base + "/?key=" + KEY);
     assert.equal(new URL(page.url()).search, "");
     await page.getByText("Dynamic capabilities and strategic management").click();
-    await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "Reading" }).click();
-    await page.waitForFunction(() => document.querySelector('.choice.status [aria-pressed="true"]').textContent === "Reading");
+    await page.getByRole("group", { name: "Status" }).getByRole("button", { name: "reading", exact: true }).click();
+    await page.waitForFunction(() => document.querySelector('.choice.status [aria-pressed="true"]').textContent === "reading");
     assert.ok(s.bridge.lib["1:AAAA1111"].tags.some((t) => t.tag === "s/reading"));
 
     await page.getByRole("group", { name: "Task" }).getByRole("button", { name: "Writing" }).click();
@@ -43,7 +43,7 @@ test("the page beside Zotero", { skip: !chromium && "Playwright isn't installed"
       await page.waitForTimeout(150);
     }
     await page.getByText("Authors", { exact: true }).waitFor();
-    await page.getByRole("button", { name: "Columns shown" }).click();
+    await page.getByRole("button", { name: "Columns", exact: true }).click();
     await page.getByRole("checkbox", { name: "Year" }).uncheck();
     await page.waitForTimeout(200);
     assert.ok(JSON.parse(readFileSync(join(s.env.cdir, "companion.json"), "utf8")).hiddenColumns.includes("year"));

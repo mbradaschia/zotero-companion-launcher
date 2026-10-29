@@ -33,7 +33,7 @@ test("paper: status, taxonomies by name with their labels, suggestions, and plai
     const p = r.json;
     assert.equal(p.title, "Dynamic capabilities and strategic management");
     assert.equal(p.status, "to read");
-    assert.deepEqual(p.ranks, ["ABS 4*", "FT50"]);
+    assert.deepEqual(p.ranks, [{ label: "ABS 4*", top: true }, { label: "FT50", top: true }]);
     assert.deepEqual(p.taxonomies.map((t) => [t.name, t.labels]), [["Theory", ["dynamic-capabilities"]], ["Method", ["case"]]]);
     assert.deepEqual(p.suggestions, [{ taxonomy: "theory", name: "Theory", label: "rbv", p: 0.71 }]);
     assert.deepEqual(p.tags, ["firm"]);
@@ -129,16 +129,16 @@ test("the sync folder away: nothing is written, and the page is told why", async
   } finally { await s.close(); }
 });
 
-test("notes: listed, one as HTML, a new one through the runner (Markdown on stdin, tagged), the citation", async () => {
+test("notes: yours listed (not the extracted text), one as HTML, a new one through the runner (Markdown on stdin), the citation", async () => {
   const s = await startServer();
   try {
     const list = (await api(s.base, "/api/notes?id=1:AAAA1111")).json.notes;
-    assert.equal(list[0].id, "1:NAAA1111");
+    assert.deepEqual(list.map((n) => n.id), ["1:NAAA1111"]); // (not the extracted text: as the Mac app's Notes)
     assert.match((await api(s.base, "/api/note?id=1:NAAA1111")).json.html, /<h1>Extracted<\/h1>/);
     const add = await api(s.base, "/api/notes", { body: { id: "1:AAAA1111", title: "My  reading", markdown: "**Key** point" } });
     assert.equal(add.json.note, "1:NNNN9999");
     const call = s.runner.calls.find((c) => c.argv[0] === "note");
-    assert.deepEqual(call.argv, ["note", "--key", "AAAA1111", "--library", "1", "--tag", "oma-companion", "--title", "My reading"]);
+    assert.deepEqual(call.argv, ["note", "--key", "AAAA1111", "--library", "1", "--title", "My reading"]);
     assert.equal(call.stdin, "**Key** point");
     assert.match((await api(s.base, "/api/cite?id=1:AAAA1111")).json.text, /^Teece/);
   } finally { await s.close(); }
@@ -165,7 +165,7 @@ test("chat: no runner on the Mac mini says so in the stream", async () => {
   const s = await startServer({ missing: true });
   try {
     const r = await api(s.base, "/api/chat", { body: { id: "1:AAAA1111", question: "x" } });
-    assert.match(r.text, /aren't installed on the Mac mini/);
+    assert.match(r.text, /Chat needs the AI features: Settings › Setup installs them/);
     assert.equal((await api(s.base, "/api/health")).json.runner.ok, false);
     // (a paper still shows, without its taxonomies)
     assert.deepEqual((await api(s.base, "/api/paper?id=1:AAAA1111")).json.taxonomies, []);

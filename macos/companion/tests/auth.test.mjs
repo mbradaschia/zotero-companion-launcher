@@ -66,6 +66,8 @@ test("server: the API needs the key; the page itself doesn't", async () => {
     assert.equal(page.headers.get("x-frame-options"), "DENY");
     assert.equal((await fetch(s.base + "/..%2f..%2fetc/passwd")).status, 404);
     assert.equal((await fetch(s.base + "/.hidden")).status, 404);
+    assert.equal((await fetch(s.base + "/%E0%A4%A")).status, 404); // (a bad escape answers, never stops the server)
+    assert.equal((await fetch(s.base + "/")).status, 200);
   } finally { await s.close(); }
 });
 
@@ -97,7 +99,7 @@ test("server: a change needs the companion's header and its own origin", async (
   } finally { await s.close(); }
 });
 
-test("server: the key typed in sets the cookie; ten wrong ones and it waits", async () => {
+test("server: the key typed in sets the cookie; ten wrong ones and guessing waits", async () => {
   const s = await startServer();
   try {
     const post = (key) => fetch(s.base + "/api/login", { method: "POST", headers: { "X-Companion": "1", "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
@@ -105,6 +107,7 @@ test("server: the key typed in sets the cookie; ten wrong ones and it waits", as
     assert.equal(ok.status, 200);
     assert.match(ok.headers.get("set-cookie"), /^zc_key=/);
     for (let i = 0; i < 10; i++) assert.equal((await post("j".repeat(43))).status, 401);
-    assert.equal((await post(KEY)).status, 429);
+    assert.equal((await post("j".repeat(43))).status, 429);
+    assert.equal((await post(KEY)).status, 200); // (the right key always opens: nobody locks you out by guessing)
   } finally { await s.close(); }
 });

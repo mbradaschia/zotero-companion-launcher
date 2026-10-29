@@ -29,9 +29,19 @@ final class CompanionServer: ObservableObject {
 
     init(runner: Runner) { self.runner = runner as? ProcessRunner }
 
+    // Turned on: started a moment later (a server just stopped lets go of the port first). Turned off: stopped, and
+    // Tailscale no longer serves its port (whatever listens there later isn't published to your tailnet).
     func set(_ on: Bool) {
         UserDefaults.standard.set(on, forKey: Self.key)
-        if on { restarts = 0; start() } else { stop() }
+        if on {
+            restarts = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in MainActor.assumeIsolated { self?.start() } }
+        } else {
+            stop()
+            if let runner, let script = Self.script {
+                runner.run(["node", script.path, "--unshare", "--port", String(Self.port)], stdin: nil, timeout: 60) { _ in }
+            }
+        }
     }
 
     // Node looked for off the main thread (a slow shim must not freeze the app), then started.
@@ -49,7 +59,7 @@ final class CompanionServer: ObservableObject {
 
     private func launch(node: ProcessRunner.Node?, env: [String: String], script: URL) {
         guard !stopping, process == nil else { return }
-        guard let node else { return state = .failed("It needs Node 22 or newer: Settings › Setup installs it") }
+        guard let node else { return state = .failed("It needs Node.js 22 or newer: Settings › Setup › Install Node.js") }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: node.path)
         p.arguments = [script.path, "--port", String(Self.port), "--exit-with-stdin"]
@@ -117,7 +127,7 @@ final class CompanionServer: ObservableObject {
     // as a QR code to scan with the iPad's camera, and to copy.
     func showLink() {
         guard let runner, let script = Self.script else { return }
-        runner.run(["node", script.path, "--share", "--port", String(Self.port)], stdin: nil, timeout: 60) { r in
+        runner.run(["node", script.path, "--share", "--port", String(Self.port)], stdin: nil, timeout: 90) { r in
             let json = r.json as? [String: Any]
             let link = json?["link"] as? String ?? ""
             let problem = (json?["tailscale"] as? [String: Any])?["problem"] as? String ?? (r.ok ? "" : r.problem)
@@ -129,8 +139,8 @@ final class CompanionServer: ObservableObject {
         let alert = NSAlert()
         if link.isEmpty {
             alert.messageText = "The iPad can't reach it yet"
-            alert.informativeText = (problem.isEmpty ? "Tailscale didn't give a link" : problem) +
-                ".\n\nThe companion reaches your iPad through Tailscale: install it on this Mac and on the iPad, sign in to the same account on both, and turn on HTTPS certificates in the Tailscale admin console (DNS). Then try again."
+            let why = (problem.isEmpty ? "Tailscale didn't give a link" : problem).trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+            alert.informativeText = why + ".\n\nThe companion reaches your iPad through Tailscale: install it on this Mac and on the iPad, sign in to the same account on both, and turn on HTTPS certificates in the Tailscale admin console (DNS). Then try again."
             alert.addButton(withTitle: "OK")
         } else {
             alert.messageText = "Open the reading companion on your iPad"

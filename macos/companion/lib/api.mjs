@@ -2,7 +2,11 @@
 // app's own JavaScript (context.mjs). Each handler takes the context and the request's { query, body } and gives JSON
 // back, or throws (Refused: its status and message; anything else: the bridge's or the runner's problem). A chat turn
 // streams (its handler answers { stream }). Nothing here logs what's in the library.
-import { Glue, Client, Todos, Views, ReviewCore as RV, Refused } from "./context.mjs";
+import { readFileSync } from "node:fs";
+import { Glue, Client, Todos, Views, ReviewCore as RV, Refused, syncAway } from "./context.mjs";
+import { problemOf } from "./runner.mjs";
+
+const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 const PAPER = /^(\d+):([A-Z0-9]{8})$/;
 const SESSION = /^[A-Za-z0-9_-]{1,80}$/;
@@ -12,6 +16,20 @@ export function paperRef(id) {
   const m = PAPER.exec(String(id || ""));
   if (!m) throw new Refused("not a paper", 400, "bad-paper");
   return { id: m[1] + ":" + m[2], key: m[2], libraryID: Number(m[1]) };
+}
+
+// The Mac app's sentences (docs/ux-conventions.md), one shape each.
+export const needsAI = (what) => `${what} needs the AI features: Settings › Setup installs them`;
+
+// A bridge failure as the Mac app words it (BridgeResult.message), never the client's raw text.
+export function bridgeProblem(e) {
+  const m = String((e && e.message) || "");
+  if (/no .*bridge\.json|bad bridge handshake/.test(m)) return "Zotero isn't running, or the Zotero plugin isn't installed";
+  if (/didn't answer .*(ECONNREFUSED|fetch failed)/i.test(m)) return "Zotero isn't running";
+  if (/has no .* route/.test(m)) return "Zotero runs without the Zotero Omarchy Bridge plugin";
+  if (e && e.status === 401) return "Zotero refused the token: restart Zotero";
+  if (/TimeoutError|aborted due to timeout/i.test(m)) return "Zotero took too long to answer";
+  return m.replace(/^\/[\w/-]+: /, "");
 }
 
 const text = (v, max = 2000) => String(v == null ? "" : v).slice(0, max);
@@ -28,11 +46,30 @@ function cached(ctx, name, ms, load) {
 }
 const forget = (ctx, ...names) => names.forEach((n) => ctx.cache && ctx.cache.delete(n));
 
-async function taxonomies(ctx) {
+// Your taxonomies; the last list that loaded while the runner can't answer (so a label never shows as a plain tag),
+// and why it couldn't. → { list, error }
+async function taxonomyList(ctx) {
   try {
-    return (await cached(ctx, "taxonomies", 60000, () => ctx.runner.json(["taxonomies", "--json"]))).taxonomies || [];
+    const list = (await cached(ctx, "taxonomies", 60000, () => ctx.runner.json(["taxonomies", "--json"]))).taxonomies || [];
+    ctx.lastTaxonomies = list;
+    return { list, error: "" };
+  } catch (e) {
+    return { list: ctx.lastTaxonomies || [], error: e.code === "runner-missing" ? needsAI("Reading your taxonomies") : "Couldn't read your taxonomies: " + e.message };
+  }
+}
+
+async function taxonomies(ctx) {
+  return (await taxonomyList(ctx)).list;
+}
+
+// Whether the paper was tagged by your taxonomies, and which are out of date for it. → { classified, stale } or null
+async function taxStatus(ctx, id) {
+  try {
+    const r = await ctx.runner.json(["classify-status", "--items", id, "--json"]);
+    const it = (r.items || [])[0];
+    return it ? { classified: !!it.classified, stale: it.stale || [] } : null;
   } catch {
-    return []; // (no runner: a paper still shows, without its taxonomies)
+    return null;
   }
 }
 
@@ -65,10 +102,13 @@ function taskStatuses(settings) {
 // ---- the bridge's answers, as the page wants them
 
 // A search row: what the list shows and what the paper's view reads later (dates, counts).
-function rowView(r) {
+// A ranking pill: its text, and whether it's a top one (★ and the rank colour, as the Mac app's RowViews).
+const rankPills = (rank) => Views.rankLabels(rank || null).map((label) => ({ label, top: Views.rankIsTop(label) }));
+
+function rowView(r, task) {
   return { id: (Number(r.libraryID) || 1) + ":" + r.key, key: r.key, libraryID: Number(r.libraryID) || 1, itemType: r.itemType, title: text(r.title, 500),
     creator: text(r.creator, 300), year: text(r.year, 10), publication: text(r.publication, 300), status: Client.statusName(r.status || ""),
-    ranks: Views.rankLabels(r.rank || null), pdfCount: r.pdfCount || 0, noteCount: r.noteCount || 0, extracted: !!r.extracted };
+    ranks: rankPills(r.rank), task: task ? task.name : "", pdfCount: r.pdfCount || 0, noteCount: r.noteCount || 0, extracted: !!r.extracted };
 }
 
 const isPaper = (r) => r && r.itemType !== "note" && r.itemType !== "attachment";
@@ -77,7 +117,7 @@ export async function search(ctx, { query }) {
   const settings = ctx.settings();
   const q = text(query.q, 500);
   const limit = Math.max(1, Math.min(60, parseInt(query.limit, 10) || 30));
-  const r = await ctx.bridge().post("/search", { query: q, limit, statusTags: statusTags(settings), statusPrefix: Client.PAPER_TAG_PREFIX,
+  const r = await bridge(ctx, "/search", { query: q, limit, statusTags: statusTags(settings), statusPrefix: Client.PAPER_TAG_PREFIX,
     emptyQuery: { recent: "latest", showOpen: false } });
   const raw = q.trim() ? r.results || [] : (r.recent || []).concat(r.open || []);
   const rows = raw.filter(isPaper);
@@ -86,7 +126,9 @@ export async function search(ctx, { query }) {
     ctx.rows.set(id, row);
     if (ctx.rows.size > 2000) ctx.rows.delete(ctx.rows.keys().next().value);
   }
-  return { query: q, recent: !q.trim(), rows: rows.map(rowView) };
+  let tasks = {};
+  try { tasks = Glue.defaultTasks(ctx.todos(), Todos.statusesOf(settings)) || {}; } catch { /* no tasks file */ }
+  return { query: q, recent: !q.trim(), rows: rows.map((row) => rowView(row, tasks[(Number(row.libraryID) || 1) + ":" + row.key])) };
 }
 
 // The paper's search row: the one the list had, else one made from its details (no dates then).
@@ -101,7 +143,29 @@ function rowOf(ctx, ref, d, tags) {
 }
 
 async function details(ctx, ref) {
-  return ctx.bridge().post("/item", { key: ref.key, libraryID: ref.libraryID });
+  return bridge(ctx, "/item", { key: ref.key, libraryID: ref.libraryID });
+}
+
+// A bridge call whose failure reads as the Mac app's.
+async function bridge(ctx, route, body) {
+  try {
+    return await ctx.bridge().post(route, body);
+  } catch (e) {
+    const out = new Error(bridgeProblem(e));
+    out.code = e.code || "bridge";
+    throw out;
+  }
+}
+
+// Your order of the paper's notes (view.json's noteOrder, as the launcher's Notes).
+function noteOrder(ctx, ref) {
+  try {
+    const v = JSON.parse(readFileSync(ctx.paths().view, "utf8"));
+    const o = v && v.noteOrder && v.noteOrder[ref.id];
+    return Array.isArray(o) ? o : [];
+  } catch {
+    return [];
+  }
 }
 
 // The paper's default task, as the Mac app shows it (its pill): { todo, statusId, name } or null.
@@ -119,7 +183,8 @@ function paperTodos(todos, ref) {
 export async function paper(ctx, { query }) {
   const ref = paperRef(query.id);
   const settings = ctx.settings();
-  const [d, tax, sugg] = await Promise.all([details(ctx, ref), taxonomies(ctx), suggestions(ctx)]);
+  const [d, taxr, sugg, tst] = await Promise.all([details(ctx, ref), taxonomyList(ctx), suggestions(ctx), taxStatus(ctx, ref.id)]);
+  const tax = taxr.list;
   const tags = tagNames(d.tags);
   const statuses = Todos.statusesOf(settings);
   const todos = ctx.todos();
@@ -131,11 +196,12 @@ export async function paper(ctx, { query }) {
   return {
     id: ref.id, key: ref.key, libraryID: ref.libraryID,
     title: text(p.title || d.item.title, 500), authors: text(p.authors, 300), year: text(p.year, 10), publication: text(p.publication, 300),
-    ranks: Views.rankLabels(p.rank || null), editable: !!(d.library && d.library.editable),
+    ranks: rankPills(p.rank), editable: !(d.library && d.library.editable === false), library: text((d.library && d.library.name) || "", 200),
     status: Client.statusName(Glue.paperStatusOf(tags, statusTags(settings))),
     task: defaultTask(todos, ref, statuses),
     extracted: (d.notes || []).some((n) => n.fulltext), hasPdf: (d.attachments || []).some((a) => /pdf/i.test(a.contentType || "")),
-    noteCount: (d.notes || []).length, openTasks: open.length,
+    noteCount: Views.ownNotes(d).length, openTasks: open.length,
+    taxonomyError: taxr.error, taxStatus: tst && tax.length ? { classified: tst.classified, stale: tax.filter((t) => tst.stale.includes(t.id)).map((t) => t.name) } : null,
     taxonomies: tax.filter((t) => t.show !== false).map((t) => {
       const pre = lower(String(t.prefix || ""));
       return { id: t.id, name: t.name, kind: t.kind, prefix: t.prefix,
@@ -143,6 +209,7 @@ export async function paper(ctx, { query }) {
     }),
     suggestions: sugg.filter((s) => s.id === ref.id).map((s) => ({ taxonomy: s.taxonomy, name: s.name, label: s.label, p: s.p })),
     tags: tags.filter((g) => !/^[st]\//i.test(g) && !prefixes.some((pre) => lower(g).startsWith(pre))).sort((a, b) => a.localeCompare(b)),
+    machine: ctx.paths().machine || "",
   };
 }
 
@@ -154,16 +221,18 @@ export async function settingsView(ctx) {
 
 // ---- health: the header's pill
 
+
+
 export async function health(ctx) {
   let zotero = { ok: true, message: "" };
   try {
-    await ctx.bridge().post("/search", { query: "", limit: 1, emptyQuery: { recent: "none", showOpen: false } });
+    await bridge(ctx, "/search", { query: "", limit: 1, emptyQuery: { recent: "none", showOpen: false } });
   } catch (e) {
-    zotero = { ok: false, message: /no .*bridge\.json|isn't running/i.test(e.message) ? "Zotero isn't running on the Mac mini" : e.message };
+    zotero = { ok: false, message: e.message };
   }
-  const runner = ctx.runner.command() ? { ok: true, message: "" } : { ok: false, message: "The AI features aren't installed on the Mac mini" };
+  const runner = ctx.runner.command() ? { ok: true, message: "" } : { ok: false, message: needsAI("Chat, prompts and tagging") };
   const p = ctx.paths();
-  return { zotero, runner, syncFolder: p.readOnly ? { ok: false, message: "The sync folder isn't there" } : { ok: true, message: "" }, machine: p.machine || "" };
+  return { zotero, runner, syncFolder: p.readOnly ? { ok: false, message: cap1(syncAway(p, ctx.env.HOME)) } : { ok: true, message: "" }, machine: p.machine || "" };
 }
 
 // ---- status (s/ tags) and the default task (todos.json, t/ tags)
@@ -172,7 +241,7 @@ async function updateTags(ctx, ref, add, remove) {
   const a = add.filter(Boolean);
   const r = remove.filter((t) => t && !a.some((x) => x.toLowerCase() === t.toLowerCase()));
   if (!a.length && !r.length) return;
-  await ctx.bridge().post("/tags/update", { key: ref.key, libraryID: ref.libraryID, add: a, remove: r });
+  await bridge(ctx, "/tags/update", { key: ref.key, libraryID: ref.libraryID, add: a, remove: r });
 }
 
 // A status set: the new s/ tag on, the old one and any other status tag off (LauncherModel+Status's flushStatuses).
@@ -271,20 +340,20 @@ export async function toggleTask(ctx, { body }) {
 export async function notes(ctx, { query }) {
   const ref = paperRef(query.id);
   const d = await details(ctx, ref);
-  return { notes: (d.notes || []).map((n) => ({ id: (Number(n.libraryID) || ref.libraryID) + ":" + n.key, title: text(n.title, 300), excerpt: text(n.excerpt, 600),
+  return { notes: Glue.ownNotes(d, noteOrder(ctx, ref)).map((n) => ({ id: (Number(n.libraryID) || ref.libraryID) + ":" + n.key, title: text(n.title, 300), excerpt: text(n.excerpt, 600),
     dateModified: n.dateModified || "", fulltext: !!n.fulltext })) };
 }
 
 export async function note(ctx, { query }) {
   const ref = paperRef(query.id);
-  const n = await ctx.bridge().post("/note", { key: ref.key, libraryID: ref.libraryID, format: "html" });
+  const n = await bridge(ctx, "/note", { key: ref.key, libraryID: ref.libraryID, format: "html" });
   return { id: ref.id, title: n.title || "", html: n.html || "", truncated: !!n.truncated, dateModified: n.dateModified || "" };
 }
 
 export async function cite(ctx, { query }) {
   const ref = paperRef(query.id);
   const style = ctx.settings().citationStyle || "apa";
-  const r = await ctx.bridge().post("/cite", { keys: [ref.key], libraryID: ref.libraryID, style, mode: "bibliography", format: "text" });
+  const r = await bridge(ctx, "/cite", { keys: [ref.key], libraryID: ref.libraryID, style, mode: "bibliography", format: "text" });
   return { text: text(r.text || r.bibliography || "", 4000).trim() };
 }
 
@@ -293,7 +362,8 @@ export async function addNote(ctx, { body }) {
   const markdown = text(body.markdown, 200000).trim();
   if (!markdown) throw new Refused("The note is empty", 400, "empty");
   const title = text(body.title, 200).replace(/\s+/g, " ").trim();
-  const argv = ["note", "--key", ref.key, "--library", String(ref.libraryID), "--tag", "oma-companion"].concat(title ? ["--title", title] : []);
+  // (the runner tags it oma-chat, as a note saved from a chat: its --tag takes no value)
+  const argv = ["note", "--key", ref.key, "--library", String(ref.libraryID)].concat(title ? ["--title", title] : []);
   const r = await ctx.runner.json(argv, { stdin: markdown, timeoutMs: 60000 });
   return { note: r.note ? ref.libraryID + ":" + r.note : "" };
 }
@@ -329,12 +399,16 @@ export async function ask(ctx, { body }) {
   }
   return {
     stream: (send) => {
-      const s = ctx.runner.stream(argv, { stdin: question, onLine: (line) => send(line) });
+      let said = false; // the runner wrote its own error line
+      const s = ctx.runner.stream(argv, { stdin: question, onLine: (line) => { if (/"type":"error"/.test(line)) said = true; send(line); } });
       if (!s) {
-        send(JSON.stringify({ type: "error", message: "The AI features aren't installed on the Mac mini" }));
+        send(JSON.stringify({ type: "error", message: needsAI("Chat") }));
         return Promise.resolve();
       }
-      return s.done.then((r) => { if (r.status !== 0 && r.missing) send(JSON.stringify({ type: "error", message: "The AI features aren't installed on the Mac mini" })); });
+      return s.done.then((r) => {
+        if (r.status === 0 || said) return;
+        send(JSON.stringify({ type: "error", message: r.missing ? needsAI("Chat") : "The answer stopped: " + problemOf(r) }));
+      });
     },
   };
 }
@@ -351,7 +425,7 @@ export async function prompts(ctx, { query }) {
   const ref = paperRef(query.id);
   const [list, by, running] = await Promise.all([
     ctx.runner.json(["list", "--json"]),
-    ctx.bridge().post("/notes/by-prompt", {}).catch(() => ({ notes: [] })),
+    bridge(ctx, "/notes/by-prompt", {}).catch(() => ({ notes: [] })),
     runnerTasks(ctx),
   ]);
   const last = {};
@@ -362,7 +436,8 @@ export async function prompts(ctx, { query }) {
   }
   const here = (t) => t.status === "running" && String(t.key) === ref.key && (Number(t.libraryID) || 1) === ref.libraryID;
   return {
-    prompts: (list.prompts || []).map((p) => ({ id: p.id, title: text(p.title, 200), excerpt: text(p.excerpt, 300), lastRun: last[p.id] || "",
+    prompts: (list.prompts || []).map((p) => ({ id: p.id, title: text(p.title, 200), excerpt: text(p.excerpt, 300), output: p.output || "note",
+      outputLabel: Views.OUTPUT_LABELS[p.output || "note"] || p.output, lastRun: (p.output || "note") === "note" ? last[p.id] || "" : "",
       running: running.some((t) => here(t) && t.kind === "prompt" && t.promptId === p.id) })),
     classifying: running.some((t) => here(t) && t.kind === "classify"),
   };
@@ -373,7 +448,7 @@ export async function runPrompt(ctx, { body }) {
   const prompt = text(body.prompt, 80);
   if (!PROMPT.test(prompt)) throw new Refused("not a prompt", 400, "bad-prompt");
   if (!ctx.runner.start(["run", prompt, "--key", ref.key, "--library", String(ref.libraryID), "--quiet"])) {
-    throw new Refused("The AI features aren't installed on the Mac mini", 503, "runner-missing");
+    throw new Refused(needsAI("Running a prompt"), 503, "runner-missing");
   }
   forget(ctx, "tasks");
   return { started: true };
@@ -381,7 +456,7 @@ export async function runPrompt(ctx, { body }) {
 
 export async function classify(ctx, { body }) {
   const ref = paperRef(body.id);
-  if (!ctx.runner.start(["classify", "--items", ref.id])) throw new Refused("The AI features aren't installed on the Mac mini", 503, "runner-missing");
+  if (!ctx.runner.start(["classify", "--items", ref.id])) throw new Refused(needsAI("Tagging by taxonomies"), 503, "runner-missing");
   forget(ctx, "tasks", "review");
   return { started: true };
 }
@@ -431,6 +506,20 @@ function cellText(col, v) {
   return RV.text(col, v);
 }
 
+// How the review table draws a value (ReviewGrid's cell): as pills of a kind, with their texts, or as text.
+function cellPills(c, v) {
+  if (v == null || v === "" || (Array.isArray(v) && !v.length)) return null;
+  if (c.id === "status") return { kind: "status", values: [String(v)] };
+  if (c.id === "task") return { kind: "task", values: [String(v)] };
+  if (c.order === "abs" || c.order === "abdc") {
+    const label = (c.order === "abs" ? "ABS " : "ABDC ") + v;
+    return { kind: Views.rankIsTop(label) ? "rank" : "plain", values: [label] };
+  }
+  if (Array.isArray(v)) return { kind: "tax", values: v.map(String) };
+  if (c.type === "choice") return { kind: c.ai ? "tax" : "own", values: [String(v)] };
+  return null;
+}
+
 export async function columns(ctx, { query }) {
   const ref = paperRef(query.id);
   const settings = ctx.settings();
@@ -448,7 +537,8 @@ export async function columns(ctx, { query }) {
       const v = RV.value(c, row, rctx, cells);
       const rec = c.ai ? RV.cellOf(cells, c.id, row) : null;
       const state = c.ai ? RV.cellState(c, rec, row) : "";
-      return { id: c.id, label: text(c.label, 120), group: c.group === "AI columns" ? "AI columns" : c.group, value: text(cellText(c, v), 20000),
+      return { id: c.id, label: text(c.label, 120), group: c.group, value: text(cellText(c, v), 20000), pills: cellPills(c, v),
+        own: !!c.own,
         ai: !!c.ai, kind: c.ai ? c.kindName || c.kind : "", state, stateName: state ? RV.STATE_NAMES[state] || state : "", problem: c.problem || "",
         error: rec && rec.error ? text(rec.error, 300) : "", editable: !!(c.own && c.type === "text") || !!(c.ai && c.edit === "text"),
         choices: c.own && c.type === "choice" ? c.options || [] : null, runnable: !!c.ai && !c.problem, hidden: hidden.has(c.id) };
@@ -494,7 +584,7 @@ export async function runCell(ctx, { body }) {
   const job = Glue.reviewRunJob({ id: "", name: "Reading companion" }, defs, rctx, [{ column, paper: ref.id, seen: seen === "empty" ? "again" : seen }], cells);
   if (job.error) throw new Refused(job.error, 409, "not-run");
   delete job.skipped;
-  if (!ctx.runner.start(["review-run"], JSON.stringify(job))) throw new Refused("The AI features aren't installed on the Mac mini", 503, "runner-missing");
+  if (!ctx.runner.start(["review-run"], JSON.stringify(job))) throw new Refused(needsAI("An AI column"), 503, "runner-missing");
   forget(ctx, "tasks");
   return { started: true };
 }

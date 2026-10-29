@@ -50,3 +50,11 @@ export function tailscaleServe(port, env = process.env) {
   if (!after.serving) after.problem = "Tailscale didn't serve it: " + (r.err.split("\n").pop() || "no answer");
   return after;
 }
+
+// The companion's port no longer served (turned off: whatever listens on it later isn't published). → tailscaleState after.
+export function tailscaleUnserve(port, env = process.env) {
+  const before = tailscaleState(port, env);
+  if (!before.serving) return before;
+  run(findTailscale(env), ["serve", `--https=${port}`, "off"], env);
+  return tailscaleState(port, env);
+}

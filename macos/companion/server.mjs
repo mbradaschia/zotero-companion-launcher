@@ -9,6 +9,7 @@
 //
 //   node server.mjs [--port 8787] [--exit-with-stdin]   serve
 //   node server.mjs --share [--port 8787]                Tailscale serves it on your tailnet; prints { link, local, tailscale }
+//   node server.mjs --unshare [--port 8787]              Tailscale stops serving it (the companion turned off)
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { join, extname, normalize, dirname } from "node:path";
@@ -16,7 +17,7 @@ import { fileURLToPath } from "node:url";
 import { makeContext, Refused } from "./lib/context.mjs";
 import { ROUTES } from "./lib/api.mjs";
 import { hostAllowed, hostName, requestKey, sameKey, keyCookie, CHANGE_HEADER } from "./lib/auth.mjs";
-import { tailscaleServe } from "./lib/tailscale.mjs";
+import { tailscaleServe, tailscaleUnserve } from "./lib/tailscale.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_PORT = 8787;
@@ -99,7 +100,12 @@ async function serveStatic(res, webDir, pathname) {
       return problem(res, 404, "not-found", "not here");
     }
   }
-  const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
+  let rel;
+  try {
+    rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
+  } catch {
+    return problem(res, 404, "not-found", "not here");
+  }
   const file = normalize(join(webDir, rel));
   if (!file.startsWith(webDir + "/") || rel.split("/").some((p) => p.startsWith("."))) return problem(res, 404, "not-found", "not here");
   let data;
@@ -113,13 +119,19 @@ async function serveStatic(res, webDir, pathname) {
 
 // The server: { ctx } the context (tests give their own), { webDir } the page, { log } a line per request.
 export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), log = () => {} } = {}) {
-  const failures = []; // wrong keys in the last minute: ten, and the key isn't checked for a while
-
-  const tooMany = () => {
+  // Wrong keys in the last minute, by where they came from (Tailscale serve says, in X-Forwarded-For): ten, and that
+  // one waits. The right key always opens (nobody can lock you out by guessing), and with 256 random bits guessing
+  // isn't a way in: this only keeps a guesser from flooding the log.
+  const failures = new Map();
+  const who = (req) => String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+  const tooMany = (req) => {
     const now = Date.now();
-    while (failures.length && now - failures[0] > 60000) failures.shift();
-    return failures.length >= 10;
+    const list = (failures.get(who(req)) || []).filter((t) => now - t < 60000);
+    failures.set(who(req), list);
+    if (failures.size > 1000) failures.clear();
+    return list.length >= 10;
   };
+  const failed = (req) => failures.set(who(req), (failures.get(who(req)) || []).concat(Date.now()));
 
   return createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://localhost");
@@ -132,9 +144,9 @@ export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), lo
 
       // The link install.sh printed: its key becomes this device's cookie, and leaves the address.
       if (req.method === "GET" && url.searchParams.has("key")) {
-        if (tooMany()) return problem(res, 429, "slow-down", "Too many wrong keys: wait a minute");
         if (!sameKey(url.searchParams.get("key"), key)) {
-          failures.push(Date.now());
+          if (tooMany(req)) return problem(res, 429, "slow-down", "Too many wrong keys: wait a minute");
+          failed(req);
           return send(res, 401, "That link's key isn't this companion's: open the link install.sh printed on the Mac mini.\n", { "Content-Type": "text/plain; charset=utf-8" });
         }
         url.searchParams.delete("key");
@@ -143,7 +155,7 @@ export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), lo
 
       if (!url.pathname.startsWith("/api/")) {
         if (req.method !== "GET" && req.method !== "HEAD") return problem(res, 405, "method", "not here");
-        return serveStatic(res, webDir, url.pathname);
+        return await serveStatic(res, webDir, url.pathname);
       }
 
       const isChange = req.method !== "GET";
@@ -159,10 +171,10 @@ export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), lo
 
       // The page's key, typed in (a home screen app that didn't keep Safari's cookie).
       if (route === "POST /api/login") {
-        if (tooMany()) return problem(res, 429, "slow-down", "Too many wrong keys: wait a minute");
         const body = await readBody(req);
         if (!sameKey(String(body.key || "").trim(), key)) {
-          failures.push(Date.now());
+          if (tooMany(req)) return problem(res, 429, "slow-down", "Too many wrong keys: wait a minute");
+          failed(req);
           return problem(res, 401, "bad-key", "That isn't this companion's key");
         }
         return send(res, 200, { ok: true }, { "Set-Cookie": keyCookie(key, secure) });
@@ -204,6 +216,10 @@ export function share(ctx, port, env = process.env) {
 async function main(argv) {
   const port = Number(arg(argv, "--port") || process.env.OMA_ZOTERO_COMPANION_PORT || DEFAULT_PORT);
   const ctx = makeContext();
+  if (argv.includes("--unshare")) {
+    process.stdout.write(JSON.stringify(tailscaleUnserve(port)) + "\n");
+    return;
+  }
   if (argv.includes("--share")) {
     process.stdout.write(JSON.stringify(share(ctx, port)) + "\n");
     return;
@@ -221,6 +237,8 @@ async function main(argv) {
   };
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);
+  // A request's mistake answers that request; it never stops the server.
+  process.on("unhandledRejection", (e) => process.stderr.write(`unhandled: ${e && e.message}\n`));
   if (argv.includes("--exit-with-stdin")) {
     process.stdin.on("end", stop).on("close", stop).on("error", stop).resume();
   }

@@ -10,6 +10,10 @@ import { writeAtomic } from "../../runner/lib/atomic.mjs";
 import { makeRunner } from "./runner.mjs";
 import { loadSettings, saveSettings } from "./auth.mjs";
 
+const tilde = (path, home) => (home && String(path).startsWith(home + "/") ? "~" + String(path).slice(home.length) : String(path));
+// The sync folder away, the Mac app's one sentence (docs/ux-conventions.md).
+export const syncAway = (p, home) => `the sync folder ${tilde(p.syncDir || "", home)} isn't there: what's synced stays as it was until it's back (Settings › General)`;
+
 const require = createRequire(import.meta.url);
 export const Glue = require("../../ZoteroLauncher/Core/Glue.js");
 export const Client = require("../../js/lib/Client.js");
@@ -60,7 +64,7 @@ export function makeContext({ env = process.env, bridge = null, runner = null, n
   // A write to the sync folder while it's away would start a second copy of your data: refused, as the app refuses.
   ctx.writable = () => {
     const p = ctx.paths();
-    if (p.readOnly) throw new Refused("The sync folder isn't there right now, so nothing was saved: is the drive connected?", 503, "sync-unavailable");
+    if (p.readOnly) throw new Refused("Not saved: " + syncAway(p, ctx.env.HOME), 503, "sync-unavailable");
     return p;
   };
 
