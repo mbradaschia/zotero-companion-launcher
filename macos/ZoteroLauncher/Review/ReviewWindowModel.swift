@@ -154,7 +154,7 @@ final class ReviewWindowModel: ObservableObject {
     // What the page sends (ReviewGrid.js's post).
     func handle(_ m: [String: Any]) {
         let type = m["type"] as? String ?? ""
-        if !["ready", "layout", "segments", "preview"].contains(type) { UsageLog.shared.count("review:" + type) } // (what the page sends on its own isn't a use)
+        if !["ready", "layout", "segments", "preview"].contains(type) { UsageLog.shared.count("review:" + type + (type == "paper" ? "-" + (m["what"] as? String ?? "") : "")) } // (what the page sends on its own isn't a use)
         switch type {
         case "ready": ready = true; send()
         case "refresh": reload(); search()
@@ -193,6 +193,17 @@ final class ReviewWindowModel: ObservableObject {
                 MainActor.assumeIsolated {
                     if case .ok = result { self?.launcher.desktop.activateZotero() } else { self?.page?.flash("Couldn't show it in Zotero: " + result.message) }
                 }
+            }
+        case "paper": // a paper's letter, as the launcher's: i r its citation or bibliography entry copied, o its PDF, n its notes
+            guard let p = m["paper"] as? [String: Any], let key = p["key"] as? String, !key.isEmpty else { return }
+            let ref = PaperRef(key: key, libraryID: p["libraryID"] as? Int ?? 1, title: p["title"] as? String ?? "", itemType: p["itemType"] as? String ?? "")
+            switch m["what"] as? String ?? "" {
+            case "citation", "bibliography":
+                launcher.copyCite(ref, m["what"] as? String ?? "citation") { [weak self] said in self?.page?.flash(said) }
+            case "external", "notes": // (in the launcher, on the paper's menu: a PDF of several is picked there)
+                launcher.showLauncher?()
+                launcher.enterActionsFor(ref, quick: m["what"] as? String ?? "")
+            default: break
             }
         case "csv": exportCSV(name: m["name"] as? String ?? title, text: m["text"] as? String ?? "")
         case "run": runAI(m["jobs"] as? [[String: Any]] ?? [])

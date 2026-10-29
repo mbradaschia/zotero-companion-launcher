@@ -215,6 +215,28 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(row?["status"] as? String, "s/reading") // shown before it's saved
     }
 
+    // A paper's letters, as the launcher's: i r copy its citation or bibliography entry (said in the table), o and n open
+    // the launcher on its menu, at its PDF or its notes.
+    func testAPapersLettersActAsInTheLauncher() throws {
+        bridge.answers["/cite"] = { _ in .ok(["ok": true, "entries": [["text": "Teece, D. J. (2007).\nExplicating."]]]) }
+        let (window, page) = try openWindow()
+        let paper: [String: Any] = ["key": "P3NM4G92", "libraryID": 1, "title": "Explicating dynamic capabilities", "itemType": "journalArticle"]
+        window.handle(["type": "paper", "what": "citation", "paper": paper])
+        XCTAssertEqual(bridge.bodies("/cite").last?["mode"] as? String, "citation")
+        XCTAssertEqual(bridge.bodies("/cite").last?["keys"] as? [String], ["P3NM4G92"])
+        XCTAssertEqual((model.desktop as? FakeDesktop)?.copied.last, "Teece, D. J. (2007).\nExplicating.")
+        XCTAssertEqual(page.flashes.last, "Copied: Teece, D. J. (2007). Explicating.")
+        window.handle(["type": "paper", "what": "bibliography", "paper": paper])
+        XCTAssertEqual(bridge.bodies("/cite").last?["mode"] as? String, "bibliography")
+        var shown = 0
+        model.showLauncher = { shown += 1 }
+        window.handle(["type": "paper", "what": "notes", "paper": paper])
+        XCTAssertEqual(shown, 1, "the launcher in front")
+        XCTAssertEqual(model.actionItem?.key, "P3NM4G92", "on the paper's menu")
+        window.handle(["type": "paper", "what": "external", "paper": ["key": "", "libraryID": 1]])
+        XCTAssertEqual(shown, 1, "no paper, nothing")
+    }
+
     func testAMessageForAnotherColumnIdIsRefusedAndSaid() throws {
         let (window, page) = try openWindow()
         window.handle(["type": "cell", "column": "../../settings", "paper": "1:P3NM4G92", "value": "x"])

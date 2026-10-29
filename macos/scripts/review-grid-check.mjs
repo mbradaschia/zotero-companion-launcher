@@ -67,8 +67,10 @@ let heads = "";
 
 ok((await sent()).some((m) => m.type === "ready"), "the page says it's ready");
 ok((await pg.locator("tbody tr").count()) === 4, "four rows");
-ok((await pg.textContent(cell("AAAAAAAA", "title"))).includes("<b>breadth</b>"), "a title's markup is shown as text");
-ok((await pg.locator(cell("AAAAAAAA", "title") + " b").count()) === 0, "and never as HTML");
+ok(!(await pg.textContent(cell("AAAAAAAA", "title"))).includes("<b>"), "a title's markup isn't shown as text");
+ok((await pg.textContent(cell("AAAAAAAA", "title") + " b")) === "breadth", "its bold drawn bold (an element, never the title's HTML)");
+ok((await pg.locator(cell("AAAAAAAA", "status") + " .pill svg").count()) === 1, "a status pill has its symbol");
+ok((await pg.locator(cell("AAAAAAAA", "tax:method") + " .pill svg").count()) === 1, "a taxonomy's too");
 
 // a click only selects
 const before = await pg.textContent(cell("AAAAAAAA", "c-0123456789"));
@@ -357,6 +359,31 @@ await pg.click('.sheet .choice[data-step="ai"]');
 await pg.check('input[name="akind"][value="jev-several"]');
 ok((await pg.textContent("#atax")).includes("Method (method/)") === false, "a taxonomy without an id isn't offered");
 await pg.keyboard.press("Escape");
+
+// the paper's letters, as the launcher's, and / to filter the rows
+await pg.keyboard.press("Escape");
+await sent();
+await pg.click(cell("BBBBBBBB", "title"));
+await sent();
+for (const [k, what] of [["i", "citation"], ["r", "bibliography"], ["o", "external"], ["n", "notes"]]) {
+  await pg.keyboard.press(k);
+  const got = (await sent()).find((x) => x.type === "paper");
+  ok(got && got.what === what && got.paper.key === "BBBBBBBB" && got.paper.title === "The dynamic resource-based view", k + ": the paper's " + what);
+}
+await pg.keyboard.press("z");
+ok((await sent()).some((x) => x.type === "open" && x.paper.key === "BBBBBBBB"), "z: the paper in Zotero");
+await pg.keyboard.press("/");
+ok(await pg.evaluate(() => document.activeElement && document.activeElement.id === "find"), "/ opens the filter's box");
+await pg.evaluate(() => RT.flash("")); // (the last flash gone)
+await pg.keyboard.type("dynamic");
+ok((await pg.locator("tbody tr[data-p]").count()) === 1, "the rows it keeps: a word in a column shown");
+const fc = await pg.textContent("#fcount");
+ok(fc === "1 of 4 papers", "the footer says how many of how many (" + fc + ")");
+await pg.keyboard.press("Enter");
+ok(await pg.evaluate(() => document.activeElement && document.activeElement.id === "gw"), "↵ back to the table, still filtered");
+ok((await pg.locator("tbody tr[data-p]").count()) === 1, "(still one)");
+await pg.keyboard.press("Escape");
+ok((await pg.locator("tbody tr[data-p]").count()) === 4, "esc clears it");
 
 // narrow
 await pg.setViewportSize({ width: 520, height: 700 });

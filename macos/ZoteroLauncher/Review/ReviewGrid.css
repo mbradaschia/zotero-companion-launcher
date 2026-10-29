@@ -206,3 +206,4 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .sheet .draft .arow { align-items: center; }
 .sheet footer .fill { flex: 1; }
 .pop .ph.grp { text-transform: uppercase; letter-spacing: .04em; font-size: 10.5px; padding-top: 8px; }
+.foot input.find { font: inherit; width: min(320px, 50%); padding: 1px 6px; border: 1px solid var(--accent); border-radius: 5px; background: var(--win); color: var(--ink); outline: none; }

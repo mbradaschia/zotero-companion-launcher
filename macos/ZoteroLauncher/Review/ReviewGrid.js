@@ -21,6 +21,9 @@ var RT = (function () {
   var previewing = false // the source's box has a query searched as you type, not kept yet
   var built = false
   var showKeys = false
+  var find = "" // the rows' filter (/): words in the columns shown
+  var finding = false // its box in the footer
+  var unfiltered = 0 // the papers before the filter
   var $ = function (id) { return document.getElementById(id) }
 
   function post(type, o) {
@@ -66,6 +69,16 @@ var RT = (function () {
     own: "M4 20l1-4L16 5l3 3L8 19z"
   }
   // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
+  // A paper's title with its italics, bold, sub- and superscripts (C.titleRuns), as elements: never markup from the title.
+  function titleView(tag, cls, title) {
+    var runs = C.titleRuns(title)
+    if (!runs.length) runs = [{ text: "Untitled" }]
+    return el(tag, { class: cls }, runs.map(function (r) {
+      var node = document.createTextNode(r.text)
+      ;["sup", "sub", "b", "i"].forEach(function (t) { if (r[t]) node = el(t, {}, [node]) })
+      return node
+    }))
+  }
   function pill(kind, text) {
     return el("span", { class: "pill " + kind }, [icon(kind), String(text)])
   }
@@ -111,6 +124,12 @@ var RT = (function () {
     // grouped: the groups in the group column's order, descending when the sort has that column descending
     var down = review.sort.some(function (k) { return k.column === review.group && k.dir === "desc" })
     groups = C.groupRows(C.sortRows(D.results || [], review.sort, cols, D.ctx, D.cells), review.group, cols, D.ctx, D.cells, down)
+    unfiltered = (D.results || []).length
+    if (find) {
+      var vc = visible()
+      groups = groups.map(function (g) { return Object.assign({}, g, { rows: g.rows.filter(function (r) { return C.rowMatches(r, vc, find, D.ctx, D.cells) }) }) })
+        .filter(function (g) { return g.rows.length })
+    }
     rows = [].concat.apply([], groups.map(function (g) { return g.rows }))
     var ids = {}
     rows.forEach(function (r) { ids[C.paperId(r)] = true })
@@ -311,7 +330,7 @@ var RT = (function () {
   function paperRow(r, vc) {
       var pid = C.paperId(r)
       var tr = el("tr", { class: sel[pid] ? "selrow" : "", "data-p": pid }, [
-        el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + r.title })])])
+        el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + C.plainTitle(r.title) })])])
       ])
       vc.forEach(function (c, i) {
         var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id })
@@ -329,7 +348,7 @@ var RT = (function () {
     var cv = el("div", { class: "cv" + (c.lines === 1 ? " one" : "") + (typeof v === "number" ? " num" : ""), style: h ? "max-height:" + h + "px" : null })
     if (c.ai) { aiCell(c, r, cv, v); return cv }
     if (C.isEmpty(v)) return cv
-    if (c.id === "title") cv.appendChild(el("span", { class: "ptitle", text: v }))
+    if (c.id === "title") cv.appendChild(titleView("span", "ptitle", r.title))
     else if (c.id === "status") cv.appendChild(pill("status", v))
     else if (c.id === "task") cv.appendChild(pill("task", v))
     else if (c.order === "abs" || c.order === "abdc") cv.appendChild(pill("rank", (c.order === "abs" ? "ABS " : "ABDC ") + v))
@@ -400,7 +419,7 @@ var RT = (function () {
     var c = colById(act.c)
     if (!r || !c) { p.appendChild(el("div", { class: "hint", text: "Pick a cell to see its paper, and to change its status, its task or your columns." })); return }
     var pid = C.paperId(r)
-    p.appendChild(el("h3", { text: r.title || "Untitled" }))
+    p.appendChild(titleView("h3", "", r.title))
     p.appendChild(el("div", { class: "sub", text: [r.creator, r.year, r.publication].filter(function (x) { return x }).join(" · ") }))
     var v = C.value(c, r, D.ctx, D.cells)
     if (c.id === "status" || c.id === "task") {
@@ -474,16 +493,58 @@ var RT = (function () {
     return name
   }
 
+  // The footer: four keys and ? for the rest (or the filter's box), and how many papers.
   function drawFoot() {
-    var f = clear($("foot"))
-    f.appendChild(el("span", { text: editing ? "⌘↵ keep · esc drop" : "↑↓←→ move · space select · ↵ edit · ⌥→← status · ⇧⌥→← task · ⌥⌘←→ move column · ⌥⌘I panel · ⌘- ⌘+ text · ⇧⌘R run · ? keys" }))
+    var f = $("foot")
+    if (!(finding && $("find"))) { // (the box kept as you type in it)
+      clear(f)
+      f.appendChild(finding ? findBox() : el("span", { text: editing ? "⌘↵ keep · esc drop" : "↵ edit · i r cite · o pdf · / filter · ? keys" }))
+      f.appendChild(el("span", { id: "fcount" }))
+    }
     var n = rows.length
-    var count = D.loading && !n ? "…" : n + (n === 1 ? " paper" : " papers") + (D.total > n ? " (the first " + n + " of " + D.total + ")" : "")
+    var count = D.loading && !n ? "…" : find ? n + " of " + unfiltered + (unfiltered === 1 ? " paper" : " papers")
+      : n + (n === 1 ? " paper" : " papers") + (D.total > n ? " (the first " + n + " of " + D.total + ")" : "")
     var nsel = Object.keys(sel).length
     if (nsel) count += " · " + nsel + " selected"
     if (D.readOnly) count += " · read only: the sync folder isn't there"
     if (D.run) count += " · AI run: " + (D.run.stage || "starting")
-    f.appendChild(el("span", { class: flashText ? "flash" : D.problem && n ? "problem" : "", text: flashText || (D.problem && n ? D.problem : count) }))
+    var c = $("fcount")
+    c.className = flashText ? "flash" : D.problem && n ? "problem" : ""
+    c.textContent = flashText || (D.problem && n ? D.problem : count)
+  }
+
+  // / : the rows filtered by what you type (each word in a column shown); ↵ or ↓ back to the table with it, esc clears it.
+  function findBox() {
+    var box = el("input", { id: "find", type: "text", class: "find", placeholder: "Filter: words in the columns shown", "aria-label": "Filter the rows", value: find, spellcheck: "false" })
+    box.addEventListener("input", function () { find = box.value.trim() ? box.value : ""; refilter() })
+    box.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); clearFind() }
+      else if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); e.stopPropagation(); if (!find) clearFind(); else $("gw").focus() }
+    })
+    return box
+  }
+  function openFind() {
+    finding = true
+    drawFoot()
+    $("find").focus()
+    $("find").select()
+  }
+  function clearFind() {
+    find = ""
+    finding = false
+    refilter()
+    drawFoot()
+    $("gw").focus()
+  }
+  function refilter() { resolve(); drawGrid(); drawPanel(); drawFoot() }
+
+  // A paper's letter, as the launcher's: i its citation, r its bibliography entry (copied), o its PDF, n its notes (in the
+  // launcher), z the paper in Zotero.
+  var PAPER_KEYS = { i: "citation", r: "bibliography", o: "external", n: "notes", z: "zotero" }
+  function paperKey(r, what) {
+    if (!r) return
+    if (what === "zotero") return openPaper(r)
+    post("paper", { what: what, paper: { key: r.key, libraryID: Number(r.libraryID) || 1, title: C.plainTitle(r.title), itemType: r.itemType || "" } })
   }
 
   // ------------------------------------------------------------ changes
@@ -504,7 +565,7 @@ var RT = (function () {
     D.ctx.tasks = D.ctx.tasks || {}
     var had = D.ctx.tasks[C.paperId(r)]
     D.ctx.tasks[C.paperId(r)] = { id: s.id, name: s.name }
-    post("task", { paper: { key: r.key, libraryID: Number(r.libraryID) || 1, title: r.title, creator: r.creator || "", year: String(r.year || "") }, status: s.id })
+    post("task", { paper: { key: r.key, libraryID: Number(r.libraryID) || 1, title: C.plainTitle(r.title), creator: r.creator || "", year: String(r.year || "") }, status: s.id })
     flash((had ? "Task now: " : "New task: ") + s.name)
     redrawRow(r)
   }
@@ -1124,7 +1185,9 @@ var RT = (function () {
     showKeys = true
     var K = [["↑↓←→", "Move between cells"], ["home end", "The row's first and last column"], ["pgup pgdn", "A page up or down"], ["space", "Select the paper's row"],
       ["↵", "Edit a cell of yours (text)"], ["⌘↵ esc", "Keep, or drop, what you typed"], ["⌥→ ⌥←", "The paper's status"], ["⇧⌥→ ⇧⌥←", "Its task's status"],
-      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"], ["⌘O", "Show the paper in Zotero"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
+      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
+      ["i r", "Copy the paper's citation, its bibliography entry"], ["o", "Open its PDF"], ["n", "Its notes, in the launcher"], ["z ⌘O", "Show the paper in Zotero"],
+      ["/", "Filter the rows (esc clears it)"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
       ["⇧-click", "A header: add it to the sort"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
     var dl = el("dl")
     K.forEach(function (k) { dl.appendChild(el("dt", { text: k[0] })); dl.appendChild(el("dd", { text: k[1] })) })
@@ -1326,6 +1389,7 @@ var RT = (function () {
       if (modalEl) { closeModal(); return }
       if ($("keys")) { keysPanel(); return }
       if (shutPeek()) return
+      if (find || finding) clearFind()
       return
     }
     if (typing || modalEl) return
@@ -1333,6 +1397,7 @@ var RT = (function () {
     if (meta && !alt && e.key.toLowerCase() === "e") { e.preventDefault(); return exportCsv() }
     if (meta && shift && !alt && e.key.toLowerCase() === "r") { e.preventDefault(); var ac = colById(act.c); return runDialog(ac && ac.ai ? ac : null) }
     if (meta && !alt && e.key.toLowerCase() === "o") { e.preventDefault(); return openPaper(actRow()) }
+    if (e.key === "/" && !meta && !alt && !e.ctrlKey) { e.preventDefault(); return openFind() }
     if (!rows.length) return
     var vc = visible()
     var ci = 0
@@ -1344,6 +1409,7 @@ var RT = (function () {
     if (arrow && alt && shift) { e.preventDefault(); return cycleTask(r, arrow) }
     if (arrow && alt) { e.preventDefault(); return cycleStatus(r, arrow) }
     if (meta) return
+    if (!alt && !e.ctrlKey && PAPER_KEYS[e.key]) { e.preventDefault(); return paperKey(r, PAPER_KEYS[e.key]) }
     var page = Math.max(1, Math.floor($("gw").clientHeight / 40))
     var nr = ri, nc = ci
     if (e.key === "ArrowDown") nr = Math.min(rows.length - 1, ri + 1)
