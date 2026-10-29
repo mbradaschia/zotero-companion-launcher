@@ -9,6 +9,6 @@ enum ViewKind {
     static let typing: Set<String> = textEntry.union(["picker", "picker-values", "todo-tags", "tags", "keys"])
     // The menus where p pins a row and Shift+↑/↓ moves any row (menuPinViews).
     static let menuPin: Set<String> = ["actions"]
-    // Where Shift+↑/↓ moves the highlighted row (the results move a pinned one).
+    // Where Shift+↑/↓ moves the highlighted row (the results move a pinned one, or a paper in a list you browse).
     static let moveRow: Set<String> = menuPin.union(["search", "todos", "settings-tasks", "settings-paper-status", "settings-taxonomy", "notes", "searches"])
 }

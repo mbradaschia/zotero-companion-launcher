@@ -166,6 +166,11 @@ says so.
   `↓ Newest published` / `↑ Oldest published` (the arrow is the direction), `Grouped by paper status`; a click is
   `g`. The count beside the box doesn't repeat it; it shows with or without badges (in a collection too). The hint is
   `g sort`.
+- **Sort › Manual** is your order, kept per list (view.json's `paperOrder`, synced): a collection, a tag or a saved
+  search, with nothing typed. `⇧↑↓` moves the highlighted paper past the next one (within its group when grouped);
+  dragging a paper onto another puts it there, the target outlined. Either one, in another sort, switches the list to
+  Manual from the order you see, and the flash says so. Papers you haven't placed (new in the list) come after yours.
+  The Order chip is off in Manual, as for relevance. The hint is `⇧↑↓ reorder`, as for the pins.
 
 ## Windows
 

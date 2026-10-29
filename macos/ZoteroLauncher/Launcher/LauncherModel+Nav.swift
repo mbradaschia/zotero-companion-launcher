@@ -88,7 +88,7 @@ extension LauncherModel {
 // sort) and G (the next grouping).
 struct Arrangement: Decodable, Equatable {
     var group: String // "" none, "status", "task", "taskgroup", "tax:<prefix>"
-    var sort: String // "relevance", "added", "modified", "year"
+    var sort: String // "relevance", "added", "modified", "year", "manual" (your order, per list: view.json's paperOrder)
     var order: String // "desc", "asc"
 }
 
@@ -106,19 +106,21 @@ extension LauncherModel {
         (try? core?.glue("arrangeOptions", [tax.taxonomies], as: ArrangeOptions.self)) ?? ArrangeOptions(groups: [["", "None"]], sorts: [["relevance", "Relevance"]])
     }
 
-    // Whether the papers are arranged: a scope or a query (the top level's recent papers aren't).
+    // Whether the papers are arranged: a list you browse (a collection, a tag, a saved search) with nothing typed. What
+    // you type is by relevance, and the top level's recent papers aren't arranged.
     var arrangeable: Bool {
         guard store.inSearch, let response else { return false }
-        return (response["scope"] is [String: Any]) || !((response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+        return (response["scope"] is [String: Any]) && (response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     // The arrangement in words, as the three menus show it: "By relevance", "↓ Date added", "Paper status · ↑ Year
-    // published"; "" where the papers aren't arranged.
+    // published", "Your order"; "" where the papers aren't arranged.
     var sortLabel: String {
         guard arrangeable, core != nil else { return "" }
         let a = arrangement, o = arrangeOptions
         let group = o.groups.first { $0.first == a.group }?.last ?? ""
-        let sort = a.sort == "relevance" ? "By relevance" : (a.order == "asc" ? "↑ " : "↓ ") + (o.sorts.first { $0.first == a.sort }?.last ?? a.sort)
+        let sort = a.sort == "relevance" ? "By relevance" : a.sort == "manual" ? "Your order"
+            : (a.order == "asc" ? "↑ " : "↓ ") + (o.sorts.first { $0.first == a.sort }?.last ?? a.sort)
         return a.group.isEmpty ? sort : group + " · " + sort
     }
 
@@ -141,10 +143,7 @@ extension LauncherModel {
     func setArrangement(_ a: Arrangement) {
         guard var prefs else { return }
         saved {
-            try prefs.set("group", a.group.isEmpty ? nil : a.group)
-            try prefs.set("sort", a.sort == "relevance" ? nil : a.sort)
-            try prefs.set("order", a.order == "desc" ? nil : a.order)
-            try prefs.set("grouping", nil)
+            try writeArrangement(a, &prefs)
             self.prefs = prefs
         }
         store.followTop = false
@@ -152,7 +151,15 @@ extension LauncherModel {
         let now = arrangement, o = arrangeOptions
         let group = now.group.isEmpty ? "" : ", grouped by " + (o.groups.first { $0.first == now.group }?.last ?? now.group).lowercased()
         let newest = now.order == "desc" ? "newest first" : "oldest first"
-        let sort = now.sort == "relevance" ? "by relevance" : "by " + (o.sorts.first { $0.first == now.sort }?.last ?? now.sort).lowercased() + ", " + newest
-        flashMessage("Papers: " + sort + group + (arrangeable || !store.inSearch ? "" : " (once you search)"))
+        let sort = now.sort == "relevance" ? "by relevance" : now.sort == "manual" ? "in your order (⇧↑↓ or drag moves one)"
+            : "by " + (o.sorts.first { $0.first == now.sort }?.last ?? now.sort).lowercased() + ", " + newest
+        flashMessage("Papers: " + sort + group + (arrangeable || !store.inSearch ? "" : " (in a collection, a tag or a saved search: what you type is by relevance)"))
+    }
+
+    func writeArrangement(_ a: Arrangement, _ prefs: inout ViewPrefs) throws {
+        try prefs.set("group", a.group.isEmpty ? nil : a.group)
+        try prefs.set("sort", a.sort == "relevance" ? nil : a.sort)
+        try prefs.set("order", a.order == "desc" ? nil : a.order)
+        try prefs.set("grouping", nil)
     }
 }

@@ -272,6 +272,15 @@ final class LauncherModel5Tests: XCTestCase {
         XCTAssertEqual(model.store.view, "searches")
     }
 
+    // A place named in full (case, accents and punctuation aside) is where the cursor starts, as lib/Views.js has it.
+    func testAPlaceNamedInFullIsWhereTheCursorStarts() throws {
+        model.willShow(query: "Saved Searches")
+        XCTAssertEqual(model.searchRows[model.store.selectedIndex].kind, "searches")
+        XCTAssertEqual(LauncherModel.plainWords("New task…"), ["new", "task"])
+        XCTAssertEqual(LauncherModel.plainWords("Méthods, 2020"), ["methods", "2020"])
+        XCTAssertNil(LauncherModel.namedPlaceRow(model.searchRows, query: "saved"))
+    }
+
     func testSyncStartedFollowedAndFinished() throws {
         model.willShow()
         XCTAssertEqual(model.syncFooter.hasPrefix("synced "), true)

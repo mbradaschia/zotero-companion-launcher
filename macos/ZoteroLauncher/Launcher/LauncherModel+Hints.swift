@@ -165,7 +165,7 @@ extension LauncherModel {
             if (cur?.noteCount ?? 0) > 0 { menu.append("space notes") }
         }
         menu.append(table)
-        if cur?.section == "Pinned" { menu.append("⇧↑↓ reorder") }
+        if cur?.section == "Pinned" || cur.map({ paperReorderable($0) }) == true { menu.append("⇧↑↓ reorder") }
         let letters: [String] = [row, "⇧↵ " + K("z") + " zotero", K("o") + "/" + K("w") + " pdf", K("n") + " notes", K("#") + " tags", K("p") + " pin",
                                  K("l") + " library", K("i") + "/" + K("r") + " cite", K("g") + " sort"]
         return menu + letters + searchKeys + places + slash + back

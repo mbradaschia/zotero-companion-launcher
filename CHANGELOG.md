@@ -14,7 +14,7 @@ bridge and the prompt runner share one version.
   the model and then fail at the save (45 Opus runs on one read-only group in a week). Chat and artifacts still work
   on those papers. The bridge's paper picks and pending extraction now list only the libraries you can write to.
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.17`)
 
 - **Colour is never the only sign.** Each pill kind has its symbol: a status's flag, a task's checklist, a rank's
   star, a taxonomy's tag, a warning's ! (the launcher, the reader and the review table). The top journal grades get a
@@ -33,7 +33,18 @@ bridge and the prompt runner share one version.
 - **One set of icons**: the review table draws the launcher's concepts with the same names, and Group, Sort and
   Order have shapes of their own (three boxes, two arrows, one arrow). A narrow column shows its name, not a lone ▾.
 - Hotkey and Login… says a login problem with a sign and the theme's red.
-
+- The runner is 0.2.5 (it skips read-only libraries): Settings › Setup offers to reinstall it.
+- **Sort › Manual: a list in your own order.** In a collection, a tag or a saved search, ⇧↑↓ moves the highlighted
+  paper and drag and drop puts a paper where you drop it; either switches the list to Manual from the order you see.
+  Each list keeps its order in view.json (`paperOrder`, merged per list), so both Macs share it.
+- **What you type is by relevance**, so typing an author's name lists their papers first. Group and Sort (g, G) arrange
+  a list you browse: a collection, a tag or a saved search with nothing typed. A sort kept from before re-sorted typed
+  results too.
+- **A place you type in full is where the cursor starts**: "settings", "new task" or a saved search's name puts the
+  cursor on it, above the papers. A part of a name still starts on the papers.
+- **The window W opens is a regular one**: the app launches as a regular app, so tiling window managers (TileMyMac,
+  AeroSpace, yabai, Amethyst) manage it; it stays on its Space and can go full screen. With In the Dock and ⌘Tab off,
+  the Dock icon shows a moment at launch.
 - **It counts which features you use, for you only**, so the app can be shaped by what you actually do: a count a
   day of the keys, rows, views, review-table actions and windows you use, by the app's own names (`key:i`,
   `row:open`, `view:settings`), in the sync folder's `usage/<this Mac>.json`. Never what you type, a paper, a note

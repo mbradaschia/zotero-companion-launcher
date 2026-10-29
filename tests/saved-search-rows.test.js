@@ -51,6 +51,21 @@ test("the saved searches come after Go to (one section) and above the papers; th
   assert.equal(rows[V.selectionAfter(rows, "", true)].key, "K1");
 });
 
+test("a place named in full is where the cursor starts: a saved search's name, Settings, New task; a part of one isn't", () => {
+  const paper = { key: "K1", libraryID: 1, title: "Methods for settings", itemType: "journalArticle" };
+  const at = (q) => { const rows = V.buildRows({ query: q, results: [paper] }, "#fff", { searches: searches, keys: "single" }); return rows[V.selectionAfter(rows, "", true, q)] };
+  assert.equal(at("methods").key, "saved-search:s2"); // its whole name
+  assert.equal(at("Méthods").key, "saved-search:s2"); // case and accents aside
+  assert.equal(at("method").key, "K1"); // a part of it: the papers
+  assert.equal(at("settings").kind, "settings");
+  assert.equal(at("sett").key, "K1");
+  assert.equal(at("new task").kind, "todo-new"); // ("New task…": its punctuation aside)
+  assert.equal(at("resilience").key, "K1"); // in a name, not the name
+  const rows = V.buildRows({ query: "methods", results: [paper] }, "#fff", { searches: searches });
+  assert.equal(V.selectionAfter(rows, "K1", false, "methods"), rows.findIndex((r) => r.key === "K1")); // you moved: kept
+  assert.equal(V.namedPlaceRow(rows, ""), -1);
+});
+
 test("accents don't matter: etica finds Ética", () => {
   const list = [{ id: "e", name: "Ética e IA", query: "ética" }];
   assert.deepEqual(V.commandRows("etica", { searches: list }).filter((r) => r.kind === "saved-search").map((r) => r.title), ["Ética e IA"]);

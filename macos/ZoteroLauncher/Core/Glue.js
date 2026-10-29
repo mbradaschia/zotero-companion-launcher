@@ -24,7 +24,7 @@ var Glue = (function () {
   // stays): the rest of the launcher's places come in later phases. With none left above the
   // papers, the papers lose their heading, as lib/Views.js's buildRows does.
   // ---- the results' Group, Sort and Order
-  var SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"]]
+  var SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["manual", "Manual"]]
   var isGroup = function (id) { return id === "status" || id === "task" || id === "taskgroup" || /^tax:./.test(String(id)) }
   var arrangement = function (values) {
     var v = values && typeof values === "object" ? values : {}
@@ -38,8 +38,21 @@ var Glue = (function () {
     return a
   }
   // The papers sorted (none last, either way; relevance within a tie), then grouped: the rest stay where they were.
+  // Manual: your order for this list (info.manual: ["libraryID:key"], view.json's paperOrder), the papers you haven't
+  // placed after it, as they came.
   var arrange = function (rows, a, info) {
-    if (a.sort !== "relevance") {
+    if (a.sort === "manual") {
+      var place = {}
+      ;(info.manual || []).forEach(function (id, i) { if (!(id in place)) place[id] = i })
+      var isListed = function (r) { return r.kind === "item" && r.section !== "Pinned" }
+      var listed = rows.filter(isListed).map(function (r, i) {
+        var at = place[r.libraryID + ":" + r.key]
+        return { r: r, i: i, at: at === undefined ? Infinity : at }
+      })
+      listed.sort(function (p, q) { return p.at !== q.at ? (p.at < q.at ? -1 : 1) : p.i - q.i })
+      var m = 0
+      rows = rows.map(function (r) { return isListed(r) ? listed[m++].r : r })
+    } else if (a.sort !== "relevance") {
       var raw = {}
       ;(info.results || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
       var isPaper = function (r) { return r.kind === "item" && r.section !== "Pinned" }
@@ -105,7 +118,8 @@ var Glue = (function () {
       var built = V.buildRows(response, color, extras || {})
       if (extras && extras.have) built = onlyHave(built, extras.have, response)
       var rows = V.orderSections(built, sectionOrder || null)
-      var groupable = !!(response && (response.scope || String(response.query || "").trim()))
+      // (a list you browse: a collection, a tag or a saved search with nothing typed; what you type is by relevance)
+      var groupable = !!(response && response.scope && !String(response.query || "").trim())
       if (grouping && groupable) rows = arrange(rows, arrangement(grouping), Object.assign({ results: response.results, groups: T.GROUPS }, grouping.info || {}))
       return V.withNoteRows(rows, expanded || null)
     },
@@ -153,7 +167,7 @@ var Glue = (function () {
     orderSections: function (rows, order) { return V.orderSections(rows, order) },
     fileRows: function (details, purpose, filter) { return V.filterRows(V.buildFileRows(details, purpose), filter || "") },
     usableFiles: function (details, purpose) { return V.usableFiles(details, purpose) },
-    selectionAfter: function (rows, previousKey, followTop) { return V.selectionAfter(rows, previousKey, followTop) },
+    selectionAfter: function (rows, previousKey, followTop, query) { return V.selectionAfter(rows, previousKey, followTop, query) },
 
     // The confirm view's two rows (ZoteroSearch.qml:4273). ask: { yes, no, detail, noDetail }.
     confirmRows: function (ask) {
@@ -253,8 +267,11 @@ var Glue = (function () {
     ["The launcher as a window, and back as the overlay", "The launcher as a window or as the overlay, for this opening"],
     // (g and G: the Mac's results have Group, Sort and Order, 0.4.10)
     ["Group or sort the papers: by paper status, task status or group, a taxonomy, date added, changed, published; relevance",
-      "Sort the papers (g: relevance, date added, changed, published) or group them (G: paper status, task status or group, a taxonomy); the order is the bar's ↓ Desc / ↑ Asc"],
-    ["Group or sort the papers / back a step", "The next sort / the next grouping"], ["Group or sort the papers", "Sort the papers (g), group them (G)"]]
+      "Sort the papers (g: relevance, date added, changed, published, manual) or group them (G: paper status, task status or group, a taxonomy); the order is the bar's ↓ Desc / ↑ Asc"],
+    ["Group or sort the papers / back a step", "The next sort / the next grouping"], ["Group or sort the papers", "Sort the papers (g), group them (G)"],
+    // (Sort › Manual: a list you browse in your order)
+    ["Move a pinned paper, collection or tag (before you type)", "Move a pinned paper, collection or tag (before you type), or a paper in a collection, tag or saved search (Sort › Manual; drag works too)"],
+    ["Move a pinned item (before you type)", "Move a pinned item (before you type), or a paper in a list you browse (Sort › Manual; drag works too)"]]
   var macKeyColumn = function (t) {
     if (typeof t !== "string") return t
     for (var i = 0; i < MAC_KEY_COLUMN.length; i++) t = t.replace(MAC_KEY_COLUMN[i][0], MAC_KEY_COLUMN[i][1])

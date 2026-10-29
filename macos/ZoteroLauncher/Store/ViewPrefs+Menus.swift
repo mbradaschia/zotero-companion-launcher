@@ -30,6 +30,13 @@ extension ViewPrefs {
         try set("sectionOrder", replacing(key, in: "sectionOrder", with: names))
     }
 
+    // Sort › Manual: a list's papers in your order ("libraryID:key"), per list (a Scope's id).
+    func paperOrder(_ list: String) -> [String] { (values["paperOrder"] as? [String: Any])?[list] as? [String] ?? [] }
+
+    mutating func savePaperOrder(_ list: String, _ ids: [String]) throws {
+        try set("paperOrder", replacing(list, in: "paperOrder", with: ids.isEmpty ? nil : ids))
+    }
+
     // The object under `pref` with `key` set (nil removes it), from the file as it is now.
     private mutating func replacing(_ key: String, in pref: String, with value: Any?) -> [String: Any] {
         reload()

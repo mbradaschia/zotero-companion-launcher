@@ -11,7 +11,7 @@ packages:
 settings:
   base:
     SWIFT_VERSION: "5.0"
-    MARKETING_VERSION: 0.4.16
+    MARKETING_VERSION: 0.4.17
     CURRENT_PROJECT_VERSION: 1
     CODE_SIGN_IDENTITY: "-"
     CODE_SIGN_STYLE: Manual
@@ -63,7 +63,7 @@ targets:
         INFOPLIST_KEY_NSDocumentsFolderUsageDescription: "The AI features read your papers' PDFs where Zotero keeps them, to extract their text."
         INFOPLIST_KEY_NSDesktopFolderUsageDescription: "The AI features read your papers' PDFs where Zotero keeps them, to extract their text."
         INFOPLIST_KEY_NSDownloadsFolderUsageDescription: "The AI features read your papers' PDFs where Zotero keeps them, to extract their text."
-        INFOPLIST_KEY_LSUIElement: YES # (an accessory at launch; Settings › General › In the Dock and ⌘Tab makes it a regular app)
+        INFOPLIST_KEY_LSUIElement: NO # (a regular app at launch, as window managers read it then; Settings › General › In the Dock and ⌘Tab off makes it an accessory)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon # Assets.xcassets (drawn from docs/icon/AppIcon.svg)
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
         INFOPLIST_KEY_NSHumanReadableCopyright: MIT License

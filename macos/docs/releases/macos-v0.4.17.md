@@ -1,0 +1,52 @@
+Put a list's papers in your own order (Sort › Manual, ⇧↑↓ or drag and drop); what you type is ranked by relevance
+again, so an author's papers come first; colour is never the only sign; the review table takes the launcher's paper
+keys; and the window W opens is one your window manager tiles.
+
+**Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
+(*Update to 0.4.17…*); otherwise:
+
+```bash
+curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.17/install.sh | bash
+```
+
+Updates keep your configuration: they replace the app and the runner's own folder, never your settings, prompts,
+taxonomies, saved searches, API keys or hotkey. The runner is now 0.2.5: after updating, *Settings › Setup › Install
+the AI features* puts it in, so automation skips read-only libraries.
+
+**Your own order for a list.** Sort › Manual keeps a collection's, a tag's or a saved search's papers in the order you
+give them. ⇧↑↓ moves the highlighted paper up or down; dragging a paper onto another puts it there. Doing either while
+the list is sorted another way switches it to Manual, starting from the order you see. Each list keeps its own order,
+in view.json, so both Macs share it through the sync folder. Papers new to a list come after the ones you placed;
+grouped, a paper moves within its group. Dragged into another app, a paper is its Zotero link.
+
+**What you type is by relevance.** Typing "kong" lists Kong's papers first, as the bridge ranks them. Group and Sort
+(and g, G) arrange a list you browse: a collection, a tag or a saved search with nothing typed. In 0.4.16 a sort kept
+from before (a year, oldest first) re-sorted typed results too, so the best match could land far down.
+
+**A place you type in full is where the cursor starts.** Typing "settings", "new task" or a saved search's whole name
+puts the cursor on it, above the papers, so ↵ opens it. A part of a name ("sett") still starts on the papers.
+
+**Colour is never the only sign.** Each pill kind has its symbol (a status's flag, a task's checklist, a rank's star,
+a taxonomy's tag, a warning's !), and *General › Appearance › Colour-blind safe colours*, on by default, draws the pills
+and the search's colours with hues that stay apart for a red-green colour-blind eye, in every theme. Group, Sort and
+Order have shapes of their own, and the review table uses the launcher's icons.
+
+**The review table** answers to the launcher's paper keys (`i` `r` cite, `o` PDF, `n` notes, `z` Zotero), filters its
+rows with `/`, shows titles' italics and bold, and can delete a table (*Delete this table…*, asked first; the file
+goes to the Trash, your columns stay).
+
+**Calmer footers.** The launcher's shows going back, `/ search`, `? keys` and four keys for where you are. Every key is
+still in `? keys`.
+
+**Nothing runs on a paper in a library you can only read** (a group you're a reader of, a feed): a prompt that writes
+a note, tagging, automatic extraction and a catch-up skip it before any model is asked.
+
+**It counts which features you use, for you only.** A count a day of the keys, rows, views, review-table actions
+and windows you use, by the app's own names, in the sync folder's `usage/<this Mac>.json`, so the app can be shaped by
+what you actually do. Never what you type, a paper, a note or a tag, and nothing is sent anywhere. *Hotkey and Login… ›
+Count which features I use* turns it off.
+
+**The window is a regular one.** The app launches as a regular app, so tiling window managers (TileMyMac, AeroSpace,
+yabai, Amethyst) manage the window W opens: it stays on its Space, tiles, and can go full screen. With Settings ›
+General › In the Dock and ⌘Tab off, the Dock icon shows a moment at launch. The overlay the hotkey opens still floats
+above your windows, as Spotlight does; Settings › General › Open as a window makes the hotkey open the window instead.

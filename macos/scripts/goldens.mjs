@@ -199,6 +199,10 @@ function cases() {
   add("results/grouped", "results", typed, COLOR, { noCommands: true }, null, { group: "status", sort: "relevance", order: "desc", info: { statuses: [] } }, null);
   add("results/sorted-oldest", "results", typed, COLOR, { noCommands: true }, null, { group: "", sort: "year", order: "asc", info: {} }, null);
   add("results/grouped-and-sorted", "results", typed, COLOR, { noCommands: true }, null, { group: "status", sort: "added", order: "desc", info: { statuses: ["s/reading"] } }, null);
+  const scopedList = { ...typed, query: "", collections: [], tags: [], scope: { type: "collection", key: "COLL1234", libraryID: 1, title: "Thesis" } };
+  const listed = typed.results.map((r) => (Number(r.libraryID) || 1) + ":" + r.key);
+  add("results/manual", "results", scopedList, COLOR, { noCommands: true }, null, { group: "", sort: "manual", order: "desc", info: { manual: [listed[2], listed[0]] } }, null);
+  add("arrangement/manual", "arrangement", { sort: "manual" });
   add("arrangement/none", "arrangement", {});
   add("arrangement/set", "arrangement", { group: "tax:theory/", sort: "modified", order: "asc" });
   add("arrangement/bad-values", "arrangement", { group: "nope", sort: "nope", order: "sideways" });

@@ -45,7 +45,7 @@ both launchers must reproduce exactly (`contracts/tests/paths.test.js`).
 | `pins.json` | `{ "pins": [{ "key", "libraryID", "type", "title"? }] }`; tags by `name` |
 | `searches.json` | `{ "searches": [{ "id", "name", "query", "pinned" }] }` |
 | `todos.json` | `{ "todos": [{ "id", "description", "status", "priority", "due", "notes", "before", "isDefault", "item", "context", "created", "updated" }] }` |
-| `view.json` | an object: `noteFontSize`, `noteOrder`, `sectionOrder`, `menuPins`, `menuOther`, `menuOrder`, `grouping` |
+| `view.json` | an object: `noteFontSize`, `noteOrder`, `sectionOrder`, `menuPins`, `menuOther`, `menuOrder`, `grouping`; the Mac's `group`, `sort`, `order` and `paperOrder` (Sort › Manual: per list, `"collection:<key>:<libraryID>"`, `"tag:<name>:<libraryID>"` or `"search:<id>:0"`, the papers as `"<libraryID>:<key>"` in your order) |
 | `prompts/<id>.md` | YAML-ish frontmatter (`title`, `model`, `effort`, `output`, `brief`), then the instruction |
 | `taxonomies/<id>.json`, `taxonomy.json` | a taxonomy's definition; each paper's labels and the review queue |
 | `chats/<lib>-<KEY>/<id>.json` | one chat; **its `id` is its file name**, or it isn't read |
@@ -119,7 +119,7 @@ the file (atomically), then deletes the copy. Both write the same bytes from the
 | `todos.json` | by `id`; the newer `updated` wins |
 | `pins.json` | by `type:libraryID:key`; the newer `updated` wins |
 | `searches.json` | by `id`; the newer `updated` wins |
-| `view.json` | per top-level key, and per view inside `menuPins`, `menuOther`, `menuOrder`, `sectionOrder`, `noteOrder`; the newer file wins a key both have differently |
+| `view.json` | per top-level key, and per view inside `menuPins`, `menuOther`, `menuOrder`, `sectionOrder`, `noteOrder`, and per list inside `paperOrder`; the newer file wins a key both have differently |
 | `settings.json` (shared) | per top-level key, as `view.json` |
 | `taxonomy.json` | by paper (`papers.<libraryID:key>`); the record with the later `updated` (else `at`) wins, the newer file on a tie |
 | `reviews/cells/<column id>.cells.json` | by paper (`cells.<libraryID:key>`), as `taxonomy.json` |
