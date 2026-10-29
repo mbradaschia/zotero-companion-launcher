@@ -361,7 +361,7 @@ var RT = (function () {
     else if (c.id === "task") cv.appendChild(pill("task", v))
     else if (c.order === "abs" || c.order === "abdc") cv.appendChild(pill("rank", (c.order === "abs" ? "ABS " : "ABDC ") + v))
     else if (v === true) cv.appendChild(el("span", { text: "✓", title: c.label }))
-    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill("tax", l)) })
+    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill(c.own ? "own" : "tax", l)) })
     else if (c.type === "choice") cv.appendChild(pill("own", v))
     else cv.textContent = String(v)
     return cv
@@ -444,6 +444,14 @@ var RT = (function () {
       p.appendChild(el("div", {}, [el("div", { class: "ilab", text: c.label }),
         pills("own", [{ value: "", label: "not set" }].concat(c.options.map(function (o) { return { value: o, label: o } })), v, "own")]))
       p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its value here (a click on the cell only selects it)" }))
+    } else if (c.own && c.type === "multi") {
+      // several of a list: each choice a pill, ✓ when it's on (not its colour alone); a click again takes it off
+      p.appendChild(el("div", {}, [el("div", { class: "ilab" }, [el("span", { text: c.label }), el("span", { class: "k", text: "as many as fit" })]),
+        el("div", { class: "opts" }, c.options.map(function (o) {
+          var on = v.indexOf(o) >= 0
+          return el("button", { type: "button", class: "pill own" + (on ? " on" : ""), "data-set": "multi", "data-val": o, "aria-pressed": String(on), text: (on ? "✓ " : "") + o })
+        }))]))
+      p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its values here (a click on the cell only selects it)" }))
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
       p.appendChild(el("div", { class: "ibox you" }, [el("div", { class: "ptext", text: v || "Empty." }), el("div", { class: "hint", text: "↵ or a double-click edits it; ⌘↵ keeps it, esc drops it." })]))
@@ -615,13 +623,23 @@ var RT = (function () {
     var pid = C.paperId(r)
     D.cells[c.id] = D.cells[c.id] || {}
     var old = D.cells[c.id][pid] ? D.cells[c.id][pid].v : ""
-    if (old === v) return
+    if (JSON.stringify(old) === JSON.stringify(v)) return
     var was = D.cells[c.id][pid]
     var ai = was && was.by === "ai" && !was.error ? was : was && was.ai // (an AI cell you edit: its answer kept, as the file keeps it)
     D.cells[c.id][pid] = ai ? { v: v, by: "you", ai: ai } : { v: v, by: "you" }
     post("cell", { column: c.id, paper: pid, value: v })
-    flash(c.label + ": " + (v ? (v.length > 40 ? v.slice(0, 40) + "…" : v) : "cleared"))
+    var said = Array.isArray(v) ? v.join(", ") : v
+    flash(c.label + ": " + (said ? (said.length > 40 ? said.slice(0, 40) + "…" : said) : "cleared"))
     redrawRow(r)
+  }
+
+  // Several of a list: a choice on, or off again; the list in the column's order (a value no longer a choice kept).
+  function toggleChoice(r, c, o) {
+    if (!c) return
+    var cur = C.value(c, r, D.ctx, D.cells)
+    var on = cur.indexOf(o) < 0
+    setCell(r, c, c.options.filter(function (x) { return x === o ? on : cur.indexOf(x) >= 0 }).concat(cur.filter(function (x) { return c.options.indexOf(x) < 0 })))
+    drawPanel()
   }
 
   // A paper's row drawn again where it is (the sort is applied at the next change of the arrangement or the data).
@@ -783,6 +801,7 @@ var RT = (function () {
       item("Move left", { "data-m": "left", disabled: c.id === "title" }, "⌥⌘←"), item("Move right", { "data-m": "right", disabled: c.id === "title" }, "⌥⌘→"),
       item("Fit its width", { "data-m": "fit" }), item("Hide it", { "data-m": "hide", disabled: c.id === "title" })]
     if (c.ai) kids.splice(1, 0, item("Run this column…", { "data-m": "run", disabled: !!c.problem }, "⇧⌘R"), el("hr"))
+    if ((c.own || c.ai) && D.columns[c.id]) kids.splice(1, 0, item("Edit it…", { "data-m": "edit" }, c.ai ? "its prompt, its labels…" : "its name, its choices"), c.ai ? null : el("hr"))
     if (c.own || c.ai) kids.push(item("Remove it from this review", { "data-m": "remove" }, "its values stay"))
     openPop(anchor, kids, function (p) {
       p.addEventListener("click", function (e) {
@@ -798,6 +817,7 @@ var RT = (function () {
         else if (m === "left" || m === "right") moveColumn(c.id, m === "left" ? -1 : 1)
         else if (m === "fit") fitColumn(c.id)
         else if (m === "run") runDialog(c)
+        else if (m === "edit") addDialog(c.ai ? "ai" : "own", D.columns[c.id])
         else if (m === "hide") { layoutOf(c.id).hidden = true; layoutChanged(); flash("Hidden: “" + c.label + "” (the Columns button shows it again)") }
         else if (m === "remove") { review.columns = review.columns.filter(function (l) { return l.id !== c.id }); layoutChanged(); flash("Removed “" + c.label + "” from this review: its values stay, + Column adds it back") }
       })
@@ -1125,16 +1145,18 @@ var RT = (function () {
 
   // + Column: first what fills it, yours or the AI; then that kind's fields. (Zotero's fields, the rankings and your
   // taxonomies aren't made: the Columns button lists them all, to tick.)
-  var KIND_HINTS = { prompt: "your question, asked of each paper", "jev-several": "the labels of one of your taxonomies", "jev-one": "the best fit of one of your taxonomies", "jev-relevance": "how relevant each paper is to a topic, 0 to 100" }
-  function addDialog(step) {
+  // Edit it… (a column's ▾): the same form, filled with the column as its file has it; Save writes it over.
+  var KIND_HINTS = { prompt: "your question, asked of each paper", "jev-several": "every label that fits, from your own labels or a taxonomy", "jev-one": "the one label that fits best, from your own labels or a taxonomy", "jev-relevance": "how relevant each paper is to a topic, 0 to 100" }
+  function addDialog(step, edit) {
     if (D.readOnly) return flash("Not saved: the sync folder isn't there")
     var back = el("button", { class: "tb", type: "button", "data-step": "", text: "‹ Back" })
-    var foot = function (go) { return el("footer", {}, [step ? back : null, el("span", { class: "fill" }), el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), go]) }
+    var foot = function (go) { return el("footer", {}, [step && !edit ? back : null, el("span", { class: "fill" }), el("button", { class: "tb", type: "button", "data-close": "1", text: "Cancel" }), go]) }
+    var verb = edit ? "Save" : "Add"
     if (!step) {
       return openModal([el("header", {}, [el("h2", { text: "Add a column" }), el("p", { text: "Who fills it in?" })]),
         el("div", { class: "sb" }, [
-          el("button", { class: "choice", type: "button", "data-step": "own" }, [el("b", { text: "You: a column of your own" }), el("span", { text: "Text, or one of a list (include, maybe, exclude…), filled in by you" })]),
-          el("button", { class: "choice", type: "button", "data-step": "ai" }, [el("b", { text: "The AI: an AI column" }), el("span", { text: "Your question asked of each paper, Jev's labels from a taxonomy, or how relevant each paper is to a topic" })]),
+          el("button", { class: "choice", type: "button", "data-step": "own" }, [el("b", { text: "You: a column of your own" }), el("span", { text: "Text, one of a list (include, maybe, exclude…) or several of a list, filled in by you" })]),
+          el("button", { class: "choice", type: "button", "data-step": "ai" }, [el("b", { text: "The AI: an AI column" }), el("span", { text: "Your question asked of each paper, Jev's pick from labels you write (or a taxonomy's), or how relevant each paper is to a topic" })]),
           el("div", { class: "hint", text: "Zotero's fields, the rankings and your taxonomies are there already: tick them in the Columns button's list." })
         ]), foot(null)], function (m) {
         m.addEventListener("click", function (e) { var b = e.target.closest("[data-step]"); if (b) addDialog(b.getAttribute("data-step")) })
@@ -1143,18 +1165,23 @@ var RT = (function () {
       })
     }
     if (step === "own") {
-      return openModal([el("header", {}, [el("h2", { text: "A column of your own" }), el("p", { text: "You fill it in: a click on a cell selects it, the panel on the right sets it." })]),
+      var was = edit || {}
+      return openModal([el("header", {}, [el("h2", { text: edit ? "Edit “" + was.label + "”" : "A column of your own" }), el("p", { text: edit ? "Its values stay: a choice you take out stays on the papers that have it." : "You fill it in: a click on a cell selects it, the panel on the right sets it." })]),
         el("div", { class: "sb" }, [
-          el("label", {}, ["Its name", el("input", { type: "text", id: "nname", placeholder: "Include?, My notes, Chapter…", maxlength: "80" })]),
-          el("label", {}, ["It holds", el("select", { id: "ntype" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "choice", text: "One of a list" })])]),
-          el("label", { id: "noptsl", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "nopts", placeholder: "include, maybe, exclude" })]),
+          el("label", {}, ["Its name", el("input", { type: "text", id: "nname", placeholder: "Include?, My notes, Chapter…", maxlength: "80", value: was.label || "" })]),
+          el("label", {}, ["It holds", el("select", { id: "ntype" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "choice", text: "One of a list" }), el("option", { value: "multi", text: "Several of a list" })])]),
+          el("label", { id: "noptsl", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "nopts", placeholder: "include, maybe, exclude", value: (was.options || []).join(", ") })]),
           el("div", { class: "err", id: "nerr" })
-        ]), foot(el("button", { class: "tb primary", type: "button", id: "nadd", text: "Add" }))], function (m) {
+        ]), foot(el("button", { class: "tb primary", type: "button", id: "nadd", text: verb }))], function (m) {
         m.addEventListener("click", function (e) { var b = e.target.closest("[data-step]"); if (b) addDialog(b.getAttribute("data-step")) })
-        $("ntype").addEventListener("change", function () { $("noptsl").hidden = $("ntype").value !== "choice" })
+        var types = function () { $("noptsl").hidden = $("ntype").value === "text" }
+        $("ntype").value = was.type === "choice" || was.type === "multi" ? was.type : "text"
+        types()
+        $("ntype").addEventListener("change", types)
         var go = function () {
-          var made = C.newColumn({ label: $("nname").value.trim(), type: $("ntype").value, options: $("nopts").value })
+          var made = C.newColumn({ label: $("nname").value.trim(), type: $("ntype").value, options: $("nopts").value, description: was.description || "" })
           if (made.error) { $("nerr").textContent = made.error; return }
+          if (edit) return savedEdit(Object.assign(made.column, { id: was.id }), was)
           addMade(made.column)
         }
         $("nadd").addEventListener("click", go)
@@ -1163,10 +1190,11 @@ var RT = (function () {
     }
     // an AI column: its kind, then its fields (data-for: the kinds a field is for); a prompt or a relevance can be
     // written by the AI from what you describe (Write it with AI), then changed before Add
-    openModal([el("header", {}, [el("h2", { text: "An AI column" }), el("p", { text: "The AI fills it, paper by paper, when you Run it (⇧⌘R): nothing runs before." })]),
+    var ed = edit || null
+    openModal([el("header", {}, [el("h2", { text: ed ? "Edit “" + ed.label + "”" : "An AI column" }), el("p", { text: ed ? "Changing what decides its answers (the prompt, the labels…) marks the answers it has out of date: Run… (⇧⌘R) redoes them." : "The AI fills it, paper by paper, when you Run it (⇧⌘R): nothing runs before." })]),
       el("div", { class: "sb" }, [
         el("div", { class: "kinds", role: "radiogroup", "aria-label": "What the AI does" }, C.AI_KINDS.map(function (k, i) {
-          return el("label", { class: "kind" }, [el("input", { type: "radio", name: "akind", value: k, checked: i === 0 }), el("b", { text: C.KIND_NAMES[k] }), el("span", { text: KIND_HINTS[k] })])
+          return el("label", { class: "kind" }, [el("input", { type: "radio", name: "akind", value: k, checked: ed ? ed.kind === k : i === 0, disabled: !!ed && ed.kind !== k }), el("b", { text: C.KIND_NAMES[k] }), el("span", { text: KIND_HINTS[k] })])
         })),
         el("div", { class: "draft", "data-for": "prompt jev-relevance" }, [
           el("label", {}, ["Describe what you want to know, and the AI writes the column", el("textarea", { id: "adesc", rows: "2", placeholder: "" })]),
@@ -1174,7 +1202,7 @@ var RT = (function () {
         ]),
         el("div", { id: "aform", class: "aform" }, aiFields()),
         el("div", { class: "err", id: "nerr" })
-      ]), foot(el("button", { class: "tb primary", type: "button", id: "nadd", text: "Add" }))], function (m) {
+      ]), foot(el("button", { class: "tb primary", type: "button", id: "nadd", text: verb }))], function (m) {
       m.addEventListener("click", function (e) { var b = e.target.closest("[data-step]"); if (b) addDialog(b.getAttribute("data-step")) })
       var kind = function () { return (m.querySelector("input[name=akind]:checked") || {}).value || "prompt" }
       var showAi = function () {
@@ -1184,14 +1212,20 @@ var RT = (function () {
         if (k === "prompt") $("alenl").hidden = !($("ashape").value === "text" || $("ashape").value === "list")
         $("adesc").placeholder = k === "jev-relevance" ? "Papers on how firms build dynamic capabilities, not ones that only cite the idea" : "Each study's sample: how many firms or people, and from which countries"
         if (k === "jev-several" || k === "jev-one") {
+          // the labels: your own (the first), or one of your taxonomies of the kind
+          var keep = $("atax").value
           var ts = (D.ctx.taxonomies || []).filter(function (t) { return t.id && (t.kind === "one") === (k === "jev-one") })
-          clear($("atax"))
-          ts.forEach(function (t) { $("atax").appendChild(el("option", { value: t.id, text: t.name + " (" + t.prefix + ")" })) })
-          if (!ts.length) $("atax").appendChild(el("option", { value: "", text: k === "jev-one" ? "No taxonomy of the one-label kind" : "No taxonomy of the several-labels kind" }))
+          clear($("atax")).appendChild(el("option", { value: "", text: "Your own labels (below)" }))
+          ts.forEach(function (t) { $("atax").appendChild(el("option", { value: t.id, text: "The taxonomy " + t.name + " (" + t.prefix + ")" })) })
+          $("atax").value = ts.some(function (t) { return t.id === keep }) ? keep : ""
+          $("alabels").placeholder = k === "jev-one" ? "qualitative: interviews, cases, ethnography\nquantitative: statistics on a sample\nmixed: both" : "firm: the unit studied is the firm\nindustry: a whole industry\ncountry: countries compared"
+          labelsShown()
         }
         $("anote").textContent = k !== "prompt" ? (D.ctx.jev ? "Jev answers, as tagging does (it reads the title, abstract and extracted text). No tags are written: the result stays in the column." : "No Jev key: your prompts model answers, as tagging does without one (Settings › Taxonomies sets the key). No tags are written.") : ""
       }
-      m.addEventListener("change", function (e) { if (e.target.name === "akind" || e.target.id === "ashape") showAi() })
+      var labelsShown = function () { var own = !$("atax").value; $("alabelsl").hidden = !own; $("aql").hidden = !own }
+      m.addEventListener("change", function (e) { if (e.target.name === "akind" || e.target.id === "ashape") showAi(); if (e.target.id === "atax") labelsShown() })
+      if (ed) fillAi(ed)
       showAi()
       $("adraft").addEventListener("click", function () {
         var ask = $("adesc").value.trim()
@@ -1205,16 +1239,47 @@ var RT = (function () {
       $("nadd").addEventListener("click", function () {
         var ai = C.newAiColumn(aiValues(kind()), D.ctx)
         if (ai.error) { $("nerr").textContent = ai.error; return }
+        if (ed) return savedEdit(Object.assign(ai.column, { id: ed.id }), ed)
         addMade(ai.column)
       })
-      $("adesc").focus()
+      if (ed) $("aname").focus(); else $("adesc").focus()
     })
   }
 
   // What the AI column's fields hold, as C.newAiColumn reads them.
   function aiValues(k) {
-    return { label: $("aname").value, kind: k, description: k === "prompt" ? $("aprompt").value : $("adef").value, reads: $("areads").value, shape: $("ashape").value,
-      length: $("alen").value, options: $("aopts").value, evidence: $("aev").checked, model: $("amodel").value, taxonomy: $("atax").value, topic: $("atopic").value }
+    return { label: $("aname").value, kind: k, description: k === "prompt" ? $("aprompt").value : k === "jev-relevance" ? $("adef").value : $("aq").value, reads: $("areads").value, shape: $("ashape").value,
+      length: $("alen").value, options: $("aopts").value, evidence: $("aev").checked, model: $("amodel").value, taxonomy: $("atax").value, labels: $("alabels").value, topic: $("atopic").value }
+  }
+
+  // Edit it…: the fields filled with the column as its file has it (its taxonomy picked once the kind's list is made).
+  function fillAi(d) {
+    var set = function (id, v) { if ($(id) && v !== undefined && v !== null) $(id).value = String(v) }
+    set("aname", d.label)
+    if (d.kind === "prompt") set("aprompt", d.description)
+    else if (d.kind === "jev-relevance") set("adef", d.description)
+    else set("aq", d.description)
+    set("areads", d.reads)
+    set("ashape", d.shape)
+    set("alen", d.length || "")
+    set("aopts", (d.options || []).join(", "))
+    $("aev").checked = !!d.evidence
+    if (d.model && !$("amodel").querySelector('option[value="' + CSS.escape(d.model) + '"]')) $("amodel").appendChild(el("option", { value: d.model, text: d.model }))
+    set("amodel", d.model || "default")
+    set("atopic", d.topic)
+    set("alabels", C.labelsText(d.labels))
+    if (d.taxonomy) $("atax").appendChild(el("option", { value: d.taxonomy, text: d.taxonomy, selected: true })) // (showAi keeps it when it's one of the kind's)
+  }
+
+  // Edit it…'s Save: the file written over, the table drawn with it; an AI column whose answers it changes says so.
+  function savedEdit(spec, was) {
+    closeModal()
+    D.columns[spec.id] = spec
+    post("addColumn", { column: spec })
+    resolve()
+    drawAll()
+    var stale = spec.kind !== "own" && C.aiColumn(spec, D.ctx).hash !== C.aiColumn(was, D.ctx).hash
+    flash("Saved “" + spec.label + "”" + (stale ? ": its answers are out of date now, Run… (⇧⌘R) redoes them" : ""))
   }
 
   // Write it with AI's answer (review-draft): the fields filled with it, to change before Add; or why not.
@@ -1265,7 +1330,9 @@ var RT = (function () {
       el("label", { id: "aoptsl", "data-for": "prompt", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "aopts", placeholder: "firm, industry, country" })]),
       el("label", { class: "row", "data-for": "prompt" }, [el("input", { type: "checkbox", id: "aev" }), "Evidence: quotes with their page, each checked word for word against the paper"]),
       el("label", { "data-for": "prompt" }, ["The model", el("select", { id: "amodel" }, models)]),
-      el("label", { "data-for": "jev-several jev-one" }, ["The taxonomy", el("select", { id: "atax" })]),
+      el("label", { "data-for": "jev-several jev-one" }, ["The labels", el("select", { id: "atax" })]),
+      el("label", { id: "alabelsl", "data-for": "jev-several jev-one" }, ["Your labels, one a line: its name, a colon, then what it means (Jev reads both)", el("textarea", { id: "alabels", rows: "4", spellcheck: "false" })]),
+      el("label", { id: "aql", "data-for": "jev-several jev-one" }, ["The question (optional)", el("input", { type: "text", id: "aq", placeholder: "Which research design does the study use?", maxlength: "300" })]),
       el("label", { "data-for": "jev-relevance" }, ["The topic", el("input", { type: "text", id: "atopic", placeholder: "dynamic capabilities", maxlength: "200" })]),
       el("label", { "data-for": "jev-relevance" }, ["Relevant means", el("textarea", { id: "adef", rows: "2", placeholder: "It theorizes, measures or tests dynamic capabilities, not only mentions them" })]),
       el("div", { class: "hint", id: "anote" })
@@ -1455,10 +1522,11 @@ var RT = (function () {
       var r = actRow()
       if (b && r) {
         var k = b.getAttribute("data-set"), v = b.getAttribute("data-val")
-        if (D.readOnly && k === "own") return flash("Not saved: the sync folder isn't there")
+        if (D.readOnly && (k === "own" || k === "multi")) return flash("Not saved: the sync folder isn't there")
         if (k === "status") setStatus(r, v)
         else if (k === "task") setTask(r, v)
         else if (k === "own") setCell(r, colById(act.c), v)
+        else if (k === "multi") toggleChoice(r, colById(act.c), v)
         return
       }
       if (e.target.closest("[data-act=open]")) openPaper(r)

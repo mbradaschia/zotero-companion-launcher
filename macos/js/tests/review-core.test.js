@@ -234,6 +234,55 @@ test("an AI column in the table: how it draws and sorts, its fingerprint (the mo
   assert.equal(R.band(10), "low");
 });
 
+test("a Jev column on labels of its own: lines in, its file both ways, its options, its fingerprint, no taxonomy needed", () => {
+  const one = R.newAiColumn({ label: "Design", kind: "jev-one", taxonomy: "", labels: "qualitative: interviews, cases\nquantitative: statistics on a sample\nQualitative: again\n\n", description: "How is the data collected?" }, {}, rand).column;
+  assert.deepEqual(one.labels, [{ name: "qualitative", definition: "interviews, cases" }, { name: "quantitative", definition: "statistics on a sample" }]);
+  assert.equal(one.taxonomy, "");
+  const text = R.columnText(one);
+  assert.match(text, /\nlabels: \[\{"name":"qualitative","definition":"interviews, cases"\},/);
+  assert.deepEqual(R.parseColumn(text, one.id), one);
+  const col = R.aiColumn(one, { taxonomies: [] });
+  assert.deepEqual([col.type, col.options, col.problem], ["choice", ["qualitative", "quantitative"], undefined]);
+  assert.notEqual(col.hash, R.aiColumn(Object.assign({}, one, { labels: [one.labels[0], { name: "quantitative", definition: "numbers" }] }), {}).hash); // (a meaning changed)
+  assert.equal(R.labelsText(one.labels), "qualitative: interviews, cases\nquantitative: statistics on a sample");
+  assert.match(R.newAiColumn({ label: "D", kind: "jev-one", labels: "only one" }, {}).error, /two labels or more/);
+  assert.match(R.newAiColumn({ label: "D", kind: "jev-several", labels: "" }, {}).error, /a label or more/);
+  assert.deepEqual(R.newAiColumn({ label: "D", kind: "jev-several", labels: "firm" }, {}, rand).column.labels, [{ name: "firm", definition: "" }]);
+  // a taxonomy chosen wins over labels
+  assert.equal(R.newAiColumn({ label: "M", kind: "jev-several", taxonomy: "method", labels: "x" }, { taxonomies: TAX }, rand).column.labels, undefined);
+  // a column on a taxonomy keeps the fingerprint it had (its cells stay up to date)
+  const tax = { id: "c-1111111111", label: "Type", kind: "jev-one", taxonomy: "paper-type", description: "" };
+  assert.equal(R.columnHash(tax, TAX[1]), R.hash12(JSON.stringify(["jev-one", "paper-type", "t-type"])));
+});
+
+test("several of a list (your column): its file, its value a list (one label from before), the cell file keeps the list", () => {
+  const m = R.newColumn({ label: "Themes", type: "multi", options: "trust, power, trust" }, rand).column;
+  assert.deepEqual([m.type, m.options], ["multi", ["trust", "power"]]);
+  assert.match(R.newColumn({ label: "T", type: "multi", options: "" }).error, /its choices/);
+  assert.deepEqual(R.parseColumn(R.columnText(m), m.id), m);
+  const col = R.ownColumn(m);
+  assert.deepEqual([col.type, col.edit], ["multi", "multi"]);
+  const cells = { [m.id]: { "1:AAAAAAAA": { v: ["trust", "power"] }, "1:BBBBBBBB": { v: "trust" } } };
+  assert.deepEqual(R.value(col, row("AAAAAAAA"), ctx, cells), ["trust", "power"]);
+  assert.deepEqual(R.value(col, row("BBBBBBBB"), ctx, cells), ["trust"]);
+  assert.deepEqual(R.value(col, row("CCCCCCCC"), ctx, cells), []);
+  assert.equal(R.value(R.ownColumn(Object.assign({}, m, { type: "text" })), row("AAAAAAAA"), ctx, cells), "trust; power"); // (made text since)
+  const text = R.setCell("", "1:AAAAAAAA", ["trust", " ", "power"], "2026-10-29T10:00:00Z", "mac");
+  assert.deepEqual(R.parseCells(text)["1:AAAAAAAA"].v, ["trust", "power"]);
+  assert.equal(R.parseCells(R.setCell("", "1:AAAAAAAA", "plain", "", "mac"))["1:AAAAAAAA"].v, "plain");
+});
+
+test("grouping: never by free text (yours, an AI's words or list), by a choice, several of a list, a number", () => {
+  assert.equal(R.groupable(R.ownColumn({ id: "c-a", label: "Notes", type: "text" })), false);
+  assert.equal(R.groupable(R.ownColumn({ id: "c-b", label: "Inc", type: "choice", options: ["a", "b"] })), true);
+  assert.equal(R.groupable(R.ownColumn({ id: "c-c", label: "T", type: "multi", options: ["a"] })), true);
+  assert.equal(R.groupable(R.aiColumn({ id: "c-d", label: "Gap", kind: "prompt", shape: "text" }, {})), false);
+  assert.equal(R.groupable(R.aiColumn({ id: "c-e", label: "Constructs", kind: "prompt", shape: "list" }, {})), false);
+  assert.equal(R.groupable(R.aiColumn({ id: "c-f", label: "Level", kind: "prompt", shape: "choice", options: ["firm", "industry"] }, {})), true);
+  assert.equal(R.groupable(R.aiColumn({ id: "c-g", label: "N", kind: "prompt", shape: "number" }, {})), true);
+  assert.equal(R.groupable(R.fieldById("publication")), true);
+});
+
 test("a cell's state: not run, up to date, prompt changed, paper changed, yours, failed", () => {
   const full = { ai: true, kind: "prompt", reads: "full", hash: "h1" }, abs = { ai: true, kind: "prompt", reads: "abstract", hash: "h1" };
   const ai = { v: "x", by: "ai", hash: "h1", input: { text: "pdf" } };

@@ -43,11 +43,19 @@ export function parseJob(raw) {
 // ---------------------------------------------------------------- Jev columns
 
 // A Jev column as the taxonomy tagging asks with (its id the column's: two columns may share a taxonomy). Relevance:
-// a one-label taxonomy of the several kind, the topic its label and your definition its definition.
+// a one-label taxonomy of the several kind, the topic its label and your definition its definition. A column on
+// labels of its own: a taxonomy made of them.
 export function jevTaxonomy(col, taxonomies) {
   if (col.kind === "jev-relevance") {
     return { id: col.id, name: col.label, prefix: "", kind: "several", question: "Is this paper relevant to this topic? Relevant means what follows.",
       labels: [{ name: String(col.topic || col.label).slice(0, 80), definition: String(col.description || "").slice(0, 1200) }], threshold: 0.5, low: 0.5 };
+  }
+  // labels of its own (no taxonomy): each with what it means; the column's description, if any, is the question
+  const own = (Array.isArray(col.labels) ? col.labels : []).filter((l) => l && String(l.name || "").trim());
+  if (!col.taxonomy && own.length) {
+    return { id: col.id, name: col.label, prefix: "", kind: col.kind === "jev-one" ? "one" : "several",
+      question: String(col.description || "").trim().slice(0, 300) || "Which of these fits the paper?",
+      labels: own.slice(0, 30).map((l) => ({ name: String(l.name).trim().slice(0, 80), definition: String(l.definition || "").slice(0, 1200) })), threshold: THRESHOLD, low: LOW };
   }
   const t = (taxonomies || []).find((x) => x.id === col.taxonomy);
   if (!t) throw new Error(`its taxonomy (${col.taxonomy}) isn't there any more`);
