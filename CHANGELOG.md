@@ -7,6 +7,16 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.23`)
+
+- **A reading companion for the iPad.** Read in Zotero on the iPad with the companion beside it in Split View: pick a
+  paper, see and change its status and default task (the same buttons as the Mac app's, the same `s/` and `t/` tags),
+  chat about it, read its notes and add one, run your prompts, tick its tasks, confirm or dismiss its taxonomy
+  suggestions, add and remove tags, and see its review-table columns as rows (choose which; edit yours; run an AI one).
+  The app serves it while it runs (on this Mac only); menu bar › *Reading Companion* › *Show the iPad Link…* turns on
+  Tailscale for it and shows a QR code to open it on the iPad. It needs Tailscale on both, Node 22, and the Mac awake
+  with Zotero open.
+
 ### The Mac app (`macos-v0.4.21`)
 
 - **esc no longer closes the launcher's window.** In the window (Settings › General › Open as a window, or `W`), esc
