@@ -83,7 +83,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
                               backing: .buffered, defer: false)
         window.title = "Zotero"
         window.contentMinSize = LauncherPanel.minSize
-        window.collectionBehavior = [.moveToActiveSpace] // (the hotkey brings it to the Space you're on)
+        window.collectionBehavior = [.managed, .fullScreenPrimary] // (a window like any other: it stays on its Space, a window manager tiles it, full screen)
         if !window.setFrameUsingName("ZLLauncherWindow") { window.center() } // where you (or a window manager) left it
         window.setFrameAutosaveName("ZLLauncherWindow")
         window.isReleasedWhenClosed = false

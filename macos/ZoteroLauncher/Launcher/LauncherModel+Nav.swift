@@ -106,10 +106,11 @@ extension LauncherModel {
         (try? core?.glue("arrangeOptions", [tax.taxonomies], as: ArrangeOptions.self)) ?? ArrangeOptions(groups: [["", "None"]], sorts: [["relevance", "Relevance"]])
     }
 
-    // Whether the papers are arranged: a scope or a query (the top level's recent papers aren't).
+    // Whether the papers are arranged: a list you browse (a collection, a tag, a saved search) with nothing typed. What
+    // you type is by relevance, and the top level's recent papers aren't arranged.
     var arrangeable: Bool {
         guard store.inSearch, let response else { return false }
-        return (response["scope"] is [String: Any]) || !((response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
+        return (response["scope"] is [String: Any]) && (response["query"] as? String ?? "").trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     // The arrangement in words, as the three menus show it: "By relevance", "↓ Date added", "Paper status · ↑ Year
@@ -153,6 +154,6 @@ extension LauncherModel {
         let group = now.group.isEmpty ? "" : ", grouped by " + (o.groups.first { $0.first == now.group }?.last ?? now.group).lowercased()
         let newest = now.order == "desc" ? "newest first" : "oldest first"
         let sort = now.sort == "relevance" ? "by relevance" : "by " + (o.sorts.first { $0.first == now.sort }?.last ?? now.sort).lowercased() + ", " + newest
-        flashMessage("Papers: " + sort + group + (arrangeable || !store.inSearch ? "" : " (once you search)"))
+        flashMessage("Papers: " + sort + group + (arrangeable || !store.inSearch ? "" : " (in a collection, a tag or a saved search: what you type is by relevance)"))
     }
 }

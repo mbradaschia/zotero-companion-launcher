@@ -69,8 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 // Settings › General › In the Dock and ⌘Tab (this Mac's, on until turned off): a regular app, its icon in the Dock and in
-// ⌘Tab; off, an accessory (the menu bar's icon and the hotkey only). The bundle says accessory (LSUIElement), so the
-// launch never flashes an icon that's turned off.
+// ⌘Tab; off, an accessory (the menu bar's icon and the hotkey only). The bundle says regular (LSUIElement NO): tiling
+// window managers (AeroSpace, yabai, Amethyst) decide at launch whether an app's windows are theirs to manage, and an
+// app that starts as an accessory never is. Turned off, its icon shows a moment at launch.
 enum DockPresence {
     static let key = "ZLShowInDock"
     static var kept: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }

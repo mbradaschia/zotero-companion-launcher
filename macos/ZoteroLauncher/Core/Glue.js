@@ -105,7 +105,8 @@ var Glue = (function () {
       var built = V.buildRows(response, color, extras || {})
       if (extras && extras.have) built = onlyHave(built, extras.have, response)
       var rows = V.orderSections(built, sectionOrder || null)
-      var groupable = !!(response && (response.scope || String(response.query || "").trim()))
+      // (a list you browse: a collection, a tag or a saved search with nothing typed; what you type is by relevance)
+      var groupable = !!(response && response.scope && !String(response.query || "").trim())
       if (grouping && groupable) rows = arrange(rows, arrangement(grouping), Object.assign({ results: response.results, groups: T.GROUPS }, grouping.info || {}))
       return V.withNoteRows(rows, expanded || null)
     },

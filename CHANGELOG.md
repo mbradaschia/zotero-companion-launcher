@@ -7,6 +7,15 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.17`)
+
+- **What you type is by relevance**, so typing an author's name lists their papers first. Group and Sort (g, G) arrange
+  a list you browse: a collection, a tag or a saved search with nothing typed. A sort kept from before re-sorted typed
+  results too.
+- **The window W opens is a regular one**: the app launches as a regular app, so tiling window managers (TileMyMac,
+  AeroSpace, yabai, Amethyst) manage it; it stays on its Space and can go full screen. With In the Dock and ⌘Tab off,
+  the Dock icon shows a moment at launch.
+
 ### The Mac app (`macos-v0.4.16`)
 
 - **An AI column ticked in the Columns menu shows its answers at once**: the ones another table's run made for these
