@@ -374,6 +374,10 @@ final class LauncherModelTests: XCTestCase {
         let fitted = FitHints.fit(model.hints(), width: 200, gap: 10) { CGFloat($0.count * 6) }
         XCTAssertTrue(fitted.contains("⌫ esc back"))
         XCTAssertLessThan(fitted.count, model.hints().count)
+        let capped = FitHints.fit(model.hints(), width: 10_000, gap: 10, lines: 2, most: FitHints.most) { CGFloat($0.count * 6) }
+        XCTAssertEqual(capped.filter { !$0.contains("esc") && !$0.contains("⌫") }.count, FitHints.most, "four for where you are, besides / search and ? keys")
+        XCTAssertTrue(capped.contains("⌫ esc back"), "going back always")
+        XCTAssertTrue(capped.contains { $0.hasSuffix(" keys") }, "the rest are in ? keys")
         XCTAssertEqual(FitHints.parts("⇧↵ z zotero").keys, "⇧↵ z")
         XCTAssertEqual(FitHints.parts("⇧↵ z zotero").desc, "zotero")
         XCTAssertEqual(FitHints.parts("esc one-key actions").keys, "esc")

@@ -136,7 +136,7 @@ struct StyledTextField: NSViewRepresentable {
 
         // Coloured again only when the text or the caret moved (each costs a call into the JS).
         func tintIfChanged(_ field: NSTextField) {
-            let now = (text: field.stringValue, caret: parent.caretBack, live: parent.live, theme: palette.family.id)
+            let now = (text: field.stringValue, caret: parent.caretBack, live: parent.live, theme: palette.id)
             if let t = tinted, t.text == now.text, t.caret == now.caret, t.live == now.live, t.theme == now.theme { return }
             tint(field)
         }
@@ -164,7 +164,7 @@ struct StyledTextField: NSViewRepresentable {
             let text = field.stringValue
             let caret = max(0, (text as NSString).length - parent.caretBack)
             let runs = parent.segments(text, caret)
-            tinted = (text, parent.caretBack, parent.live, palette.family.id)
+            tinted = (text, parent.caretBack, parent.live, palette.id)
             let base: [NSAttributedString.Key: Any] = [.font: parent.font, .foregroundColor: palette.ns.text]
             if let editor = field.currentEditor() as? NSTextView, let storage = editor.textStorage {
                 guard !editor.hasMarkedText() else { return }
@@ -199,6 +199,8 @@ struct StyledTextField: NSViewRepresentable {
             guard run.end > run.start, run.start >= 0, run.end <= text.length, let color = color(run.role, palette) else { return }
             let range = NSRange(location: run.start, length: run.end - run.start)
             text.addAttribute(.foregroundColor, value: color, range: range)
+            // a negated block struck through, so it isn't told by its colour alone (a colour-blind eye can't)
+            if run.role == "neg", run.block { text.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: range) }
             if run.block { text.addAttribute(.backgroundColor, value: color.withAlphaComponent(0.16), range: range) }
         }
     }

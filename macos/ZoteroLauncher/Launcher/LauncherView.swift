@@ -353,8 +353,9 @@ struct FooterView: View {
                     if !sync.isEmpty { Label(sync, systemImage: "arrow.triangle.2.circlepath").font(.caption).foregroundStyle(.secondary) }
                 }
             }
-            // the hints on two lines when one isn't enough (the width measured, as the hints are)
-            let fitted = FitHints.fit(model.hints(), width: hintsWidth, gap: 14, lines: 2, widthOf: { FitHints.width($0) })
+            // the hints on two lines when one isn't enough (the width measured, as the hints are): / search, ? keys and four
+            // more at most, besides going back (every key is in ? keys)
+            let fitted = FitHints.fit(model.hints(), width: hintsWidth, gap: 14, lines: 2, most: FitHints.most, widthOf: { FitHints.width($0) })
             FlowLayout(spacing: 14, lineSpacing: 4) {
                 ForEach(fitted, id: \.self) { hint in
                     let p = FitHints.parts(hint)

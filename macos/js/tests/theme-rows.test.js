@@ -9,7 +9,7 @@ const themes = [
   { id: "default", name: "Default", light: "", dark: "", swatch: "#0a84ff" },
   { id: "nord", name: "Nord", light: "Nord Light", dark: "Nord", swatch: "#88c0d0" },
 ];
-const theme = (id, mode) => ({ id: id, mode: mode, themes: themes });
+const theme = (id, mode, safe) => ({ id: id, mode: mode, safe: safe, themes: themes });
 
 test("General has the theme and light or dark, after the launcher's row", () => {
   const rows = Glue.settingsPage("general", s, {}, { openAsWindow: false, theme: theme("nord", "dark") });
@@ -48,4 +48,16 @@ test("the search finds them when the Mac gives its values", () => {
   const index = Glue.settingsIndex(s, {}, [], { theme: theme("default", "system") });
   assert.ok(index.some((r) => r.value === "mac.theme" && r.page === "general" && r.label === "Theme"));
   assert.ok(!Glue.settingsIndex(s, {}, []).some((r) => r.value === "mac.theme"));
+});
+
+test("the colour-blind safe colours: a switch after light or dark, when the Mac gives it", () => {
+  const on = Glue.settingsPage("general", s, {}, { theme: theme("nord", "dark", true) });
+  const row = on.find((r) => r.value === "mac.safeColours");
+  assert.deepEqual([row.section, row.rowId, row.label, row.checked], ["Appearance", "set-toggle", "Colour-blind safe colours", true]);
+  assert.equal(on.indexOf(row), on.findIndex((r) => r.value === "mac.themeMode") + 1);
+  assert.match(row.detail, /^On · /);
+  const off = Glue.settingsPage("general", s, {}, { theme: theme("nord", "dark", false) }).find((r) => r.value === "mac.safeColours");
+  assert.equal(off.checked, false);
+  assert.match(off.detail, /^Off · the theme's own colours/);
+  assert.equal(Glue.settingsPage("general", s, {}, { theme: theme("nord", "dark") }).find((r) => r.value === "mac.safeColours"), undefined);
 });

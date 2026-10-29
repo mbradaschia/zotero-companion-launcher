@@ -237,6 +237,15 @@ paper has, its status, its extracted text), **off** (faint: a choice, a rank); e
 colour (status orange, priority red, rank purple, taxonomy teal, task green, else the accent); in
 white on a selected row.
 
+**Never colour alone** (a colour-blind eye can't tell red from green, nor orange from either): each
+kind has its symbol first, from the one icon map (`Icons.concept`: status `flag`, task `checklist`,
+priority `exclamationmark`, rank `star`, taxonomy `tag`), the review table's SVG of the same name
+too. A form's choices (all one kind) and a text with its own sign (✓, ⚠) go without. Anything else
+told by colour gets a sign as well: a top rank's ★, a negated search block struck through, a problem's
+⚠. *Colour-blind safe colours* (General › Appearance, on by default) puts the colour-blind safe hues
+(`SafeColours`) in every theme; ThemeTests keeps the five kinds ΔE ≥ 15 apart under protanopia and
+deuteranopia.
+
 ## Themes
 
 - **Every colour is the theme's** (`Core/Theme.swift`, Settings › General › Appearance): views read `palette` from the

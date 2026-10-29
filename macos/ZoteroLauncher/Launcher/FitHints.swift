@@ -4,6 +4,7 @@ import AppKit
 // text): the ones that go back (esc, ⌫) always, then the others in order while there is room.
 enum FitHints {
     static let keyWords: Set<String> = ["tab", "esc", "del", "space", "pgup", "pgdn", "home", "end", "enter"]
+    static let most = 6 // a footer's hints besides going back: / search, ? keys and four for where you are
 
     // "⇧↵ z zotero" → keys "⇧↵ z", desc "zotero".
     static func parts(_ hint: String) -> (keys: String, desc: String) {
@@ -13,11 +14,13 @@ enum FitHints {
         return (words.prefix(n).joined(separator: " "), words.dropFirst(n).joined(separator: " "))
     }
 
-    // The hints shown on `lines` lines of `width`, each line laid out as FlowLayout lays out the footer's.
-    static func fit(_ hints: [String], width: CGFloat, gap: CGFloat, lines: Int = 1, widthOf: (String) -> CGFloat) -> [String] {
+    // The hints shown on `lines` lines of `width`, each line laid out as FlowLayout lays out the footer's; at most `most`
+    // besides the ones that go back (the rest are in ? keys).
+    static func fit(_ hints: [String], width: CGFloat, gap: CGFloat, lines: Int = 1, most: Int = .max, widthOf: (String) -> CGFloat) -> [String] {
         let widths = hints.map(widthOf)
-        var take = Set(hints.indices.filter { parts(hints[$0]).keys.contains("esc") || parts(hints[$0]).keys.contains("⌫") })
-        for i in hints.indices where !take.contains(i) && widths[i] <= width {
+        let back = Set(hints.indices.filter { parts(hints[$0]).keys.contains("esc") || parts(hints[$0]).keys.contains("⌫") })
+        var take = back
+        for i in hints.indices where !take.contains(i) && widths[i] <= width && take.count - back.count < most {
             let tried = take.union([i])
             let shown = hints.indices.filter(tried.contains).map { widths[$0] }
             if FlowLayout.lines(widths: shown, maxWidth: width, spacing: gap).count <= lines { take = tried }

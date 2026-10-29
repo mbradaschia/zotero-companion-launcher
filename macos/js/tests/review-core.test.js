@@ -298,3 +298,14 @@ test("reviewFor: ⌘T on a list with a review opens that one (the newest changed
   assert.equal(R.reviewFor(null, { type: "query", query: "x" }), "");
   assert.ok(!R.sameSource({ type: "tag", key: "a" }, { type: "collection", key: "a" }));
 });
+
+test("a title's rich text: italics, bold, sub- and superscripts read, other tags left out, never shown as markup", () => {
+  assert.deepEqual(R.titleRuns("Resource orchestration <b>breadth</b>"), [
+    { text: "Resource orchestration ", i: false, b: false, sub: false, sup: false }, { text: "breadth", i: false, b: true, sub: false, sup: false }]);
+  assert.deepEqual(R.titleRuns("CO<sub>2</sub> and <i>E. coli</i>").map((r) => [r.text, r.sub, r.i]), [["CO", false, false], ["2", true, false], [" and ", false, false], ["E. coli", false, true]]);
+  assert.equal(R.plainTitle('A <span class="nocase">iPhone</span> study &amp; <span style="font-variant:small-caps;">more</span>'), "A iPhone study & more");
+  assert.equal(R.plainTitle("p < 0.05 when n > 30"), "p < 0.05 when n > 30", "a < of the title's own stays");
+  assert.equal(R.plainTitle("<script>x</script>"), "<script>x</script>", "an unknown tag is text, drawn as text");
+  assert.deepEqual(R.titleRuns(""), []);
+  assert.equal(R.value({ id: "title" }, { title: "The <i>dynamic</i> view" }, {}, {}), "The dynamic view", "sorted, filtered and exported as read");
+});

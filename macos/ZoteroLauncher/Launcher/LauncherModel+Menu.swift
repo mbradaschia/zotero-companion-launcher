@@ -378,6 +378,17 @@ extension LauncherModel {
         }
     }
 
+    // A paper's citation or bibliography entry copied from another window (a review table's i and r): what happened, said
+    // there (`said`).
+    func copyCite(_ item: PaperRef, _ mode: String, said: @escaping (String) -> Void) {
+        cite(item, mode, citationStyle) { [weak self] text, error in
+            guard let self else { return }
+            guard let text else { return said("Couldn't format it: \(error)") }
+            if text.isEmpty { return said("Zotero gave no text for it") }
+            said(self.desktop.copy(text) ? "Copied: " + text.split(whereSeparator: \.isWhitespace).joined(separator: " ") : "Couldn't copy it")
+        }
+    }
+
     private func cite(_ item: PaperRef, _ mode: String, _ style: String, _ done: @escaping (String?, String) -> Void) {
         bridge.post("/cite", ["keys": [item.key], "libraryID": item.libraryID, "style": style, "mode": mode, "format": "text"], timeout: 8) { result in
             MainActor.assumeIsolated {

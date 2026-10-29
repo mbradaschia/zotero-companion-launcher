@@ -55,7 +55,7 @@ extension LauncherModel {
     // with its accent as a swatch.
     var themeSettings: [String: Any] {
         let theme = ThemeStore.shared
-        return ["id": theme.chosen.id, "mode": theme.chosenMode.rawValue, // (the kept one checked, not the one previewed)
+        return ["id": theme.chosen.id, "mode": theme.chosenMode.rawValue, "safe": theme.safe, // (the kept one checked, not the one previewed)
                 "themes": ThemeFamily.all.map { f -> [String: Any] in
                     ["id": f.id, "name": f.name, "light": f.light?.name ?? "", "dark": f.dark?.name ?? "", "swatch": Palette(f).accentHex]
                 }]
@@ -120,6 +120,12 @@ extension LauncherModel {
         if path == "mac.openAsWindow" {
             openAsWindow.toggle()
             flashMessage(openAsWindow ? "On: the hotkey opens a window from now on (\(keyName("W")) switches to the overlay)" : "Off: the hotkey opens the overlay from now on")
+            return
+        }
+        if path == "mac.safeColours" {
+            ThemeStore.shared.setSafe(!ThemeStore.shared.safe)
+            flashMessage(ThemeStore.shared.safe ? "On: colour-blind safe colours in every window" : "Off: the theme's own colours")
+            rebuildList()
             return
         }
         if path == "mac.dock" {

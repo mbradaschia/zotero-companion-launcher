@@ -119,6 +119,14 @@ struct ThemeVariant: Equatable {
         red = RGB(c[4]); orange = RGB(c[5]); yellow = RGB(c[6]); green = RGB(c[7]); teal = RGB(c[8]); purple = RGB(c[9])
     }
 
+    // The variant with the colour-blind safe hues (SafeColours) in place of its own six.
+    var safe: ThemeVariant {
+        var v = self
+        v.red = SafeColours.red; v.orange = SafeColours.orange; v.yellow = SafeColours.yellow
+        v.green = SafeColours.green; v.teal = SafeColours.teal; v.purple = SafeColours.purple
+        return v
+    }
+
     // As drawn: what's text made to read on the background; on the accent, the background or the text, whichever reads better.
     var tokens: Tokens<RGB> {
         func ink(_ c: RGB) -> RGB { c.readable(on: background, ratio: 3) }
@@ -127,6 +135,22 @@ struct ThemeVariant: Equatable {
                       onAccent: background.contrast(accent) >= text.contrast(accent) ? background : text,
                       red: ink(red), orange: ink(orange), yellow: ink(yellow), green: ink(green), teal: ink(teal), purple: ink(purple))
     }
+}
+
+// Settings › General › Colour-blind safe colours (on unless turned off): the pills' and the query's six hues from the
+// colour-blind safe palettes (Okabe and Ito's, Paul Tol's), the same in every theme, picked so that the five pill kinds
+// stay apart for a red-green colour-blind eye too (ThemeTests: ΔE ≥ 15 under protanopia and deuteranopia, against 6 to 15
+// with the themes' own). Colour is never the only sign: each pill kind has its symbol too (PillView.symbol).
+enum SafeColours {
+    static let red = RGB(0xee3377)    // priority, a negation: magenta
+    static let orange = RGB(0xe69f00) // status, an operator
+    static let yellow = RGB(0xf0e442) // amber
+    static let green = RGB(0x009988)  // task, a quote: teal
+    static let teal = RGB(0x33bbee)   // taxonomy: sky blue
+    static let purple = RGB(0x0077bb) // rank, your own: blue
+    // (Default's: the Mac's window background, light and dark, that the hues are made to read on)
+    static let lightBackground = RGB(0xececec)
+    static let darkBackground = RGB(0x323232)
 }
 
 // A theme: Default (the Mac's own) or a light and a dark variant.
@@ -197,19 +221,38 @@ enum ThemeMode: String, CaseIterable {
 @dynamicMemberLookup
 struct Palette {
     let family: ThemeFamily
+    let safe: Bool // the colour-blind safe hues (SafeColours) in place of the theme's
     let colors: Tokens<Color>
     let ns: Tokens<NSColor>
 
     subscript(dynamicMember key: KeyPath<Tokens<Color>, Color>) -> Color { colors[keyPath: key] }
 
-    init(_ family: ThemeFamily) {
+    // What tells two palettes apart (a field's colours drawn again when it changes).
+    var id: String { family.id + (safe ? "+safe" : "") }
+
+    init(_ family: ThemeFamily, safe: Bool = false) {
         self.family = family
-        guard let light = family.light?.tokens, let dark = family.dark?.tokens else {
+        self.safe = safe
+        guard let light = (safe ? family.light?.safe : family.light)?.tokens, let dark = (safe ? family.dark?.safe : family.dark)?.tokens else {
             // the Mac's own, exactly as the views drew before themes
-            ns = Tokens(background: .windowBackgroundColor, text: .labelColor, subtext: .secondaryLabelColor, accent: .controlAccentColor, onAccent: .white,
-                        red: .systemRed, orange: .systemOrange, yellow: .systemYellow, green: .systemGreen, teal: .systemTeal, purple: .systemPurple)
-            colors = Tokens(background: Color(nsColor: .windowBackgroundColor), text: .primary, subtext: .secondary, accent: .accentColor, onAccent: .white,
-                            red: .red, orange: .orange, yellow: .yellow, green: .green, teal: .teal, purple: .purple)
+            var ns = Tokens<NSColor>(background: .windowBackgroundColor, text: .labelColor, subtext: .secondaryLabelColor, accent: .controlAccentColor, onAccent: .white,
+                                     red: .systemRed, orange: .systemOrange, yellow: .systemYellow, green: .systemGreen, teal: .systemTeal, purple: .systemPurple)
+            if safe { // (the safe hues, made to read on the Mac's window background as a theme's are)
+                func hue(_ c: RGB) -> NSColor {
+                    let l = c.readable(on: SafeColours.lightBackground, ratio: 3).ns, d = c.readable(on: SafeColours.darkBackground, ratio: 3).ns
+                    return NSColor(name: nil) { $0.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? d : l }
+                }
+                ns.red = hue(SafeColours.red); ns.orange = hue(SafeColours.orange); ns.yellow = hue(SafeColours.yellow)
+                ns.green = hue(SafeColours.green); ns.teal = hue(SafeColours.teal); ns.purple = hue(SafeColours.purple)
+            }
+            self.ns = ns
+            var colors = Tokens<Color>(background: Color(nsColor: .windowBackgroundColor), text: .primary, subtext: .secondary, accent: .accentColor, onAccent: .white,
+                                       red: .red, orange: .orange, yellow: .yellow, green: .green, teal: .teal, purple: .purple)
+            if safe {
+                colors.red = Color(nsColor: ns.red); colors.orange = Color(nsColor: ns.orange); colors.yellow = Color(nsColor: ns.yellow)
+                colors.green = Color(nsColor: ns.green); colors.teal = Color(nsColor: ns.teal); colors.purple = Color(nsColor: ns.purple)
+            }
+            self.colors = colors
             return
         }
         let ns = Tokens<NSColor>.zip(light, dark) { l, d in
@@ -224,7 +267,7 @@ struct Palette {
 
     // The colours as hex for one appearance (the web pages', which say light and dark in their CSS).
     func rgb(dark: Bool) -> Tokens<RGB> {
-        if let variant = family.variant(dark: dark) { return variant.tokens }
+        if let variant = family.variant(dark: dark) { return (safe ? variant.safe : variant).tokens }
         var out = ns.map { _ in RGB.black }
         (NSAppearance(named: dark ? .darkAqua : .aqua) ?? NSAppearance.currentDrawing()).performAsCurrentDrawingAppearance {
             out = ns.map { RGB($0) ?? .black }
@@ -304,6 +347,7 @@ final class ThemeStore: ObservableObject {
 
     static let themeKey = "ZLTheme"
     static let modeKey = "ZLThemeMode"
+    static let safeKey = "ZLSafeColours"
 
     // What's drawn: the theme and light or dark kept, or (browsing their lists) the row you're on, for a moment.
     @Published private(set) var palette: Palette
@@ -318,11 +362,23 @@ final class ThemeStore: ObservableObject {
         self.defaults = defaults
         chosen = .named(defaults?.string(forKey: Self.themeKey) ?? "")
         chosenMode = ThemeMode(rawValue: defaults?.string(forKey: Self.modeKey) ?? "") ?? .system
-        palette = Palette(chosen)
+        let safe = defaults?.object(forKey: Self.safeKey) as? Bool ?? true
+        self.safe = safe
+        palette = Palette(chosen, safe: safe)
         mode = chosenMode
     }
 
     var family: ThemeFamily { palette.family }
+
+    // The colour-blind safe hues (SafeColours), in whatever theme: on unless turned off (kept on this Mac).
+    private(set) var safe: Bool
+
+    func setSafe(_ on: Bool) {
+        safe = on
+        defaults?.set(on, forKey: Self.safeKey)
+        palette = Palette(family, safe: on)
+        restyle()
+    }
     var previewing: Bool { family != chosen || mode != chosenMode }
 
     func setFamily(_ id: String) {
@@ -347,7 +403,7 @@ final class ThemeStore: ObservableObject {
 
     private func show(_ next: ThemeFamily) {
         guard next != family else { return }
-        palette = Palette(next)
+        palette = Palette(next, safe: safe)
         restyle()
     }
 

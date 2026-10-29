@@ -45,6 +45,32 @@ var ReviewCore = (function () {
   function isObject(x) { return !!x && typeof x === "object" && !Array.isArray(x) }
   function unsafeKey(k) { return k === "__proto__" || k === "constructor" || k === "prototype" }
   function str(x, max) { return x === undefined || x === null ? "" : String(x).slice(0, max || 2000) }
+  // A title as Zotero keeps it: rich text in a few tags (<i>, <b>, <sub>, <sup>, <span class="nocase">, small caps). Its
+  // runs to draw, each { text, i, b, sub, sup }: those tags read, the others left out (never shown as markup), the
+  // entities read; a "<" that isn't one of those tags is the title's own.
+  var TITLE_TAG = /(<\/?(?:i|b|em|strong|sub|sup|span|sc)(?:\s[^<>]*)?>)/i
+  var TITLE_STYLE = { i: "i", em: "i", b: "b", strong: "b", sub: "sub", sup: "sup" }
+  var ENTITIES = { amp: "&", lt: "<", gt: ">", quot: "\"", "#39": "'", apos: "'" }
+  function titleRuns(title) {
+    var out = [], open = { i: 0, b: 0, sub: 0, sup: 0 }
+    String(title || "").split(TITLE_TAG).forEach(function (part, k) {
+      if (k % 2) { // (a tag: split's captured separators are the odd parts)
+        var m = /^<(\/?)([a-z]+)/i.exec(part), style = TITLE_STYLE[m[2].toLowerCase()]
+        if (style) open[style] = Math.max(0, open[style] + (m[1] ? -1 : 1))
+        return
+      }
+      var text = part.replace(/&(amp|lt|gt|quot|#39|apos);/g, function (_, e) { return ENTITIES[e] })
+      if (!text) return
+      var run = { text: text, i: open.i > 0, b: open.b > 0, sub: open.sub > 0, sup: open.sup > 0 }
+      var last = out[out.length - 1]
+      if (last && last.i === run.i && last.b === run.b && last.sub === run.sub && last.sup === run.sup) last.text += text
+      else out.push(run)
+    })
+    return out
+  }
+  // The title as plain text (a cell's value: sorted, filtered and exported as you read it).
+  function plainTitle(title) { return titleRuns(title).map(function (r) { return r.text }).join("") }
+
   function parseJSON(text) {
     try {
       var j = JSON.parse(String(text || ""), function (k, v) { return unsafeKey(k) ? undefined : v })
@@ -156,7 +182,7 @@ var ReviewCore = (function () {
       return ((r && r.facets) || []).filter(function (t) { return String(t).toLowerCase().indexOf(p) === 0 }).map(function (t) { return String(t).slice(p.length) })
     }
     switch (id) {
-      case "title": return str(r.title, 2000)
+      case "title": return str(plainTitle(r.title), 2000)
       case "authors": return str(r.creator, 500)
       case "year": var y = parseInt(r.year, 10); return isNaN(y) ? "" : y
       case "publication": return str(r.publication, 500)
@@ -285,6 +311,14 @@ var ReviewCore = (function () {
     if (list[at].dir === "asc") { list[at].dir = "desc"; return list }
     list.splice(at, 1)
     return list
+  }
+
+  // A row the table's filter (/) keeps: each word of it found in the columns shown (their text as drawn), any case.
+  function rowMatches(r, cols, needle, ctx, cells) {
+    var words = String(needle || "").toLowerCase().split(/\s+/).filter(Boolean)
+    if (!words.length) return true
+    var hay = cols.map(function (c) { return text(c, value(c, r, ctx, cells)) }).join(" \u0001 ").toLowerCase()
+    return words.every(function (w) { return hay.indexOf(w) >= 0 })
   }
 
   // ------------------------------------------------------------ CSV
@@ -679,10 +713,10 @@ var ReviewCore = (function () {
 
   return {
     FIELDS: FIELDS, DEFAULT_COLUMNS: DEFAULT_COLUMNS, LINES: LINES, MIN_WIDTH: MIN_WIDTH, MAX_WIDTH: MAX_WIDTH, ABS: ABS, ABDC: ABDC,
-    paperId: paperId, itemTypeName: itemTypeName, statusName: statusName,
+    paperId: paperId, itemTypeName: itemTypeName, statusName: statusName, titleRuns: titleRuns, plainTitle: plainTitle,
     fieldById: fieldById, taxonomyColumn: taxonomyColumn, available: available, ownColumn: ownColumn, columns: columns,
     value: value, isEmpty: isEmpty, text: text, compareValues: compareValues, sortRows: sortRows, clickSort: clickSort,
-    groupable: groupable, groupRows: groupRows,
+    groupable: groupable, groupRows: groupRows, rowMatches: rowMatches,
     csvCell: csvCell, csv: csv,
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
     sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,

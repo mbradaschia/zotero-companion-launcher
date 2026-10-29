@@ -87,7 +87,7 @@ struct ListRowView: View {
             Spacer(minLength: 8)
             if row.field == "pills" {
                 ForEach(row.pills.split(separator: "|").map(String.init), id: \.self) { p in
-                    PillView(text: p, selected: selected, mode: p == row.pillOn ? "on" : "off", kind: row.pillKind)
+                    PillView(text: p, selected: selected, mode: p == row.pillOn ? "on" : "off", kind: row.pillKind, symbol: false)
                 }
             }
             if (row.field == "text" || row.field == "multiline") && !row.editText.isEmpty {
@@ -108,7 +108,7 @@ struct ListRowView: View {
 
 // A result's rankings on its second line, every one, abbreviated as the Omarchy launcher writes them
 // (Views.rankShort: ABS 4* → A 4*, ABDC A → D A, FT50 → F, UTD24 → U), each with its full name on hover; the top
-// grades (rankIsTop) in colour, the others quiet. The row's VoiceOver label reads them in full.
+// grades (rankIsTop) in colour with a star (never by colour alone), the others quiet. The row's VoiceOver label reads them in full.
 struct RankChips: View {
     let ranks: String
     let selected: Bool
@@ -141,7 +141,8 @@ struct RankChips: View {
                 ForEach(all, id: \.self) { label in
                     let top = Self.isTop(label)
                     let tint: Color = selected ? palette.onAccent : top ? PillView.color("rank", palette) : palette.subtext
-                    Text(Self.short(label))
+                    let shown: String = (top ? "\u{2605}" : "") + Self.short(label)
+                    Text(shown)
                         .font(.system(size: 9, weight: .semibold))
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
@@ -189,13 +190,26 @@ struct SubmenuArrow: View {
 
 // A pill, drawn as the QML draws its three: "on" (filled: the one chosen), "tag" (a tinted outline:
 // something a paper has, as its status or its extracted text) and "off" (faint: one of the
-// choices, a rank), each in its kind's colour; on a selected row, in white.
+// choices, a rank), each in its kind's colour; on a selected row, in white. A kind's symbol goes first, so two kinds
+// are never told apart by colour alone (a colour-blind eye can't); not on a form's choices (`symbol: false`: all of one
+// kind), nor when the text has its own sign (✓, ⚠).
 struct PillView: View {
     let text: String
     let selected: Bool
     var mode = "off"
     var kind = ""
+    var symbol = true
     @Environment(\.palette) private var palette
+
+    // A kind's symbol (Icons.concept, the one its rows have: a status's flag, a task's checklist, a tag's tag).
+    static func symbol(_ kind: String) -> String? {
+        guard ["status", "task", "priority", "rank", "taxonomy"].contains(kind) else { return nil }
+        return Icons.concept[kind == "taxonomy" ? "tax" : kind]
+    }
+
+    static func showsSymbol(_ text: String) -> Bool {
+        !(text.hasPrefix("\u{2713}") || text.hasPrefix("\u{26a0}"))
+    }
 
     static func color(_ kind: String, _ palette: Palette) -> Color {
         switch kind {
@@ -211,15 +225,21 @@ struct PillView: View {
 
     var body: some View {
         let tint = selected ? palette.onAccent : Self.color(kind, palette)
-        Text(text)
-            .font(.caption2.weight(.semibold))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(mode == "on" ? tint.opacity(selected ? 0.9 : 0.85) : mode == "tag" ? tint.opacity(0.14) : palette.subtext.opacity(selected ? 0.3 : 0.16)))
-            .overlay(Capsule().strokeBorder(mode == "tag" ? tint.opacity(0.7) : .clear))
-            .foregroundStyle(mode == "on" ? (selected ? palette.accent : palette.onAccent) : mode == "tag" ? tint : selected ? palette.onAccent : palette.text)
-            .accessibilityLabel(Access.pill(text, kind: kind))
-            .accessibilityValue(mode == "on" ? "chosen" : "")
+        HStack(spacing: 3) {
+            if symbol, Self.showsSymbol(text), let name = Self.symbol(kind) {
+                Image(systemName: name).imageScale(.small).accessibilityHidden(true)
+            }
+            Text(text)
+        }
+        .font(.caption2.weight(.semibold))
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(mode == "on" ? tint.opacity(selected ? 0.9 : 0.85) : mode == "tag" ? tint.opacity(0.14) : palette.subtext.opacity(selected ? 0.3 : 0.16)))
+        .overlay(Capsule().strokeBorder(mode == "tag" ? tint.opacity(0.7) : .clear))
+        .foregroundStyle(mode == "on" ? (selected ? palette.accent : palette.onAccent) : mode == "tag" ? tint : selected ? palette.onAccent : palette.text)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Access.pill(text, kind: kind))
+        .accessibilityValue(mode == "on" ? "chosen" : "")
     }
 }
 
