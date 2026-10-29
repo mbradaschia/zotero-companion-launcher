@@ -515,7 +515,7 @@ function cellPills(c, v) {
     const label = (c.order === "abs" ? "ABS " : "ABDC ") + v;
     return { kind: Views.rankIsTop(label) ? "rank" : "plain", values: [label] };
   }
-  if (Array.isArray(v)) return { kind: "tax", values: v.map(String) };
+  if (Array.isArray(v)) return { kind: c.own ? "own" : "tax", values: v.map(String) }; // (your "several of a list", or labels)
   if (c.type === "choice") return { kind: c.ai ? "tax" : "own", values: [String(v)] };
   return null;
 }
