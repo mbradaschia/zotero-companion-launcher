@@ -262,7 +262,7 @@ struct PaperReorder: ViewModifier {
     @Environment(\.palette) private var palette
 
     @ViewBuilder
-    func body(content: Content) -> some View {
+    func body(content: Self.Content) -> some View { // (Self.: the launcher has an enum named Content)
         if enabled {
             content
                 .draggable(link)
