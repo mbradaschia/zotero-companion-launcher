@@ -3,7 +3,7 @@ import XCTest
 @testable import ZoteroLauncher
 
 // R8-R10: a chat's window fits the screen and esc goes back from it; the launcher can be moved; a pin keeps it open
-// (it doesn't hide when another app is used, and esc doesn't close it).
+// (it doesn't hide when another app is used, and esc doesn't close it); nor does esc close the window.
 @MainActor
 final class WindowsAndPinTests: XCTestCase {
     private var home: URL!
@@ -88,5 +88,25 @@ final class WindowsAndPinTests: XCTestCase {
         model.pinnedOpen = false
         model.execute(.close)
         XCTAssertEqual(closes, 1)
+    }
+
+    // The window is a window: esc steps back and clears, but at the top it stays (⌘W, its close button close it).
+    func testEscDoesntCloseTheWindow() {
+        var closes = 0
+        model.close = { closes += 1 }
+        model.windowed = true
+        model.execute(.close)
+        XCTAssertEqual(closes, 0, "esc at the top doesn't close the window")
+        XCTAssertTrue(model.flash.contains("⌘W"), model.flash)
+        XCTAssertTrue(model.hintsFor().contains("⌘W close"), "\(model.hintsFor())")
+        XCTAssertFalse(model.hintsFor().contains("esc close"))
+        // esc still leaves the box and clears what's typed; pressed again at the top, it stays
+        model.setFilter("x")
+        for _ in 0..<4 { _ = model.handle(KeyEvent(key: .escape, text: "")) }
+        XCTAssertEqual(model.store.filterText, "")
+        XCTAssertEqual(closes, 0)
+        model.windowed = false
+        model.execute(.close)
+        XCTAssertEqual(closes, 1, "the overlay still closes on esc")
     }
 }

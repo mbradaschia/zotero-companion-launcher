@@ -7,8 +7,11 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.21`)
 
+- **esc no longer closes the launcher's window.** In the window (Settings › General › Open as a window, or `W`), esc
+  still leaves the search box, clears it and goes back a level, but at the top it stays open: ⌘W or the window's
+  close button closes it, and the footer says `⌘W close`. The overlay closes on esc as before.
 - **A new column lands where you're looking.** In a review table, a column you add (+ Column, or ticked in Columns)
   goes right after the column of the selected cell, and is selected, instead of at the far right.
 - **Columns is one list you can order.** The shown columns come first, in the table's order: drag a row by its handle
