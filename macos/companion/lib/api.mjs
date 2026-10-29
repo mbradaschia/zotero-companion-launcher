@@ -2,7 +2,7 @@
 // app's own JavaScript (context.mjs). Each handler takes the context and the request's { query, body } and gives JSON
 // back, or throws (Refused: its status and message; anything else: the bridge's or the runner's problem). A chat turn
 // streams (its handler answers { stream }). Nothing here logs what's in the library.
-import { Glue, Client, Todos, ReviewCore as RV, Refused } from "./context.mjs";
+import { Glue, Client, Todos, Views, ReviewCore as RV, Refused } from "./context.mjs";
 
 const PAPER = /^(\d+):([A-Z0-9]{8})$/;
 const SESSION = /^[A-Za-z0-9_-]{1,80}$/;
@@ -68,7 +68,7 @@ function taskStatuses(settings) {
 function rowView(r) {
   return { id: (Number(r.libraryID) || 1) + ":" + r.key, key: r.key, libraryID: Number(r.libraryID) || 1, itemType: r.itemType, title: text(r.title, 500),
     creator: text(r.creator, 300), year: text(r.year, 10), publication: text(r.publication, 300), status: Client.statusName(r.status || ""),
-    rank: r.rank || null, pdfCount: r.pdfCount || 0, noteCount: r.noteCount || 0, extracted: !!r.extracted };
+    ranks: Views.rankLabels(r.rank || null), pdfCount: r.pdfCount || 0, noteCount: r.noteCount || 0, extracted: !!r.extracted };
 }
 
 const isPaper = (r) => r && r.itemType !== "note" && r.itemType !== "attachment";
@@ -131,7 +131,7 @@ export async function paper(ctx, { query }) {
   return {
     id: ref.id, key: ref.key, libraryID: ref.libraryID,
     title: text(p.title || d.item.title, 500), authors: text(p.authors, 300), year: text(p.year, 10), publication: text(p.publication, 300),
-    rank: p.rank || null, editable: !!(d.library && d.library.editable),
+    ranks: Views.rankLabels(p.rank || null), editable: !!(d.library && d.library.editable),
     status: Client.statusName(Glue.paperStatusOf(tags, statusTags(settings))),
     task: defaultTask(todos, ref, statuses),
     extracted: (d.notes || []).some((n) => n.fulltext), hasPdf: (d.attachments || []).some((a) => /pdf/i.test(a.contentType || "")),

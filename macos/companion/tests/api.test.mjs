@@ -33,6 +33,7 @@ test("paper: status, taxonomies by name with their labels, suggestions, and plai
     const p = r.json;
     assert.equal(p.title, "Dynamic capabilities and strategic management");
     assert.equal(p.status, "to read");
+    assert.deepEqual(p.ranks, ["ABS 4*", "FT50"]);
     assert.deepEqual(p.taxonomies.map((t) => [t.name, t.labels]), [["Theory", ["dynamic-capabilities"]], ["Method", ["case"]]]);
     assert.deepEqual(p.suggestions, [{ taxonomy: "theory", name: "Theory", label: "rbv", p: 0.71 }]);
     assert.deepEqual(p.tags, ["firm"]);

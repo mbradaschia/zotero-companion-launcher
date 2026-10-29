@@ -13,6 +13,7 @@ import { loadSettings, saveSettings } from "./auth.mjs";
 const require = createRequire(import.meta.url);
 export const Glue = require("../../ZoteroLauncher/Core/Glue.js");
 export const Client = require("../../js/lib/Client.js");
+export const Views = require("../../js/lib/Views.js");
 export const Todos = require("../../js/lib/Todos.js");
 export const ReviewCore = require("../../ZoteroLauncher/Review/ReviewCore.js");
 

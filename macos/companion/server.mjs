@@ -88,7 +88,17 @@ async function stream(res, run) {
   }
 }
 
+// The page's one library, the Mac app's own copy (marked, MIT: js/vendor), served from where it is.
+const VENDOR = { "/vendor/marked.umd.js": join(HERE, "..", "js", "vendor", "marked.umd.js") };
+
 async function serveStatic(res, webDir, pathname) {
+  if (VENDOR[pathname]) {
+    try {
+      return send(res, 200, await readFile(VENDOR[pathname]), { "Content-Type": TYPES[".js"], "Cache-Control": "no-cache" });
+    } catch {
+      return problem(res, 404, "not-found", "not here");
+    }
+  }
   const rel = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
   const file = normalize(join(webDir, rel));
   if (!file.startsWith(webDir + "/") || rel.split("/").some((p) => p.startsWith("."))) return problem(res, 404, "not-found", "not here");

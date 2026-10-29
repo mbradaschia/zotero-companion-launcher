@@ -24,7 +24,7 @@ export function makeHome({ settings = null, sync = false } = {}) {
 function paperOf(key, title, authors, year, tags) {
   return {
     item: { key, itemType: "journalArticle", title },
-    paper: { title, authors, year, publication: "Strategic Management Journal", rank: { abs: "4*" }, abstract: "" },
+    paper: { title, authors, year, publication: "Strategic Management Journal", rank: { ajg: "4*", ft50: true }, abstract: "" },
     notes: [{ key: "N" + key.slice(1), libraryID: 1, title: "Extracted text", dateModified: "2026-10-01", excerpt: "p. 1", fulltext: true }],
     tags: tags.map((tag) => ({ tag })),
     attachments: [{ contentType: "application/pdf" }],
