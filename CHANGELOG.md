@@ -7,6 +7,12 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.21`)
+
+- **esc no longer closes the launcher's window.** In the window (Settings › General › Open as a window, or `W`), esc
+  still leaves the search box, clears it and goes back a level, but at the top it stays open: ⌘W or the window's
+  close button closes it, and the footer says `⌘W close`. The overlay closes on esc as before.
+
 ### The Mac app (`macos-v0.4.20`)
 
 - **You see which papers have a PDF.** A paper's icon in the results and lists is solid when it has a PDF attached

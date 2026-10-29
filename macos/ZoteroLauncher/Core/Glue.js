@@ -301,6 +301,10 @@ var Glue = (function () {
   var MAC_KEY_LINES = [["(your Hyprland keybinding)", "(the app's hotkey: menu bar icon › Hotkey and Login…)"], ["Close the launcher when it's open (with the README's rebinding)", "Close the launcher"],
     ["Clear the search box", "Clear the search box (⌥⌫ deletes a word)"], ["Stop the answer, or close a menu", "Stop the answer, or hide these keys"],
     ["The launcher as a window, and back as the overlay", "The launcher as a window or as the overlay, for this opening"],
+    // (esc closes the overlay only: the window and a pinned launcher stay, 0.4.21)
+    ["Leave the search box; then clear it; then back a level; at the top, close",
+      "Leave the search box; then clear it; then back a level; at the top, close the overlay (the window and a pinned launcher stay: ⌘W closes them)"],
+    ["Leave the search box; clear it; close", "Leave the search box; clear it; close the overlay (⌘W the window)"],
     // (g and G: the Mac's results have Group, Sort and Order, 0.4.10)
     ["Group or sort the papers: by paper status, task status or group, a taxonomy, date added, changed, published; relevance",
       "Sort the papers (g: relevance, date added, changed, published, manual) or group them (G: paper status, task status or group, a taxonomy); the order is the bar's ↓ Desc / ↑ Asc"],
