@@ -261,6 +261,7 @@ struct PaperReorder: ViewModifier {
     @State private var targeted = false
     @Environment(\.palette) private var palette
 
+    @ViewBuilder
     func body(content: Content) -> some View {
         if enabled {
             content
