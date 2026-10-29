@@ -7,6 +7,16 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **What you typed goes once you choose a row from it.** Typing "settings", a setting's name or a saved search's and
+  pressing Enter empties the search box, so back from there (or the next time the launcher opens) you're on your
+  library, not on "settings". A paper, a collection or a tag keeps what you typed: back from it, the results you chose
+  from. In a menu, back from the row you chose shows the whole menu; a row that acts in place (a switch) stays
+  highlighted with the whole page around it. Pages where you type a value keep it.
+- **A paper's menu names its journal.** The paper is a heading on its own line under the path, with no › before it,
+  and where it was published (the journal, proceedings, book or university) is under its title.
+
 ### The Mac app (`macos-v0.4.17`)
 
 - **Colour is never the only sign.** Each pill kind has its symbol: a status's flag, a task's checklist, a rank's

@@ -29,19 +29,34 @@ extension LauncherModel {
             return
         }
         if row.kind == "setting" {
-            if quick.isEmpty { openSettingAt(row.key) }
+            if quick.isEmpty { leavingTheSearch { openSettingAt(row.key) } }
             return
         }
         if row.kind == "saved-search" { // its papers, as from the saved searches list
-            if quick.isEmpty { openSavedSearch(savedSearch(String(row.key.dropFirst("saved-search:".count)))) }
+            if quick.isEmpty { leavingTheSearch { openSavedSearch(savedSearch(String(row.key.dropFirst("saved-search:".count)))) } }
             return
         }
         if Self.goToPlaces.contains(row.kind) {
-            if quick.isEmpty { openPlace(row.kind) } // the paper letters are for papers
+            if quick.isEmpty { leavingTheSearch { openPlace(row.kind) } } // the paper letters are for papers
             return
         }
         guard row.kind == "item" else { return }
         enterActionsFor(PaperRef(key: row.key, libraryID: row.libraryID, title: row.title, itemType: row.itemType), quick: quick)
+    }
+
+    // A place, a setting or a saved search chosen from the results: what was typed to find it goes first (it named
+    // the row, not papers you want back), so back here, or the next time the launcher opens, the box is empty. A paper,
+    // a collection or a tag keeps it: back from those, the results you chose from.
+    private func leavingTheSearch(_ act: () -> Void) {
+        guard !store.filterText.isEmpty else { return act() }
+        let depth = store.stack.count
+        store.filterText = ""
+        store.caretBack = 0
+        store.queryLive = false
+        store.followTop = true
+        act()
+        if store.stack.count > depth { libraryChanged = true } // its results, asked again on the way back
+        else if store.inSearch { requestSearch() } // (Sync, Tag all, Extract all: done here)
     }
 
     // The paper's menu, its details asked of Zotero (ZoteroSearch.qml:1107).
@@ -238,8 +253,29 @@ extension LauncherModel {
         if ["tax-field", "tax-label-field", "tax-ai-ask"].contains(row.rowId) { return openTaxonomyField(row) }
         if row.rowId == "tasks-stop-all" { _ = runnerAction(row); return } // (the Mac's own: not a row of the QML's activateAction)
         UsageLog.shared.count("row:" + row.rowId)
+        let typed = store.filterText, view = store.view, depth = store.stack.count
         if let handler = ActionMap.handlers[row.rowId] { handler(self, row) }
         else if !ActionMap.inert.contains(row.rowId) { notYet("what this row does") } // (an inert row does nothing, without a word)
+        forgetTyped(typed, in: view, depth: depth, row: row)
+    }
+
+    // A row chosen from what was typed in a menu: the typing goes, on the level left for the row's own view (back
+    // there, the whole menu) or here, the row still highlighted. On a page for typing (a name, a task, a picker's
+    // values) what's typed is the value, and stays.
+    private func forgetTyped(_ typed: String, in view: String, depth: Int, row: ListRow) {
+        guard !typed.isEmpty, !ViewKind.typing.contains(view), view != "confirm" else { return }
+        if store.stack.count > depth {
+            if store.stack[depth].view == view { store.forgetTyped(at: depth) }
+        } else if store.stack.count == depth && store.view == view && store.filterText == typed {
+            store.filterText = ""
+            store.caretBack = 0
+            store.queryLive = false
+            store.followTop = false
+            rebuildList()
+            if !selectRow({ $0.rowId == row.rowId && $0.value == row.value && $0.label == row.label }) && !selectRow({ $0.rowId == row.rowId && $0.value == row.value }) {
+                store.selectedIndex = Self.firstRow(listRows)
+            }
+        }
     }
 
     // Close the launcher first (Zotero or the viewer takes focus), then act (ZoteroSearch.qml:3928).

@@ -80,11 +80,17 @@ says so.
   Not on rows that act at once or ask first (the confirm view), nor on a paper while picking one (Enter picks it).
   A row whose Enter goes outside the launcher says where on its right instead: `window` (a chat), `browser` (an
   artifact), `editor` (your instructions). `NavConsistencyTests` presses Enter on every row to keep it so.
+- **What was typed goes once a row is chosen from it.** From the results, a Go to place, a setting or a saved search
+  empties the box (back there, or the next time the launcher opens, the results are your library's); a paper, a
+  collection or a tag keeps it, so back from them you're on the results you chose from. In a menu or a list, back
+  there shows all its rows; a row that acts in place stays highlighted with the whole page around it. Pages for typing
+  a value (a name, a task, a picker's values) keep what's typed: it is the value. `TypedGoesTests` keeps it so.
 - **A row with its own menu on ⇧↵** (a chat, an artifact, a saved search) says so in the hints (`⇧↵ rename or
   delete`), in every view it shows in.
 - **The breadcrumb** (the bar above the box, below the top level): each level by name, where you came from first; the
   results by what's typed (“resil”), what they're in, or the saved search's badge; a paper by its authors and year
-  (in full where you are); a tag by `#name`, a task by what it says, a chat or an artifact by its title (its paper
+  (in full where you are: in its menu a heading on its own line under the path, no › before it, and where it was
+  published under it, in italics); a tag by `#name`, a task by what it says, a chat or an artifact by its title (its paper
   first when no paper's menu is below); a page by its own title. The line under it never repeats the crumb. A click on an earlier level goes back there; past five levels it keeps the first and the last three.
 - **Moving between lists** slides: the new list from the right going in, from the left going back, 0.18 s; typing,
   ↑↓ and toggles don't move anything. None with Reduce Motion.

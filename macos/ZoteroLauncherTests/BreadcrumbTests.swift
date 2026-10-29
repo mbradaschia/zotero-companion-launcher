@@ -124,4 +124,19 @@ final class BreadcrumbTests: XCTestCase {
         XCTAssertTrue(model.store.inNote)
         XCTAssertNotEqual(model.headerPlaceholder(), model.breadcrumb.last)
     }
+
+    // A paper's menu: the paper is the heading, where it was published under it; under the paper (its tags) a plain path.
+    func testAPapersMenuNamesItsVenue() throws {
+        XCTAssertNil(model.paperVenue)
+        model.setFilter("work")
+        settle()
+        model.enterActions(try XCTUnwrap(model.searchRows.firstIndex { $0.kind == "item" }))
+        settle()
+        let published = (Fixture.bridge("item")["paper"] as? [String: Any])?["publication"] as? String ?? ""
+        XCTAssertEqual(model.paperVenue, published.trimmingCharacters(in: .whitespaces))
+        XCTAssertFalse(model.paperVenue?.isEmpty ?? true)
+        model.enterTags()
+        settle()
+        XCTAssertNil(model.paperVenue)
+    }
 }

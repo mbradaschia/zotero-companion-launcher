@@ -91,6 +91,16 @@ final class AppStore: ObservableObject {
         return true
     }
 
+    // The level `depth` down the stack as if left with nothing typed (a row chosen from what was typed there): back
+    // there, all its rows, the cursor at the top.
+    func forgetTyped(at depth: Int) {
+        guard stack.indices.contains(depth) else { return }
+        stack[depth].filterText = ""
+        stack[depth].caretBack = 0
+        stack[depth].selectedIndex = 0
+        stack[depth].followTop = true
+    }
+
     // Back out to the results (ZoteroSearch.qml:855).
     func goHome() {
         while !atRoot && back() {}
