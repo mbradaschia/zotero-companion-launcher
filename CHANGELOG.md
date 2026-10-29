@@ -7,13 +7,6 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### Fixed
-
-- **Nothing runs on a paper in a library you can only read** (a group you're a reader of, a feed). A prompt that
-  writes a note, tagging, automatic extraction and a catch-up skip it before any model is asked; they used to run
-  the model and then fail at the save (45 Opus runs on one read-only group in a week). Chat and artifacts still work
-  on those papers. The bridge's paper picks and pending extraction now list only the libraries you can write to.
-
 ### The Mac app (`macos-v0.4.17`)
 
 - **Colour is never the only sign.** Each pill kind has its symbol: a status's flag, a task's checklist, a rank's
@@ -395,6 +388,15 @@ bridge and the prompt runner share one version.
   nothing animates with Reduce Motion on.
 - **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
   nightly build. Signed ad hoc, not notarized.
+
+## [0.2.5] - 2026-10-29
+
+### Fixed
+
+- **Nothing runs on a paper in a library you can only read** (a group you're a reader of, a feed). A prompt that
+  writes a note, tagging, automatic extraction and a catch-up skip it before any model is asked; they used to run
+  the model and then fail at the save (45 Opus runs on one read-only group in a week). Chat and artifacts still work
+  on those papers. The bridge's paper picks and pending extraction now list only the libraries you can write to.
 
 ## [0.2.4] - 2026-10-29
 
@@ -854,7 +856,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.1...v0.2.2
