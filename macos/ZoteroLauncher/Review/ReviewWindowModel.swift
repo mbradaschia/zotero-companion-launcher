@@ -153,7 +153,9 @@ final class ReviewWindowModel: ObservableObject {
 
     // What the page sends (ReviewGrid.js's post).
     func handle(_ m: [String: Any]) {
-        switch m["type"] as? String ?? "" {
+        let type = m["type"] as? String ?? ""
+        if !["ready", "layout", "segments", "preview"].contains(type) { UsageLog.shared.count("review:" + type) } // (what the page sends on its own isn't a use)
+        switch type {
         case "ready": ready = true; send()
         case "refresh": reload(); search()
         case "layout":

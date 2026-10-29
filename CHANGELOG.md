@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next release)
+
+- **It counts which features you use, for you only**, so the app can be shaped by what you actually do: a count a
+  day of the keys, rows, views, review-table actions and windows you use, by the app's own names (`key:i`,
+  `row:open`, `view:settings`), in the sync folder's `usage/<this Mac>.json`. Never what you type, a paper, a note
+  or a tag, and nothing is sent anywhere. *Hotkey and Login… › Count which features I use* turns it off;
+  `node macos/scripts/usage-report.mjs <the usage folder> --days 30` adds it up.
+
 ### The Mac app (`macos-v0.4.16`)
 
 - **An AI column ticked in the Columns menu shows its answers at once**: the ones another table's run made for these

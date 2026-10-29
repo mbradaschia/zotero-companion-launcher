@@ -27,6 +27,7 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
 
     func show(_ id: String, launcher: LauncherModel) {
         guard ReviewFiles.validReview(id) else { return }
+        UsageLog.shared.count("window:review")
         if let existing = open[id] {
             NSApp.activate()
             existing.window.makeKeyAndOrderFront(nil)
