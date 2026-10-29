@@ -7,6 +7,17 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **A new column lands where you're looking.** In a review table, a column you add (+ Column, or ticked in Columns)
+  goes right after the column of the selected cell, and is selected, instead of at the far right.
+- **Columns is one list you can order.** The shown columns come first, in the table's order: drag a row by its handle
+  to move its column (or ⌥⌘↑ ⌥⌘↓ on its tick). The columns not shown follow. Each row has its kind's icon (status,
+  task, ranking, taxonomy, yours), and an AI column has a sparkle, in Columns and on its header, instead of a separate
+  AI section.
+- **The panel lists the paper's notes.** The table's right-hand panel shows the selected paper's notes, in your order;
+  a click opens one in its own note window, as `w` does in the launcher.
+
 ### The Mac app (`macos-v0.4.20`)
 
 - **You see which papers have a PDF.** A paper's icon in the results and lists is solid when it has a PDF attached

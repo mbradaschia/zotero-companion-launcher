@@ -69,7 +69,11 @@ var RT = (function () {
     rank: "M12 3l2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.8z",
     tax: "M3 3h8l10 10-8 8L3 11z M7.5 7.5h.01",
     priority: "M12 4v10 M12 19v.5",
-    own: "M4 20l1-4L16 5l3 3L8 19z"
+    own: "M4 20l1-4L16 5l3 3L8 19z",
+    // an AI column (a sparkle: its header and its row in Columns), a row's handle to drag it, a paper's note
+    ai: "M10 4l1.8 5.2L17 11l-5.2 1.8L10 18l-1.8-5.2L3 11l5.2-1.8z M18.5 3v4 M16.5 5h4",
+    grip: "M4 6.5h16 M4 12h16 M4 17.5h16",
+    note: "M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 16h7"
   }
   // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
   // A paper's title with its italics, bold, sub- and superscripts (C.titleRuns), as elements: never markup from the title.
@@ -117,7 +121,7 @@ var RT = (function () {
     // your arrangement while a change is on its way stays yours (the file comes back the same a moment later)
     if (first || !layoutTimer) review = JSON.parse(JSON.stringify(D.review))
     if (!built) build()
-    if (first) { act = { pid: "", c: "title" }; sel = {} }
+    if (first) { act = { pid: "", c: "title" }; sel = {}; notesOf = {} }
     resolve()
     drawAll()
   }
@@ -255,7 +259,7 @@ var RT = (function () {
       // (a narrow column shows its name's first letters, its ▾ on hover: never a header of a ▾ alone)
       hr.appendChild(el("th", { class: (i === 0 ? "fz1" : "mv") + (c.width < 64 ? " narrow" : ""), "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
         el("div", { class: "hcell" }, [
-          el("span", { class: "hl" + (c.ai ? " ai" : ""), text: c.label, title: c.label + (c.ai ? " (" + c.kindName + ")" : "") + (c.problem ? ". " + c.problem : c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }),
+          el("span", { class: "hl" + (c.ai ? " ai" : ""), title: c.label + (c.ai ? " (" + c.kindName + ")" : "") + (c.problem ? ". " + c.problem : c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }, [c.ai ? icon("ai") : null, c.label]),
           mark ? el("span", { class: "sortmark", text: mark }) : null,
           el("button", { class: "hmenu", type: "button", "data-menu": c.id, text: "▾", "aria-label": c.label + ": its menu" }),
           el("div", { class: "rz", "data-rz": c.id, title: "Drag to resize it; a double-click fits it" })
@@ -453,7 +457,40 @@ var RT = (function () {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
       p.appendChild(el("div", { class: "ibox" }, [el("div", { class: "ptext", text: C.text(c, v) || "Empty." }), el("div", { class: "hint", text: "From Zotero: read only here." })]))
     }
+    notesBox(p, r)
     p.appendChild(el("div", {}, [el("button", { class: "tb", type: "button", "data-act": "open", text: "Show in Zotero", title: "⌘O, or a double-click on the paper" })]))
+  }
+
+  // The paper's notes, in your order (as the launcher lists them): asked of the app once per paper (again when its
+  // count changes, or after a failure); a click opens one in its own window, as w does in the launcher.
+  var notesOf = {} // paper id → { n: its note count then, notes: [{ key, libraryID, title, dateModified, excerpt }] | null, error }
+  function notesBox(p, r) {
+    var pid = C.paperId(r), n = Number(r.noteCount) || 0
+    var box = el("div", { class: "notes" }, [el("div", { class: "ilab" }, [el("span", { text: "Notes" }), el("span", { class: "k", text: n ? String(n) : "" })])])
+    p.appendChild(box)
+    if (!n) return box.appendChild(el("div", { class: "hint", text: "No notes on this paper." }))
+    var got = notesOf[pid]
+    if (!got || got.n !== n || got.stale) {
+      got = notesOf[pid] = { n: n, notes: null }
+      if (review.panel) post("notes", { paper: { key: r.key, libraryID: Number(r.libraryID) || 1 } })
+      else delete notesOf[pid] // (asked when the panel shows)
+    }
+    if (got.error) return box.appendChild(el("div", { class: "hint", text: "Couldn't list them: " + got.error }))
+    if (!got.notes) return box.appendChild(el("div", { class: "hint", text: "Listing them…" }))
+    got.notes.forEach(function (x, i) {
+      box.appendChild(el("button", { class: "note", type: "button", "data-note": String(i), title: (x.excerpt || x.title || "") + " · a click opens it in its own window" }, [
+        icon("note"), el("span", { class: "nt", text: x.title || "Untitled note" }), x.dateModified ? el("small", { text: String(x.dateModified).slice(0, 10) }) : null]))
+    })
+  }
+  // The app's answer: { notes } or { error }.
+  function notes(pid, out) {
+    var got = notesOf[pid]
+    if (!got) return
+    got.notes = out && Array.isArray(out.notes) ? out.notes : null
+    got.error = out && !got.notes ? String(out.error || "no answer") : ""
+    var r = actRow()
+    if (r && C.paperId(r) === pid) drawPanel()
+    if (got.error) got.stale = true // (said; the paper's next drawing asks again)
   }
 
   // An AI cell whole: its value, its state, the labels' probabilities, its evidence (each quote, its page, found
@@ -667,6 +704,29 @@ var RT = (function () {
     layoutChanged()
   }
 
+  // A column put before or after another (a header's drag, a row's drag in Columns); never before the paper column.
+  function moveColumnTo(id, to, after) {
+    var list = review.columns
+    var item = list.splice(list.indexOf(layoutOf(id)), 1)[0]
+    list.splice(list.indexOf(layoutOf(to)) + (after || to === "title" ? 1 : 0), 0, item)
+    layoutChanged()
+  }
+
+  // A column added (made in + Column, or ticked in Columns): right after the selected cell's column, where you're
+  // looking; then it's the selected one.
+  function placeNext(l) {
+    var list = review.columns
+    var at = list.indexOf(l)
+    if (at >= 0) list.splice(at, 1)
+    var after = list.indexOf(layoutOf(act.c))
+    list.splice(after >= 0 ? after + 1 : list.length, 0, l)
+    act.c = l.id
+  }
+  function showActive() {
+    var td = cellEl(act.pid, act.c)
+    if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" })
+  }
+
   function setSort(sorts) {
     review.sort = sorts
     layoutChanged()
@@ -801,30 +861,111 @@ var RT = (function () {
     })
   }
 
-  // Every column there is, by its group: ticked, it's shown; unticked, hidden (it keeps its place, its width and its
-  // values). Zotero's fields, the rankings, your taxonomies, your own columns and the AI ones, this review's or not.
+  // Every column there is, in one list: the shown ones first, in the table's order (a drag on a row's handle, or ⌥⌘↑ ⌥⌘↓,
+  // moves one), then the others. Ticked, it's shown, right after the selected cell's column; unticked, hidden (it
+  // keeps its width and its values). Each row has its kind's icon (an AI column's sparkle): never told by colour.
+  var cdrag = null // a row of Columns dragged by its handle: { id, y, moving, to, after }
   function colsPop(anchor) {
-    var kids = [el("div", { class: "ph", text: "Show and hide columns (nothing is lost)" })]
-    var shown = {}
-    cols.forEach(function (c) { if (!c.missing) shown[c.id] = !c.hidden })
-    var all = C.available(D.ctx, D.columns)
-    var last = ""
-    all.forEach(function (c) {
-      if (c.group !== last) { last = c.group; kids.push(el("div", { class: "ph grp", text: c.group })) }
-      kids.push(el("label", { class: "pi" }, [el("span", { text: c.label }), el("input", { type: "checkbox", "data-show": c.id, checked: !!shown[c.id], disabled: c.id === "title" })]))
-    })
-    kids.push(el("hr"), item("A new column…", { "data-addcols": "1" }, "yours, or an AI one"))
+    var keep = popEl && popFor === anchor ? popEl.scrollTop : 0
+    var kids = [el("div", { class: "ph", text: "Show, hide and order the columns (nothing is lost)" })]
+    var shown = visible(), on = {}
+    shown.forEach(function (c) { on[c.id] = true; kids.push(colRow(c, true)) })
+    var rest = C.available(D.ctx, D.columns).filter(function (c) { return !on[c.id] })
+    if (rest.length) kids.push(el("div", { class: "ph grp", text: "Not shown" }))
+    rest.forEach(function (c) { kids.push(colRow(c, false)) })
+    kids.push(el("div", { class: "ph", text: "Drag a row by its handle to move it (⌥⌘↑ ⌥⌘↓). One you tick goes right after the selected cell's column." }),
+      el("hr"), item("A new column…", { "data-addcols": "1" }, "yours, or an AI one"))
     openPop(anchor, kids, function (p) {
       p.addEventListener("change", function (e) {
         var id = e.target.getAttribute("data-show")
         if (!id) return
         var l = layoutOf(id)
-        if (!l) { if (!e.target.checked) return; l = { id: id }; review.columns.push(l); act.c = id }
-        if (e.target.checked) delete l.hidden; else l.hidden = true
+        if (e.target.checked) {
+          l = l || { id: id }
+          delete l.hidden
+          placeNext(l)
+        } else if (l) l.hidden = true
         layoutChanged()
+        if (e.target.checked) showActive()
+        colsPop(anchor)
+        var box = popEl && popEl.querySelector('input[data-show="' + id + '"]')
+        if (box) box.focus({ preventScroll: true })
       })
       p.addEventListener("click", function (e) { if (e.target.closest("[data-addcols]")) { closePop(); addDialog() } })
+      p.addEventListener("keydown", function (e) {
+        var id = e.target.getAttribute && e.target.getAttribute("data-show")
+        var d = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0
+        if (!id || !d || !e.metaKey || !e.altKey) return
+        e.preventDefault()
+        var vc = visible().map(function (c) { return c.id })
+        var i = vc.indexOf(id), j = i + d
+        if (id === "title") return flash("The paper column stays first")
+        if (i < 0 || j < 1 || j >= vc.length) return
+        moveColumnTo(id, vc[j], d > 0)
+        colsPop(anchor)
+        var box = popEl && popEl.querySelector('input[data-show="' + id + '"]')
+        if (box) box.focus({ preventScroll: true })
+      })
+      p.addEventListener("pointerdown", function (e) {
+        var g = e.target.closest(".grip")
+        if (!g || e.button !== 0) return
+        e.preventDefault()
+        cdrag = { id: g.closest("[data-col]").getAttribute("data-col"), y: e.clientY, moving: false, to: null, after: false }
+        g.setPointerCapture(e.pointerId)
+        var move = function (ev) { dragRow(p, ev) }
+        var up = function () {
+          g.removeEventListener("pointermove", move)
+          g.removeEventListener("pointerup", up)
+          g.removeEventListener("pointercancel", up)
+          var d = cdrag
+          cdrag = null
+          document.body.classList.remove("moving")
+          if (!d || !d.moving) return
+          if (d.to && d.to !== d.id) moveColumnTo(d.id, d.to, d.after)
+          colsPop(anchor)
+        }
+        g.addEventListener("pointermove", move)
+        g.addEventListener("pointerup", up)
+        g.addEventListener("pointercancel", up)
+      })
     })
+    popEl.scrollTop = keep
+  }
+
+  // A row of Columns: its handle (a shown one's, but the paper's), its kind's icon, its name, its tick.
+  function colRow(c, on) {
+    var k = c.ai ? "ai" : c.own ? "own" : c.id === "status" || c.id === "task" ? c.id : c.prefix ? "tax" : c.group === "Rankings" ? "rank" : ""
+    var what = c.ai ? "an AI column (" + c.kindName + ")" : c.own ? "your column" : c.group === "Rankings" ? "a ranking" : c.prefix ? "a taxonomy" : c.group === "Yours" ? "yours" : "from Zotero"
+    return el("div", { class: "pi crow" + (on ? " on" : ""), "data-col": c.id, title: c.label + ": " + what }, [
+      on && c.id !== "title" ? el("span", { class: "grip", title: "Drag to move it" }, [icon("grip")]) : el("span", { class: "grip none" }),
+      el("label", {}, [k ? icon(k) : el("span", { class: "ic" }), el("span", { class: "cl", text: c.label }),
+        el("input", { type: "checkbox", "data-show": c.id, checked: on, disabled: c.id === "title", "aria-label": c.label + ", " + what })])
+    ])
+  }
+
+  // A row dragged past a few px: the mark shows where it lands (above or below the shown row under the pointer; the
+  // paper's row: below it).
+  function dragRow(p, e) {
+    if (!cdrag) return
+    if (!cdrag.moving) {
+      if (Math.abs(e.clientY - cdrag.y) < 4) return
+      cdrag.moving = true
+      document.body.classList.add("moving")
+    }
+    var rows = p.querySelectorAll(".crow.on")
+    Array.prototype.forEach.call(rows, function (r) { r.classList.remove("dropT", "dropB"); r.classList.toggle("dragging", r.getAttribute("data-col") === cdrag.id) })
+    cdrag.to = null
+    for (var i = 0; i < rows.length; i++) {
+      var b = rows[i].getBoundingClientRect()
+      var last = i === rows.length - 1
+      if (e.clientY >= b.bottom && !last) continue
+      var id = rows[i].getAttribute("data-col")
+      cdrag.after = id === "title" || e.clientY >= b.top + b.height / 2
+      if (id === cdrag.id) return
+      cdrag.to = id
+      rows[i].classList.add(cdrag.after ? "dropB" : "dropT")
+      return
+    }
   }
 
   function linesPop(anchor) {
@@ -1103,13 +1244,11 @@ var RT = (function () {
   function addMade(spec) {
     closeModal()
     D.columns[spec.id] = spec
-    review.columns.push({ id: spec.id })
+    placeNext({ id: spec.id })
     post("addColumn", { column: spec })
-    act.c = spec.id
     layoutChanged()
     flash("Added “" + spec.label + "”" + (spec.kind !== "own" ? ": Run… (⇧⌘R) fills it" : ""))
-    var td = cellEl(act.pid, act.c)
-    if (td) td.scrollIntoView({ block: "nearest", inline: "nearest" })
+    showActive()
   }
 
   // + Column's AI column: each kind's fields (shown for its kind: data-for).
@@ -1302,13 +1441,16 @@ var RT = (function () {
       quiet()
       document.body.classList.remove("moving")
       if (!p.to || p.to === p.id) return drawGrid()
-      var list = review.columns
-      var item = list.splice(list.indexOf(layoutOf(p.id)), 1)[0]
-      list.splice(list.indexOf(layoutOf(p.to)) + (p.after || p.to === "title" ? 1 : 0), 0, item)
-      layoutChanged()
+      moveColumnTo(p.id, p.to, p.after)
     })
 
     $("panel").addEventListener("click", function (e) {
+      var nb = e.target.closest("[data-note]")
+      if (nb) {
+        var nr = actRow(), got = nr && notesOf[C.paperId(nr)], x = got && got.notes && got.notes[+nb.getAttribute("data-note")]
+        if (x) post("note", { note: { key: x.key, libraryID: Number(x.libraryID) || 1, title: x.title || "" } })
+        return
+      }
       var b = e.target.closest("[data-set]")
       var r = actRow()
       if (b && r) {
@@ -1381,6 +1523,7 @@ var RT = (function () {
   function togglePanel() {
     review.panel = !review.panel
     drawToolbar()
+    if (review.panel) drawPanel() // (its paper's notes asked now)
     layoutChanged(false)
     flash(review.panel ? "Panel shown" : "Panel hidden: ⌥⌘I or the Panel button brings it back")
   }
@@ -1443,7 +1586,7 @@ var RT = (function () {
     setActive(C.paperId(rows[nr]), vc[nc].id, true)
   }
 
-  return { load: load, flash: flash, segments: segments, drafted: drafted, ready: function () { post("ready") } }
+  return { load: load, flash: flash, segments: segments, drafted: drafted, notes: notes, ready: function () { post("ready") } }
 })()
 
 RT.ready()

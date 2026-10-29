@@ -214,6 +214,11 @@ final class ReviewWindowModel: ObservableObject {
                 launcher.enterActionsFor(ref, quick: m["what"] as? String ?? "")
             default: break
             }
+        case "notes": listNotes(m["paper"] as? [String: Any])
+        case "note": // a note of the panel's, in its own window (as w opens it in the launcher)
+            guard let n = m["note"] as? [String: Any], let key = n["key"] as? String, !key.isEmpty else { return }
+            UsageLog.shared.count("window:note")
+            launcher.openWindow(["key": key, "libraryID": n["libraryID"] as? Int ?? 1, "title": (n["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Untitled note"])
         case "csv": exportCSV(name: m["name"] as? String ?? title, text: m["text"] as? String ?? "")
         case "run": runAI(m["jobs"] as? [[String: Any]] ?? [])
         case "draftColumn": draftColumn(m)
@@ -277,6 +282,21 @@ final class ReviewWindowModel: ObservableObject {
             try files.setCell(column: column, paper: paper, value: m["value"] as? String ?? "", by: launcher.paths?.machine ?? "", core)
         } catch {
             refused(launcher.reviewProblem(error))
+        }
+    }
+
+    // The panel's paper's notes, in your order (view.json's noteOrder), as the launcher's Notes lists them.
+    private func listNotes(_ paper: [String: Any]?) {
+        guard let paper, let key = paper["key"] as? String, !key.isEmpty else { return }
+        let lib = paper["libraryID"] as? Int ?? 1
+        let id = "\(lib):\(key)"
+        launcher.bridge.post("/item", ["key": key, "libraryID": lib], timeout: 8) { [weak self] result in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                guard case .ok(let answer) = result else { self.page?.notes(id, ["error": result.message]); return }
+                let order = (self.launcher.prefs?.values["noteOrder"] as? [String: Any])?[id] as? [String] ?? []
+                self.page?.notes(id, ["notes": self.launcher.notes(of: answer, order: order)])
+            }
         }
     }
 
