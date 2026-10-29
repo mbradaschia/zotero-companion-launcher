@@ -3,7 +3,7 @@ import XCTest
 
 // The results' Group, Sort and Order (R4, split in 0.4.10): each named, g the next sort, G the next grouping, and
 // the older one-key grouping read, then replaced. They arrange a list you browse (a collection, a tag, a saved search);
-// what you type is by relevance (0.4.17).
+// what you type is by relevance (0.4.17). Sort › Manual: your order per list, Shift+↑/↓ or drag and drop (0.4.17).
 @MainActor
 final class SortLabelTests: XCTestCase {
     private var home: URL!
@@ -85,7 +85,7 @@ final class SortLabelTests: XCTestCase {
         model.cycleSort(-1)
         XCTAssertEqual(model.arrangement.sort, "relevance")
         model.cycleSort(-1)
-        XCTAssertEqual(model.arrangement.sort, "year") // (it wraps)
+        XCTAssertEqual(model.arrangement.sort, "manual") // (it wraps)
         model.cycleGroup(1)
         XCTAssertEqual(model.arrangement.group, "status")
     }
@@ -102,5 +102,76 @@ final class SortLabelTests: XCTestCase {
         XCTAssertEqual(view["group"] as? String, "task")
         XCTAssertEqual(view["sort"] as? String, "year")
         XCTAssertEqual(view["order"] as? String, "asc")
+    }
+
+    // Sort › Manual
+
+    private var papers: [String] { model.searchRows.filter { $0.isPaper && $0.section != "Pinned" }.map(LauncherModel.paperId) }
+    private func selectPaper(_ n: Int) throws {
+        let id = papers[n]
+        model.store.selectedIndex = try XCTUnwrap(model.searchRows.firstIndex { $0.isPaper && LauncherModel.paperId($0) == id })
+    }
+    private func viewJSON() throws -> [String: Any] {
+        let url = home.appendingPathComponent(".config/omarchy/oma-zotero-launcher/view.json")
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+    }
+
+    func testShiftArrowMovesAPaperAndSwitchesToManual() throws {
+        try openACollection()
+        let before = papers
+        XCTAssertGreaterThanOrEqual(before.count, 3)
+        try selectPaper(0)
+        model.execute(.moveRow(1))
+        XCTAssertEqual(model.arrangement.sort, "manual", "moving a paper sorted another way switches the list to Manual")
+        XCTAssertEqual(Array(papers.prefix(3)), [before[1], before[0], before[2]])
+        XCTAssertEqual(model.selectedSearchRow.map(LauncherModel.paperId), before[0], "the moved paper stays highlighted")
+        XCTAssertEqual(model.sortLabel, "Your order")
+        XCTAssertTrue(model.flash.hasPrefix("Papers: in your order"))
+        let list = try XCTUnwrap(model.store.scope?.id)
+        let order = try XCTUnwrap((try viewJSON()["paperOrder"] as? [String: Any])?[list] as? [String])
+        XCTAssertEqual(Array(order.prefix(3)), [before[1], before[0], before[2]], "kept in view.json, from the order you saw")
+        XCTAssertEqual(try viewJSON()["sort"] as? String, "manual")
+        model.execute(.moveRow(-1))
+        XCTAssertEqual(papers, before)
+        model.execute(.moveRow(-1))
+        XCTAssertEqual(papers, before, "the first paper goes no higher")
+        XCTAssertEqual(model.flash, "It's the first paper")
+    }
+
+    func testOtherSortsStillWorkAndManualComesBack() throws {
+        try openACollection()
+        let before = papers
+        try selectPaper(1)
+        model.execute(.moveRow(-1))
+        let mine = papers
+        model.setSort("relevance")
+        XCTAssertEqual(papers, before)
+        model.setSort("manual")
+        XCTAssertEqual(papers, mine, "your order is kept while the list is sorted another way")
+    }
+
+    func testDroppingAPaperOnAnotherTakesItsPlace() throws {
+        try openACollection()
+        let before = papers
+        let rows = model.searchRows
+        let from = try XCTUnwrap(rows.firstIndex { $0.isPaper && LauncherModel.paperId($0) == before[0] })
+        let onto = try XCTUnwrap(rows.firstIndex { $0.isPaper && LauncherModel.paperId($0) == before[2] })
+        XCTAssertFalse(model.dropPaper("some text from elsewhere", onto: onto))
+        XCTAssertTrue(model.dropPaper(LauncherModel.paperLink(rows[from]), onto: onto))
+        XCTAssertEqual(Array(papers.prefix(3)), [before[1], before[2], before[0]])
+        XCTAssertEqual(model.arrangement.sort, "manual")
+        XCTAssertEqual(model.selectedSearchRow.map(LauncherModel.paperId), before[0])
+    }
+
+    func testWhatYouTypeDoesNotMove() throws {
+        try openACollection()
+        model.setFilter("work")
+        settle()
+        let before = papers
+        try selectPaper(0)
+        model.execute(.moveRow(1))
+        XCTAssertEqual(papers, before)
+        XCTAssertNotEqual(model.arrangement.sort, "manual")
+        XCTAssertEqual(model.flash, "What you type is by relevance: clear it, then ⇧↑↓ moves a paper")
     }
 }

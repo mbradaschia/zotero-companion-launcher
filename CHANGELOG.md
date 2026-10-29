@@ -9,6 +9,9 @@ bridge and the prompt runner share one version.
 
 ### The Mac app (`macos-v0.4.17`)
 
+- **Sort › Manual: a list in your own order.** In a collection, a tag or a saved search, ⇧↑↓ moves the highlighted
+  paper and drag and drop puts a paper where you drop it; either switches the list to Manual from the order you see.
+  Each list keeps its order in view.json (`paperOrder`, merged per list), so both Macs share it.
 - **What you type is by relevance**, so typing an author's name lists their papers first. Group and Sort (g, G) arrange
   a list you browse: a collection, a tag or a saved search with nothing typed. A sort kept from before re-sorted typed
   results too.

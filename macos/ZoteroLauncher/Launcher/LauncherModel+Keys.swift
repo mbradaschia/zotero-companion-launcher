@@ -91,7 +91,7 @@ extension LauncherModel {
         case .focusSearch: store.searchFocus = true
         case .moveSection(let d): moveSectionOf(d)
         case .moveRow(let d):
-            if store.inSearch { movePinned(d) }
+            if store.inSearch { if let row = selectedSearchRow, paperReorderable(row) { movePaper(d) } else { movePinned(d) } }
             else if ViewKind.menuPin.contains(store.view) { moveMenuRow(d) }
             else if store.view == "notes" { moveNote(d) }
             else if store.view == "todos" { moveTodoRow(d) }

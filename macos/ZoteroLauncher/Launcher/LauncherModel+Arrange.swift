@@ -102,9 +102,13 @@ extension LauncherModel {
     // Shift+↑/↓ on a pinned result: among the pins, at once; the search that follows agrees.
     func movePinned(_ delta: Int) {
         let rows = searchRows, i = store.selectedIndex
-        guard rows.indices.contains(i), let core, var file = pins else { return }
+        guard rows.indices.contains(i) else { return }
         let row = rows[i]
-        guard row.section == "Pinned" else { return flashMessage("⇧↑↓ reorders the pinned papers (before you type)") }
+        guard row.section == "Pinned" else {
+            if searchScope != nil && !arrangeable { return flashMessage("What you type is by relevance: clear it, then ⇧↑↓ moves a paper") }
+            return flashMessage("⇧↑↓ reorders the pinned papers (before you type) and the papers in a collection, a tag or a saved search")
+        }
+        guard let core, var file = pins else { return }
         guard rows.indices.contains(i + delta), rows[i + delta].section == "Pinned" else { return }
         let other = rows[i + delta]
         let ref = { (r: SearchRow) -> [String: Any] in ["key": r.key, "libraryID": r.libraryID, "type": ["collection", "tag"].contains(r.kind) ? r.kind : "item"] }
@@ -181,5 +185,72 @@ extension LauncherModel {
         bridge.post("/open", ["key": row.key, "libraryID": row.libraryID], timeout: 8) { [weak self] result in
             MainActor.assumeIsolated { if case .ok = result { self?.desktop.activateZotero() } }
         }
+    }
+}
+
+// Sort › Manual: the papers of a list you browse (a collection, a tag, a saved search, with nothing typed) in your order,
+// kept per list in view.json's paperOrder; moved with Shift+↑/↓ or by drag and drop.
+extension LauncherModel {
+    // A paper's id in paperOrder (Glue.js's arrange reads the same).
+    static func paperId(_ row: SearchRow) -> String { "\(row.libraryID):\(row.key)" }
+
+    // What a dragged paper carries: its Zotero link (dropped in another app, it selects the paper in Zotero).
+    static func paperLink(_ row: SearchRow) -> String { "zotero://select/items/\(row.libraryID)_\(row.key)" }
+
+    // Whether this result moves in your order: a paper in a list you browse (not the pins, not what you type).
+    func paperReorderable(_ row: SearchRow) -> Bool {
+        row.isPaper && row.section != "Pinned" && searchScope != nil && arrangeable
+    }
+
+    // Shift+↑/↓ on such a paper: it trades places with the next paper up or down (in its group, when grouped). Notes
+    // shown under a paper move with it.
+    func movePaper(_ delta: Int) {
+        let rows = searchRows, i = store.selectedIndex
+        guard rows.indices.contains(i), paperReorderable(rows[i]) else { return }
+        let row = rows[i]
+        var j = i + delta
+        while rows.indices.contains(j) && rows[j].kind == "note-child" { j += delta }
+        guard rows.indices.contains(j), paperReorderable(rows[j]), rows[j].section == row.section else {
+            return flashMessage("It's the \(delta < 0 ? "first" : "last") paper" + (arrangement.group.isEmpty || row.section.isEmpty ? "" : " in \(row.section)"))
+        }
+        reorderPaper(row, to: rows[j])
+    }
+
+    // A paper dropped on another (the payload: paperLink): it takes that paper's place. Only within a group.
+    @discardableResult
+    func dropPaper(_ payload: String, onto index: Int) -> Bool {
+        let rows = searchRows
+        guard rows.indices.contains(index), paperReorderable(rows[index]),
+              let from = rows.firstIndex(where: { paperReorderable($0) && Self.paperLink($0) == payload }), from != index else { return false }
+        guard rows[from].section == rows[index].section else {
+            flashMessage("A paper moves within its group (\(rows[from].section))")
+            return false
+        }
+        store.selectedIndex = from // (the moved paper stays highlighted)
+        reorderPaper(rows[from], to: rows[index])
+        return true
+    }
+
+    // `row` to where `other` is, in this list's order. Sorted another way, the list switches to Manual first, starting
+    // from the order you see (your grouping stays).
+    func reorderPaper(_ row: SearchRow, to other: SearchRow) {
+        guard let core, var prefs, let list = searchScope?.id else { return }
+        prefs.reload()
+        var a = arrangement
+        let wasManual = a.sort == "manual"
+        let shown = searchRows.filter { paperReorderable($0) }.map(Self.paperId)
+        let mine = wasManual ? prefs.paperOrder(list) : []
+        let placed = Set(mine)
+        let base = mine + shown.filter { !placed.contains($0) }
+        guard let next = (try? core.glue("moveIdentity", [base, Self.paperId(row), Self.paperId(other)], as: [String]?.self)) ?? nil else { return }
+        a.sort = "manual"
+        saved {
+            try prefs.savePaperOrder(list, next)
+            if !wasManual { try writeArrangement(a, &prefs) }
+            self.prefs = prefs
+        }
+        store.followTop = false
+        rebuildSearch() // (the highlight follows the paper)
+        if !wasManual { flashMessage("Papers: in your order (Sort › Manual; \(keyName("g")) sorts them another way)") }
     }
 }

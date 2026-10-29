@@ -100,6 +100,13 @@ test("view.json per key and per view inside it: the newer file wins what both ch
   assert.deepEqual(out.sectionOrder, { actions: ["Notes"] });
 });
 
+test("view.json's paperOrder per list: each Mac's manual order of a different list is kept", () => {
+  const older = JSON.stringify({ sort: "manual", paperOrder: { "collection:AAAA1111:1": ["1:P1", "1:P2"], "tag:theory:1": ["1:P3"] } });
+  const newer = JSON.stringify({ sort: "manual", paperOrder: { "collection:AAAA1111:1": ["1:P2", "1:P1"], "search:s1:0": ["1:P4"] } });
+  const out = JSON.parse(M.merge("view.json", older, newer, 100000, 200000, NOW).text);
+  assert.deepEqual(out.paperOrder, { "collection:AAAA1111:1": ["1:P2", "1:P1"], "tag:theory:1": ["1:P3"], "search:s1:0": ["1:P4"] });
+});
+
 test("anything else: the newer copy wins and the other is kept", () => {
   assert.deepEqual(M.merge("prompts/x.md", "old", "new", 1000, 2000, NOW), { text: "new", kept: "old", keptFrom: "a" });
   assert.deepEqual(M.merge("chats/1-ABCD1234/c.json", "{\"a\":2}", "{\"a\":1}", 5000, 2000, NOW), { text: "{\"a\":2}", kept: "{\"a\":1}", keptFrom: "b" });

@@ -128,6 +128,7 @@ struct LauncherView: View {
                                 SearchRowView(row: row, selected: index == store.selectedIndex, hint: hint, opens: model.searchRowOpens(row),
                                               task: row.isPaper ? model.rowTasks["\(row.libraryID):\(row.key)"] ?? "" : "")
                                     .contentShape(Rectangle())
+                                    .modifier(PaperReorder(enabled: model.paperReorderable(row), link: LauncherModel.paperLink(row)) { model.dropPaper($0, onto: index) })
                                     .onTapGesture { store.selectedIndex = index; model.enterActions(index) }
                                     .accessibilityAction { store.selectedIndex = index; model.enterActions(index) }
                             }
@@ -226,7 +227,7 @@ struct BadgeBar: View {
 }
 
 // The results' Group ▾, Sort ▾ and Order, at the badges' right: each menu lists its choices, a check on the one in use;
-// the order flips ascending and descending (relevance has one order).
+// the order flips ascending and descending (relevance and your own order have one).
 struct ArrangeBar: View {
     @ObservedObject var model: LauncherModel
 
@@ -239,12 +240,36 @@ struct ArrangeBar: View {
                 ArrangeChip(text: a.order == "asc" ? "↑ Asc" : "↓ Desc")
             }
             .buttonStyle(.plain)
-            .disabled(a.sort == "relevance")
-            .opacity(a.sort == "relevance" ? 0.45 : 1)
-            .help(a.sort == "relevance" ? "Order: relevance has one order (sort by a date or the year to choose)" : a.order == "asc" ? "Ascending: oldest first. Click for descending" : "Descending: newest first. Click for ascending")
+            .disabled(a.sort == "relevance" || a.sort == "manual")
+            .opacity(a.sort == "relevance" || a.sort == "manual" ? 0.45 : 1)
+            .help(a.sort == "relevance" ? "Order: relevance has one order (sort by a date or the year to choose)"
+                : a.sort == "manual" ? "Order: yours (⇧↑↓ or drag a paper to move it)"
+                : a.order == "asc" ? "Ascending: oldest first. Click for descending" : "Descending: newest first. Click for ascending")
             .accessibilityLabel(a.order == "asc" ? "Order: ascending" : "Order: descending")
         }
         .fixedSize()
+    }
+}
+
+// Drag a paper onto another to move it there, in a list you browse (Sort › Manual; sorted another way, the list switches
+// to Manual). The row it would land on is outlined. What's dragged is the paper's Zotero link, so dropped in another app
+// it selects the paper in Zotero.
+struct PaperReorder: ViewModifier {
+    let enabled: Bool
+    let link: String
+    let drop: (String) -> Bool
+    @State private var targeted = false
+    @Environment(\.palette) private var palette
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content
+                .draggable(link)
+                .dropDestination(for: String.self) { items, _ in items.first.map(drop) ?? false } isTargeted: { targeted = $0 }
+                .overlay { if targeted { RoundedRectangle(cornerRadius: 6).stroke(palette.accent, lineWidth: 2).padding(.horizontal, 4) } }
+        } else {
+            content
+        }
     }
 }
 

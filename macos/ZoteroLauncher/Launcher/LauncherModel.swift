@@ -337,7 +337,8 @@ final class LauncherModel: ObservableObject {
             if let scope = searchScope, store.pickFor.isEmpty { extras["scopeTitle"] = "“\(scope.title)”" }
             let a = arrangement
             let grouping: Any = a.group.isEmpty && a.sort == "relevance" ? NSNull()
-                : ["group": a.group, "sort": a.sort, "order": a.order, "info": ["statuses": paperStatusTags, "tasks": defaultTasks, "taskStatuses": todoStatuses]]
+                : ["group": a.group, "sort": a.sort, "order": a.order, "info": ["statuses": paperStatusTags, "tasks": defaultTasks, "taskStatuses": todoStatuses,
+                                                                                 "manual": searchScope.map { prefs?.paperOrder($0.id) ?? [] } ?? []]]
             do {
                 rows = try core.glue("results", [response, Self.accentHex, extras, order.isEmpty ? NSNull() : order, grouping, expandedNotes.isEmpty ? NSNull() : expandedNotes], as: [SearchRow].self)
             } catch {

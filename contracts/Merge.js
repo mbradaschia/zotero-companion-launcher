@@ -29,7 +29,7 @@ var LISTS = {
   "pins.json": { list: "pins", id: function (r) { return (r.type === "collection" || r.type === "tag" ? r.type : "item") + ":" + (Number(r.libraryID) || 1) + ":" + r.key } },
   "searches.json": { list: "searches", id: function (r) { return String(r.id) } }
 }
-var KEYED = { "view.json": ["menuPins", "menuOther", "menuOrder", "sectionOrder", "noteOrder"], "settings.json": [] }
+var KEYED = { "view.json": ["menuPins", "menuOther", "menuOrder", "sectionOrder", "noteOrder", "paperOrder"], "settings.json": [] }
 var BY_PAPER = { "taxonomy.json": "papers" }
 
 function isObject(x) {
