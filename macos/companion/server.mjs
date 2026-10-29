@@ -12,6 +12,7 @@
 //   node server.mjs --unshare [--port 8787]              Tailscale stops serving it (the companion turned off)
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { realpathSync } from "node:fs";
 import { join, extname, normalize, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { makeContext, Refused } from "./lib/context.mjs";
@@ -244,4 +245,13 @@ async function main(argv) {
   }
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === normalize(process.argv[1])) main(process.argv.slice(2));
+// Run as a command (not imported by the tests): the same file, through any symlink (macOS's /var is /private/var).
+function isMain() {
+  try {
+    return !!process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1]);
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) main(process.argv.slice(2));

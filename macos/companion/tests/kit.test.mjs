@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtempSync, mkdirSync } from "node:fs";
+import { mkdtempSync, mkdirSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,11 @@ import { fileURLToPath } from "node:url";
 const MACOS = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 test("the kit: the server runs from it, and stops with the app", async () => {
-  const kit = join(mkdtempSync(join(tmpdir(), "companion-kit-")), "CompanionKit");
+  // (through a symlink, as macOS's temporary folders are: /var is /private/var)
+  const real = mkdtempSync(join(tmpdir(), "companion-kit-"));
+  const linked = real + "-link";
+  symlinkSync(real, linked);
+  const kit = join(linked, "CompanionKit");
   execFileSync(join(MACOS, "scripts", "companion-kit.sh"), [kit]);
   const home = mkdtempSync(join(tmpdir(), "companion-kit-home-"));
   mkdirSync(join(home, ".config", "omarchy"), { recursive: true });
@@ -26,7 +30,9 @@ test("the kit: the server runs from it, and stops with the app", async () => {
       const m = /127\.0\.0\.1:(\d+)/.exec(out);
       if (m) resolve(Number(m[1]));
     });
-    p.on("exit", () => reject(new Error("it stopped: " + out)));
+    let err = "";
+    p.stderr.on("data", (d) => { err += d; });
+    p.on("exit", (code) => reject(new Error(`it stopped (exit ${code}): ${out}${err}`)));
   });
   try {
     assert.equal((await fetch(`http://127.0.0.1:${port}/api/health`)).status, 401);
