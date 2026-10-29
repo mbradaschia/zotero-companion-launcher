@@ -7,6 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Fixed
+
+- **An author's surname comes first when you type it**, a co-author's too. Typing `kong` listed titles with "Hong
+  Kong" and authors named Kongsberg above the papers Kong co-wrote: only the first author's whole surname counted,
+  and a title holding the word got a bonus a surname didn't. A whole surname now ranks a paper above a title word or
+  a surname that only starts with it; the first author's above a co-author's.
+
 ### The Mac app (`macos-v0.4.16`)
 
 - **An AI column ticked in the Columns menu shows its answers at once**: the ones another table's run made for these
