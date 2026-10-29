@@ -26,6 +26,9 @@
  * query: term.tags, term.keys; has:collection: term.ids), like a c: term's papers.
  *   "a b"     an exact phrase; a quoted tag, author, publication, collection or type
  *             is the whole name: #"supply chain", a:"Smith, John", c:"Topics / SCM"
+ *             (an author's name also as it is said: a:"John Smith", "John Smith")
+ * Authors as a citation writes them: "Smith, J.", "J. Smith", "Smith et al. 2020", "Smith & Doe":
+ * the punctuation around a word, "et al." and a lone & are dropped.
  * Boolean: AND (the default), OR, NOT (uppercase) and ( ). NOT binds tightest, then
  * AND, then OR; `|` is a tight OR between neighbours ("a | b c" = (a OR b) AND c).
  * Queries without AND/OR/NOT/( ) parse into AND-groups of OR-terms (`groups`), the
@@ -184,21 +187,34 @@ var OmaSearch = (function () {
     return (comma >= 0 ? name.slice(0, comma) : name).trim() === term.value;
   }
 
+  // A creator's name as Zotero keeps it ("ivanov, dmitry") or as it is said ("dmitry ivanov"), the better
+  // match. A fuzzy term needs only the first: both hold the same letters.
+  function matchName(entry, i, term) {
+    const a = matchKind(entry._c[i], term, false);
+    if (term.kind === "fuzzy" || entry._cn[i] === entry._c[i]) return a;
+    const b = matchKind(entry._cn[i], term, false);
+    return b && (!a || b.score > a.score) ? b : a;
+  }
+
   // Weighted creators score (or null). A match within the first creator beats
   // one in later co-authors; ^prefix / suffix$ apply to each creator's name.
   function matchCreators(entry, term) {
     const names = entry._c;
     if (!names.length) return null;
     let best = null;
-    const first = matchKind(names[0], term, false);
+    const first = matchName(entry, 0, term);
     if (first) best = first.score * WEIGHT_FIRST_CREATOR * (surnameIs(names[0], term) ? WEIGHT_SURNAME : 1);
     if (names.length > 1) {
       let rest = null;
       if (term.kind === "fuzzy" || term.kind === "exact") {
         rest = matchKind(entry._cj, term, false);
+        if (term.kind === "exact" && entry._cnj !== entry._cj) {
+          const r = matchKind(entry._cnj, term, false);
+          if (r && (!rest || r.score > rest.score)) rest = r;
+        }
       } else {
         for (let i = 1; i < names.length; i++) {
-          const r = matchKind(names[i], term, false);
+          const r = matchName(entry, i, term);
           if (r && (!rest || r.score > rest.score)) rest = r;
         }
       }
@@ -246,6 +262,32 @@ var OmaSearch = (function () {
     ["collections", "collection"], ["lists", "collection"]];
   // has: values the index can't answer alone (the bridge resolves them per query).
   const HAS_RESOLVED = { task: true, chat: true, collection: true };
+
+  // Fields whose values keep their dots (y:2019.., added:..2026-03).
+  const KEEPS_PUNCTUATION = { year: true, added: true, modified: true, recent: true };
+
+  // A word as a citation writes it ("Ivanov,", "D.", "al.", "(2020);"): the punctuation around it isn't
+  // part of it. A dot is dropped only after a letter (an initial, an abbreviation), not after a digit.
+  function trimPunctuation(value) {
+    let v = value.replace(/^[,;:]+/, "");
+    for (let prev = null; prev !== v; ) {
+      prev = v;
+      v = v.replace(/[,;:]+$/, "").replace(/(\p{L})\.+$/u, "$1");
+    }
+    return v;
+  }
+
+  // "Ivanov et al." as a citation puts it: "et al." says nothing about the paper (nor does a lone &).
+  function dropCitationWords(tokens) {
+    const out = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i];
+      if (/^et$/i.test(t) && /^al\.?[,;:]?$/i.test(tokens[i + 1] || "")) { i++; continue; }
+      if (/^[&+]+$/.test(t)) continue;
+      out.push(t);
+    }
+    return out;
+  }
 
   // '"a b"' → 'a b' (an unclosed quote, while typing, runs to the end); else null.
   function unquote(value) {
@@ -339,6 +381,7 @@ var OmaSearch = (function () {
     const inner = unquote(value);
     const quoted = inner !== null;
     if (quoted) value = inner;
+    else if (!KEEPS_PUNCTUATION[field]) value = trimPunctuation(value);
     if (!value.trim()) return null;
 
     if (field === "status" || field === "task") {
@@ -535,7 +578,7 @@ var OmaSearch = (function () {
   function parseQuery(query) {
     const raw = String(query == null ? "" : query).trim();
     if (!raw) return { groups: [], expr: null };
-    return fromExpr(parseExpr(tokenize(raw)));
+    return fromExpr(parseExpr(dropCitationWords(tokenize(raw))));
   }
 
   // Both must match (a saved search, and what is typed within it).
@@ -754,6 +797,13 @@ var OmaSearch = (function () {
     return ranges;
   }
 
+  // "ivanov, dmitry" → "dmitry ivanov"; a name without a comma (an organization) as it is.
+  function spokenName(name) {
+    const comma = name.indexOf(",");
+    if (comma < 0) return name;
+    return (name.slice(comma + 1).trim() + " " + name.slice(0, comma).trim()).trim();
+  }
+
   // Build the search view of an index entry. Input fields:
   //   title, creators: [names], year: number|null, publication, tags: [names]
   function prepareEntry(entry) {
@@ -762,6 +812,8 @@ var OmaSearch = (function () {
     entry._tmap = t.map;
     entry._c = (entry.creators || []).map(fold).filter(Boolean);
     entry._cj = entry._c.join("; ");
+    entry._cn = entry._c.map(spokenName);
+    entry._cnj = entry._cn.join("; ");
     entry._tmask = charMask(entry._t);
     entry._cmask = charMask(entry._cj);
     entry._mask = entry._tmask | entry._cmask;

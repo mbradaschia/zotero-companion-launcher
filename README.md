@@ -435,6 +435,7 @@ Search terms (all must match):
 |---|---|
 | `resil`, `stev resil` | fuzzy, in titles and authors; first authors and whole title phrases rank higher |
 | `a:smith`, `t:resilience` | authors only, title only |
+| `Smith et al. 2020`, `J. Smith`, `Smith, J.`, `Smith & Doe`, `"John Smith"` | authors as a citation writes them: the commas and dots around a word, `et al.` and a lone `&` are left out; a name quoted in the order it's said (`a:"John Smith"`) finds *Smith, John* |
 | `ta:"supply chain"`, `ab:resilience` | title or abstract, abstract only (in an abstract, the words as written, not fuzzy); `@` › *Title* / *Title and abstract* puts `t:""` / `ta:""` in with the cursor inside |
 | `2020`, `y:2019..2021`, `y:>=2020`, `y:<2010` | year (a bare 4-digit term is a year); a range, or compared with `>`, `<`, `=`, `>=`, `<=` |
 | `#tag`, `tag:name` | tag |

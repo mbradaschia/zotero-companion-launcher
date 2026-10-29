@@ -7,12 +7,6 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### Changed
-
-- **The Zotero plugin's file is `zotero-companion-bridge-<version>.xpi`** (it was `oma-zotero-launcher-<version>.xpi`).
-  The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
-  both names (the same file).
-
 ### The Mac app (`macos-v0.4.16`)
 
 - **An AI column ticked in the Columns menu shows its answers at once**: the ones another table's run made for these
@@ -357,6 +351,22 @@ bridge and the prompt runner share one version.
   nothing animates with Reduce Motion on.
 - **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
   nightly build. Signed ad hoc, not notarized.
+
+## [0.2.3] - 2026-10-29
+
+### Fixed
+
+- **Search finds authors typed as a citation writes them** (the bridge; the launcher, saved searches and review
+  tables all search through it). `Ivanov et al.`, `Ivanov et al. (2020)`, `D. Ivanov`, `Ivanov, D.` and
+  `Ivanov & Dolgui` found nothing: the dots, commas, `et al.` and `&` had to be in the paper too. They're left out
+  now. A name quoted in the order it's said (`"Dmitry Ivanov"`, `a:"Dmitry Ivanov"`) finds *Ivanov, Dmitry*, and
+  `a:ivanov$` matches a surname. A plain surname (`ivanov`) always matched.
+
+### Changed
+
+- **The Zotero plugin's file is `zotero-companion-bridge-<version>.xpi`** (it was `oma-zotero-launcher-<version>.xpi`).
+  The add-on's id, name and update URL are unchanged, so installed bridges keep updating themselves. v0.2.2 carries
+  both names (the same file).
 
 ## [0.2.2] - 2026-10-18
 
@@ -791,7 +801,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.1.0...v0.2.0
