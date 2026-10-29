@@ -352,6 +352,15 @@ bridge and the prompt runner share one version.
 - **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
   nightly build. Signed ad hoc, not notarized.
 
+## [0.2.4] - 2026-10-29
+
+### Fixed
+
+- **An author's surname comes first when you type it**, a co-author's too. Typing `kong` listed titles with "Hong
+  Kong" and authors named Kongsberg above the papers Kong co-wrote: only the first author's whole surname counted,
+  and a title holding the word got a bonus a surname didn't. A whole surname now ranks a paper above a title word or
+  a surname that only starts with it; the first author's above a co-author's.
+
 ## [0.2.3] - 2026-10-29
 
 ### Fixed
@@ -801,7 +810,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/mbradaschia/oma-zotero-launcher/compare/v0.2.0...v0.2.1

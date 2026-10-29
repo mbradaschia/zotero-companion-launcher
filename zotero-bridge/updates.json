@@ -3,9 +3,9 @@
     "oma-zotero-bridge@mbradaschia.github.io": {
       "updates": [
         {
-          "version": "0.2.3",
-          "update_link": "https://github.com/mbradaschia/zotero-companion-launcher/releases/download/v0.2.3/zotero-companion-bridge-0.2.3.xpi",
-          "update_hash": "sha256:b718dc0ecab40104bcd1af11ba864092dc0f4179e5130621f350928a26964a94",
+          "version": "0.2.4",
+          "update_link": "https://github.com/mbradaschia/zotero-companion-launcher/releases/download/v0.2.4/zotero-companion-bridge-0.2.4.xpi",
+          "update_hash": "sha256:f692a4e8d031bc9ab8dc3c83128e8c4cc19e222dfcd338ecfd49d18580d2dbdf",
           "applications": {
             "zotero": {
               "strict_min_version": "10.0",

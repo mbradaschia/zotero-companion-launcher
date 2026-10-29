@@ -435,3 +435,20 @@ test("citation punctuation around a word isn't part of it; dates and year ranges
   assert.equal(term('"d."').value, "d.", "quoted: as typed");
   assert.equal(S.parseQuery("&").groups.length, 0);
 });
+
+// The user's of 2026-10-29: "typing kong, it is not on top of the list". A co-author's surname ranked below a title
+// holding the word ("Hong Kong"), since only the first author's whole surname counted and the title got the phrase bonus.
+test("a co-author's whole surname outranks a title word or a surname that only starts with it", () => {
+  const lib = [
+    entry(1, "Supply chain resilience in Hong Kong", ["Lee, A."], 2020),
+    entry(2, "Hong Kong ports", ["Kongsberg, E."], 2020),
+    entry(3, "Digital transformation", ["Smith, B.", "Kong, Wei"], 2020),
+    entry(4, "Platform ecosystems", ["Kong, Wei", "Smith, B."], 2020),
+    entry(5, "Kongruenz theory", ["Doe, C."], 2020),
+  ];
+  const ids = (q) => S.search(lib, q, {}).results.map((r) => r.entry.id);
+  assert.deepEqual(ids("kong").slice(0, 2), [4, 3], "first author, then co-author");
+  assert.deepEqual(ids("Kong").slice(0, 2), [4, 3]);
+  // a word in titles still ranks by the title when nobody has it as a surname
+  assert.equal(ids("ports")[0], 2);
+});

@@ -181,10 +181,14 @@ var OmaSearch = (function () {
   }
 
   // A creator's whole surname typed ("smith" for "Smith, Jane"): it outranks a title word that only starts with it.
-  function surnameIs(name, term) {
-    if (term.kind !== "fuzzy" && term.kind !== "exact") return false;
+  // A name without a comma (an organization) is its whole name.
+  function surnameOf(name) {
     const comma = name.indexOf(",");
-    return (comma >= 0 ? name.slice(0, comma) : name).trim() === term.value;
+    return (comma >= 0 ? name.slice(0, comma) : name).trim();
+  }
+
+  function surnameIs(entry, i, term) {
+    return (term.kind === "fuzzy" || term.kind === "exact") && entry._sn[i] === term.value;
   }
 
   // A creator's name as Zotero keeps it ("ivanov, dmitry") or as it is said ("dmitry ivanov"), the better
@@ -203,7 +207,7 @@ var OmaSearch = (function () {
     if (!names.length) return null;
     let best = null;
     const first = matchName(entry, 0, term);
-    if (first) best = first.score * WEIGHT_FIRST_CREATOR * (surnameIs(names[0], term) ? WEIGHT_SURNAME : 1);
+    if (first) best = first.score * WEIGHT_FIRST_CREATOR * (surnameIs(entry, 0, term) ? WEIGHT_SURNAME : 1);
     if (names.length > 1) {
       let rest = null;
       if (term.kind === "fuzzy" || term.kind === "exact") {
@@ -219,6 +223,12 @@ var OmaSearch = (function () {
         }
       }
       if (rest && (best === null || rest.score * WEIGHT_CREATORS > best)) best = rest.score * WEIGHT_CREATORS;
+      // a co-author's whole surname: as much above a title word as the first author's is
+      for (let i = 1; i < names.length; i++) {
+        if (!surnameIs(entry, i, term)) continue;
+        const r = matchName(entry, i, term);
+        if (r && (best === null || r.score * WEIGHT_CREATORS * WEIGHT_SURNAME > best)) best = r.score * WEIGHT_CREATORS * WEIGHT_SURNAME;
+      }
     }
     return best;
   }
@@ -813,6 +823,7 @@ var OmaSearch = (function () {
     entry._c = (entry.creators || []).map(fold).filter(Boolean);
     entry._cj = entry._c.join("; ");
     entry._cn = entry._c.map(spokenName);
+    entry._sn = entry._c.map(surnameOf);
     entry._cnj = entry._cn.join("; ");
     entry._tmask = charMask(entry._t);
     entry._cmask = charMask(entry._cj);
@@ -843,6 +854,15 @@ var OmaSearch = (function () {
     const at = title.indexOf(phrase);
     if (at < 0) return 0;
     return BONUS_PHRASE + (at === 0 ? BONUS_PHRASE_START : 0) + Math.round((BONUS_PHRASE_COVERAGE * phrase.length) / title.length);
+  }
+
+  // One word that is a creator's whole surname ("kong"): the same bonus as a title holding it, as if it were all of
+  // the title (and at its start for the first author), so "Hong Kong" in a title doesn't outrank the author Kong.
+  function surnameBonus(entry, phrase) {
+    if (phrase.indexOf(" ") >= 0) return 0;
+    const i = entry._sn.indexOf(phrase);
+    if (i < 0) return 0;
+    return BONUS_PHRASE + (i === 0 ? BONUS_PHRASE_START : 0) + BONUS_PHRASE_COVERAGE;
   }
 
   // Best first. Dates are "YYYY-MM-DD HH:MM:SS", so plain comparison is
@@ -968,7 +988,7 @@ var OmaSearch = (function () {
     for (const entry of entries) {
       let score = parsed.expr ? evalNode(entry, parsed.expr) : matchEntry(entry, ordered);
       if (score === null) continue;
-      if (usePhrase) score += phraseBonus(entry._t, phrase);
+      if (usePhrase) score += Math.max(phraseBonus(entry._t, phrase), surnameBonus(entry, phrase));
       total++;
       if (matched) matched.push(entry);
       const rank = openRank ? openRank.get(entry.id) : undefined;
