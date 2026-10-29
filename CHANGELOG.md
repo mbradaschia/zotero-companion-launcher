@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.18`)
 
 - **What you typed goes once you choose a row from it.** Typing "settings", a setting's name or a saved search's and
   pressing Enter empties the search box, so back from there (or the next time the launcher opens) you're on your
