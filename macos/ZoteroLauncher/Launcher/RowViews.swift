@@ -200,16 +200,10 @@ struct PillView: View {
     var symbol = true
     @Environment(\.palette) private var palette
 
-    // A kind's symbol, the one its rows have (Icons.symbol: a status's flag, a task's checklist, a tag's tag).
+    // A kind's symbol (Icons.concept, the one its rows have: a status's flag, a task's checklist, a tag's tag).
     static func symbol(_ kind: String) -> String? {
-        switch kind {
-        case "status": return "flag"
-        case "task": return "checklist"
-        case "priority": return "exclamationmark"
-        case "rank": return "star"
-        case "taxonomy": return "tag"
-        default: return nil
-        }
+        guard ["status", "task", "priority", "rank", "taxonomy"].contains(kind) else { return nil }
+        return Icons.concept[kind == "taxonomy" ? "tax" : kind]
     }
 
     static func showsSymbol(_ text: String) -> Bool {

@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import ZoteroLauncher
 
@@ -37,6 +38,18 @@ final class ConsistencyTests: XCTestCase {
     }
 
     // Every hint in every view the Mac has, in both key modes: modifiers as ⌥ ⇧ ⌃ ⌘, never spelled out.
+    // One icon map: the review table's SVG icons are the app's concepts, by the same names, each an SF Symbol here.
+    func testTheTablesIconsAreTheAppsIconMap() throws {
+        let url = try XCTUnwrap(Bundle.main.url(forResource: "ReviewGrid.js", withExtension: nil))
+        let js = try String(contentsOf: url, encoding: .utf8)
+        let start = try XCTUnwrap(js.range(of: "var ICONS = {")), end = try XCTUnwrap(js.range(of: "\n  }", range: start.upperBound..<js.endIndex))
+        let block = String(js[start.upperBound..<end.lowerBound])
+        let regex = try NSRegularExpression(pattern: "^\\s+(\\w+): \"", options: .anchorsMatchLines)
+        let names = Set(regex.matches(in: block, range: NSRange(block.startIndex..., in: block)).compactMap { Range($0.range(at: 1), in: block).map { String(block[$0]) } })
+        XCTAssertEqual(names, Set(Icons.concept.keys), "ReviewGrid.js's ICONS and Icons.concept name the same concepts")
+        for (name, symbol) in Icons.concept { XCTAssertNotNil(NSImage(systemSymbolName: symbol, accessibilityDescription: nil), "\(name): \(symbol)") }
+    }
+
     func testEveryHintUsesTheMacsKeyNotation() throws {
         for keys in ["single", "alt"] {
             try open(keys: keys)

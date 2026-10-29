@@ -16,6 +16,16 @@ enum Icons {
 
     static var nerdFont: Bool { NSFont(name: fontName, size: 12) != nil }
 
+    // One map for what every surface draws (the 2026-10-29 critique: one icon set): a concept's SF Symbol here; the web
+    // pages draw the same concepts as SVG under the same names (ReviewGrid.js's ICONS; ConsistencyTests keeps the two
+    // lists the same). A pill kind is drawn with its concept's symbol, so kinds never differ by colour alone.
+    static let concept: [String: String] = [
+        "status": "flag", "task": "checklist", "priority": "exclamationmark", "rank": "star", "tax": "tag", "own": "pencil",
+        "group": "rectangle.3.group", "sort": "arrow.up.arrow.down", "asc": "arrow.up", "desc": "arrow.down",
+        "lines": "text.alignleft", "columns": "rectangle.split.3x1", "addcol": "rectangle.badge.plus", "export": "square.and.arrow.up",
+        "panel": "sidebar.right", "refresh": "arrow.clockwise", "pin": "pin", "run": "play",
+    ]
+
     // An SF Symbol for a list row, by what it does.
     // `badge`: a task's state ("running", "failed", "" done).
     static func symbol(rowId: String, badge: String = "") -> String {

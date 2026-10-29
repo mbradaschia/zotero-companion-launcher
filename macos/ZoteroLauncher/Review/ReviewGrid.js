@@ -47,12 +47,14 @@ var RT = (function () {
   }
   function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e }
 
-  // The toolbar's icons: strokes in the text's colour (an SVG drawn here: the page loads no images).
+  // The page's icons: strokes in the text's colour (an SVG drawn here: the page loads no images), one per concept of the
+  // app's icon map (Icons.concept, the same names: an SF Symbol there, drawn alike here). Group, Sort and Order each
+  // their own shape: three boxes, two arrows, one arrow.
   var ICONS = {
-    group: "M3 4h5v5H3z M11 6.5h10 M3 15h5v5H3z M11 17.5h10",
+    group: "M3 3h8v7H3z M13 3h8v7h-8z M8 14h8v7H8z",
     sort: "M7 20V4 M3 8l4-4 4 4 M17 4v16 M13 16l4 4 4-4",
-    asc: "M3 6h5 M3 12h8 M3 18h11 M18 20V5 M15 8l3-3 3 3",
-    desc: "M3 6h11 M3 12h8 M3 18h5 M18 4v15 M15 16l3 3 3-3",
+    asc: "M12 20V4 M6 10l6-6 6 6",
+    desc: "M12 4v16 M6 14l6 6 6-6",
     lines: "M4 6h16 M4 10.5h16 M4 15h16 M4 19.5h9",
     columns: "M3 4h18v16H3z M9 4v16 M15 4v16",
     addcol: "M3 4h11v16H3z M8.5 4v16 M19 9v6 M16 12h6",
@@ -61,11 +63,12 @@ var RT = (function () {
     refresh: "M20 12a8 8 0 1 1-2.34-5.66 M20 4v5h-5",
     pin: "M9 3h6 M10 3v6.5L7 13h10l-3-3.5V3 M12 13v8",
     run: "M7 4.5l12 7.5-12 7.5z",
-    // a pill's kind, as the launcher's (never told apart by its colour alone: a colour-blind eye can't)
+    // a pill's kind (never told apart by its colour alone: a colour-blind eye can't)
     status: "M5 21V4 M5 4h12l-2.5 4.5L17 13H5",
     task: "M4 4h16v16H4z M8 12l3 3 5-6",
     rank: "M12 3l2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.8z",
     tax: "M3 3h8l10 10-8 8L3 11z M7.5 7.5h.01",
+    priority: "M12 4v10 M12 19v.5",
     own: "M4 20l1-4L16 5l3 3L8 19z"
   }
   // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
@@ -435,7 +438,7 @@ var RT = (function () {
     } else if (c.own && c.type === "choice") {
       p.appendChild(el("div", {}, [el("div", { class: "ilab", text: c.label }),
         pills("own", [{ value: "", label: "not set" }].concat(c.options.map(function (o) { return { value: o, label: o } })), v, "own")]))
-      p.appendChild(el("div", { class: "ibox you", text: "Your column. Pick its value here: a click on the cell only selects it." + (c.description ? " " + c.description : "") }))
+      p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its value here (a click on the cell only selects it)" }))
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
       p.appendChild(el("div", { class: "ibox you" }, [el("div", { class: "ptext", text: v || "Empty." }), el("div", { class: "hint", text: "↵ or a double-click edits it; ⌘↵ keeps it, esc drops it." })]))
