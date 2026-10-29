@@ -1,3 +1,4 @@
+import AppKit
 import ServiceManagement
 import XCTest
 @testable import ZoteroLauncher
@@ -177,6 +178,31 @@ final class AccessTests: XCTestCase {
         let row = try JSONDecoder().decode(SearchRow.self, from: JSONSerialization.data(withJSONObject: fields))
         XCTAssertEqual(Access.value(row, opens: true), "opens a list")
         XCTAssertEqual(Access.value(row, opens: false), "")
+    }
+
+    // A paper's icon tells whether it has a PDF by its shape (solid with one, hollow without), never by colour alone,
+    // and VoiceOver reads it; every type's two symbols exist and differ.
+    func testAPapersIconShowsWhetherItHasAPdf() throws {
+        func result(_ kind: String, _ itemType: String, pdfs: Int) throws -> SearchRow {
+            let fields: [String: Any] = ["section": "", "kind": kind, "key": "K", "libraryID": 1, "itemType": itemType, "icon": "", "title": "A paper", "titleHtml": "",
+                                         "subtitle": "Doe · 2020", "openState": "", "pdfCount": pdfs, "noteCount": 0, "tagsText": "", "ranks": "", "status": ""]
+            return try JSONDecoder().decode(SearchRow.self, from: JSONSerialization.data(withJSONObject: fields))
+        }
+        XCTAssertEqual(try result("item", "journalArticle", pdfs: 1).symbol, "doc.text.fill")
+        XCTAssertEqual(try result("item", "journalArticle", pdfs: 2).symbol, "doc.text.fill")
+        XCTAssertEqual(try result("item", "journalArticle", pdfs: 0).symbol, "doc.text")
+        XCTAssertEqual(try result("item", "book", pdfs: 0).symbol, "book.closed")
+        XCTAssertEqual(try result("collection", "collection", pdfs: 3).symbol, "folder", "only papers")
+        XCTAssertFalse(try result("collection", "collection", pdfs: 3).hasPdf)
+        for type in ["journalArticle", "book", "bookSection", "thesis", "conferencePaper", "report", "webpage", "blogPost", "preprint", "manuscript"] {
+            let with = SearchRow.paperSymbol(type, pdf: true), without = SearchRow.paperSymbol(type, pdf: false)
+            XCTAssertNotEqual(with, without, type)
+            XCTAssertNotNil(NSImage(systemSymbolName: with, accessibilityDescription: nil), with)
+            XCTAssertNotNil(NSImage(systemSymbolName: without, accessibilityDescription: nil), without)
+        }
+        XCTAssertEqual(Access.label(try result("item", "journalArticle", pdfs: 1)), "A paper, Doe · 2020, has a PDF")
+        XCTAssertEqual(Access.label(try result("item", "journalArticle", pdfs: 0)), "A paper, Doe · 2020, no PDF")
+        XCTAssertEqual(Access.label(try result("collection", "collection", pdfs: 0)), "A paper, Doe · 2020")
     }
 
     // A result's rankings: all of them, abbreviated as the Omarchy launcher does (Views.rankShort), each with its

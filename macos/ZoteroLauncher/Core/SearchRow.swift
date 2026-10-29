@@ -27,24 +27,33 @@ struct SearchRow: Decodable, Equatable {
         return status.lowercased().hasPrefix("s/") ? String(status.dropFirst(2)) : status
     }
 
-    // An SF Symbol for the row (lib/Views.js's icons are Nerd Font glyphs, not installed on macOS).
+    // Whether it has a PDF attached (the bridge counts them for every paper).
+    var hasPdf: Bool { isPaper && pdfCount > 0 }
+
+    // An SF Symbol for the row (lib/Views.js's icons are Nerd Font glyphs, not installed on macOS). A paper's
+    // symbol is its type's, solid when it has a PDF and hollow when it hasn't: a shape, never a colour alone.
     var symbol: String {
         switch kind {
         case "collection": return "folder"
         case "tag": return "tag"
         case "saved-search": return "magnifyingglass"
-        case "item": break
+        case "item": return Self.paperSymbol(itemType, pdf: hasPdf)
         default: return "arrow.right.circle"
         }
+    }
+
+    static func paperSymbol(_ itemType: String, pdf: Bool) -> String {
+        let base: String
         switch itemType {
-        case "book": return "book.closed"
-        case "bookSection": return "book"
-        case "thesis": return "graduationcap"
-        case "conferencePaper": return "person.3"
-        case "report": return "doc.plaintext"
-        case "webpage", "blogPost": return "globe"
-        case "preprint", "manuscript": return "doc.badge.clock"
-        default: return "doc.text"
+        case "book": base = "book.closed"
+        case "bookSection": base = "book"
+        case "thesis": base = "graduationcap"
+        case "conferencePaper": base = "person.3"
+        case "report": base = "doc.plaintext"
+        case "webpage", "blogPost": base = "globe.americas" // (plain globe has no solid form)
+        case "preprint", "manuscript": base = "doc.badge.clock"
+        default: base = "doc.text"
         }
+        return pdf ? base + ".fill" : base
     }
 }
