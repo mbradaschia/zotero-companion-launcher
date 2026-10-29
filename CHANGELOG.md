@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.22`)
 
 - **Edit a column.** A column's ▾ menu in a review table has *Edit it…*: the same form, filled in, for your columns
   (name, type, choices) and the AI's (prompt, labels, topic…). Changing what decides an AI column's answers marks the
