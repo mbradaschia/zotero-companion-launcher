@@ -229,6 +229,7 @@ final class LauncherModel: ObservableObject {
         sched.launchCheck = .waiting
         refreshPrompts() // (What it checks names them)
         launchCatchUpCheck()
+        autoUpdateRunner() // (after an app update: the AI features it brings)
     }
 
     func dismiss() {

@@ -259,6 +259,29 @@ final class LauncherModel6aTests: XCTestCase {
         XCTAssertEqual(model.flash, "Install Node.js 22 or newer first: brew install node")
     }
 
+    // After an app update the AI features update themselves: once per version, only when installed, with Node 22+.
+    func testTheAIFeaturesUpdateThemselvesAfterAnAppUpdate() throws {
+        let script = try XCTUnwrap(RunnerKit.installScript())
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "zl-test-\(UUID().uuidString)"))
+        model.autoUpdateRunner(defaults)
+        XCTAssertFalse(runner.calls.contains { $0.argv.last == script.path }, "not installed: nothing")
+        let installed = home.appendingPathComponent(".local/share/oma-zotero-launcher/runner")
+        try FileManager.default.createDirectory(at: installed, withIntermediateDirectories: true)
+        try Data(#"{"version": "0.0.1"}"#.utf8).write(to: installed.appendingPathComponent("package.json"))
+        runner.nodeVersion = "20.1.0"
+        model.autoUpdateRunner(defaults)
+        XCTAssertFalse(runner.calls.contains { $0.argv.last == script.path }, "Node too old: nothing")
+        runner.nodeVersion = "22.4.1"
+        runner.hold = [script.path]
+        model.autoUpdateRunner(defaults)
+        XCTAssertEqual(runner.calls.filter { $0.argv.last == script.path }.count, 1)
+        XCTAssertTrue(model.flash.hasPrefix("Updating the AI features (0.0.1 → "), model.flash)
+        runner.release(script.path, RunnerResult(status: 0, stdout: "installed"))
+        XCTAssertEqual(model.flash, "AI features updated")
+        model.autoUpdateRunner(defaults)
+        XCTAssertEqual(runner.calls.filter { $0.argv.last == script.path }.count, 1, "once per version")
+    }
+
     func testTheReinstallOfferComparesVersions() throws {
         let kit = home.appendingPathComponent("Kit")
         try FileManager.default.createDirectory(at: kit.appendingPathComponent("macos/runner"), withIntermediateDirectories: true)

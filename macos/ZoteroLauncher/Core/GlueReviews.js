@@ -37,7 +37,7 @@ function GlueReviews(RV) {
         .filter(function (j) { if (!known(j)) return true; skipped++; return false })
         .map(function (j) { used[j.column] = true; return { column: j.column, paper: j.paper } })
       if (!list.length) return skipped ? { error: "Nothing run: " + (skipped === 1 ? "that cell has" : "those " + skipped + " cells have") + " an answer already (shown now)", skipped: skipped } : { error: "Nothing to run: no AI cell was asked for" }
-      var keys = ["id", "label", "kind", "reads", "shape", "length", "options", "evidence", "model", "taxonomy", "topic", "description", "hash"]
+      var keys = ["id", "label", "kind", "reads", "shape", "length", "options", "evidence", "model", "taxonomy", "labels", "topic", "description", "hash"]
       var columns = Object.keys(used).sort().map(function (id) { var o = {}; keys.forEach(function (k) { if (byId[id][k] !== undefined) o[k] = byId[id][k] }); return o })
       return { review: String(r.id || ""), name: String(r.name || "Review"), columns: columns, jobs: list.slice(0, 200 * columns.length), skipped: skipped }
     }

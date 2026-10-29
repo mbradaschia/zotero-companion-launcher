@@ -74,14 +74,14 @@ extension LauncherModel {
 
     // Install AI features: the bundled install-runner.sh (RunnerKit), with the explicit PATH; the
     // row says "Installing…" until it ends.
-    func installRunner() {
+    func installRunner(updating: String? = nil) {
         guard !runnerState.installing else { return flashMessage("Installing the AI features already") }
         guard let script = RunnerKit.installScript() else { return flashMessage("This build of the app doesn't carry the AI features' installer") }
         let node = runnerState.reqs.node
         guard (Int(node.split(separator: ".").first ?? "") ?? 0) >= 22 else { return flashMessage("Install Node.js 22 or newer first: brew install node") }
         runnerState.installing = true
         runnerState.installProblem = ""
-        flashMessage("Installing the AI features: it's in Processes (\(keyName(".")))") // install-runner.sh shows itself there
+        flashMessage((updating.map { "Updating the AI features (\($0))" } ?? "Installing the AI features") + ": it's in Processes (\(keyName(".")))") // install-runner.sh shows itself there
         tasksSoon()
         settingsShowChange()
         runner.run(["/bin/bash", script.path], stdin: nil, timeout: 900) { [weak self] r in
@@ -90,14 +90,28 @@ extension LauncherModel {
             if r.ok {
                 self.runnerState.missing = false
                 self.extractTick() // a catch-up that waited for the runner
-                self.flashMessage("AI features installed")
+                self.flashMessage(updating == nil ? "AI features installed" : "AI features updated")
             } else {
                 self.runnerState.installProblem = r.problem
-                self.flashMessage("Couldn't install the AI features: " + r.problem)
+                self.flashMessage((updating == nil ? "Couldn't install the AI features: " : "Couldn't update the AI features (Settings › Setup tries again): ") + r.problem)
             }
             self.refreshProviders()
             self.refreshModels()
             self.refreshRequirements() // the version installed now
+        }
+    }
+
+    // After an app update: the AI features the app brings, newer than the ones installed, installed on their own (as
+    // Settings › Setup › Install the AI features does; it's in Processes). Once per version: a failure stays on that row
+    // to try again by hand. Nothing when they aren't installed, or Node is too old.
+    func autoUpdateRunner(_ defaults: UserDefaults = .standard) {
+        guard let up = RunnerKit.update(home: env["HOME"] ?? NSHomeDirectory(), dataHome: env["XDG_DATA_HOME"]), let to = up["bundled"],
+              defaults.string(forKey: "ZLRunnerAutoUpdate") != to else { return }
+        runner.requirements { [weak self] reqs in
+            guard let self, !self.runnerState.installing, (Int(reqs.node.split(separator: ".").first ?? "") ?? 0) >= 22 else { return }
+            self.runnerState.reqs = reqs
+            defaults.set(to, forKey: "ZLRunnerAutoUpdate")
+            self.installRunner(updating: up["installed"].map { "\($0) → \(to)" })
         }
     }
 

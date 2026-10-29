@@ -128,11 +128,12 @@ var ReviewCore = (function () {
     var type = d.kind === "jev-relevance" || (d.kind === "prompt" && d.shape === "number") ? "number"
       : d.kind === "jev-several" ? "pills" : (d.kind === "prompt" && d.shape === "choice") || d.kind === "jev-one" ? "choice" : "text"
     var wide = d.kind === "prompt" && (d.shape === "text" || d.shape === "list")
-    var c = { id: d.id, label: d.label, group: "AI columns", type: type, options: d.kind === "jev-one" ? (t ? t.labels || [] : []) : d.options || [],
+    var mine = (d.labels || []).length > 0 // (a Jev column on labels of its own, not a taxonomy's)
+    var c = { id: d.id, label: d.label, group: "AI columns", type: type, options: d.kind === "jev-one" ? (mine ? d.labels.map(function (l) { return l.name }) : t ? t.labels || [] : []) : d.options || [],
       width: wide ? 260 : d.kind === "jev-several" ? 180 : 120, lines: wide ? 3 : d.kind === "jev-several" ? 2 : 1, edit: d.kind === "prompt" && type === "text" ? "text" : "",
       ai: true, kind: d.kind, kindName: KIND_NAMES[d.kind], reads: d.kind === "prompt" ? d.reads : "tagging", shape: d.shape, length: d.length, evidence: !!d.evidence,
-      model: d.model || "default", taxonomy: d.taxonomy || "", topic: d.topic || "", description: d.description || "", hash: columnHash(d, t) }
-    if ((d.kind === "jev-several" || d.kind === "jev-one") && !t) c.problem = "Its taxonomy (" + d.taxonomy + ") isn't there any more: pick another in a new column"
+      model: d.model || "default", taxonomy: d.taxonomy || "", labels: mine ? d.labels : undefined, topic: d.topic || "", description: d.description || "", hash: columnHash(d, t) }
+    if ((d.kind === "jev-several" || d.kind === "jev-one") && !mine && !t) c.problem = "Its taxonomy (" + d.taxonomy + ") isn't there any more: pick another in a new column"
     return c
   }
 
@@ -143,8 +144,9 @@ var ReviewCore = (function () {
   }
 
   function ownColumn(d) {
-    return { id: d.id, label: d.label, group: "Your columns", type: d.type === "choice" ? "choice" : "text", options: d.options || [],
-      width: d.type === "choice" ? 110 : 220, lines: d.type === "choice" ? 1 : 3, edit: d.type === "choice" ? "choice" : "text", own: true, description: d.description || "" }
+    var type = d.type === "choice" || d.type === "multi" ? d.type : "text"
+    return { id: d.id, label: d.label, group: "Your columns", type: type, options: d.options || [],
+      width: type === "choice" ? 110 : type === "multi" ? 180 : 220, lines: type === "choice" ? 1 : type === "multi" ? 2 : 3, edit: type, own: true, description: d.description || "" }
   }
 
   // The columns a review shows, in its order, with its layout; a column whose definition is gone (its file deleted on
@@ -168,7 +170,10 @@ var ReviewCore = (function () {
     var rank = (r && r.rank) || {}
     if (col.own) {
       var c = cells && cells[id] && own(cells[id], paperId(r)) ? cells[id][paperId(r)] : null
-      return c && c.v !== undefined && c.v !== null ? str(c.v, 20000) : ""
+      var cv = c && c.v !== undefined && c.v !== null ? c.v : ""
+      // several of a list: its labels (a value from before it was one: its one label); else text (labels: joined)
+      if (col.type === "multi") return Array.isArray(cv) ? cv.map(function (x) { return str(x, 80) }) : str(cv, 80) ? [str(cv, 80)] : []
+      return Array.isArray(cv) ? cv.join("; ") : str(cv, 20000)
     }
     if (col.ai) {
       var a = cellOf(cells, id, r)
@@ -270,9 +275,10 @@ var ReviewCore = (function () {
 
   // ------------------------------------------------------------ group
 
-  // A column the papers can be grouped by: one whose values repeat (not the paper, its authors, a date, your text).
+  // A column the papers can be grouped by: one whose values repeat (not the paper, its authors, a date, free text:
+  // yours or an AI's answer in words or as a list).
   function groupable(col) {
-    return !!col && !col.missing && col.id !== "title" && col.id !== "authors" && col.type !== "date" && !(col.own && col.type !== "choice")
+    return !!col && !col.missing && col.id !== "title" && col.id !== "authors" && col.type !== "date" && !((col.own || col.ai) && col.type === "text")
   }
 
   // The rows (already sorted) in groups by a column's value: [{ label, value, rows }], the groups in the column's
@@ -464,7 +470,7 @@ var ReviewCore = (function () {
 
   // ---- a column file (columns/<id>.md): front matter, then its description
 
-  var COLUMN_TYPES = ["text", "choice"]
+  var COLUMN_TYPES = ["text", "choice", "multi"]
 
   function parseColumn(textIn, id) {
     var t = String(textIn || "").replace(/^﻿/, "").replace(/\r\n?/g, "\n")
@@ -485,8 +491,8 @@ var ReviewCore = (function () {
     if (AI_KINDS.indexOf(kind) >= 0) return aiDef(meta, kind, label, m[2], id)
     var type = COLUMN_TYPES.indexOf(meta.type) >= 0 ? meta.type : "text"
     var options = Array.isArray(meta.options) ? meta.options.map(function (o) { return str(o, 60).trim() }).filter(function (o, i, all) { return o && all.indexOf(o) === i }).slice(0, 20) : []
-    if (type === "choice" && !options.length) type = "text"
-    return { id: String(id || ""), label: label, kind: kind, type: type, options: type === "choice" ? options : [], description: m[2].replace(/\s+$/, "").slice(0, 20000) }
+    if (type !== "text" && !options.length) type = "text"
+    return { id: String(id || ""), label: label, kind: kind, type: type, options: type !== "text" ? options : [], description: m[2].replace(/\s+$/, "").slice(0, 20000) }
   }
 
   // An AI column's file, made whole: what's missing takes its default, what's wrong is left out.
@@ -507,9 +513,25 @@ var ReviewCore = (function () {
       d.topic = str(meta.topic, 200).trim()
     } else {
       d.taxonomy = /^[a-z0-9][a-z0-9-]{0,59}$/.test(String(meta.taxonomy || "")) ? String(meta.taxonomy) : ""
+      var labels = d.taxonomy ? [] : cleanLabels(meta.labels)
+      if (labels.length) d.labels = labels // (labels of its own, each with what it means: no taxonomy)
     }
     return d
   }
+
+  // A Jev column's own labels: [{ name, definition }], from a list of them or lines "name: what it means". At most 30,
+  // the names unique.
+  function cleanLabels(o) {
+    var list = Array.isArray(o) ? o : String(o || "").split("\n").map(function (line) {
+      var i = line.indexOf(":")
+      return i < 0 ? { name: line } : { name: line.slice(0, i), definition: line.slice(i + 1) }
+    })
+    var seen = {}
+    return list.map(function (l) { return isObject(l) ? { name: str(l.name, 80).trim(), definition: str(l.definition, 1200).trim() } : { name: str(l, 80).trim(), definition: "" } })
+      .filter(function (l) { var k = l.name.toLowerCase(); if (!l.name || seen[k]) return false; seen[k] = true; return true }).slice(0, 30)
+  }
+  // …and back to the lines the form shows.
+  function labelsText(labels) { return (labels || []).map(function (l) { return l.name + (l.definition ? ": " + l.definition : "") }).join("\n") }
 
   function cleanOptions(o) {
     var list = Array.isArray(o) ? o : String(o || "").split(",")
@@ -518,8 +540,9 @@ var ReviewCore = (function () {
 
   function columnText(c) {
     if (AI_KINDS.indexOf(c.kind) >= 0) return aiColumnText(c)
-    var lines = ["---", "label: " + JSON.stringify(str(c.label, 80).trim()), "kind: " + (c.kind || "own"), "type: " + (c.type === "choice" ? "choice" : "text")]
-    if (c.type === "choice") lines.push("options: " + JSON.stringify(c.options || []))
+    var type = c.type === "choice" || c.type === "multi" ? c.type : "text"
+    var lines = ["---", "label: " + JSON.stringify(str(c.label, 80).trim()), "kind: " + (c.kind || "own"), "type: " + type]
+    if (type !== "text") lines.push("options: " + JSON.stringify(c.options || []))
     lines.push("---")
     return lines.join("\n") + "\n" + (c.description ? String(c.description).replace(/\s+$/, "") + "\n" : "")
   }
@@ -533,6 +556,7 @@ var ReviewCore = (function () {
       if (d.shape === "choice") lines.push("options: " + JSON.stringify(d.options))
       lines.push("evidence: " + (d.evidence ? "true" : "false"), "model: " + JSON.stringify(d.model))
     } else if (d.kind === "jev-relevance") lines.push("topic: " + JSON.stringify(d.topic))
+    else if (d.labels) lines.push("labels: " + JSON.stringify(d.labels))
     else lines.push("taxonomy: " + d.taxonomy)
     lines.push("---")
     return lines.join("\n") + "\n" + (d.description ? d.description + "\n" : "")
@@ -546,14 +570,17 @@ var ReviewCore = (function () {
     var label = str(s.label, 80).trim()
     if (!label) return { error: "A column needs a name" }
     if (AI_KINDS.indexOf(s.kind) < 0) return { error: "Pick what the AI does" }
-    var d = aiDef({ reads: s.reads, shape: s.shape, length: s.length, options: s.options, evidence: s.evidence ? "true" : "false", model: s.model, taxonomy: s.taxonomy, topic: s.topic },
+    var d = aiDef({ reads: s.reads, shape: s.shape, length: s.length, options: s.options, evidence: s.evidence ? "true" : "false", model: s.model, taxonomy: s.taxonomy, labels: s.labels, topic: s.topic },
       s.kind, label, str(s.description, 20000).trim(), randomId("c-", rand))
     if (s.kind === "prompt") {
       if (!d.description) return { error: "Write the prompt: what to ask of each paper" }
       if (s.shape === "choice" && d.shape !== "choice") return { error: "One of a list needs two choices or more, separated by commas" }
     }
     if (s.kind === "jev-relevance" && (!d.topic || !d.description)) return { error: "Name the topic, and say what relevant means" }
-    if (s.kind === "jev-several" || s.kind === "jev-one") {
+    if ((s.kind === "jev-several" || s.kind === "jev-one") && !d.taxonomy) {
+      var n = (d.labels || []).length
+      if (s.kind === "jev-one" ? n < 2 : n < 1) return { error: s.kind === "jev-one" ? "Best fit needs two labels or more, one a line: its name, then what it means" : "Write a label or more, one a line: its name, then what it means" }
+    } else if (s.kind === "jev-several" || s.kind === "jev-one") {
       var t = taxonomyOf(ctx, d.taxonomy)
       if (!t) return { error: "Pick one of your taxonomies" }
       if ((t.kind === "one") !== (s.kind === "jev-one")) return { error: s.kind === "jev-one" ? "Best fit takes a taxonomy of the one-label kind" : "Several labels takes a taxonomy of the several-labels kind" }
@@ -581,7 +608,8 @@ var ReviewCore = (function () {
   // taxonomy ({ id, hash }: the runner's fingerprint of it).
   function columnHash(d, t) {
     var what = d.kind === "prompt" ? [d.kind, d.description, d.reads, d.shape, d.length, d.options || [], !!d.evidence]
-      : d.kind === "jev-relevance" ? [d.kind, d.topic, d.description] : [d.kind, d.taxonomy, t ? t.hash || "" : ""]
+      : d.kind === "jev-relevance" ? [d.kind, d.topic, d.description]
+        : (d.labels || []).length ? [d.kind, "labels", d.labels.map(function (l) { return [l.name, l.definition || ""] }), d.description || ""] : [d.kind, d.taxonomy, t ? t.hash || "" : ""]
     return hash12(JSON.stringify(what))
   }
 
@@ -641,10 +669,11 @@ var ReviewCore = (function () {
     var s = isObject(spec) ? spec : {}
     var label = str(s.label, 80).trim()
     if (!label) return { error: "A column needs a name" }
-    var type = s.type === "choice" ? "choice" : "text"
-    var options = type === "choice" ? (Array.isArray(s.options) ? s.options : String(s.options || "").split(",")).map(function (o) { return str(o, 60).trim() })
+    var type = s.type === "choice" || s.type === "multi" ? s.type : "text"
+    var options = type !== "text" ? (Array.isArray(s.options) ? s.options : String(s.options || "").split(",")).map(function (o) { return str(o, 60).trim() })
       .filter(function (o, i, all) { return o && all.indexOf(o) === i }).slice(0, 20) : []
     if (type === "choice" && options.length < 2) return { error: "One of a list needs two choices or more, separated by commas" }
+    if (type === "multi" && options.length < 1) return { error: "Several of a list needs its choices, separated by commas" }
     return { column: { id: randomId("c-", rand), label: label, kind: "own", type: type, options: options, description: str(s.description, 2000).trim() } }
   }
 
@@ -691,7 +720,8 @@ var ReviewCore = (function () {
     var was = cells[paper]
     var ai = was && was.by === "ai" && !was.error ? Object.assign({}, was) : was && was.ai ? was.ai : null // (an AI cell you edit: its answer kept)
     if (ai) delete ai.ai
-    cells[paper] = { v: str(v, 20000), updated: str(now, 40), by: str(by, 80) }
+    var val = Array.isArray(v) ? v.slice(0, 60).map(function (x) { return str(x, 80).trim() }).filter(Boolean) : str(v, 20000) // (several of a list: its labels)
+    cells[paper] = { v: val, updated: str(now, 40), by: str(by, 80) }
     if (ai) cells[paper].ai = ai
     return cellsText(cells)
   }
@@ -721,7 +751,7 @@ var ReviewCore = (function () {
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
     sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
     parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,
-    AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, columnHash: columnHash, hash12: hash12,
+    AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, cleanLabels: cleanLabels, labelsText: labelsText, columnHash: columnHash, hash12: hash12,
     cellOf: cellOf, cellState: cellState, runPlan: runPlan, band: band
   }
 })()

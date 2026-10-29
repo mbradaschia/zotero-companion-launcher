@@ -87,7 +87,7 @@ struct ReviewFiles {
         return out
     }
 
-    func setCell(column: String, paper: String, value: String, by: String, _ core: JSCore, now: Date = Date()) throws {
+    func setCell(column: String, paper: String, value: Any, by: String, _ core: JSCore, now: Date = Date()) throws { // value: text, or a list of labels
         guard Self.validColumn(column) else { throw WriteError.badId }
         let url = cellsURL(column)
         let old = Self.text(url) ?? ""
