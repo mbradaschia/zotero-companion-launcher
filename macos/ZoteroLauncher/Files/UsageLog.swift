@@ -28,7 +28,7 @@ final class UsageLog {
         writes = defaults != nil
         guard defaults != nil else { return }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { _ in
-            MainActor.assumeIsolated { UsageLog.shared.flush() }
+            MainActor.assumeIsolated { _ = UsageLog.shared.flush() }
         }
     }
 
