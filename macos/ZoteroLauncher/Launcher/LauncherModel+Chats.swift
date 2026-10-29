@@ -96,6 +96,7 @@ extension LauncherModel {
     func openChatWindow(_ item: PaperRef, session: String = "") {
         guard !item.key.isEmpty else { return }
         guard runnerInstalled else { return flashMessage("Chat needs the AI features: Settings › Setup installs them") }
+        UsageLog.shared.count("window:chat")
         dismiss()
         openChat(item, session)
     }

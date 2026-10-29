@@ -1080,6 +1080,10 @@ back. Two machines editing the same file while apart leave a Syncthing conflict 
 - The bridge adds routes under `/oma-zotero/` to Zotero's own local HTTP server (127.0.0.1). Every request
   needs a token only your user can read, and requests from web pages are refused.
 - The launcher changes your library only when you ask it to: tags, and notes the prompts create.
+- **The Mac app counts which features you use, for you only**: a count a day of its own names (a key, a row, a
+  view: `key:i`, `row:open`), in `usage/<machine>.json` (the sync folder's, else `~/.local/state/oma-zotero/`).
+  Never what you type, a paper, a note or a tag, and never sent anywhere. *Hotkey and Login… › Count which
+  features I use* turns it off; `node macos/scripts/usage-report.mjs <that folder>` adds it up.
 - **Prompts and chat send the paper to the provider you chose**: when you run a prompt or ask a question, the
   paper's metadata, its text, your highlights and your notes on it go to that provider (Anthropic for Claude,
   OpenAI for ChatGPT and the OpenAI API, Google for Gemini, OpenRouter and the model's host, or your

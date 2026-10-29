@@ -158,6 +158,7 @@ final class LauncherModel: ObservableObject {
         self.store.levelChanged = { [weak self] in self?.lastError = "" } // as pushView and back do
         self.store.crumbName = { [weak self] in self?.crumbTitle(current: false) ?? "" }
         self.store.selectionChanged = { [weak self] in self?.previewTheme() }
+        self.store.entered = { UsageLog.shared.count("view:" + $0) }
     }
 
     var searchRows: [SearchRow] { if case .search(let rows) = content { return rows } else { return [] } }
@@ -238,6 +239,7 @@ final class LauncherModel: ObservableObject {
     // The launcher is hidden (dismissed, or it lost the keys): nothing waits to act.
     func didHide() {
         opened = false
+        UsageLog.shared.flush() // (what this opening used, written now: the app may be quit next)
         ThemeStore.shared.endPreview() // (a theme browsed, not chosen)
         keyTimer?.invalidate()
         store.keys.clear()
@@ -255,6 +257,7 @@ final class LauncherModel: ObservableObject {
     // ---- the search (ZoteroSearch.qml:448-486, 625-650; Service.qml:625-645)
 
     func setFilter(_ text: String) {
+        if store.filterText.isEmpty && !text.isEmpty { UsageLog.shared.count(store.inSearch ? (store.scope != nil ? "search:scoped" : "search:typed") : "filter:" + store.view) } // (what's typed: never)
         store.filterText = text
         store.caretBack = 0
         store.queryLive = false

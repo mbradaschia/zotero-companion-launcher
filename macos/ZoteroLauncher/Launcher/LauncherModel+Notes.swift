@@ -283,6 +283,7 @@ extension LauncherModel {
         }
         if e.control || e.command, let c, ["-", "+", "=", "0"].contains(c) { return stepNoteFont(c == "-" ? -1 : c == "0" ? 0 : 1) }
         if e.command { return }
+        if let c, c.isASCII, !e.control, !e.option { UsageLog.shared.count("reader:" + String(c)) } // (the reader's own keys: z, w, c, y, s…)
         switch (e.key, c) {
         case (.up, _) where e.shift: cycleNote(-1)
         case (.down, _) where e.shift: cycleNote(1)
@@ -339,6 +340,7 @@ extension LauncherModel {
     // w: the note in its own window (focused if it is open already); the launcher closes.
     func openNoteWindow() {
         guard let target = selectedNoteTarget() else { return }
+        UsageLog.shared.count("window:note")
         dismiss()
         openWindow(target)
     }

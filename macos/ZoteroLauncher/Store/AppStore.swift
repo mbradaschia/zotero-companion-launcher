@@ -25,6 +25,7 @@ final class AppStore: ObservableObject {
     var keys = KeyBuffer() // a single key waiting to be told from typing; cleared with each view
     var levelChanged: () -> Void = {} // a level pushed or popped (the model clears its last error, as pushView and back do)
     var selectionChanged: () -> Void = {} // another row selected (or the same one again; the model previews a theme)
+    var entered: (String) -> Void = { _ in } // a view pushed (the usage log counts it)
 
     // The keys start in the search box (the keysStart setting), not the list.
     var searchFirst: Bool
@@ -57,6 +58,7 @@ final class AppStore: ObservableObject {
         filterText = ""
         selectedIndex = 0
         followTop = true
+        entered(next)
     }
 
     // Back one level, restoring its query, caret, scope and row; false at the root

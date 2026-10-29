@@ -15,6 +15,7 @@ struct AppPaths: Decodable, Equatable {
     var instructions: String
     var extract: String
     var runnerTasks: String
+    var usage: String? // usage/: the feature counts, a file per machine (UsageLog)
     var machine: String
     var syncDir: String?
     var marker: String?
