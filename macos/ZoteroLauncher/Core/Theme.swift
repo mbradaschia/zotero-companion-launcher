@@ -246,10 +246,13 @@ struct Palette {
                 ns.green = hue(SafeColours.green); ns.teal = hue(SafeColours.teal); ns.purple = hue(SafeColours.purple)
             }
             self.ns = ns
-            colors = Tokens(background: Color(nsColor: .windowBackgroundColor), text: .primary, subtext: .secondary, accent: .accentColor, onAccent: .white,
-                            red: safe ? Color(nsColor: ns.red) : .red, orange: safe ? Color(nsColor: ns.orange) : .orange,
-                            yellow: safe ? Color(nsColor: ns.yellow) : .yellow, green: safe ? Color(nsColor: ns.green) : .green,
-                            teal: safe ? Color(nsColor: ns.teal) : .teal, purple: safe ? Color(nsColor: ns.purple) : .purple)
+            var colors = Tokens<Color>(background: Color(nsColor: .windowBackgroundColor), text: .primary, subtext: .secondary, accent: .accentColor, onAccent: .white,
+                                       red: .red, orange: .orange, yellow: .yellow, green: .green, teal: .teal, purple: .purple)
+            if safe {
+                colors.red = Color(nsColor: ns.red); colors.orange = Color(nsColor: ns.orange); colors.yellow = Color(nsColor: ns.yellow)
+                colors.green = Color(nsColor: ns.green); colors.teal = Color(nsColor: ns.teal); colors.purple = Color(nsColor: ns.purple)
+            }
+            self.colors = colors
             return
         }
         let ns = Tokens<NSColor>.zip(light, dark) { l, d in

@@ -141,7 +141,8 @@ struct RankChips: View {
                 ForEach(all, id: \.self) { label in
                     let top = Self.isTop(label)
                     let tint: Color = selected ? palette.onAccent : top ? PillView.color("rank", palette) : palette.subtext
-                    Text(top ? "\u{2605}" + Self.short(label) : Self.short(label))
+                    let shown: String = (top ? "\u{2605}" : "") + Self.short(label)
+                    Text(shown)
                         .font(.system(size: 9, weight: .semibold))
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)

@@ -203,24 +203,13 @@ final class ThemeTests: XCTestCase {
     // Colour-blind safe colours (on by default): in every theme, light and dark, the five pill kinds stay apart for a
     // protanope's and a deuteranope's eye (Machado et al. 2009's simulation, CIELAB ΔE ≥ 15), and still read (3:1).
     func testTheSafeColoursKeepThePillKindsApartForAColourBlindEye() {
-        func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
-        let protan = [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]]
-        let deutan = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]]
-        func lab(_ c: RGB, _ m: [[Double]]) -> [Double] {
-            let l = [linear(c.r), linear(c.g), linear(c.b)]
-            let s = m.map { min(1, max(0, $0[0] * l[0] + $0[1] * l[1] + $0[2] * l[2])) }
-            let x = 0.4124 * s[0] + 0.3576 * s[1] + 0.1805 * s[2], y = 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]
-            let z = 0.0193 * s[0] + 0.1192 * s[1] + 0.9505 * s[2]
-            func f(_ t: Double) -> Double { t > 216 / 24389 ? cbrt(t) : (24389 / 27 * t + 16) / 116 }
-            let fx = f(x / 0.95047), fy = f(y), fz = f(z / 1.08883)
-            return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)]
-        }
+        let protan = Self.protan, deutan = Self.deutan
         func apart(_ t: Tokens<RGB>, _ name: String) {
-            let kinds = [("status", t.orange), ("priority", t.red), ("rank", t.purple), ("taxonomy", t.teal), ("task", t.green)]
-            for (eye, m) in [("protanope", protan), ("deuteranope", deutan)] {
+            let kinds: [(String, RGB)] = [("status", t.orange), ("priority", t.red), ("rank", t.purple), ("taxonomy", t.teal), ("task", t.green)]
+            let eyes: [(String, [[Double]])] = [("protanope", protan), ("deuteranope", deutan)]
+            for (eye, m) in eyes {
                 for i in kinds.indices { for j in kinds.indices where j > i {
-                    let a = lab(kinds[i].1, m), b = lab(kinds[j].1, m)
-                    let d = sqrt(zip(a, b).map { ($0 - $1) * ($0 - $1) }.reduce(0, +))
+                    let d: Double = Self.deltaE(Self.lab(kinds[i].1, m), Self.lab(kinds[j].1, m))
                     XCTAssertGreaterThanOrEqual(d, 15, "\(name): \(kinds[i].0) and \(kinds[j].0) look alike to a \(eye)")
                 } }
             }
@@ -239,6 +228,36 @@ final class ThemeTests: XCTestCase {
                 apart(palette.rgb(dark: true), family.name + " (dark)")
             }
         }
+    }
+
+    // Machado et al. 2009's simulation (severity 1), on linear sRGB, then CIELAB (D65).
+    private static let protan: [[Double]] = [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]]
+    private static let deutan: [[Double]] = [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]]
+
+    private static func linear(_ v: Double) -> Double { v <= 0.04045 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4) }
+
+    private static func labF(_ t: Double) -> Double {
+        let e: Double = 216.0 / 24389.0, k: Double = 24389.0 / 27.0
+        return t > e ? cbrt(t) : (k * t + 16.0) / 116.0
+    }
+
+    private static func lab(_ c: RGB, _ m: [[Double]]) -> [Double] {
+        let l: [Double] = [linear(c.r), linear(c.g), linear(c.b)]
+        var s: [Double] = []
+        for row in m {
+            let v: Double = row[0] * l[0] + row[1] * l[1] + row[2] * l[2]
+            s.append(min(1.0, max(0.0, v)))
+        }
+        let x: Double = 0.4124 * s[0] + 0.3576 * s[1] + 0.1805 * s[2]
+        let y: Double = 0.2126 * s[0] + 0.7152 * s[1] + 0.0722 * s[2]
+        let z: Double = 0.0193 * s[0] + 0.1192 * s[1] + 0.9505 * s[2]
+        let fx: Double = labF(x / 0.95047), fy: Double = labF(y), fz: Double = labF(z / 1.08883)
+        return [116.0 * fy - 16.0, 500.0 * (fx - fy), 200.0 * (fy - fz)]
+    }
+
+    private static func deltaE(_ a: [Double], _ b: [Double]) -> Double {
+        let d0: Double = a[0] - b[0], d1: Double = a[1] - b[1], d2: Double = a[2] - b[2]
+        return (d0 * d0 + d1 * d1 + d2 * d2).squareRoot()
     }
 
     // On by default, a switch in General › Appearance; off, the theme's own colours.
