@@ -157,6 +157,16 @@ test("pendingExtraction: papers with a PDF and no extracted text, newest PDF fir
   assert.equal(run({ limit: 0 }).items.length, 0); // a count only
 });
 
+test("pendingExtraction and selectPapers pick only in the libraries given (a group you only read is left out)", () => {
+  const { sandbox } = loadBridge();
+  const e = (key, libraryID) => ({ key, libraryID, title: key, itemType: "journalArticle", pdfCount: 1, extracted: false, pdfAdded: "2026-10-01 00:00:00", dateAdded: "2026-10-01 00:00:00" });
+  const entries = [e("AAAA0001", 1), e("AAAA0002", 7)];
+  const keys = (r) => JSON.parse(JSON.stringify(r)).items.map((i) => i.key);
+  assert.deepEqual(keys(sandbox.OmaBridge.pendingExtraction(entries, { limit: 9, libraries: [1] })), ["AAAA0001"]);
+  assert.deepEqual(keys(sandbox.OmaBridge.selectPapers(entries, { limit: 9, libraries: [1] })), ["AAAA0001"]);
+  assert.equal(sandbox.OmaBridge.selectPapers(entries, { limit: 9 }).total, 2); // (no list: every library)
+});
+
 test("selectPapers: papers to tag, newest added first; since, before, exclude; textFirst waits for a PDF's text (not a skipped one's)", () => {
   const { sandbox } = loadBridge();
   const e = (key, fields) => Object.assign({ key, libraryID: 1, title: key, itemType: "journalArticle", pdfCount: 0, extracted: false, dateAdded: "2026-01-01 00:00:00" }, fields);

@@ -6,6 +6,7 @@ struct SettingsView: View {
     @ObservedObject var login: LoginItem
     @State private var handshake = Handshake.load()
     @AppStorage(UsageLog.defaultsKey) private var countUsage = true
+    @Environment(\.palette) private var palette
 
     var body: some View {
         Form {
@@ -16,7 +17,9 @@ struct SettingsView: View {
             Section("This Mac") {
                 Toggle("In the Dock and ⌘Tab", isOn: $model.showInDock)
                 Toggle("Open at login", isOn: Binding(get: { login.enabled }, set: { login.set($0) }))
-                Text(login.detail).font(.caption).foregroundStyle(login.problem.isEmpty ? Color.secondary : Color.red)
+                // (a problem in the theme's red, with its sign: never by colour alone)
+                Label(login.detail, systemImage: login.problem.isEmpty ? "info.circle" : "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(login.problem.isEmpty ? palette.subtext : palette.red)
                 Toggle("Count which features I use", isOn: $countUsage)
                     .onChange(of: countUsage) { _, on in UsageLog.shared.enabled = on } // (off: what wasn't written yet is dropped)
                 Text("A count a day of the keys, rows and views you use, in the sync folder's usage/ (a file per Mac). Never what you type, a paper or a tag; never sent anywhere.")

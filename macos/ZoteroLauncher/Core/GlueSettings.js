@@ -193,8 +193,9 @@ function GlueSettings(V, C, T, P, S) {
     return rows
   }
 
-  // Settings › General › Appearance on a Mac: the theme and light or dark, this Mac's own (x.theme: { id, mode, themes:
-  // [{ id, name, light, dark, swatch }] }, the app's list; none when it isn't given). Each opens its choices.
+  // Settings › General › Appearance on a Mac: the theme and light or dark, this Mac's own (x.theme: { id, mode, safe, themes:
+  // [{ id, name, light, dark, swatch }] }, the app's list; none when it isn't given). Each opens its choices; the colour-blind
+  // safe colours are a switch.
   var THEME_MODES = [["system", "As the Mac · light or dark as System Settings › Appearance says"], ["light", "Light · always"], ["dark", "Dark · always"]]
   function themeText(f) {
     return f.light ? f.name + " · " + f.light + " when light, " + f.dark + " when dark" : f.name + " · the Mac's own colours and accent"
@@ -208,6 +209,10 @@ function GlueSettings(V, C, T, P, S) {
     return [L({ section: "Appearance", rowId: "set-choice", value: "mac.theme", icon: S.ICON.general, label: "Theme", detail: themeText(cur), swatch: cur.swatch || "",
       badge: badge, available: true, submenu: true }),
       L({ section: "Appearance", rowId: "set-choice", value: "mac.themeMode", icon: S.ICON.general, label: "Light or dark", detail: mode[1], badge: badge, available: true, submenu: true })]
+      .concat(typeof t.safe !== "boolean" ? [] : [L({ section: "Appearance", rowId: "set-toggle", value: "mac.safeColours", icon: t.safe ? S.ICON.on : S.ICON.off,
+        checked: t.safe, available: true, label: "Colour-blind safe colours", badge: badge,
+        detail: t.safe ? "On · pills and the search's colours stay apart for a red-green colour-blind eye, in any theme; each pill kind has its symbol either way"
+          : "Off · the theme's own colours; each pill kind still has its symbol" })])
   }
   // Their choices: Enter picks one and goes back, as a setting's choice does.
   function themeChoice(path, x) {

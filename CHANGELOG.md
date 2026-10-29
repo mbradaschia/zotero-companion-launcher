@@ -7,8 +7,33 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Nothing runs on a paper in a library you can only read** (a group you're a reader of, a feed). A prompt that
+  writes a note, tagging, automatic extraction and a catch-up skip it before any model is asked; they used to run
+  the model and then fail at the save (45 Opus runs on one read-only group in a week). Chat and artifacts still work
+  on those papers. The bridge's paper picks and pending extraction now list only the libraries you can write to.
+
 ### The Mac app (`macos-v0.4.17`)
 
+- **Colour is never the only sign.** Each pill kind has its symbol: a status's flag, a task's checklist, a rank's
+  star, a taxonomy's tag, a warning's ! (the launcher, the reader and the review table). The top journal grades get a
+  star, and a negated search block is struck through. *General › Appearance › Colour-blind safe colours* (on by
+  default) draws the pills and the search's colours with hues that stay apart for a red-green colour-blind eye, in
+  every theme.
+- **The review table answers to the launcher's paper keys**: `i` `r` copy the paper's citation or bibliography
+  entry, `o` opens its PDF, `n` its notes (in the launcher), `z` shows it in Zotero. `/` filters the rows by words in
+  the columns shown; esc clears it.
+- **Delete this table…**, in the table's source menu, asked first: the file goes to the Trash, your columns and
+  their values stay.
+- **Titles in the review table show their italics and bold** (`<i>`, `<b>`, sub- and superscripts) instead of the
+  tags; sorting, the filter and CSV read the plain title.
+- **Calmer footers.** The launcher's shows going back, `/ search`, `? keys` and four keys for where you are; the
+  table's four and `?`. Every key is still in `? keys`.
+- **One set of icons**: the review table draws the launcher's concepts with the same names, and Group, Sort and
+  Order have shapes of their own (three boxes, two arrows, one arrow). A narrow column shows its name, not a lone ▾.
+- Hotkey and Login… says a login problem with a sign and the theme's red.
+- The runner is 0.2.5 (it skips read-only libraries): Settings › Setup offers to reinstall it.
 - **Sort › Manual: a list in your own order.** In a collection, a tag or a saved search, ⇧↑↓ moves the highlighted
   paper and drag and drop puts a paper where you drop it; either switches the list to Manual from the order you see.
   Each list keeps its order in view.json (`paperOrder`, merged per list), so both Macs share it.

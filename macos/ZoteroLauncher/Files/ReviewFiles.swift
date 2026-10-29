@@ -109,6 +109,18 @@ struct ReviewFiles {
         return true
     }
 
+    // A review deleted (its window's Delete this table…): its file to the Trash, so it can be put back. Its columns of
+    // your own and their values stay: another table may show them. Refused while the sync folder is away, and for
+    // anything but a plain file (a link a synced folder sent is never followed).
+    func deleteReview(_ id: String) throws {
+        guard Self.validReview(id) else { throw WriteError.badId }
+        guard !readOnly else { throw WriteError.readOnly }
+        let url = reviewURL(id)
+        guard let v = try? url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]) else { return } // (gone already)
+        guard v.isRegularFile == true, v.isSymbolicLink != true else { throw WriteError.damaged(url.path) }
+        try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+    }
+
     // ---- the files
 
     private func write(_ text: String, to url: URL) throws {

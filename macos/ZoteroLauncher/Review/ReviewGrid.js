@@ -21,6 +21,9 @@ var RT = (function () {
   var previewing = false // the source's box has a query searched as you type, not kept yet
   var built = false
   var showKeys = false
+  var find = "" // the rows' filter (/): words in the columns shown
+  var finding = false // its box in the footer
+  var unfiltered = 0 // the papers before the filter
   var $ = function (id) { return document.getElementById(id) }
 
   function post(type, o) {
@@ -44,12 +47,14 @@ var RT = (function () {
   }
   function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); return e }
 
-  // The toolbar's icons: strokes in the text's colour (an SVG drawn here: the page loads no images).
+  // The page's icons: strokes in the text's colour (an SVG drawn here: the page loads no images), one per concept of the
+  // app's icon map (Icons.concept, the same names: an SF Symbol there, drawn alike here). Group, Sort and Order each
+  // their own shape: three boxes, two arrows, one arrow.
   var ICONS = {
-    group: "M3 4h5v5H3z M11 6.5h10 M3 15h5v5H3z M11 17.5h10",
+    group: "M3 3h8v7H3z M13 3h8v7h-8z M8 14h8v7H8z",
     sort: "M7 20V4 M3 8l4-4 4 4 M17 4v16 M13 16l4 4 4-4",
-    asc: "M3 6h5 M3 12h8 M3 18h11 M18 20V5 M15 8l3-3 3 3",
-    desc: "M3 6h11 M3 12h8 M3 18h5 M18 4v15 M15 16l3 3 3-3",
+    asc: "M12 20V4 M6 10l6-6 6 6",
+    desc: "M12 4v16 M6 14l6 6 6-6",
     lines: "M4 6h16 M4 10.5h16 M4 15h16 M4 19.5h9",
     columns: "M3 4h18v16H3z M9 4v16 M15 4v16",
     addcol: "M3 4h11v16H3z M8.5 4v16 M19 9v6 M16 12h6",
@@ -57,7 +62,28 @@ var RT = (function () {
     panel: "M3 4h18v16H3z M15 4v16 M17.5 8h1.5 M17.5 11h1.5",
     refresh: "M20 12a8 8 0 1 1-2.34-5.66 M20 4v5h-5",
     pin: "M9 3h6 M10 3v6.5L7 13h10l-3-3.5V3 M12 13v8",
-    run: "M7 4.5l12 7.5-12 7.5z"
+    run: "M7 4.5l12 7.5-12 7.5z",
+    // a pill's kind (never told apart by its colour alone: a colour-blind eye can't)
+    status: "M5 21V4 M5 4h12l-2.5 4.5L17 13H5",
+    task: "M4 4h16v16H4z M8 12l3 3 5-6",
+    rank: "M12 3l2.7 5.6 6.1.8-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1-4.4-4.3 6.1-.8z",
+    tax: "M3 3h8l10 10-8 8L3 11z M7.5 7.5h.01",
+    priority: "M12 4v10 M12 19v.5",
+    own: "M4 20l1-4L16 5l3 3L8 19z"
+  }
+  // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
+  // A paper's title with its italics, bold, sub- and superscripts (C.titleRuns), as elements: never markup from the title.
+  function titleView(tag, cls, title) {
+    var runs = C.titleRuns(title)
+    if (!runs.length) runs = [{ text: "Untitled" }]
+    return el(tag, { class: cls }, runs.map(function (r) {
+      var node = document.createTextNode(r.text)
+      ;["sup", "sub", "b", "i"].forEach(function (t) { if (r[t]) node = el(t, {}, [node]) })
+      return node
+    }))
+  }
+  function pill(kind, text) {
+    return el("span", { class: "pill " + kind }, [icon(kind), String(text)])
   }
   function icon(name) {
     var ns = "http://www.w3.org/2000/svg"
@@ -101,6 +127,12 @@ var RT = (function () {
     // grouped: the groups in the group column's order, descending when the sort has that column descending
     var down = review.sort.some(function (k) { return k.column === review.group && k.dir === "desc" })
     groups = C.groupRows(C.sortRows(D.results || [], review.sort, cols, D.ctx, D.cells), review.group, cols, D.ctx, D.cells, down)
+    unfiltered = (D.results || []).length
+    if (find) {
+      var vc = visible()
+      groups = groups.map(function (g) { return Object.assign({}, g, { rows: g.rows.filter(function (r) { return C.rowMatches(r, vc, find, D.ctx, D.cells) }) }) })
+        .filter(function (g) { return g.rows.length })
+    }
     rows = [].concat.apply([], groups.map(function (g) { return g.rows }))
     var ids = {}
     rows.forEach(function (r) { ids[C.paperId(r)] = true })
@@ -220,7 +252,8 @@ var RT = (function () {
       var mark = sortMark(c.id)
       var s = null
       review.sort.forEach(function (k) { if (k.column === c.id) s = k.dir })
-      hr.appendChild(el("th", { class: i === 0 ? "fz1" : "mv", "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
+      // (a narrow column shows its name's first letters, its ▾ on hover: never a header of a ▾ alone)
+      hr.appendChild(el("th", { class: (i === 0 ? "fz1" : "mv") + (c.width < 64 ? " narrow" : ""), "data-c": c.id, "aria-sort": s ? (s === "desc" ? "descending" : "ascending") : null }, [
         el("div", { class: "hcell" }, [
           el("span", { class: "hl" + (c.ai ? " ai" : ""), text: c.label, title: c.label + (c.ai ? " (" + c.kindName + ")" : "") + (c.problem ? ". " + c.problem : c.description ? ": " + c.description : "") + " · a click sorts by it, ⇧-click adds it to the sort" + (i === 0 ? "" : ", a drag moves it") }),
           mark ? el("span", { class: "sortmark", text: mark }) : null,
@@ -301,7 +334,7 @@ var RT = (function () {
   function paperRow(r, vc) {
       var pid = C.paperId(r)
       var tr = el("tr", { class: sel[pid] ? "selrow" : "", "data-p": pid }, [
-        el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + r.title })])])
+        el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + C.plainTitle(r.title) })])])
       ])
       vc.forEach(function (c, i) {
         var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id })
@@ -319,13 +352,13 @@ var RT = (function () {
     var cv = el("div", { class: "cv" + (c.lines === 1 ? " one" : "") + (typeof v === "number" ? " num" : ""), style: h ? "max-height:" + h + "px" : null })
     if (c.ai) { aiCell(c, r, cv, v); return cv }
     if (C.isEmpty(v)) return cv
-    if (c.id === "title") cv.appendChild(el("span", { class: "ptitle", text: v }))
-    else if (c.id === "status") cv.appendChild(el("span", { class: "pill status", text: v }))
-    else if (c.id === "task") cv.appendChild(el("span", { class: "pill task", text: v }))
-    else if (c.order === "abs" || c.order === "abdc") cv.appendChild(el("span", { class: "pill rank", text: (c.order === "abs" ? "ABS " : "ABDC ") + v }))
+    if (c.id === "title") cv.appendChild(titleView("span", "ptitle", r.title))
+    else if (c.id === "status") cv.appendChild(pill("status", v))
+    else if (c.id === "task") cv.appendChild(pill("task", v))
+    else if (c.order === "abs" || c.order === "abdc") cv.appendChild(pill("rank", (c.order === "abs" ? "ABS " : "ABDC ") + v))
     else if (v === true) cv.appendChild(el("span", { text: "✓", title: c.label }))
-    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(el("span", { class: "pill tax", text: l })) })
-    else if (c.type === "choice") cv.appendChild(el("span", { class: "pill own", text: v }))
+    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill("tax", l)) })
+    else if (c.type === "choice") cv.appendChild(pill("own", v))
     else cv.textContent = String(v)
     return cv
   }
@@ -339,8 +372,8 @@ var RT = (function () {
     if (st !== "ok" && st !== "empty") cv.appendChild(el("span", { class: "smark", text: st === "yours" ? "✎" : st === "failed" ? "⚠" : "●", title: stateText(st, rec) }))
     if (C.isEmpty(v)) return
     if (c.kind === "jev-relevance" && typeof v === "number") cv.appendChild(el("span", { class: "pill band b-" + C.band(v), text: v + " " + C.band(v) }))
-    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(el("span", { class: "pill tax", text: l })) })
-    else if (c.type === "choice") cv.appendChild(el("span", { class: "pill tax", text: String(v) + (c.kind === "jev-one" && rec && typeof rec.p === "number" ? " " + Math.round(rec.p * 100) + "%" : "") }))
+    else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill("tax", l)) })
+    else if (c.type === "choice") cv.appendChild(pill("tax", String(v) + (c.kind === "jev-one" && rec && typeof rec.p === "number" ? " " + Math.round(rec.p * 100) + "%" : "")))
     else cv.appendChild(document.createTextNode(String(v)))
   }
 
@@ -390,7 +423,7 @@ var RT = (function () {
     var c = colById(act.c)
     if (!r || !c) { p.appendChild(el("div", { class: "hint", text: "Pick a cell to see its paper, and to change its status, its task or your columns." })); return }
     var pid = C.paperId(r)
-    p.appendChild(el("h3", { text: r.title || "Untitled" }))
+    p.appendChild(titleView("h3", "", r.title))
     p.appendChild(el("div", { class: "sub", text: [r.creator, r.year, r.publication].filter(function (x) { return x }).join(" · ") }))
     var v = C.value(c, r, D.ctx, D.cells)
     if (c.id === "status" || c.id === "task") {
@@ -406,7 +439,7 @@ var RT = (function () {
     } else if (c.own && c.type === "choice") {
       p.appendChild(el("div", {}, [el("div", { class: "ilab", text: c.label }),
         pills("own", [{ value: "", label: "not set" }].concat(c.options.map(function (o) { return { value: o, label: o } })), v, "own")]))
-      p.appendChild(el("div", { class: "ibox you", text: "Your column. Pick its value here: a click on the cell only selects it." + (c.description ? " " + c.description : "") }))
+      p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its value here (a click on the cell only selects it)" }))
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
       p.appendChild(el("div", { class: "ibox you" }, [el("div", { class: "ptext", text: v || "Empty." }), el("div", { class: "hint", text: "↵ or a double-click edits it; ⌘↵ keeps it, esc drops it." })]))
@@ -464,16 +497,58 @@ var RT = (function () {
     return name
   }
 
+  // The footer: four keys and ? for the rest (or the filter's box), and how many papers.
   function drawFoot() {
-    var f = clear($("foot"))
-    f.appendChild(el("span", { text: editing ? "⌘↵ keep · esc drop" : "↑↓←→ move · space select · ↵ edit · ⌥→← status · ⇧⌥→← task · ⌥⌘←→ move column · ⌥⌘I panel · ⌘- ⌘+ text · ⇧⌘R run · ? keys" }))
+    var f = $("foot")
+    if (!(finding && $("find"))) { // (the box kept as you type in it)
+      clear(f)
+      f.appendChild(finding ? findBox() : el("span", { text: editing ? "⌘↵ keep · esc drop" : "↵ edit · i r cite · o pdf · / filter · ? keys" }))
+      f.appendChild(el("span", { id: "fcount" }))
+    }
     var n = rows.length
-    var count = D.loading && !n ? "…" : n + (n === 1 ? " paper" : " papers") + (D.total > n ? " (the first " + n + " of " + D.total + ")" : "")
+    var count = D.loading && !n ? "…" : find ? n + " of " + unfiltered + (unfiltered === 1 ? " paper" : " papers")
+      : n + (n === 1 ? " paper" : " papers") + (D.total > n ? " (the first " + n + " of " + D.total + ")" : "")
     var nsel = Object.keys(sel).length
     if (nsel) count += " · " + nsel + " selected"
     if (D.readOnly) count += " · read only: the sync folder isn't there"
     if (D.run) count += " · AI run: " + (D.run.stage || "starting")
-    f.appendChild(el("span", { class: flashText ? "flash" : D.problem && n ? "problem" : "", text: flashText || (D.problem && n ? D.problem : count) }))
+    var c = $("fcount")
+    c.className = flashText ? "flash" : D.problem && n ? "problem" : ""
+    c.textContent = flashText || (D.problem && n ? D.problem : count)
+  }
+
+  // / : the rows filtered by what you type (each word in a column shown); ↵ or ↓ back to the table with it, esc clears it.
+  function findBox() {
+    var box = el("input", { id: "find", type: "text", class: "find", placeholder: "Filter: words in the columns shown", "aria-label": "Filter the rows", value: find, spellcheck: "false" })
+    box.addEventListener("input", function () { find = box.value.trim() ? box.value : ""; refilter() })
+    box.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); clearFind() }
+      else if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); e.stopPropagation(); if (!find) clearFind(); else $("gw").focus() }
+    })
+    return box
+  }
+  function openFind() {
+    finding = true
+    drawFoot()
+    $("find").focus()
+    $("find").select()
+  }
+  function clearFind() {
+    find = ""
+    finding = false
+    refilter()
+    drawFoot()
+    $("gw").focus()
+  }
+  function refilter() { resolve(); drawGrid(); drawPanel(); drawFoot() }
+
+  // A paper's letter, as the launcher's: i its citation, r its bibliography entry (copied), o its PDF, n its notes (in the
+  // launcher), z the paper in Zotero.
+  var PAPER_KEYS = { i: "citation", r: "bibliography", o: "external", n: "notes", z: "zotero" }
+  function paperKey(r, what) {
+    if (!r) return
+    if (what === "zotero") return openPaper(r)
+    post("paper", { what: what, paper: { key: r.key, libraryID: Number(r.libraryID) || 1, title: C.plainTitle(r.title), itemType: r.itemType || "" } })
   }
 
   // ------------------------------------------------------------ changes
@@ -494,7 +569,7 @@ var RT = (function () {
     D.ctx.tasks = D.ctx.tasks || {}
     var had = D.ctx.tasks[C.paperId(r)]
     D.ctx.tasks[C.paperId(r)] = { id: s.id, name: s.name }
-    post("task", { paper: { key: r.key, libraryID: Number(r.libraryID) || 1, title: r.title, creator: r.creator || "", year: String(r.year || "") }, status: s.id })
+    post("task", { paper: { key: r.key, libraryID: Number(r.libraryID) || 1, title: C.plainTitle(r.title), creator: r.creator || "", year: String(r.year || "") }, status: s.id })
     flash((had ? "Task now: " : "New task: ") + s.name)
     redrawRow(r)
   }
@@ -789,7 +864,7 @@ var RT = (function () {
       el("div", { class: "ph", text: "The table follows as you type · ↵ keeps it · esc goes back · ⌘S saves it as a search" }),
       item("Save it as a search…", { "data-savesearch": "1" }, "⌘S"),
       el("div", { class: "ph", text: "A collection or a tag: open it in the launcher, then ⌘T." }),
-      el("hr"), item("Rename this review…", { "data-rename": "1" }))
+      el("hr"), item("Rename this review…", { "data-rename": "1" }), item("Delete this table…", { "data-delete": "1" }))
     openPop(anchor, kids, function (p) {
       var box = $("srcq")
       segFor = ""
@@ -805,6 +880,7 @@ var RT = (function () {
         }
         if (e.target.closest("[data-savesearch]")) return saveSearchDialog(box.value)
         if (e.target.closest("[data-rename]")) { closePop(); renameDialog() }
+        if (e.target.closest("[data-delete]")) { closePop(); deleteDialog() }
       })
       box.addEventListener("input", function () {
         askSegments(box)
@@ -891,6 +967,18 @@ var RT = (function () {
       var go = function () { var n = $("rname").value.trim(); if (!n) return; review.name = n; closeModal(); drawToolbar(); post("rename", { name: n }) }
       $("rsave").addEventListener("click", go)
       $("rname").addEventListener("keydown", function (e) { if (e.key === "Enter") go() })
+    })
+  }
+
+  // Delete this table…: asked first, the house way. Its file goes to the Trash; your columns and their values stay.
+  function deleteDialog() {
+    if (D.readOnly) return flash("Not saved: the sync folder isn't there")
+    openModal([el("header", {}, [el("h2", { text: "Delete the table “" + review.name + "”?" }),
+      el("p", { text: "Its file goes to the Trash. Your columns and what you wrote in them stay: other tables can show them." })]),
+      el("footer", {}, [el("span", { class: "fill" }), el("button", { class: "tb", type: "button", "data-close": "1", id: "dkeep", text: "Keep it" }),
+        el("button", { class: "tb danger", type: "button", id: "ddel", text: "Delete it" })])], function () {
+      $("ddel").addEventListener("click", function () { closeModal(); post("delete") })
+      $("dkeep").focus()
     })
   }
 
@@ -1114,7 +1202,9 @@ var RT = (function () {
     showKeys = true
     var K = [["↑↓←→", "Move between cells"], ["home end", "The row's first and last column"], ["pgup pgdn", "A page up or down"], ["space", "Select the paper's row"],
       ["↵", "Edit a cell of yours (text)"], ["⌘↵ esc", "Keep, or drop, what you typed"], ["⌥→ ⌥←", "The paper's status"], ["⇧⌥→ ⇧⌥←", "Its task's status"],
-      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"], ["⌘O", "Show the paper in Zotero"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
+      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
+      ["i r", "Copy the paper's citation, its bibliography entry"], ["o", "Open its PDF"], ["n", "Its notes, in the launcher"], ["z ⌘O", "Show the paper in Zotero"],
+      ["/", "Filter the rows (esc clears it)"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
       ["⇧-click", "A header: add it to the sort"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
     var dl = el("dl")
     K.forEach(function (k) { dl.appendChild(el("dt", { text: k[0] })); dl.appendChild(el("dd", { text: k[1] })) })
@@ -1316,6 +1406,7 @@ var RT = (function () {
       if (modalEl) { closeModal(); return }
       if ($("keys")) { keysPanel(); return }
       if (shutPeek()) return
+      if (find || finding) clearFind()
       return
     }
     if (typing || modalEl) return
@@ -1323,6 +1414,7 @@ var RT = (function () {
     if (meta && !alt && e.key.toLowerCase() === "e") { e.preventDefault(); return exportCsv() }
     if (meta && shift && !alt && e.key.toLowerCase() === "r") { e.preventDefault(); var ac = colById(act.c); return runDialog(ac && ac.ai ? ac : null) }
     if (meta && !alt && e.key.toLowerCase() === "o") { e.preventDefault(); return openPaper(actRow()) }
+    if (e.key === "/" && !meta && !alt && !e.ctrlKey) { e.preventDefault(); return openFind() }
     if (!rows.length) return
     var vc = visible()
     var ci = 0
@@ -1334,6 +1426,7 @@ var RT = (function () {
     if (arrow && alt && shift) { e.preventDefault(); return cycleTask(r, arrow) }
     if (arrow && alt) { e.preventDefault(); return cycleStatus(r, arrow) }
     if (meta) return
+    if (!alt && !e.ctrlKey && PAPER_KEYS[e.key]) { e.preventDefault(); return paperKey(r, PAPER_KEYS[e.key]) }
     var page = Math.max(1, Math.floor($("gw").clientHeight / 40))
     var nr = ri, nc = ci
     if (e.key === "ArrowDown") nr = Math.min(rows.length - 1, ri + 1)
