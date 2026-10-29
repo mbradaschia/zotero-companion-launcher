@@ -8,6 +8,7 @@ extension LauncherModel {
         do {
             let (paths, machine, raw) = try AppPaths.resolveAll(core, env: env)
             self.paths = paths
+            UsageLog.shared.paths = paths
             pathsJSON = raw
             let settings = AppSettings.load(core, paths: paths, machine: machine)
             self.settings = settings

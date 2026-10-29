@@ -156,6 +156,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
             panel.setFrame(NSRect(origin: NSPoint(x: frame.midX - size.width / 2, y: max(frame.minY, y)), size: size), display: false)
         }
         model.willShow()
+        UsageLog.shared.count(model.windowed ? "open:window" : "open:overlay")
         visible = true
         startMonitor()
         if model.windowed { NSApp.activate() }

@@ -127,6 +127,8 @@ function resolve(env, machineSettings, probe) {
     chats: place("chats", join(b.state, "chats")),
     // the review tables: a review per file, its columns (columns/) and their values (cells/)
     reviews: place("reviews", join(b.cdir, "reviews")),
+    // which features are used, a file per machine (usage/<machine>.json): counts of the app's own names, nothing typed
+    usage: place("usage", join(b.state, "usage")),
     artifacts: typeof artifactsDir === "string" && artifactsDir.trim() ? join(expandHome(artifactsDir.trim(), b.home)) : place("artifacts", join(b.state, "artifacts")),
     extract: join(b.cdir, "extract.json"),
     runnerTasks: join(b.state, "tasks"),

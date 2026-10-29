@@ -9,6 +9,7 @@ extension LauncherModel {
     func enterActions(_ index: Int, quick: String = "") {
         guard searchRows.indices.contains(index) else { return }
         let row = searchRows[index]
+        UsageLog.shared.count("result:" + row.kind + (quick.isEmpty ? "" : ">" + quick))
         if row.kind == "collection" || row.kind == "tag" {
             if quick.isEmpty { openCollection(row) } // the paper letters are for papers
             return
@@ -236,6 +237,7 @@ extension LauncherModel {
         // a taxonomy form's field, Ask the AI: typed on Settings' typing page (not row ids of the QML's actions)
         if ["tax-field", "tax-label-field", "tax-ai-ask"].contains(row.rowId) { return openTaxonomyField(row) }
         if row.rowId == "tasks-stop-all" { _ = runnerAction(row); return } // (the Mac's own: not a row of the QML's activateAction)
+        UsageLog.shared.count("row:" + row.rowId)
         if let handler = ActionMap.handlers[row.rowId] { handler(self, row) }
         else if !ActionMap.inert.contains(row.rowId) { notYet("what this row does") } // (an inert row does nothing, without a word)
     }
@@ -243,6 +245,7 @@ extension LauncherModel {
     // Close the launcher first (Zotero or the viewer takes focus), then act (ZoteroSearch.qml:3928).
     func finish(_ kind: String, attachment: [String: Any]?) {
         let item = actionItem
+        UsageLog.shared.count("paper:" + kind) // (open, reveal, external, window, cite…: what a paper was opened with)
         dismiss()
         switch kind {
         case "open", "reveal":

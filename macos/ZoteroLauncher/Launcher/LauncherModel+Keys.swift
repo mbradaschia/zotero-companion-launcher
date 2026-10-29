@@ -40,6 +40,7 @@ extension LauncherModel {
     // → whether it was taken.
     @discardableResult
     func execute(_ command: KeyCommand) -> Bool {
+        if let name = Self.usageName(command) { UsageLog.shared.count("cmd:" + name) }
         switch command {
         case .home:
             escLaunchAsk()
@@ -67,10 +68,10 @@ extension LauncherModel {
             if !store.filterText.isEmpty { setFilter("") }
             if !store.textEntry { store.searchFocus = true }
         case .pick(let n): pickNumber(n)
-        case .keyAction(let c): return keyAction(c) // Alt+letter: only what it does, else the key goes on
+        case .keyAction(let c): return countedKey(c) // Alt+letter: only what it does, else the key goes on
         case .keyActionOrTyping(let c):
             // (pages whose rows are fixed: a letter that does nothing there types nothing either)
-            if !keyAction(c) && !["prompt-edit", "todo-edit", "settings-taxonomy", "settings-tax-label", "settings-tax-ai"].contains(store.view) { startTyping(String(c)) }
+            if !countedKey(c) && !["prompt-edit", "todo-edit", "settings-taxonomy", "settings-tax-label", "settings-tax-ai"].contains(store.view) { startTyping(String(c)) }
         case .typing(let text): startTyping(text)
         case .queue: break // KeyBuffer's
         case .editSearch(let edit):
@@ -211,6 +212,48 @@ extension LauncherModel {
     }
 
     // keyAction (ZoteroSearch.qml:1971) for what exists on the Mac. → handled (else it is typing).
+    // A command the usage log counts by name ("cmd:cycleStatus"); moving, typing and the keys' own waiting aren't.
+    static func usageName(_ command: KeyCommand) -> String? {
+        switch command {
+        case .home: return "home"
+        case .back: return "back"
+        case .close: return "close"
+        case .openKeys: return "openKeys"
+        case .alternate: return "alternate"
+        case .clearSearchBox: return "clearSearchBox"
+        case .pick: return "pick"
+        case .paste: return "paste"
+        case .createTag: return "createTag"
+        case .saveSearch: return "saveSearch"
+        case .openReview: return "openReview"
+        case .openPicker: return "openPicker"
+        case .openTaskTags: return "openTaskTags"
+        case .moveSection: return "moveSection"
+        case .moveRow: return "moveRow"
+        case .cycleStatus: return "cycleStatus"
+        case .cycleDefaultTask: return "cycleDefaultTask"
+        case .cycleTask: return "cycleTask"
+        case .cycleSearch: return "cycleSearch"
+        case .cycleTaskStatus: return "cycleTaskStatus"
+        case .cycleTaskPriority: return "cycleTaskPriority"
+        case .deleteTask: return "deleteTask"
+        case .deleteNote: return "deleteNote"
+        case .rejectSuggestion: return "rejectSuggestion"
+        case .hideNotes: return "hideNotes"
+        case .leaveSearch, .clearFilter, .note, .calendarDays, .calendarMonths, .calendarToday, .clearDue, .pickDue,
+             .keyAction, .keyActionOrTyping, .queue, .typing, .editSearch, .editFilter, .append, .focusSearch, .move, .page,
+             .enterActions, .activate, .ignore, .pass:
+            return nil
+        }
+    }
+
+    // A key's action, counted when it acted (the usage log: "key:i").
+    private func countedKey(_ c: Character) -> Bool {
+        let took = keyAction(c)
+        if took { UsageLog.shared.count("key:" + String(c)) }
+        return took
+    }
+
     func keyAction(_ c: Character) -> Bool {
         if let n = c.wholeNumberValue, c.isASCII, (1...9).contains(n) { pickNumber(n); return true }
         let accel = settings?.values.accelerators ?? true

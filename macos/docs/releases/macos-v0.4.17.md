@@ -25,6 +25,11 @@ from before (a year, oldest first) re-sorted typed results too, so the best matc
 **A place you type in full is where the cursor starts.** Typing "settings", "new task" or a saved search's whole name
 puts the cursor on it, above the papers, so ↵ opens it. A part of a name ("sett") still starts on the papers.
 
+**It counts which features you use, for you only.** A count a day of the keys, rows, views, review-table actions
+and windows you use, by the app's own names, in the sync folder's `usage/<this Mac>.json`, so the app can be shaped by
+what you actually do. Never what you type, a paper, a note or a tag, and nothing is sent anywhere. *Hotkey and Login… ›
+Count which features I use* turns it off.
+
 **The window is a regular one.** The app launches as a regular app, so tiling window managers (TileMyMac, AeroSpace,
 yabai, Amethyst) manage the window W opens: it stays on its Space, tiles, and can go full screen. With Settings ›
 General › In the Dock and ⌘Tab off, the Dock icon shows a moment at launch. The overlay the hotkey opens still floats

@@ -10,17 +10,17 @@ struct MenuBarMenu: View {
     @ObservedObject var reviews: ReviewShelf
 
     var body: some View {
-        Button(openTitle) { launcher.toggle() }
+        Button(openTitle) { UsageLog.shared.count("menu:open"); launcher.toggle() }
             .onAppear { reviews.refresh() } // (each time the menu opens: a review made on the other Mac shows)
         Divider()
         Menu("Review Tables") {
             if reviews.list.isEmpty { Text("None yet: ⌘T in the launcher opens its results as one") }
-            ForEach(reviews.list) { r in Button(r.name) { launcher.openReview(r.id) } }
+            ForEach(reviews.list) { r in Button(r.name) { UsageLog.shared.count("menu:review"); launcher.openReview(r.id) } }
         }
-        Button("Chats…") { launcher.show(place: "chats") }
-        Button("Processes…") { launcher.show(place: "tasks") }
-        Button("Settings…") { launcher.show(place: "settings") }
-        Button("Sync Zotero") { launcher.show(place: "sync") }
+        Button("Chats…") { UsageLog.shared.count("menu:chats"); launcher.show(place: "chats") }
+        Button("Processes…") { UsageLog.shared.count("menu:processes"); launcher.show(place: "tasks") }
+        Button("Settings…") { UsageLog.shared.count("menu:settings"); launcher.show(place: "settings") }
+        Button("Sync Zotero") { UsageLog.shared.count("menu:sync"); launcher.show(place: "sync") }
         Divider()
         Toggle("Open at Login", isOn: Binding(get: { login.enabled }, set: { login.set($0) }))
         if !login.problem.isEmpty || login.needsApproval { Text(login.detail) } // (a failure, said where it happened)
