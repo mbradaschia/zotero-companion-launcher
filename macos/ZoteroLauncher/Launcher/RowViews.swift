@@ -11,9 +11,11 @@ struct SearchRowView: View {
 
     var body: some View {
         HStack(spacing: RowMetrics.iconGap) {
-            RowIcon(glyph: row.icon, symbol: row.symbol)
+            // a paper's icon tells whether it has a PDF (solid) or not (hollow), so it is always the symbol
+            RowIcon(glyph: row.isPaper ? "" : row.icon, symbol: row.symbol)
                 .frame(width: 20)
                 .foregroundStyle(selected ? palette.onAccent : palette.subtext)
+                .help(row.isPaper ? (row.hasPdf ? "Has a PDF" : "No PDF") : "")
             VStack(alignment: .leading, spacing: RowMetrics.lineGap) {
                 Text(StyledText.attributed(row.titleHtml, colored: !selected))
                     .lineLimit(1)

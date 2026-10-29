@@ -260,6 +260,10 @@ told by colour gets a sign as well: a top rank's ★, a negated search block str
 (`SafeColours`) in every theme; ThemeTests keeps the five kinds ΔE ≥ 15 apart under protanopia and
 deuteranopia.
 
+**A paper's icon says whether it has a PDF** by its shape: its type's symbol solid with a PDF attached, hollow
+without (`SearchRow.paperSymbol`; a journal article `doc.text.fill` / `doc.text`). It is drawn as the SF Symbol even
+when the Nerd Font is there, hovering it says *Has a PDF* or *No PDF*, and VoiceOver reads the same.
+
 ## Themes
 
 - **Every colour is the theme's** (`Core/Theme.swift`, Settings › General › Appearance): views read `palette` from the

@@ -7,6 +7,12 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.20`)
+
+- **You see which papers have a PDF.** A paper's icon in the results and lists is solid when it has a PDF attached
+  and hollow when it hasn't (the same shape for its type: a page for an article, a book for a book). Shape, not
+  colour, tells them apart; hovering the icon says *Has a PDF* or *No PDF*, and VoiceOver reads it too.
+
 ### The Mac app (`macos-v0.4.19`)
 
 - **Sort before you type.** The top level has a Sort and an Order of its own: Recent (as before), date added, date

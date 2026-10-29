@@ -26,6 +26,7 @@ enum Access {
     static func label(_ row: SearchRow) -> String {
         var parts = [row.title, row.subtitle]
         parts += row.ranks.split(separator: "|").map { pill(String($0), kind: "rank") }
+        if row.isPaper { parts.append(row.hasPdf ? "has a PDF" : "no PDF") }
         if row.openState == "current" { parts.append("showing in Zotero") } else if row.openState == "open" { parts.append("open in Zotero") }
         return joined(parts)
     }
