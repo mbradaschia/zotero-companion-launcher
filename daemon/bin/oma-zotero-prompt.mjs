@@ -138,6 +138,13 @@ function args(argv) {
   return out;
 }
 
+// A paper in a library you can't write to (a group you only read, a feed): nothing the runner writes there would
+// save, so it isn't run at all (no model asked, no note, no tags). → the reason, or "" when it can be written.
+function readOnlyReason(details) {
+  const lib = details && details.library;
+  return lib && lib.editable === false ? `“${lib.name || "This library"}” is read-only: skipped` : "";
+}
+
 // Everything the prompt gets about the item.
 // extractFirst: the text saved as its note first when it has none (automatic runs: --extract-first).
 async function gather(bridge, key, libraryID, source = "auto", extractFirst = false) {
@@ -338,6 +345,15 @@ async function run(id, flags) {
   if (!/^[A-Z0-9]{8}$/.test(key)) throw new Error("--key <item key> is required");
   const libraryID = flags.library != null ? Number(flags.library) : undefined;
   const prompt = loadPrompt(id);
+  if (!flags["dry-run"] && prompt.output === "note") {
+    // a note can't be saved in a library you only read: skipped before any model is asked (not a failed process)
+    const why = readOnlyReason(await bridgeClient().post("/item", { key, libraryID }));
+    if (why) {
+      log("skipped", { prompt: id, key, reason: "read-only library" });
+      process.stdout.write(why + "\n");
+      return;
+    }
+  }
   if (!flags["dry-run"] && !lock(key, id)) {
     notify(`“${prompt.title}” is already running`, "on this item: its note will appear when it's done");
     return;
@@ -412,6 +428,7 @@ async function extract(flags) {
   const bridge = bridgeClient();
   const details = await bridge.post("/item", { key, libraryID });
   if (!details.paper) throw new Error("text is extracted from a paper's PDF, not from a " + details.item.itemType);
+  if (readOnlyReason(details)) throw new Error(readOnlyReason(details));
   const existing = (details.notes || []).find((n) => n.fulltext);
   const say = (o) => process.stdout.write((flags.json ? JSON.stringify(o) : o.message) + "\n");
   if (existing && !flags.force) {
@@ -595,6 +612,7 @@ async function classify(flags) {
     try {
       const details = await bridge.post("/item", { key, libraryID: Number(lib) });
       if (!details.paper) { results.push({ id, status: "skipped", reason: "not a paper" }); continue; }
+      if (readOnlyReason(details)) { results.push({ id, status: "skipped", reason: readOnlyReason(details) }); continue; }
       const p = details.paper;
       const cite = [p.authors, p.year ? "(" + p.year + ")" : ""].filter(Boolean).join(" ") || p.title;
       task = startTask({ kind: "classify", title: "Tag by taxonomies", key, libraryID: Number(lib), paper: cite });
@@ -692,11 +710,11 @@ async function catchupPlan(flags) {
     const promptsMode = flags["prompts-mode"] === "replace" ? "replace" : "missing";
     const tagMode = flags["tag-mode"] === "replace" ? "replace" : "missing";
     let jobs = recentJobs(papers, { textless, extract: !!flags.extract, tag: !!flags.tag, store, taxonomies, prompts: wanted, runs, versions, promptsMode, tagMode });
-    // "missing": what Zotero shows done is left alone (another computer's runs: its notes and tags sync, this machine's
-    // records don't), each candidate paper asked once
-    const check = jobs.filter((j) => (j.op === "prompt" && promptsMode === "missing") || (j.op === "classify" && tagMode === "missing"));
-    if (check.length) {
-      const ids = [...new Set(check.map((j) => j.id))];
+    // every candidate paper asked once: "missing" leaves what Zotero shows done alone (another computer's runs: its
+    // notes and tags sync, this machine's records don't), and a paper in a read-only library is left out whatever the
+    // mode (nothing written there would save)
+    if (jobs.length) {
+      const ids = [...new Set(jobs.map((j) => j.id))];
       const items = new Map();
       for (let i = 0; i < ids.length; i += 6) {
         await Promise.all(ids.slice(i, i + 6).map(async (id) => {
@@ -705,7 +723,8 @@ async function catchupPlan(flags) {
         }));
       }
       const promptList = wanted.length ? listPrompts() : [];
-      jobs = jobs.filter((j) => !((j.op === "prompt" && promptsMode === "missing") || (j.op === "classify" && tagMode === "missing")) || !doneInZotero(j, items.get(j.id), { taxonomies, prompts: promptList }));
+      jobs = jobs.filter((j) => !readOnlyReason(items.get(j.id)))
+        .filter((j) => !((j.op === "prompt" && promptsMode === "missing") || (j.op === "classify" && tagMode === "missing")) || !doneInZotero(j, items.get(j.id), { taxonomies, prompts: promptList }));
     }
     out.recent = { jobs, papers: paperCount(jobs), added: papers.length };
   }
@@ -782,6 +801,7 @@ async function extractBatch(flags) {
     const [lib, key] = id.split(":");
     try {
       const details = await bridge.post("/item", { key, libraryID: Number(lib) });
+      if (readOnlyReason(details)) { results.push({ id, status: "skipped", reason: readOnlyReason(details) }); continue; }
       const pdf = details.paper ? await pdfOf(bridge, details) : null;
       let bytes = 0;
       try { bytes = pdf ? statSync(pdf.path).size : 0; } catch (e) { bytes = 0; }

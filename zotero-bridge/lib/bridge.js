@@ -503,7 +503,8 @@ var OmaBridge = class {
   async extractPending(req) {
     const entries = await this._scopeEntries(req);
     const { since = "", exclude = null, limit = 5 } = req;
-    return OmaBridge.pendingExtraction(entries, { since: String(since || ""), exclude: Array.isArray(exclude) ? exclude.slice(0, 20000) : [], limit: Math.max(0, Math.min(2000, parseInt(limit, 10) || 0)) });
+    return OmaBridge.pendingExtraction(entries, { since: String(since || ""), exclude: Array.isArray(exclude) ? exclude.slice(0, 20000) : [], limit: Math.max(0, Math.min(2000, parseInt(limit, 10) || 0)),
+      libraries: OmaBridge.editableLibraries() });
   }
 
   // Papers to tag by taxonomies: in a collection, a tag or a saved search, or added since `since`;
@@ -513,15 +514,23 @@ var OmaBridge = class {
     const entries = await this._scopeEntries(req);
     const { since = "", before = "", exclude = null, textFirst = false, textless = null, limit = 5 } = req;
     return OmaBridge.selectPapers(entries, { since: String(since || ""), before: String(before || ""), exclude: Array.isArray(exclude) ? exclude.slice(0, 20000) : [], textFirst: !!textFirst,
-      textless: Array.isArray(textless) ? textless.slice(0, 20000) : [], limit: Math.max(0, Math.min(2000, parseInt(limit, 10) || 0)) });
+      textless: Array.isArray(textless) ? textless.slice(0, 20000) : [], limit: Math.max(0, Math.min(2000, parseInt(limit, 10) || 0)), libraries: OmaBridge.editableLibraries() });
+  }
+
+  // The libraries you can write to (a group you only read is left out): automation writes a note or tags on what it
+  // picks, so it picks only there.
+  static editableLibraries() {
+    return Zotero.Libraries.getAll().filter((l) => l.editable).map((l) => l.libraryID);
   }
 
   // before: added before it (a paper just added waits: Zotero may still be fetching its PDF).
-  static selectPapers(entries, { since = "", before = "", exclude = [], textFirst = false, textless = [], limit = 5 } = {}) {
+  // libraries: the libraryIDs to pick from (null: every one).
+  static selectPapers(entries, { since = "", before = "", exclude = [], textFirst = false, textless = [], limit = 5, libraries = null } = {}) {
     const skip = new Set(exclude.map(String));
+    const libs = Array.isArray(libraries) ? new Set(libraries.map(Number)) : null;
     const anyway = new Set(textless.map(String));
     const id = (e) => e.libraryID + ":" + e.key;
-    const list = entries.filter((e) => e.itemType !== "attachment" && (!since || String(e.dateAdded || "") >= since) && (!before || String(e.dateAdded || "") < before) && !skip.has(id(e))
+    const list = entries.filter((e) => e.itemType !== "attachment" && (!libs || libs.has(Number(e.libraryID))) && (!since || String(e.dateAdded || "") >= since) && (!before || String(e.dateAdded || "") < before) && !skip.has(id(e))
       && (!textFirst || !e.pdfCount || e.extracted || anyway.has(id(e))));
     list.sort((a, b) => OmaBridge.newestFirst(String(a.dateAdded || ""), String(b.dateAdded || "")));
     return { total: list.length, items: list.slice(0, limit).map((e) => ({ key: e.key, libraryID: e.libraryID, title: e.title })) };
@@ -547,9 +556,10 @@ var OmaBridge = class {
   }
 
   // Pure: the entries with a PDF and no extracted text (newest PDF first) → { total, items }.
-  static pendingExtraction(entries, { since = "", exclude = [], limit = 5 } = {}) {
+  static pendingExtraction(entries, { since = "", exclude = [], limit = 5, libraries = null } = {}) {
     const skip = new Set(exclude.map(String));
-    const list = entries.filter((e) => e.itemType !== "attachment" && e.pdfCount > 0 && !e.extracted && (!since || String(e.pdfAdded || "") >= since) && !skip.has(e.libraryID + ":" + e.key));
+    const libs = Array.isArray(libraries) ? new Set(libraries.map(Number)) : null;
+    const list = entries.filter((e) => e.itemType !== "attachment" && (!libs || libs.has(Number(e.libraryID))) && e.pdfCount > 0 && !e.extracted && (!since || String(e.pdfAdded || "") >= since) && !skip.has(e.libraryID + ":" + e.key));
     list.sort((a, b) => OmaBridge.newestFirst(String(a.pdfAdded || ""), String(b.pdfAdded || "")));
     return { total: list.length, items: list.slice(0, limit).map((e) => ({ key: e.key, libraryID: e.libraryID, title: e.title })) };
   }
