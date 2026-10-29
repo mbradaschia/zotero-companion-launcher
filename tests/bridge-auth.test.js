@@ -139,6 +139,31 @@ test("recencyOf: 'latest' is the newer of added and modified, per item; newest f
   assert.deepEqual(order("modified"), [0, 1, 2]);
 });
 
+test("sortOptions and sortEntries: the launcher's sort before the list is cut; no value last either way", () => {
+  const { sandbox } = loadBridge();
+  const B = sandbox.OmaBridge;
+  const opts = (raw) => JSON.parse(JSON.stringify(B.sortOptions(raw)));
+  assert.deepEqual(opts({ by: "year", order: "asc" }), { by: "year", order: "asc" });
+  assert.deepEqual(opts({ by: "title" }), { by: "title", order: "desc" });
+  assert.equal(B.sortOptions({ by: "relevance" }), null);
+  assert.equal(B.sortOptions(null), null);
+  assert.equal(B.sortOptions(["year"]), null);
+  const e = (key, f) => Object.assign({ key, title: "", creator: "", year: "", dateAdded: "", dateModified: "" }, f);
+  const list = [
+    e("A", { year: "2019", title: "beta", creator: "Smith", dateAdded: "2026-01-01 00:00:00" }),
+    e("B", { year: "", title: "Alpha", creator: "", dateAdded: "2026-03-01 00:00:00" }),
+    e("C", { year: "987", title: "gamma", creator: "adams", dateAdded: "2026-02-01 00:00:00" }),
+    e("D", { year: "2019", title: "", creator: "Kong", dateAdded: "" }),
+  ];
+  const keys = (by, order) => Array.from(B.sortEntries(list, { by, order })).map((x) => x.key).join("");
+  assert.equal(keys("year", "asc"), "CADB"); // 987 before 2019 (not as text); a tie keeps the list's order
+  assert.equal(keys("year", "desc"), "ADCB");
+  assert.equal(keys("title", "asc"), "BACD"); // case doesn't count
+  assert.equal(keys("author", "asc"), "CDAB");
+  assert.equal(keys("added", "desc"), "BCAD");
+  assert.equal(list.map((x) => x.key).join(""), "ABCD", "the list itself isn't changed");
+});
+
 test("pendingExtraction: papers with a PDF and no extracted text, newest PDF first; since, exclude, limit", () => {
   const { sandbox } = loadBridge();
   const e = (key, fields) => Object.assign({ key, libraryID: 1, title: key, itemType: "journalArticle", pdfCount: 1, extracted: false, pdfAdded: "2026-01-01 00:00:00" }, fields);

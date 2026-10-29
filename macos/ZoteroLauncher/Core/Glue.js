@@ -24,7 +24,47 @@ var Glue = (function () {
   // stays): the rest of the launcher's places come in later phases. With none left above the
   // papers, the papers lose their heading, as lib/Views.js's buildRows does.
   // ---- the results' Group, Sort and Order
-  var SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["manual", "Manual"]]
+  var SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["title", "Title"],
+    ["author", "First author"], ["manual", "Manual"]]
+  // Before you type (view.json's topSort, topOrder): the recent papers, or the library's first ones in a sort the bridge
+  // applies before it cuts the list (bridge 0.2.6; an older one sorts only the recent few)
+  var TOP_SORTS = [["recent", "Recent"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["title", "Title"],
+    ["author", "First author"]]
+  var BRIDGE_SORTS = ["added", "modified", "year", "title", "author"]
+  var topArrangement = function (values) {
+    var v = values && typeof values === "object" ? values : {}
+    var a = { group: "", sort: "recent", order: v.topOrder === "asc" ? "asc" : "desc" }
+    for (var i = 0; i < TOP_SORTS.length; i++) if (TOP_SORTS[i][0] === v.topSort) a.sort = v.topSort
+    return a
+  }
+  // A paper's value for a sort (a row's answer from the bridge): "" when it has none.
+  var sortKey = function (by, x) {
+    if (by === "year") { var y = Number(x.year) || 0; return y > 0 ? ("000" + y).slice(-4) : "" }
+    if (by === "title") return String(x.title || "").trim().toLowerCase()
+    if (by === "author") return String(x.creator || "").trim().toLowerCase()
+    return String((by === "added" ? x.dateAdded : x.dateModified) || "")
+  }
+  var bySortKey = function (order) {
+    return function (p, q) {
+      if (p.k !== q.k) {
+        if (!p.k || !q.k) return p.k ? -1 : 1
+        return (p.k < q.k ? -1 : 1) * (order === "asc" ? 1 : -1)
+      }
+      return p.i - q.i
+    }
+  }
+  var RECENT_SECTIONS = ["Recently added", "Recently modified", "Recent"]
+  // The top level's recent papers in its sort, under Papers; the pins and the open papers stay as they are.
+  var arrangeTop = function (rows, a, response) {
+    if (a.sort === "recent") return rows
+    var raw = {}
+    ;(response.recent || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
+    var isRecent = function (r) { return r.kind === "item" && RECENT_SECTIONS.indexOf(r.section) >= 0 }
+    var papers = rows.filter(isRecent).map(function (r, i) { return { r: r, i: i, k: sortKey(a.sort, raw[r.libraryID + ":" + r.key] || {}) } })
+    papers.sort(bySortKey(a.order))
+    var n = 0
+    return rows.map(function (r) { return isRecent(r) ? Object.assign({}, papers[n++].r, { section: "Papers" }) : r })
+  }
   var isGroup = function (id) { return id === "status" || id === "task" || id === "taskgroup" || /^tax:./.test(String(id)) }
   var arrangement = function (values) {
     var v = values && typeof values === "object" ? values : {}
@@ -56,19 +96,8 @@ var Glue = (function () {
       var raw = {}
       ;(info.results || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
       var isPaper = function (r) { return r.kind === "item" && r.section !== "Pinned" }
-      var keyOf = function (r) {
-        var x = raw[r.libraryID + ":" + r.key] || {}
-        if (a.sort === "year") { var y = Number(x.year) || 0; return y ? String(y) : "" }
-        return String((a.sort === "added" ? x.dateAdded : x.dateModified) || "")
-      }
-      var papers = rows.filter(isPaper).map(function (r, i) { return { r: r, i: i, k: keyOf(r) } })
-      papers.sort(function (p, q) {
-        if (p.k !== q.k) {
-          if (!p.k || !q.k) return p.k ? -1 : 1
-          return (p.k < q.k ? -1 : 1) * (a.order === "asc" ? 1 : -1)
-        }
-        return p.i - q.i
-      })
+      var papers = rows.filter(isPaper).map(function (r, i) { return { r: r, i: i, k: sortKey(a.sort, raw[r.libraryID + ":" + r.key] || {}) } })
+      papers.sort(bySortKey(a.order))
       var n = 0
       rows = rows.map(function (r) { return isPaper(r) ? papers[n++].r : r })
     }
@@ -95,7 +124,8 @@ var Glue = (function () {
     settingsText: function (machineRaw, sharedRaw) { return JSON.stringify(core.settings(machineRaw, sharedRaw).settings) },
 
     // The /search body (Service.qml's _sendSearch). scope: { type, key, libraryID, title, query } or null.
-    searchBody: function (query, scope, settings, pins, todos, chats, todoStatuses) {
+    // sort: { by, order } for what's listed before you type (the bridge sorts before it cuts the list), or null.
+    searchBody: function (query, scope, settings, pins, todos, chats, todoStatuses, sort) {
       var q = String(query || "")
       var body = { query: q, limit: settings.maxResults, statusTags: C.statusTags(settings.paperStatuses), statusPrefix: C.PAPER_TAG_PREFIX,
         marks: C.searchMarks(todos || [], todoStatuses || [], chats || [], T.statusOfTodo) }
@@ -106,6 +136,7 @@ var Glue = (function () {
         if (settings.emptyQuery) body.emptyQuery = settings.emptyQuery
         if ((pins || []).length) body.pinned = pins.map(function (p) { return { key: p.key, libraryID: p.libraryID, type: p.type } })
       }
+      if (sort && BRIDGE_SORTS.indexOf(sort.by) >= 0 && !(scope && scope.type === "search") && !q.trim()) body.sort = { by: sort.by, order: sort.order === "asc" ? "asc" : "desc" }
       return body
     },
 
@@ -121,11 +152,16 @@ var Glue = (function () {
       // (a list you browse: a collection, a tag or a saved search with nothing typed; what you type is by relevance)
       var groupable = !!(response && response.scope && !String(response.query || "").trim())
       if (grouping && groupable) rows = arrange(rows, arrangement(grouping), Object.assign({ results: response.results, groups: T.GROUPS }, grouping.info || {}))
+      // (the top level, nothing typed: its recent papers in their own sort)
+      if (grouping && grouping.top && response && !response.scope && !String(response.query || "").trim()) rows = arrangeTop(rows, topArrangement(grouping.top), response)
       return V.withNoteRows(rows, expanded || null)
     },
     // The results' Group, Sort and Order (view.json's group, sort, order; the older one-key grouping read when
     // none of them is set): { group: "" or a grouping, sort: "relevance" or a date, order: "desc" or "asc" }.
     arrangement: function (values) { return arrangement(values) },
+    // The top level's sort (view.json's topSort, topOrder): { group: "", sort: "recent" or a sort, order }.
+    topArrangement: function (values) { return topArrangement(values) },
+    topSortOptions: function () { return TOP_SORTS.map(function (s) { return s.slice() }) },
     // What the Group and Sort menus offer: [[id, name]] each.
     arrangeOptions: function (taxonomies) {
       return { groups: [["", "None"]].concat(V.groupings(taxonomies || []).filter(function (g) { return isGroup(g[0]) }).map(function (g) {

@@ -279,7 +279,8 @@ final class LauncherModel: ObservableObject {
         let body: [String: Any]
         do {
             // (your tasks and their statuses: task:, has:task and the task grouping match on them, as the Omarchy launcher sends them)
-            let json = try core.glueJSON("searchBody", [store.filterText, scopeJSON, settings.json, pinsJSON, todos?.json ?? RawJSON(text: "[]"), chat.chats ?? [], todoStatuses])
+            let json = try core.glueJSON("searchBody", [store.filterText, scopeJSON, settings.json, pinsJSON, todos?.json ?? RawJSON(text: "[]"), chat.chats ?? [], todoStatuses,
+                                                       bridgeSort.map { $0 as Any } ?? NSNull()])
             body = try JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] ?? [:]
         } catch {
             searchInFlight = false
@@ -338,10 +339,11 @@ final class LauncherModel: ObservableObject {
                 extras["searches"] = searchesJSON // and your saved searches (R6)
             }
             if let scope = searchScope, store.pickFor.isEmpty { extras["scopeTitle"] = "“\(scope.title)”" }
-            let a = arrangement
-            let grouping: Any = a.group.isEmpty && a.sort == "relevance" ? NSNull()
+            let a = arrangement, top = topArrangement
+            let grouping: Any = a.group.isEmpty && a.sort == "relevance" && top.sort == "recent" ? NSNull()
                 : ["group": a.group, "sort": a.sort, "order": a.order, "info": ["statuses": paperStatusTags, "tasks": defaultTasks, "taskStatuses": todoStatuses,
-                                                                                 "manual": searchScope.map { prefs?.paperOrder($0.id) ?? [] } ?? []]]
+                                                                                 "manual": searchScope.map { prefs?.paperOrder($0.id) ?? [] } ?? []],
+                   "top": ["topSort": top.sort, "topOrder": top.order]]
             do {
                 rows = try core.glue("results", [response, Self.accentHex, extras, order.isEmpty ? NSNull() : order, grouping, expandedNotes.isEmpty ? NSNull() : expandedNotes], as: [SearchRow].self)
             } catch {

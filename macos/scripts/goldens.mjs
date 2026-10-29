@@ -203,6 +203,10 @@ function cases() {
   const listed = typed.results.map((r) => (Number(r.libraryID) || 1) + ":" + r.key);
   add("results/manual", "results", scopedList, COLOR, { noCommands: true }, null, { group: "", sort: "manual", order: "desc", info: { manual: [listed[2], listed[0]] } }, null);
   add("arrangement/manual", "arrangement", { sort: "manual" });
+  add("topArrangement/none", "topArrangement", {});
+  add("topArrangement/set", "topArrangement", { topSort: "year", topOrder: "asc" });
+  add("topSortOptions/all", "topSortOptions");
+  add("results/top-by-year", "results", fixture("search-empty"), COLOR, { noCommands: true }, null, { group: "", sort: "relevance", order: "desc", info: {}, top: { topSort: "year", topOrder: "asc" } }, null);
   add("arrangement/none", "arrangement", {});
   add("arrangement/set", "arrangement", { group: "tax:theory/", sort: "modified", order: "asc" });
   add("arrangement/bad-values", "arrangement", { group: "nope", sort: "nope", order: "sideways" });

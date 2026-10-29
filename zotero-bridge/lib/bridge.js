@@ -37,6 +37,14 @@ function omaReply(status, error) {
 var OmaBridge = class {
   static PREFIX = "/oma-zotero";
   static PREF = "extensions.oma-zotero-bridge.";
+  // A sort's value per paper (sortEntries): "" when it has none.
+  static SORT_KEYS = {
+    added: (e) => String(e.dateAdded || ""),
+    modified: (e) => String(e.dateModified || ""),
+    year: (e) => (Number(e.year) > 0 ? String(Number(e.year)).padStart(4, "0") : ""),
+    title: (e) => String(e.title || "").trim().toLowerCase(),
+    author: (e) => String(e.creator || "").trim().toLowerCase(),
+  };
   static MAX_BODY = 1024 * 1024; // a paper's extracted text, as a note (/notes/create)
   static MAX_PINS = 50;
   static MAX_NOTE_HTML = 400 * 1024;
@@ -241,10 +249,35 @@ var OmaBridge = class {
     return a < b ? 1 : a > b ? -1 : 0;
   }
 
+  // The launcher's sort for a list it browses ({ by: "added" | "modified" | "year" | "title" | "author", order:
+  // "desc" | "asc" }), checked; null for none (the list's own order).
+  static sortOptions(raw) {
+    const o = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : null;
+    if (!o || !OmaBridge.SORT_KEYS[o.by]) return null;
+    return { by: o.by, order: o.order === "asc" ? "asc" : "desc" };
+  }
+
+  // `entries` in that sort, before the list is cut to its limit (so the first 60 are the oldest, the A to Z, …):
+  // a paper without the value last either way, the list's own order within a tie.
+  static sortEntries(entries, sort) {
+    const keyOf = OmaBridge.SORT_KEYS[sort.by];
+    const dir = sort.order === "asc" ? 1 : -1;
+    return entries
+      .map((e, i) => ({ e, i, k: keyOf(e) }))
+      .sort((p, q) => {
+        if (p.k !== q.k) {
+          if (p.k === "" || q.k === "") return p.k === "" ? 1 : -1;
+          return (p.k < q.k ? -1 : 1) * dir;
+        }
+        return p.i - q.i;
+      })
+      .map((x) => x.e);
+  }
+
   // Search inside a collection and its subcollections, or among one tag's papers. Empty query:
-  // its subcollections, then its items, newest first (added or changed); typed: matching
+  // its subcollections, then its items, newest first (added or changed) or in the launcher's sort; typed: matching
   // subcollections, then matching items.
-  async _scopedSearch(query, limit, scope, openByTop, open, tag) {
+  async _scopedSearch(query, limit, scope, openByTop, open, tag, sort) {
     let entries;
     let info;
     if (tag) {
@@ -257,7 +290,7 @@ var OmaBridge = class {
     }
     if (!query.trim()) {
       const date = OmaBridge.recencyOf("latest");
-      const sorted = entries.slice().sort((a, b) => OmaBridge.newestFirst(date(a), date(b)));
+      const sorted = sort ? OmaBridge.sortEntries(entries, sort) : entries.slice().sort((a, b) => OmaBridge.newestFirst(date(a), date(b)));
       return {
         query, scope: info, collections: tag ? [] : OmaCollections.children(scope), tags: [], pinned: [], open: [], recent: [],
         results: sorted.slice(0, limit).map((e) => this._row(e, openByTop.get(e.id) || null)), total: entries.length,
@@ -331,7 +364,9 @@ var OmaBridge = class {
     };
   }
 
-  async search({ query = "", limit = 60, emptyQuery = null, pinned = null, collection = null, tag = null, within = null, statusTags = null, statusPrefix = "", marks = null }) {
+  // sort: the launcher's sort for what it lists before you type ({ by, order }: sortOptions); a collection's or a tag's
+  // papers, or the top level's, are picked in that order, so the limit cuts the right end.
+  async search({ query = "", limit = 60, emptyQuery = null, pinned = null, collection = null, tag = null, within = null, statusTags = null, statusPrefix = "", marks = null, sort = null }) {
     // The launcher's paper statuses (tags such as "to read", "reading"): each row says which it has.
     this._statusTags = OmaBridge.statusTagList(statusTags);
     this._statusPrefix = String(statusPrefix || "").slice(0, 10);
@@ -342,16 +377,17 @@ var OmaBridge = class {
     limit = Math.max(1, Math.min(200, parseInt(limit, 10) || 60));
     const open = OmaTabs.openItems();
     const openByTop = new Map(open.map((o, i) => [o.topItemID, Object.assign({ rank: i }, o)]));
+    sort = OmaBridge.sortOptions(sort);
 
     if (collection && typeof collection === "object") {
       const scope = OmaCollections.find(collection.key, collection.libraryID);
       if (!scope) throw omaHttpError(404, "not-found", "the collection is gone");
-      return this._scopedSearch(query, limit, scope, openByTop, open, false);
+      return this._scopedSearch(query, limit, scope, openByTop, open, false, sort);
     }
     if (tag && typeof tag === "object") {
       const scope = OmaTags.findEntry(this.index, tag.name, tag.libraryID);
       if (!scope) throw omaHttpError(404, "not-found", "no paper has that tag any more");
-      return this._scopedSearch(query, limit, scope, openByTop, open, true);
+      return this._scopedSearch(query, limit, scope, openByTop, open, true, sort);
     }
     if (within && typeof within === "object") return this._withinSearch(query, limit, within, openByTop, open);
 
@@ -362,8 +398,12 @@ var OmaBridge = class {
       const pinnedRows = this._pinnedRows(pinned, openByTop);
       const skip = new Set(shownOpen.map((o) => o.topItemID).concat(pinnedIDs));
       const date = OmaBridge.recencyOf(eq.recent);
-      const recent =
-        eq.recent === "none"
+      // sorted: the library's first `limit` papers in that sort (not only the recent few)
+      const recent = sort
+        ? OmaBridge.sortEntries(this.index.entries.filter((e) => !skip.has(e.id) && e.itemType !== "attachment" && e.itemType !== "note"), sort)
+            .slice(0, limit)
+            .map((e) => this._row(e, openByTop.get(e.id) || null))
+        : eq.recent === "none"
           ? []
           : this.index.entries
               .filter((e) => !skip.has(e.id))
@@ -374,7 +414,8 @@ var OmaBridge = class {
         .filter((o) => !pinnedIDs.includes(o.topItemID))
         .map((o) => this._rowForItemID(o.topItemID, openByTop.get(o.topItemID)))
         .filter(Boolean);
-      return { query, pinned: pinnedRows, collections: [], tags: [], open: openRows, recent, recentBy: eq.recent, emptyQuery: eq, results: [], total: 0 };
+      return { query, pinned: pinnedRows, collections: [], tags: [], open: openRows, recent, recentBy: eq.recent, emptyQuery: eq, results: [], total: 0,
+        sorted: sort };
     }
 
     const t0 = omaNow();
