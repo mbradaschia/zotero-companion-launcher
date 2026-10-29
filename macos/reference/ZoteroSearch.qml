@@ -650,7 +650,7 @@ Item {
     rows = Views.withNoteRows(rows, root.expandedNotes)
     displayModel.clear()
     for (let i = 0; i < rows.length; i++) displayModel.append(rows[i])
-    root.selectedIndex = Views.selectionAfter(rows, previousKey, root.followTop)
+    root.selectedIndex = Views.selectionAfter(rows, previousKey, root.followTop, root.response ? root.response.query : "")
     if (displayModel.count > 0) Qt.callLater(function() { resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain) })
   }
 

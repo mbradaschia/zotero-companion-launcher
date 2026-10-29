@@ -350,17 +350,31 @@ final class LauncherModel: ObservableObject {
             if let shown = marks.statusShown["\(rows[i].libraryID):\(rows[i].key)"] { rows[i].status = shown }
         }
         content = .search(rows)
-        store.selectedIndex = Self.selectionAfter(rows, previousKey: previous, followTop: backToKey == nil && store.followTop)
+        store.selectedIndex = Self.selectionAfter(rows, previousKey: previous, followTop: backToKey == nil && store.followTop, query: response?["query"] as? String ?? "")
         if response != nil { backToKey = nil } // (kept while the answer is on its way)
     }
 
-    // lib/Views.js's selectionAfter: the same row if it is still there and you moved, else the first
-    // row that isn't a place to go.
-    static func selectionAfter(_ rows: [SearchRow], previousKey: String, followTop: Bool) -> Int {
+    // lib/Views.js's selectionAfter: the same row if it is still there and you moved, else the place whose whole name
+    // you typed, else the first row that isn't a place to go.
+    static func selectionAfter(_ rows: [SearchRow], previousKey: String, followTop: Bool, query: String = "") -> Int {
         guard !rows.isEmpty else { return 0 }
-        let first = rows.firstIndex { !["Processes and chats", "Go to", "Saved searches"].contains($0.section) } ?? 0
+        let first = namedPlaceRow(rows, query: query) ?? rows.firstIndex { !["Processes and chats", "Go to", "Saved searches"].contains($0.section) } ?? 0
         if followTop || previousKey.isEmpty { return first }
         return rows.firstIndex { $0.key == previousKey } ?? first
+    }
+
+    // lib/Views.js's namedPlaceRow: a Go to or saved search row named in full by what's typed (case, accents and
+    // punctuation aside).
+    static func namedPlaceRow(_ rows: [SearchRow], query: String) -> Int? {
+        let typed = plainWords(query)
+        guard !typed.isEmpty else { return nil }
+        return rows.firstIndex { ["Go to", "Saved searches"].contains($0.section) && plainWords($0.title) == typed }
+    }
+
+    // lib/Views.js's plainWords: lowercase, accents folded, split on all but a-z and 0-9.
+    static func plainWords(_ text: String) -> [String] {
+        let folded = text.lowercased().folding(options: .diacriticInsensitive, locale: nil)
+        return folded.split { !(("a"..."z").contains($0) || ("0"..."9").contains($0)) }.map(String.init)
     }
 
     // Which menu's section order applies (ZoteroSearch.qml's sectionKey).

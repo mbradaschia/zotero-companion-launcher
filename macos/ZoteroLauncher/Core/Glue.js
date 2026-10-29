@@ -167,7 +167,7 @@ var Glue = (function () {
     orderSections: function (rows, order) { return V.orderSections(rows, order) },
     fileRows: function (details, purpose, filter) { return V.filterRows(V.buildFileRows(details, purpose), filter || "") },
     usableFiles: function (details, purpose) { return V.usableFiles(details, purpose) },
-    selectionAfter: function (rows, previousKey, followTop) { return V.selectionAfter(rows, previousKey, followTop) },
+    selectionAfter: function (rows, previousKey, followTop, query) { return V.selectionAfter(rows, previousKey, followTop, query) },
 
     // The confirm view's two rows (ZoteroSearch.qml:4273). ask: { yes, no, detail, noDetail }.
     confirmRows: function (ask) {
