@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // The reading companion's server (design §2): the page (web/) and its API (lib/api.mjs) on 127.0.0.1 only; Tailscale
-// serve brings your tailnet to it with HTTPS. Each request: its host (lib/auth.mjs), then for the API its key (the
-// cookie the link set, or a Bearer header) and, for a change, the X-Companion header. A chat turn streams as
+// serve brings your tailnet to it with HTTPS. Each request: its host (lib/auth.mjs), then for the API who's asking:
+// your own devices, as serve says (Tailscale-User-Login is this Mac's own login), need nothing more; anything else
+// needs the key (the cookie a keyed link set, or a Bearer header). A change also needs the X-Companion header. A chat turn streams as
 // server-sent events. The log says what was asked (method, path, status), never what's in the library.
 //
 // The Mac app starts it while it runs (CompanionServer.swift) with --exit-with-stdin: the app gone, its pipe closes
 // and the server stops (a crashed app leaves no server holding the port).
 //
 //   node server.mjs [--port 8787] [--exit-with-stdin]   serve
-//   node server.mjs --share [--port 8787]                Tailscale serves it on your tailnet; prints { link, local, tailscale }
+//   node server.mjs --share [--port 8787]                Tailscale serves it on your tailnet; prints { link, keyed, local, tailscale }
 //   node server.mjs --unshare [--port 8787]              Tailscale stops serving it (the companion turned off)
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
@@ -18,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { makeContext, Refused } from "./lib/context.mjs";
 import { ROUTES } from "./lib/api.mjs";
 import { hostAllowed, hostName, requestKey, sameKey, keyCookie, CHANGE_HEADER } from "./lib/auth.mjs";
-import { tailscaleServe, tailscaleUnserve } from "./lib/tailscale.mjs";
+import { tailscaleServe, tailscaleUnserve, tailscaleOwner } from "./lib/tailscale.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_PORT = 8787;
@@ -118,8 +119,33 @@ async function serveStatic(res, webDir, pathname) {
   send(res, 200, data, { "Content-Type": TYPES[extname(file)] || "application/octet-stream", "Cache-Control": "no-cache" });
 }
 
-// The server: { ctx } the context (tests give their own), { webDir } the page, { log } a line per request.
-export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), log = () => {} } = {}) {
+// Who this Mac is signed in to Tailscale as, kept fresh without holding up a request: asked now, then again every
+// few minutes (every half minute while it isn't known: Tailscale not up yet). → () => the login, "" when unknown.
+export function watchOwner(env = process.env, ask = tailscaleOwner) {
+  let owner = "";
+  let timer = 0;
+  const again = async () => {
+    owner = await ask(env).catch(() => owner) || "";
+    timer = setTimeout(again, owner ? 5 * 60000 : 30000);
+    timer.unref?.();
+  };
+  const first = again();
+  const get = () => owner;
+  get.ready = first;
+  get.stop = () => clearTimeout(timer);
+  return get;
+}
+
+// A request from one of your own devices: Tailscale serve says who's asking, and it's this Mac's own login. Serve
+// sets the header itself and removes one sent to it; only something on this Mac could send it straight to the port.
+export function fromOwner(headers, owner) {
+  const login = String(headers["tailscale-user-login"] || "").trim().toLowerCase();
+  return !!login && !!owner && login === String(owner).trim().toLowerCase();
+}
+
+// The server: { ctx } the context (tests give their own), { webDir } the page, { log } a line per request, { owner }
+// who this Mac is on Tailscale (a function: "" when unknown, and then everyone needs the key).
+export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), log = () => {}, owner = () => "" } = {}) {
   // Wrong keys in the last minute, by where they came from (Tailscale serve says, in X-Forwarded-For): ten, and that
   // one waits. The right key always opens (nobody can lock you out by guessing), and with 256 random bits guessing
   // isn't a way in: this only keeps a guesser from flooding the log.
@@ -143,12 +169,12 @@ export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), lo
       const secure = /\.ts\.net$/.test(hostName(req.headers.host));
       const key = ctx.companion().key;
 
-      // The link install.sh printed: its key becomes this device's cookie, and leaves the address.
+      // A link with the key (for a device that isn't yours on Tailscale): it becomes this device's cookie, and leaves the address.
       if (req.method === "GET" && url.searchParams.has("key")) {
         if (!sameKey(url.searchParams.get("key"), key)) {
           if (tooMany(req)) return problem(res, 429, "slow-down", "Too many wrong keys: wait a minute");
           failed(req);
-          return send(res, 401, "That link's key isn't this companion's: open the link install.sh printed on the Mac mini.\n", { "Content-Type": "text/plain; charset=utf-8" });
+          return send(res, 401, "That link's key isn't this companion's: open it again from the Mac's menu bar, Reading Companion › Show the iPad Link….\n", { "Content-Type": "text/plain; charset=utf-8" });
         }
         url.searchParams.delete("key");
         return send(res, 303, "", { Location: url.pathname + (url.search || ""), "Set-Cookie": keyCookie(key, secure), "Cache-Control": "no-store" });
@@ -181,7 +207,9 @@ export function makeServer({ ctx = makeContext(), webDir = join(HERE, "web"), lo
         return send(res, 200, { ok: true }, { "Set-Cookie": keyCookie(key, secure) });
       }
 
-      if (!sameKey(requestKey(req.headers), key)) return problem(res, 401, "no-key", "Open the link install.sh printed on the Mac mini, or type its key");
+      if (!fromOwner(req.headers, owner()) && !sameKey(requestKey(req.headers), key)) {
+        return problem(res, 401, "no-key", "Open it on a device signed in to Tailscale as you, or type its key");
+      }
 
       const handler = ROUTES[route];
       if (!handler) return problem(res, 404, "not-found", "no such request");
@@ -204,14 +232,17 @@ function arg(argv, name) {
 }
 
 export function linkOf(key, { host = "", port = DEFAULT_PORT } = {}) {
-  return host ? `https://${host}:${port}/?key=${key}` : `http://127.0.0.1:${port}/?key=${key}`;
+  const q = key ? `?key=${key}` : "";
+  return host ? `https://${host}:${port}/${q}` : `http://127.0.0.1:${port}/${q}`;
 }
 
-// The link for your iPad: Tailscale serving the companion on your tailnet (turned on here if it isn't), its key in it.
+// The link for your iPad: Tailscale serving the companion on your tailnet (turned on here if it isn't). Your own
+// devices need no key, so it has none; only when Tailscale doesn't say who this Mac is does it carry the key.
 export function share(ctx, port, env = process.env) {
   const key = ctx.companion().key;
   const tailscale = tailscaleServe(port, env);
-  return { link: tailscale.serving ? linkOf(key, { host: tailscale.name, port }) : "", local: linkOf(key, { port }), tailscale };
+  const host = { host: tailscale.name, port };
+  return { link: tailscale.serving ? linkOf(tailscale.owner ? "" : key, host) : "", keyed: !tailscale.owner, local: linkOf(key, { port }), tailscale };
 }
 
 async function main(argv) {
@@ -225,7 +256,8 @@ async function main(argv) {
     process.stdout.write(JSON.stringify(share(ctx, port)) + "\n");
     return;
   }
-  const server = makeServer({ ctx, log: (line) => process.stdout.write(new Date().toISOString() + " " + line + "\n") });
+  const owner = watchOwner(); // (known a moment after the server starts: a request before then needs the key)
+  const server = makeServer({ ctx, owner, log: (line) => process.stdout.write(new Date().toISOString() + " " + line + "\n") });
   server.on("error", (e) => {
     process.stderr.write(e.code === "EADDRINUSE" ? `port ${port} is in use (another reading companion?)\n` : `server: ${e.message}\n`);
     process.exit(3);

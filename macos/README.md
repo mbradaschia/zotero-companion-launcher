@@ -33,7 +33,7 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
    *Tools → Plugins → ⚙ → Install Plugin From File…*.
 2. **The app**, in Terminal:
    ```bash
-   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.24/install.sh | bash
+   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.25/install.sh | bash
    ```
    It downloads that release (or, with `macos-nightly` in the URL, the
    [nightly build](https://github.com/mbradaschia/zotero-companion-launcher/releases/tag/macos-nightly), rebuilt on
@@ -75,20 +75,23 @@ wants your OK for the login item, the app opens *System Settings › General ›
 ## The reading companion (iPad)
 
 Read in Zotero on your iPad with a companion beside it in Split View: pick a paper (search or recent), see and change
-its status and default task, chat about it, read and add notes, run your prompts, tick its tasks, confirm its taxonomy
-suggestions and tags, and see or edit its review-table columns (and run an AI column). It's a web page served by the
+its status and default task, chat about it, read and add notes, tick its tasks, confirm its taxonomy suggestions and
+tags, and see or edit its review-table columns (and run an AI column). It's a web page served by the
 app on the Mac where Zotero runs, so everything goes through that Mac's Zotero, runner and sync folder, by the app's
 own rules.
 
 - **It runs with the app**, on `127.0.0.1:8787` only (menu bar › *Reading Companion* › *Run It With the App*, on by
   default; turned off, Tailscale stops serving it too). It needs Node.js 22 (Settings › Setup › Install Node.js);
-  chats, prompts and tagging need the AI features.
+  chats, tagging and AI columns need the AI features. Its log: `~/Library/Logs/ZoteroLauncher-companion.log` (what
+  it did, and each request's method, path and status: never what's in your library).
 - **Your iPad reaches it through [Tailscale](https://tailscale.com)**: install it on the Mac and the iPad, sign in to
   the same account, and turn on *HTTPS certificates* in the Tailscale admin console (DNS). Then menu bar ›
   *Reading Companion* › *Show the iPad Link…* serves it on your tailnet (`tailscale serve`, on its own port 8787, never
   public) and shows the link as a QR code: scan it with the iPad's camera, then Share › *Add to Home Screen*.
-- **The link holds a key** (made once, in `~/.config/omarchy/oma-zotero-launcher/companion.json`, readable by you
-  only). Opening it keeps the key in a cookie on that device; the page asks for it if a home-screen app lost it.
+- **Nothing to type on your own devices.** Tailscale tells the companion who's asking, so a device signed in to
+  Tailscale with the Mac's account just opens it. Anyone else's device needs the companion's key (made once, in
+  `~/.config/omarchy/oma-zotero-launcher/companion.json`, readable by you only); the link carries it only when
+  Tailscale can't say who the Mac is.
 - The Mac must be awake with Zotero open. Notes open in Zotero to be edited.
 - From a checkout: `node macos/companion/server.mjs` (then `http://127.0.0.1:8787/?key=…`, the key from that file).
 

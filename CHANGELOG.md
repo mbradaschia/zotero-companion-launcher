@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.25`)
+
+- **The reading companion opens with nothing to type.** On a device signed in to Tailscale with the Mac's account,
+  the link just opens: no key, no code, also from the home screen. Other people's devices still need the key.
+- **No Prompts tab.** The Columns tab already runs the AI on a paper; tagging by taxonomies stays in its own tab.
+- **The companion's log.** `~/Library/Logs/ZoteroLauncher-companion.log` says when the app started or stopped the
+  companion and why it couldn't, so a companion that doesn't come up says why.
+
 ### The Mac app (`macos-v0.4.24`)
 
 - **Review tables follow their list while open.** A table on a list by task, status or tag searches again a moment

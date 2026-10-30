@@ -1,8 +1,9 @@
 // Who may use the companion: requests for its own hosts only, then its key. The server listens on 127.0.0.1 and
 // Tailscale serve brings the tailnet to it (design §3), so the host is 127.0.0.1, localhost or the Mac's *.ts.net
 // name; anything else is a page in someone's browser pointing a name it controls at this port (DNS rebinding) and
-// is refused. The key is made once (32 random bytes) and kept with the companion's settings, readable by you only;
-// the link install.sh prints carries it, the page turns it into a cookie and drops it from the address.
+// is refused. Your own devices are let in by who Tailscale says is asking (server.mjs: fromOwner); for anything else
+// there's the key, made once (32 random bytes) and kept with the companion's settings, readable by you only: a keyed
+// link carries it, the page turns it into a cookie and drops it from the address.
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync, renameSync, chmodSync } from "node:fs";
 import { dirname } from "node:path";

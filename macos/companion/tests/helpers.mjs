@@ -124,7 +124,7 @@ export async function startServer(opts = {}) {
   const bridge = fakeBridge();
   const runner = fakeRunner(opts);
   const ctx = makeContext({ env, bridge: bridge.bridge, runner: runner.runner, now: () => Date.parse("2026-10-29T12:00:00Z") });
-  const server = makeServer({ ctx, webDir: opts.webDir });
+  const server = makeServer({ ctx, webDir: opts.webDir, owner: () => (opts.owner === undefined ? "me@example.com" : opts.owner) });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;
   return { base, ctx, env, bridge, runner, close: () => new Promise((r) => server.close(r)) };
