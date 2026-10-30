@@ -41,8 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // read (the background automation runs from now) and the catch-up's question (Settings › Defaults › When the app opens)
         if UserDefaults.standard.bool(forKey: "ZLOpenOnLaunch") { launcher.show() }
         else if LauncherModel.startsAtLaunch(ProcessInfo.processInfo.environment), NSClassFromString("XCTestCase") == nil {
+            // The iPad's reading companion first (the menu bar's Reading Companion): reading the files can wait on macOS
+            // asking for the sync folder's drive, and the companion starts off the main thread whatever happens here.
+            companion.start()
             launcher.model.appLaunched()
-            companion.start() // the iPad's reading companion, while the app runs (the menu bar's Reading Companion)
         }
         // GitHub's releases, once a day (the check itself skips a day already asked)
         if UpdateCheck.automatic(ProcessInfo.processInfo.environment) {

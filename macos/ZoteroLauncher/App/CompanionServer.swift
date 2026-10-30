@@ -11,7 +11,7 @@ import CoreImage
 @MainActor
 final class CompanionServer: ObservableObject {
     static let key = "ZLCompanionOn"
-    static let port = 8787
+    nonisolated static let port = 8787
 
     enum State: Equatable {
         case off, starting, running
@@ -27,7 +27,7 @@ final class CompanionServer: ObservableObject {
     private var startedAt = Date()
 
     static var script: URL? { Bundle.main.resourceURL?.appendingPathComponent("CompanionKit/macos/companion/server.mjs") }
-    static let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/ZoteroLauncher-companion.log")
+    nonisolated static let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/ZoteroLauncher-companion.log")
     var enabled: Bool { UserDefaults.standard.object(forKey: Self.key) as? Bool ?? true }
 
     init(runner: Runner) { self.runner = runner as? ProcessRunner }
@@ -47,7 +47,9 @@ final class CompanionServer: ObservableObject {
         }
     }
 
-    // Node looked for off the main thread (a slow shim must not freeze the app), then started.
+    // Node looked for and the server started off the main thread: a slow shim must not freeze the app, and the main
+    // thread may be held up at launch (reading the sync folder can wait on macOS asking for access to an external
+    // drive), which mustn't keep the companion from starting.
     func start() {
         guard enabled, process == nil, state != .starting else { return log("start skipped: \(enabled ? "already \(state)" : "turned off")") }
         guard let runner, let script = Self.script, FileManager.default.fileExists(atPath: script.path) else { return fail("It isn't in this build of the app") }
@@ -56,44 +58,62 @@ final class CompanionServer: ObservableObject {
         state = .starting
         stopping = false
         runner.queue.async { [weak self] in
-            let node = runner.findNode()
-            let env = runner.environment
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.launch(node: node, env: env, script: script) } }
+            guard let node = runner.findNode() else {
+                return DispatchQueue.main.async { MainActor.assumeIsolated { self?.fail("It needs Node.js 22 or newer: Settings › Setup › Install Node.js") } }
+            }
+            let started = Self.spawn(node: node, env: runner.environment, home: runner.home, script: script) { proc, status in
+                DispatchQueue.main.async { MainActor.assumeIsolated { self?.ended(proc, status: status) } }
+            }
+            DispatchQueue.main.async { MainActor.assumeIsolated { self?.launched(started, node: node) } }
         }
     }
 
-    private func launch(node: ProcessRunner.Node?, env: [String: String], script: URL) {
-        guard !stopping, process == nil else { return log("launch skipped: \(stopping ? "stopping" : "already running")") }
-        guard let node else { return fail("It needs Node.js 22 or newer: Settings › Setup › Install Node.js") }
+    // The server's process, started (any thread). → the process and its stdin's pipe, or why it didn't start.
+    nonisolated private static func spawn(node: ProcessRunner.Node, env: [String: String], home: String, script: URL,
+                                          ended: @escaping @Sendable (Process, Int32) -> Void) -> Result<(Process, Pipe), Error> {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: node.path)
-        p.arguments = [script.path, "--port", String(Self.port), "--exit-with-stdin"]
+        p.arguments = [script.path, "--port", String(port), "--exit-with-stdin"]
         p.environment = env
-        p.currentDirectoryURL = URL(fileURLWithPath: runner?.home ?? NSHomeDirectory())
+        p.currentDirectoryURL = URL(fileURLWithPath: home)
         let pipe = Pipe()
         p.standardInput = pipe
-        let out = Self.logHandle()
+        let out = logHandle()
         p.standardOutput = out ?? FileHandle.nullDevice
         p.standardError = out ?? FileHandle.nullDevice
-        p.terminationHandler = { [weak self] proc in
-            let status = proc.terminationStatus
-            DispatchQueue.main.async { MainActor.assumeIsolated { self?.ended(proc, status: status) } }
-        }
+        p.terminationHandler = { proc in ended(proc, proc.terminationStatus) }
+        defer { try? out?.close() } // (the server has its own copy)
         do {
             try p.run()
         } catch {
-            try? out?.close()
-            return fail("It didn't start: \(error.localizedDescription)")
+            return .failure(error)
         }
-        try? out?.close() // (the server has its own copy)
-        log("started: \(node.path) \(node.version), pid \(p.processIdentifier)")
-        process = p
-        input = pipe
-        startedAt = Date()
-        state = .running
+        return .success((p, pipe))
     }
 
-    // Stopped by itself: started again (a few times, waiting longer each time), unless the port is someone else's.
+    private func launched(_ started: Result<(Process, Pipe), Error>, node: ProcessRunner.Node) {
+        switch started {
+        case .failure(let error):
+            fail("It didn't start: \(error.localizedDescription)")
+        case .success(let (p, pipe)):
+            // Turned off (or quit) while it was starting: it goes again.
+            guard !stopping, process == nil else {
+                log("started, not wanted any more: stopped")
+                p.terminate()
+                try? pipe.fileHandleForWriting.close()
+                return
+            }
+            log("started: \(node.path) \(node.version), pid \(p.processIdentifier)")
+            process = p
+            input = pipe
+            startedAt = Date()
+            state = .running
+            if !p.isRunning { ended(p, status: p.terminationStatus) } // (gone before this was told it started)
+        }
+    }
+
+    // Stopped by itself: started again (a few times, waiting longer each time). The port taken (exit 3) can be a server
+    // just stopped that hasn't let go yet, so that's tried again too before it says so.
     private func ended(_ p: Process, status: Int32) {
         guard p === process else { return }
         log("ended: exit \(status)")
@@ -101,10 +121,11 @@ final class CompanionServer: ObservableObject {
         try? input?.fileHandleForWriting.close()
         input = nil
         if stopping || !enabled { return state = .off }
-        if status == 3 { return fail("Port \(Self.port) is in use by another program") }
         if Date().timeIntervalSince(startedAt) > 60 { restarts = 0 }
         restarts += 1
-        guard restarts <= 3 else { return fail("It keeps stopping (exit \(status))") }
+        guard restarts <= 3 else {
+            return fail(status == 3 ? "Port \(Self.port) is in use by another program" : "It keeps stopping (exit \(status))")
+        }
         state = .starting
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(restarts * 5)) { [weak self] in
             MainActor.assumeIsolated {
@@ -137,12 +158,12 @@ final class CompanionServer: ObservableObject {
     }
 
     // Kept under a megabyte: past that, started again (when the server starts, so it never writes to a file gone).
-    private static func trimLog() {
+    nonisolated private static func trimLog() {
         if let size = (try? FileManager.default.attributesOfItem(atPath: logURL.path))?[.size] as? Int, size > 1_000_000 { try? FileManager.default.removeItem(at: logURL) }
     }
 
     // The log, at its end.
-    private static func logHandle() -> FileHandle? {
+    nonisolated private static func logHandle() -> FileHandle? {
         let fm = FileManager.default
         let path = logURL.path
         try? fm.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
