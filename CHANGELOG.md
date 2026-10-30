@@ -7,6 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.26`)
+
+- **The reading companion starts even when the app is held up at launch.** After an update, macOS asks again
+  whether the app may open files on an external drive (where a sync folder can live), and the app waited on that
+  question before anything else, the companion included. Now the companion starts first, off the main thread, and
+  if its port is still held by a server just stopped, it tries again before saying so.
+
 ### The Mac app (`macos-v0.4.25`)
 
 - **The reading companion opens with nothing to type.** On a device signed in to Tailscale with the Mac's account,
