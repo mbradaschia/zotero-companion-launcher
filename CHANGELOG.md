@@ -7,6 +7,11 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The companion's log keeps every line.** The app's lines and the server's no longer write over each other (the
+  log is opened to append), so "started" shows after "starting".
+
 ### The Mac app (`macos-v0.4.26`)
 
 - **The reading companion starts even when the app is held up at launch.** After an update, macOS asks again
