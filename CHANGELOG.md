@@ -13,6 +13,9 @@ bridge and the prompt runner share one version.
   whether the app may open files on an external drive (where a sync folder can live), and the app waited on that
   question before anything else, the companion included. Now the companion starts first, off the main thread, and
   if its port is still held by a server just stopped, it tries again before saying so.
+- **Signed with the app's own certificate.** Releases are signed with one self-signed certificate (the repository's
+  `MACOS_SIGNING` secret, made with `macos/scripts/make-signing-cert.sh`) instead of ad hoc, so macOS keeps what you
+  allowed the app across updates. The first signed update asks once more; later ones don't.
 
 ### The Mac app (`macos-v0.4.25`)
 

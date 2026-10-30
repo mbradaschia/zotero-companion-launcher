@@ -103,8 +103,9 @@ own rules.
   Mac's notation (⌘ ⌥ ⌃ ⇧ ↵ esc ⌫).
 - API keys are kept in the Keychain; Settings › Setup installs Node.js, pdftotext and Tesseract with Homebrew
   (`brew install …`, shown in Processes), or copies the command for Terminal when Homebrew isn't installed.
-- The app is signed ad hoc, not notarized (the installer clears the quarantine). A signed, notarized build with
-  automatic updates needs the Apple Developer Program.
+- Releases are signed with the app's own self-signed certificate (the `MACOS_SIGNING` secret, made once with
+  `scripts/make-signing-cert.sh`), so macOS keeps what you allowed across updates; not notarized (the installer clears
+  the quarantine). Without the secret, CI signs ad hoc. A notarized build needs the Apple Developer Program.
 - Accessibility: VoiceOver reads each row as one element (its label, detail, keys and state), pills by their kind,
   and nothing animates with *Reduce Motion* on.
 

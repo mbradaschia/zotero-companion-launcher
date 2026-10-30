@@ -15,5 +15,10 @@ open files there. The app read the sync folder first thing at launch and waited 
 clicked *Allow* on the Mac, nothing else ran: not the menu, not the companion. Now the companion starts first, on its
 own, so your iPad can reach it while the question waits. Click *Allow* when you're at the Mac.
 
+**Signed with the app's own certificate.** Until now each build was signed ad hoc, so macOS took every update for
+a new app and asked again for what you had allowed. From this release on, builds are signed with one certificate of
+the app's own, and macOS remembers. This update asks once more (it's the first one signed this way); the next ones
+don't. It isn't an Apple Developer ID, so nothing else changes: install and update as before.
+
 **A port just let go.** When the companion's port is still held for a moment (a server just stopped), the app tries
 again a few times before it says the port is in use.
