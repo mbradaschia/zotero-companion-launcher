@@ -25,6 +25,9 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
     // Every open table drawn again (what the launcher knows changed: the taxonomies).
     func refreshAll() { for entry in open.values { entry.model.send() } }
 
+    // Every open table's source searched again (a paper's task, status or tags changed): the list is live.
+    func searchAll() { for entry in open.values { entry.model.search(live: true) } }
+
     func show(_ id: String, launcher: LauncherModel) {
         guard ReviewFiles.validReview(id) else { return }
         UsageLog.shared.count("window:review")

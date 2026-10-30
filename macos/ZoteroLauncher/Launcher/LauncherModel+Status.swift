@@ -183,6 +183,7 @@ extension LauncherModel {
     // Zotero's answer to a tag change: the paper's tags as they are now, kept when it's the paper in view (its tags,
     // its status and taxonomy pills, the tag editor read them; they kept the tags from before the change).
     func paperTagsSaved(_ item: [String: Any], _ answer: [String: Any]) {
+        reviewsPapersChanged() // (a review listing a status or a tag)
         guard let now = answer["tags"] as? [Any], details != nil, let shown = actionItem,
               shown.key == item["key"] as? String, shown.libraryID == (item["libraryID"] as? Int ?? 1) else { return }
         details?["tags"] = now

@@ -60,7 +60,12 @@ final class LauncherModel: ObservableObject {
     var settings: AppSettings?
     var pins: PinsFile?
     var prefs: ViewPrefs?
-    var todos: TodosFile? { didSet { refreshRowTasks() } }
+    var todos: TodosFile? {
+        didSet {
+            refreshRowTasks()
+            if todos?.json.text != oldValue?.json.text { reviewsPapersChanged() } // (a list by task: task:, has:task)
+        }
+    }
     var searchesFile: SearchesFile?
     let env: [String: String]
 
@@ -114,6 +119,8 @@ final class LauncherModel: ObservableObject {
     var openChat: (PaperRef, String) -> Void = { _, _ in } // a paper's chat window, on a past chat or its latest (LauncherPanel's ChatWindows)
     var openReviewWindow: (String) -> Void = { _ in } // a review table's window, by the review's id (LauncherPanel's ReviewWindows)
     var reviewsRefresh: () -> Void = {} // the open review tables drawn again (the taxonomies read again)
+    var reviewsSearch: () -> Void = {} // the open review tables' sources searched again (reviewsPapersChanged)
+    var reviewsSearchTimer: Timer?
     var showMenuFor: ((PaperRef, [String: Any]) -> Void)? // the launcher shown, on a paper's menu (a chat window's Menu)
     var showLauncher: (() -> Void)? // the launcher shown (a chat window's About another paper…)
     var chatDeleted: (PaperRef, String) -> Void = { _, _ in } // a chat deleted in the launcher: its window, if open on it, starts anew

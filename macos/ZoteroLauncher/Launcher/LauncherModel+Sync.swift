@@ -66,6 +66,7 @@ extension LauncherModel {
         searchState.syncTask?.merge(["status": ok ? "done" : "error", "finished": (run["finished"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? ISO8601DateFormatter().string(from: Date()), "stage": "",
                                      "detail": ok ? "Synced" : "", "error": ok ? "" : run["error"] ?? "the sync failed"]) { _, b in b }
         processesChanged()
+        if ok { reviewsPapersChanged() } // (what Zotero brought: a review's papers)
         guard opened else {
             libraryChanged = true
             if !ok { notify("Zotero couldn't sync", run["error"] as? String ?? "the sync failed") }
