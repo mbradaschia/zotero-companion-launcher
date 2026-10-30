@@ -7,6 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.24`)
+
+- **Review tables follow their list while open.** A table on a list by task, status or tag searches again a moment
+  after a paper's task, status or tags are saved (in the launcher, a table's panel, or Zotero's sync), so a paper
+  that now matches joins it and one that doesn't leaves it; the footer says how many. Coming forward, a table reads
+  the tasks again (your other Mac's). When the selected paper leaves, the next one is selected, not the first row.
+
 ### The Mac app (`macos-v0.4.23`)
 
 - **A reading companion for the iPad.** Read in Zotero on the iPad with the companion beside it in Split View: pick a

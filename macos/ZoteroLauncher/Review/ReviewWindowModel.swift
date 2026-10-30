@@ -71,13 +71,15 @@ final class ReviewWindowModel: ObservableObject {
 
     // ---- the papers
 
-    // The source searched (again): the newest answer wins.
-    func search() {
+    // The source searched (again): the newest answer wins. `live`: a paper's task, status or tags changed (the launcher's
+    // reviewsPapersChanged): the table keeps what it shows while it asks, and says which papers joined or left the list.
+    func search(live: Bool = false) {
         guard let core = launcher.core, let review, let settings = launcher.settings else { return }
         searchSerial += 1
         let serial = searchSerial
         searchedAt = Date()
-        loading = true
+        let before = live && !loading ? Set(results.map(Self.paperId)) : nil
+        if !live { loading = true }
         var source: Any = review["source"] ?? [String: Any]()
         if let preview { source = ["type": "query", "query": preview] } // (typed in the box, not kept yet)
         let scoped = (try? core.glueJSON("reviewScope", [source, launcher.reviewContext()["searches"] ?? []])).flatMap(ReviewFiles.object) ?? [:]
@@ -102,7 +104,7 @@ final class ReviewWindowModel: ObservableObject {
             problem = "No papers to list: pick a saved search or type a query in the box above"
             return send()
         }
-        send()
+        if !live { send() }
         launcher.bridge.post("/search", body, timeout: 10) { [weak self] result in
             MainActor.assumeIsolated {
                 guard let self, serial == self.searchSerial else { return }
@@ -112,16 +114,35 @@ final class ReviewWindowModel: ObservableObject {
                     self.results = (answer["results"] as? [[String: Any]] ?? []).filter { ($0["itemType"] as? String).map { !["note", "attachment"].contains($0) } ?? true }
                     self.total = answer["total"] as? Int ?? self.results.count
                 default:
+                    if before != nil { return } // (a search on its own that failed: the table stays as it was; ⌘R says why)
                     self.problem = result.message
                 }
                 self.send()
+                if let before, let said = Self.listChange(before: before, after: Set(self.results.map(Self.paperId))) { self.page?.flash(said) }
             }
         }
     }
 
-    // The window came forward: searched again if it's been a few seconds (the list is live).
+    static func paperId(_ r: [String: Any]) -> String { "\(r["libraryID"] as? Int ?? 1):\(r["key"] as? String ?? "")" }
+
+    // What a live search changed, in the footer's words: "1 paper joined the list", "2 papers left the list", "1 joined
+    // and 1 left the list"; nil when the same papers are there.
+    static func listChange(before: Set<String>, after: Set<String>) -> String? {
+        let joined = after.subtracting(before).count, left = before.subtracting(after).count
+        func papers(_ n: Int) -> String { n == 1 ? "1 paper" : "\(n) papers" }
+        switch (joined, left) {
+        case (0, 0): return nil
+        case (_, 0): return papers(joined) + " joined the list"
+        case (0, _): return papers(left) + " left the list"
+        default: return "\(joined) joined and \(left) left the list"
+        }
+    }
+
+    // The window came forward: searched again if it's been a few seconds (the list is live), with the tasks as the
+    // sync folder has them now (the other machine's: a list by task).
     func becameKey() {
         reload()
+        if let core = launcher.core { launcher.todos?.reload(core) }
         if Date().timeIntervalSince(searchedAt) > 3 { search() } else { send() }
     }
 

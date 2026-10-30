@@ -67,6 +67,14 @@ extension LauncherModel {
         }
     }
 
+    // A paper's task, status or tags changed (here, in a review window, or the tasks read again from the sync folder):
+    // the open review tables search their sources again in a moment, so a list by task, status or tag takes the papers
+    // that match now and lets go of those that don't. One search for a burst of changes.
+    func reviewsPapersChanged() {
+        reviewsSearchTimer?.invalidate()
+        reviewsSearchTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in MainActor.assumeIsolated { self?.reviewsSearch() } }
+    }
+
     // A review file's write that failed, in the launcher's words.
     func reviewProblem(_ error: Error) -> String {
         switch error {

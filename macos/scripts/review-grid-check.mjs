@@ -288,7 +288,8 @@ ok(csv && csv.text.startsWith("﻿Paper,") && csv.text.includes("1:AAAAAAAA"), "
 await pg.click("#bSource");
 await pg.click('.pop [data-search="s2"]');
 m = await sent();
-ok(m[0] && m[0].type === "source" && m[0].source.key === "s2", "a saved search picked in the box");
+const picked = m.find((x) => x.type === "source"); // (a layout saved a moment before may come first)
+ok(picked && picked.source.key === "s2", "a saved search picked in the box");
 
 // the query box: the table follows as you type, read as the launcher reads it; esc goes back, ↵ keeps, ⌘S saves
 await pg.click("#bSource");
@@ -513,6 +514,16 @@ await pg.click("#nadd");
 m = await sent();
 const lv = m.find((x) => x.type === "addColumn");
 ok(lv && lv.column.kind === "jev-one" && lv.column.labels[1].name === "industry" && lv.column.description === "At what level is the study?", "Add: a Jev best fit on your labels, its question");
+
+// the list is live: a paper that leaves it gives its place to the next one (the selection doesn't jump to the top)
+await pg.waitForTimeout(500);
+await pg.evaluate((d) => RT.load(d), data);
+const rowsNow = () => pg.$$eval("tbody tr[data-p]", (t) => t.map((r) => r.getAttribute("data-p")));
+const was = await rowsNow();
+await pg.click(`td.cell[data-p="${was[2]}"][data-c="year"]`);
+await pg.evaluate((d) => RT.load(d), Object.assign({}, data, { results: data.results.filter((r) => "1:" + r.key !== was[2]), total: 3 }));
+const now = await rowsNow();
+ok(now.length === 3 && (await pg.getAttribute("td.cell.active", "data-p")) === now[2], "a paper gone from the list: the one after it is selected");
 
 // narrow
 await pg.setViewportSize({ width: 520, height: 700 });

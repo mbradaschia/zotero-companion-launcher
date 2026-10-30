@@ -118,6 +118,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
         }
         reviewShelf.read = { [weak self] in self?.model.reviewList() ?? [] }
         model.reviewsRefresh = { [weak self] in self?.reviewWindows.refreshAll() }
+        model.reviewsSearch = { [weak self] in self?.reviewWindows.searchAll() }
         windowedSink = model.$windowed.dropFirst().removeDuplicates().sink { [weak self] windowed in
             self?.place(windowed: windowed)
         }

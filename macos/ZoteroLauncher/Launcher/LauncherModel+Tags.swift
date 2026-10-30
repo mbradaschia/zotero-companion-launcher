@@ -68,6 +68,7 @@ extension LauncherModel {
             self.tags.pending -= 1
             let here = self.opened && self.actionItem == item
             if case .ok(let answer) = result {
+                self.reviewsPapersChanged() // (a review listing a tag)
                 if here, self.details != nil, let now = answer["tags"] as? [Any] {
                     self.details?["tags"] = now
                     self.details?["tagCount"] = now.count

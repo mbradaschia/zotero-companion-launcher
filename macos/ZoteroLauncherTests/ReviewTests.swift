@@ -232,6 +232,57 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(row?["status"] as? String, "s/reading") // shown before it's saved
     }
 
+    // The list is live: a paper's task saved (from a table's panel here, or the launcher's) has the open tables search
+    // their sources again a moment later, so a list by task (task:"To read") takes the paper that now matches.
+    func testATaskSavedSearchesTheOpenTablesAgain() throws {
+        let (window, _) = try openWindow()
+        var searched = 0
+        model.reviewsSearch = { searched += 1 }
+        let status = try XCTUnwrap(model.todoStatuses.first?["id"] as? String)
+        window.handle(["type": "task", "paper": ["key": "DMKCNJER", "libraryID": 1, "title": "Another paper"], "status": status])
+        model.flushDefaultTasks()
+        XCTAssertEqual(searched, 0) // (one search for a burst of changes, a moment after the last)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+        XCTAssertEqual(searched, 1)
+        model.todos?.reload(try core()) // the same tasks read again: nothing to search for
+        RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+        XCTAssertEqual(searched, 1)
+    }
+
+    // A search on its own (the list is live) keeps the table as it is while it asks, then says which papers joined or
+    // left the list; when it fails, the table stays as it was.
+    func testALiveSearchSaysWhichPapersJoinedOrLeft() throws {
+        let (window, page) = try openWindow()
+        let typed = Fixture.bridge("search-typed")
+        bridge.answers["/search"] = { body in
+            var a = typed
+            a["results"] = (typed["results"] as? [[String: Any]] ?? []).filter { $0["key"] as? String != "DMKCNJER" }
+            return .ok(a)
+        }
+        let loads = page.loads.count
+        window.search(live: true)
+        XCTAssertEqual(page.loads.count, loads + 1) // (no "Searching…" first)
+        XCTAssertEqual((page.loads.last?["results"] as? [[String: Any]])?.count, 19)
+        XCTAssertEqual(page.flashes.last, "1 paper left the list")
+        bridge.answers["/search"] = { _ in .ok(typed) }
+        window.search(live: true)
+        XCTAssertEqual(page.flashes.last, "1 paper joined the list")
+        let flashes = page.flashes.count
+        window.search(live: true)
+        XCTAssertEqual(page.flashes.count, flashes) // the same papers: nothing said
+        bridge.answers["/search"] = { _ in .zoteroDown }
+        window.search(live: true)
+        XCTAssertEqual((page.loads.last?["results"] as? [[String: Any]])?.count, 20)
+        XCTAssertEqual(page.loads.last?["problem"] as? String, "")
+    }
+
+    func testWhatALiveSearchChangedInWords() {
+        XCTAssertNil(ReviewWindowModel.listChange(before: ["1:A", "1:B"], after: ["1:B", "1:A"]))
+        XCTAssertEqual(ReviewWindowModel.listChange(before: ["1:A"], after: ["1:A", "1:B", "1:C"]), "2 papers joined the list")
+        XCTAssertEqual(ReviewWindowModel.listChange(before: ["1:A", "1:B"], after: []), "2 papers left the list")
+        XCTAssertEqual(ReviewWindowModel.listChange(before: ["1:A", "1:B"], after: ["1:A", "1:C"]), "1 joined and 1 left the list")
+    }
+
     // A paper's letters, as the launcher's: i r copy its citation or bibliography entry (said in the table), o and n open
     // the launcher on its menu, at its PDF or its notes.
     func testAPapersLettersActAsInTheLauncher() throws {

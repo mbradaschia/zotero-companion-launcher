@@ -127,6 +127,7 @@ var RT = (function () {
   }
 
   function resolve() {
+    var was = rowIndex(act.pid) // (a paper that left the list gives its place to the next one)
     cols = C.columns(review, D.ctx, D.columns)
     // grouped: the groups in the group column's order, descending when the sort has that column descending
     var down = review.sort.some(function (k) { return k.column === review.group && k.dir === "desc" })
@@ -141,7 +142,7 @@ var RT = (function () {
     var ids = {}
     rows.forEach(function (r) { ids[C.paperId(r)] = true })
     Object.keys(sel).forEach(function (k) { if (!ids[k]) delete sel[k] })
-    if (!ids[act.pid]) act.pid = rows.length ? C.paperId(rows[0]) : ""
+    if (!ids[act.pid]) act.pid = rows.length ? C.paperId(rows[Math.max(0, Math.min(rows.length - 1, was))]) : ""
     if (!visible().some(function (c) { return c.id === act.c })) act.c = "title"
   }
 
