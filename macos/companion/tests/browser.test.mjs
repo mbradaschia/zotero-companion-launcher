@@ -1,5 +1,5 @@
 // The page in a browser (Playwright, where it's installed; skipped elsewhere), at the width Split View gives it beside
-// Zotero on an iPad: the link's key, a paper picked, its status and task changed (the tags and todos.json as the Mac
+// Zotero on an iPad: the link's key (and, on your own device, none), a paper picked, its status and task changed (the tags and todos.json as the Mac
 // app writes them), a question answered as it streams, every tab, the columns chooser; no script errors.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -38,7 +38,7 @@ test("the page beside Zotero", { skip: !chromium && "Playwright isn't installed"
     await page.keyboard.press("Enter");
     await page.getByText("Dynamic capabilities.", { exact: true }).waitFor();
 
-    for (const tab of ["Notes, 1", "Prompts", "Tasks, 1", "Taxonomies and tags", "Columns"]) {
+    for (const tab of ["Notes, 1", "Tasks, 1", "Taxonomies and tags", "Columns"]) {
       await page.getByRole("tab", { name: tab }).click();
       await page.waitForTimeout(150);
     }
@@ -51,6 +51,24 @@ test("the page beside Zotero", { skip: !chromium && "Playwright isn't installed"
     await page.getByRole("button", { name: "Show less" }).click();
     await page.getByText("No task").or(page.getByText("Writing")).first().waitFor();
     assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+    await s.close();
+  }
+});
+
+test("the page on your own device: no key, nothing to type; anyone else's sees how to get in", { skip: !chromium && "Playwright isn't installed" }, async () => {
+  const s = await startServer({ webDir: WEB });
+  const browser = await chromium.launch();
+  try {
+    const mine = await browser.newPage({ viewport: { width: 452, height: 1024 }, extraHTTPHeaders: { "Tailscale-User-Login": "me@example.com" } });
+    await mine.goto(s.base + "/");
+    await mine.getByText("Dynamic capabilities and strategic management").waitFor();
+    assert.equal(await mine.locator("#key").count(), 0);
+    assert.equal(await mine.getByRole("tab", { name: "Prompts" }).count(), 0);
+    const theirs = await browser.newPage({ extraHTTPHeaders: { "Tailscale-User-Login": "someone@else.com" } });
+    await theirs.goto(s.base + "/");
+    await theirs.getByText("Turn on Tailscale on this device").waitFor();
   } finally {
     await browser.close();
     await s.close();

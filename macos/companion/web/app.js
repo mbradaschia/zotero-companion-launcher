@@ -1,5 +1,5 @@
 // The reading companion's page (mockup A): a paper picked (search or recent), its card (status and default task, the
-// Mac app's pills), and six tabs: chat, notes, prompts, tasks, taxonomies and tags, columns. Plain DOM, no build: the
+// Mac app's pills), and five tabs: chat, notes, tasks, taxonomies and tags, columns. Plain DOM, no build: the
 // state below, `render()` drawing it, one click and one input handler reading `data-act`. Everything comes from the
 // app on the Mac where Zotero runs (/api/…); nothing of the library is kept here but the paper you had open and the tab.
 
@@ -88,11 +88,11 @@ const S = {
   paper: null,
   paperError: "",
   cardOpen: keep.get("cardOpen", true),
-  tab: keep.get("tab", "chat"),
+  tab: ["chat", "notes", "tasks", "tags", "cols"].includes(keep.get("tab", "chat")) ? keep.get("tab", "chat") : "chat",
   busy: {}, // what's being sent: "status", "task", …
   chat: { list: [], session: "", turns: [], streaming: false, status: "", error: "" },
   notes: null, openNote: "", noteHtml: {}, composing: false,
-  prompts: null, classifying: false, runningPrompts: {},
+  prompts: null, classifying: false, // (the prompts' list says whether tagging by taxonomies runs)
   tasks: null,
   addingTag: false,
   cols: null, chooser: false, editing: "", running: false, runningCols: {},
@@ -149,7 +149,7 @@ async function openPaper(id) {
   keep.set("paper", id);
   history.replaceState(null, "", "#paper=" + id);
   Object.assign(S, { paper: null, notes: null, prompts: null, tasks: null, cols: null, openNote: "", noteHtml: {}, composing: false, editing: "", addingTag: false,
-    runningPrompts: {}, runningCols: {}, classifying: false });
+    runningCols: {}, classifying: false });
   S.chat = { list: [], session: "", turns: [], streaming: false, status: "", error: "" };
   render();
   await loadPaper();
@@ -180,8 +180,8 @@ async function loadTab() {
       if (!S.chat.session && r.chats.length && !S.chat.streaming) await openChat(r.chats[0].id);
     } else if (tab === "notes") {
       S.notes = (await get("/api/notes", { id })).notes;
-    } else if (tab === "prompts" || tab === "tags") {
-      if (tab === "prompts" || S.prompts == null) await loadPrompts();
+    } else if (tab === "tags") {
+      if (S.prompts == null) await loadPrompts();
     } else if (tab === "tasks") {
       S.tasks = (await get("/api/tasks", { id })).tasks;
     } else if (tab === "cols") {
@@ -198,11 +198,10 @@ async function loadPrompts() {
   const r = await get("/api/prompts", { id: S.id });
   S.prompts = r.prompts;
   S.classifying = r.classifying;
-  r.prompts.filter((p) => p.running).forEach((p) => { S.runningPrompts[p.id] = p.title; });
-  if (r.prompts.some((p) => p.running) || r.classifying) poll("prompts");
+  if (r.classifying) poll("prompts");
 }
 
-// While a prompt, a tagging or a column runs: asked again every few seconds; when it ends, what it made shows and a
+// While a tagging or a column runs: asked again every few seconds; when it ends, what it made shows and a
 // sentence says so.
 const polls = {};
 function poll(what) {
@@ -216,15 +215,8 @@ function poll(what) {
         const r = await get("/api/prompts", { id: S.id });
         S.prompts = r.prompts;
         S.classifying = r.classifying;
-        for (const [pid, title] of Object.entries(S.runningPrompts)) {
-          const p = r.prompts.find((x) => x.id === pid);
-          if (p && p.running) continue;
-          delete S.runningPrompts[pid];
-          toast(`“${title}” is done: ${p && p.output !== "note" ? "a " + p.outputLabel.toLowerCase() + " in the paper's artifacts (on the Mac)" : "a note on this paper"}`);
-          if (!p || p.output === "note") { S.notes = null; loadPaper(); }
-        }
         if (wasTagging && !r.classifying) { toast("Tagging by taxonomies is done"); await loadPaper(); }
-        if (r.prompts.some((p) => p.running) || r.classifying || Object.keys(S.runningPrompts).length) poll("prompts");
+        if (r.classifying) poll("prompts");
       } else if (what === "cols") {
         const r = await get("/api/columns", { id: S.id });
         S.cols = r.columns;
@@ -372,15 +364,6 @@ async function copyNote(id) {
     toast("Copied: the note and its bibliography entry");
   } catch (e) { failed(e); }
 }
-
-const runPrompt = (prompt) => busy("prompt:" + prompt, async () => {
-  await call("/api/prompts/run", { id: S.id, prompt });
-  const p = (S.prompts || []).find((x) => x.id === prompt);
-  if (p) p.running = true;
-  S.runningPrompts[prompt] = p ? p.title : prompt;
-  toast(`Started: “${p ? p.title : prompt}” on this paper (in Processes on ${mac()})`);
-  poll("prompts");
-});
 
 async function addTask() {
   const description = (drafts.task || "").trim();
@@ -617,7 +600,6 @@ function tabs() {
   const list = [
     ["chat", "chat", "Chat", 0],
     ["notes", "note", "Notes", p ? p.noteCount : 0],
-    ["prompts", "ai", "Prompts", 0],
     ["tasks", "tasks", "Tasks", p ? p.openTasks : 0],
     ["tags", "tax", "Taxonomies and tags", 0],
     ["cols", "columns", "Columns", 0],
@@ -681,26 +663,6 @@ function classifyButton(p) {
   const st = p.taxStatus;
   const label = S.classifying ? "Tagging by taxonomies…" : st && st.classified ? (st.stale.length ? "Tag again by taxonomies: out of date" : "Tag again by taxonomies") : "Tag by taxonomies";
   return `<button class="btn wide" data-act="classify"${S.classifying || S.busy.classify || aiMissing() || !p.editable ? " disabled" : ""}>${S.classifying ? icon("spin", 14, ' class="spin"') : icon("tax")}${esc(label)}</button>`;
-}
-
-function promptsPane() {
-  if (!S.prompts) return `<div class="pane"><span class="hint">Loading your prompts…</span></div>`;
-  const noAI = aiMissing();
-  const ro = S.paper && !S.paper.editable;
-  return `<div class="pane">${noAI ? missingAI("Running a prompt") : ""}
-    <span class="hint">Your saved prompts, run on this paper (in Processes on ${esc(mac())}).</span>
-    ${S.prompts.length ? "" : `<div class="empty">No prompts yet: make one in the launcher's Prompts</div>`}
-    ${S.prompts.map((p) => {
-      const busyNow = p.running || S.busy["prompt:" + p.id];
-      const detail = p.running ? "Running…" : p.output !== "note" ? p.outputLabel : p.lastRun ? "Ran " + dateText(p.lastRun) + " · Zotero note" : "Not run on this paper · Zotero note";
-      return `<div class="box"><div class="row-between">
-        <div style="display:flex;flex-direction:column;gap:3px;min-width:0"><h3>${esc(p.title)}</h3>
-          <span class="${p.lastRun && !p.running ? "okline" : "hint"}">${p.lastRun && !p.running ? icon("check", 12) + " " : ""}${esc(detail)}</span></div>
-        <button class="btn" data-act="prompt-run" data-id="${esc(p.id)}"${busyNow || noAI || ro ? " disabled" : ""}>${busyNow ? icon("spin", 14, ' class="spin"') + "Running" : icon("run", 12) + (p.lastRun ? "Run again" : "Run")}</button>
-      </div></div>`;
-    }).join("")}
-    ${classifyButton(S.paper)}
-  </div>`;
 }
 
 function tasksPane() {
@@ -815,8 +777,8 @@ function colRow(c) {
 function loginView() {
   return `<header class="top"><div class="top-row"><h1>Companion</h1></div></header>
   <div class="login">
-    <h2>Open the link from your Mac</h2>
-    <p class="muted">On the Mac where Zotero runs: the menu bar's Zotero Launcher › Reading Companion › Show the iPad Link…, then scan its code with the iPad's camera. Or type the key from that link (what follows <code>key=</code>).</p>
+    <h2>Turn on Tailscale on this device</h2>
+    <p class="muted">The companion opens by itself on your devices signed in to Tailscale with the same account as the Mac where Zotero runs. Turn Tailscale on here, then reload. On a device signed in as someone else, type the companion's key.</p>
     <label class="sr" for="key">The key</label>
     <input id="key" class="field" data-keep="key" placeholder="The key" autocapitalize="off" autocorrect="off" spellcheck="false" value="${esc(drafts.key || "")}">
     <button class="btn primary" data-act="login">Open</button>
@@ -824,7 +786,7 @@ function loginView() {
 }
 
 function pane() {
-  return { chat: chatPane, notes: notesPane, prompts: promptsPane, tasks: tasksPane, tags: tagsPane, cols: colsPane }[S.tab]();
+  return { chat: chatPane, notes: notesPane, tasks: tasksPane, tags: tagsPane, cols: colsPane }[S.tab]();
 }
 
 // The page drawn from the state; the field you were typing in keeps its focus and caret.
@@ -935,7 +897,6 @@ document.addEventListener("click", (e) => {
     case "note-save": saveNote(); break;
     case "note-open": toggleNote(id); break;
     case "note-copy": copyNote(id); break;
-    case "prompt-run": runPrompt(id); break;
     case "task-add": addTask(); break;
     case "decide": decide(el.dataset.tax, el.dataset.label, !!el.dataset.accept); break;
     case "classify": classify(); break;

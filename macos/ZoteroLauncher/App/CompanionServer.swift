@@ -5,7 +5,9 @@ import CoreImage
 // runs (Resources/CompanionKit/macos/companion/server.mjs, laid out by scripts/companion-kit.sh), on 127.0.0.1 only.
 // Tailscale brings your tailnet to it: the menu bar's Reading Companion › Show the iPad Link turns that on and shows
 // the link (a QR code to scan, the link to copy). On unless turned off there; stopped when the app quits, and, the app
-// gone any other way, when its stdin closes (--exit-with-stdin): no server left holding the port.
+// gone any other way, when its stdin closes (--exit-with-stdin): no server left holding the port. What it did (started,
+// stopped, why) and the server's own lines (method, path, status: never what's in the library) go to
+// ~/Library/Logs/ZoteroLauncher-companion.log.
 @MainActor
 final class CompanionServer: ObservableObject {
     static let key = "ZLCompanionOn"
@@ -25,6 +27,7 @@ final class CompanionServer: ObservableObject {
     private var startedAt = Date()
 
     static var script: URL? { Bundle.main.resourceURL?.appendingPathComponent("CompanionKit/macos/companion/server.mjs") }
+    static let logURL = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs/ZoteroLauncher-companion.log")
     var enabled: Bool { UserDefaults.standard.object(forKey: Self.key) as? Bool ?? true }
 
     init(runner: Runner) { self.runner = runner as? ProcessRunner }
@@ -46,8 +49,10 @@ final class CompanionServer: ObservableObject {
 
     // Node looked for off the main thread (a slow shim must not freeze the app), then started.
     func start() {
-        guard enabled, process == nil, state != .starting else { return }
-        guard let runner, let script = Self.script, FileManager.default.fileExists(atPath: script.path) else { return state = .failed("It isn't in this build of the app") }
+        guard enabled, process == nil, state != .starting else { return log("start skipped: \(enabled ? "already \(state)" : "turned off")") }
+        guard let runner, let script = Self.script, FileManager.default.fileExists(atPath: script.path) else { return fail("It isn't in this build of the app") }
+        Self.trimLog()
+        log("starting")
         state = .starting
         stopping = false
         runner.queue.async { [weak self] in
@@ -58,8 +63,8 @@ final class CompanionServer: ObservableObject {
     }
 
     private func launch(node: ProcessRunner.Node?, env: [String: String], script: URL) {
-        guard !stopping, process == nil else { return }
-        guard let node else { return state = .failed("It needs Node.js 22 or newer: Settings › Setup › Install Node.js") }
+        guard !stopping, process == nil else { return log("launch skipped: \(stopping ? "stopping" : "already running")") }
+        guard let node else { return fail("It needs Node.js 22 or newer: Settings › Setup › Install Node.js") }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: node.path)
         p.arguments = [script.path, "--port", String(Self.port), "--exit-with-stdin"]
@@ -67,8 +72,9 @@ final class CompanionServer: ObservableObject {
         p.currentDirectoryURL = URL(fileURLWithPath: runner?.home ?? NSHomeDirectory())
         let pipe = Pipe()
         p.standardInput = pipe
-        p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
+        let out = Self.logHandle()
+        p.standardOutput = out ?? FileHandle.nullDevice
+        p.standardError = out ?? FileHandle.nullDevice
         p.terminationHandler = { [weak self] proc in
             let status = proc.terminationStatus
             DispatchQueue.main.async { MainActor.assumeIsolated { self?.ended(proc, status: status) } }
@@ -76,8 +82,11 @@ final class CompanionServer: ObservableObject {
         do {
             try p.run()
         } catch {
-            return state = .failed("It didn't start: \(error.localizedDescription)")
+            try? out?.close()
+            return fail("It didn't start: \(error.localizedDescription)")
         }
+        try? out?.close() // (the server has its own copy)
+        log("started: \(node.path) \(node.version), pid \(p.processIdentifier)")
         process = p
         input = pipe
         startedAt = Date()
@@ -87,14 +96,15 @@ final class CompanionServer: ObservableObject {
     // Stopped by itself: started again (a few times, waiting longer each time), unless the port is someone else's.
     private func ended(_ p: Process, status: Int32) {
         guard p === process else { return }
+        log("ended: exit \(status)")
         process = nil
         try? input?.fileHandleForWriting.close()
         input = nil
         if stopping || !enabled { return state = .off }
-        if status == 3 { return state = .failed("Port \(Self.port) is in use by another program") }
+        if status == 3 { return fail("Port \(Self.port) is in use by another program") }
         if Date().timeIntervalSince(startedAt) > 60 { restarts = 0 }
         restarts += 1
-        guard restarts <= 3 else { return state = .failed("It keeps stopping (exit \(status))") }
+        guard restarts <= 3 else { return fail("It keeps stopping (exit \(status))") }
         state = .starting
         DispatchQueue.main.asyncAfter(deadline: .now() + Double(restarts * 5)) { [weak self] in
             MainActor.assumeIsolated {
@@ -106,12 +116,40 @@ final class CompanionServer: ObservableObject {
     }
 
     func stop() {
+        if process != nil { log("stopping") }
         stopping = true
         process?.terminate()
         try? input?.fileHandleForWriting.close()
         process = nil
         input = nil
         state = .off
+    }
+
+    private func fail(_ why: String) {
+        log("failed: " + why)
+        state = .failed(why)
+    }
+
+    private func log(_ line: String) {
+        guard let h = Self.logHandle() else { return }
+        h.write(Data("\(ISO8601DateFormatter().string(from: Date())) app: \(line)\n".utf8))
+        try? h.close()
+    }
+
+    // Kept under a megabyte: past that, started again (when the server starts, so it never writes to a file gone).
+    private static func trimLog() {
+        if let size = (try? FileManager.default.attributesOfItem(atPath: logURL.path))?[.size] as? Int, size > 1_000_000 { try? FileManager.default.removeItem(at: logURL) }
+    }
+
+    // The log, at its end.
+    private static func logHandle() -> FileHandle? {
+        let fm = FileManager.default
+        let path = logURL.path
+        try? fm.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if !fm.fileExists(atPath: path) { fm.createFile(atPath: path, contents: nil) }
+        guard let h = FileHandle(forWritingAtPath: path) else { return nil }
+        h.seekToEndOfFile()
+        return h
     }
 
     var statusLine: String {
@@ -130,12 +168,13 @@ final class CompanionServer: ObservableObject {
         runner.run(["node", script.path, "--share", "--port", String(Self.port)], stdin: nil, timeout: 90) { r in
             let json = r.json as? [String: Any]
             let link = json?["link"] as? String ?? ""
+            let keyed = json?["keyed"] as? Bool ?? link.contains("key=")
             let problem = (json?["tailscale"] as? [String: Any])?["problem"] as? String ?? (r.ok ? "" : r.problem)
-            Self.present(link: link, problem: problem)
+            Self.present(link: link, keyed: keyed, problem: problem)
         }
     }
 
-    private static func present(link: String, problem: String) {
+    private static func present(link: String, keyed: Bool, problem: String) {
         let alert = NSAlert()
         if link.isEmpty {
             alert.messageText = "The iPad can't reach it yet"
@@ -144,7 +183,8 @@ final class CompanionServer: ObservableObject {
             alert.addButton(withTitle: "OK")
         } else {
             alert.messageText = "Open the reading companion on your iPad"
-            alert.informativeText = "Scan this with the iPad's camera, or copy the link and open it in Safari. Then Share › Add to Home Screen.\n\nThe link holds the companion's key: keep it to your own devices."
+            alert.informativeText = "Scan this with the iPad's camera, or copy the link and open it in Safari. Then Share › Add to Home Screen.\n\n" +
+                (keyed ? "The link holds the companion's key: keep it to your own devices." : "It opens on your devices signed in to Tailscale with this Mac's account, with nothing to type. Nobody else's device gets in.")
             alert.addButton(withTitle: "Copy the Link")
             alert.addButton(withTitle: "Done")
             if let qr = qrCode(link) {

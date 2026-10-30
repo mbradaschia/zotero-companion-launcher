@@ -48,6 +48,26 @@ test("server: another host is refused before anything else", async () => {
   } finally { await s.close(); }
 });
 
+test("server: your own devices (Tailscale says it's this Mac's login) need no key; anyone else does", async () => {
+  const s = await startServer();
+  try {
+    const ask = (login, extra = {}) => fetch(s.base + "/api/settings", { headers: Object.assign({ "Tailscale-User-Login": login }, extra) });
+    assert.equal((await ask("me@example.com")).status, 200);
+    assert.equal((await ask(" ME@example.com ")).status, 200);
+    assert.equal((await ask("someone@else.com")).status, 401);
+    assert.equal((await ask("someone@else.com", { Cookie: "zc_key=" + KEY })).status, 200);
+    assert.equal((await ask("")).status, 401);
+    const change = await fetch(s.base + "/api/columns/hidden", { method: "POST", headers: { "Tailscale-User-Login": "me@example.com", "X-Companion": "1", "Content-Type": "application/json" }, body: JSON.stringify({ hidden: ["year"] }) });
+    assert.equal(change.status, 200);
+    const noHeader = await fetch(s.base + "/api/columns/hidden", { method: "POST", headers: { "Tailscale-User-Login": "me@example.com", "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(noHeader.status, 403); // (a change still needs the companion's header)
+  } finally { await s.close(); }
+  const unknown = await startServer({ owner: "" }); // (Tailscale didn't say who this Mac is: everyone needs the key)
+  try {
+    assert.equal((await fetch(unknown.base + "/api/settings", { headers: { "Tailscale-User-Login": "me@example.com" } })).status, 401);
+  } finally { await unknown.close(); }
+});
+
 test("server: the API needs the key; the page itself doesn't", async () => {
   const web = mkdtempSync(join(tmpdir(), "companion-web-"));
   writeFileSync(join(web, "index.html"), "<!doctype html><title>t</title>");

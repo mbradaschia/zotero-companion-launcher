@@ -28,9 +28,8 @@ sentences for the AI features missing, the sync folder away and a bridge failure
   2. **Notes:** your notes on the paper, without the extracted text, in your order (`Glue.ownNotes`, view.json's
      `noteOrder`); one opens in place; *Copy with its bibliography entry*; *New note* (Markdown, the runner's
      `note`); *Open in Zotero* (your own library's): Zotero edits notes, the bridge has no note update yet.
-  3. **Prompts:** your saved prompts (`list --json`), each with its output (a Zotero note: when it last ran on this
-     paper, from `/notes/by-prompt`; another output: its kind), *Run* / *Run again* (`run <id> --key`, started and
-     left; *Started: “X” on this paper (in Processes on “mini”)*, then *“X” is done: …*); the classify button.
+  3. ~~**Prompts:**~~ dropped in 0.4.25 (Marcelo: the Columns tab already has it). The classify button is in
+     Taxonomies and tags.
   4. **Tasks:** the paper's tasks from `todos.json` (open first), a checkbox each, a field to add one.
   5. **Taxonomies and tags:** each taxonomy by its name and kind (*unique (one label per paper)*, *several labels
      per paper*) with its labels as pills, *No label* when none, its suggestions with *Tag it* / *Dismiss it*
@@ -74,7 +73,12 @@ iPad Safari ──HTTPS (Tailscale serve)──▶ Mac mini 127.0.0.1:8787  maco
   companion's own port (`https://<mac>.<tailnet>.ts.net:8787`, so whatever you serve on 443 stays), so nothing is
   open on the LAN or the internet and Safari gets a real certificate (needed for the home-screen app). Tailnet
   only, never Funnel.
-- **A key on top of Tailscale:** the first start makes a random 32-byte key (`<config>/companion.json`, mode 600).
+- **Your own devices, by Tailscale's word (0.4.25):** serve adds `Tailscale-User-Login` to each request (and removes
+  one sent to it). When it is this Mac's own login (`status --json`: Self.UserID's LoginName, asked at start and every
+  few minutes), the request needs nothing more: no key, no cookie (Marcelo: "I don't want any code to connect").
+  Only something on this Mac could send that header straight to 127.0.0.1, which Tailscale's docs accept for serve
+  backends. Show the iPad Link then shows the plain address.
+- **The key, for anyone else** (a device shared in, or Tailscale not saying who the Mac is): the first start makes a random 32-byte key (`<config>/companion.json`, mode 600).
   Reading Companion › Show the iPad Link shows the link with it (a QR code, and Copy); opening it sets an `HttpOnly; Secure; SameSite=Strict` cookie and
   drops the key from the address. Every `/api/` call needs the cookie (or `Authorization: Bearer`); a change also
   needs `X-Companion: 1` (no cross-site form can send it) and, when the browser says, its own origin. A home-screen
