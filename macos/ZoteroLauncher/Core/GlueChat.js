@@ -104,7 +104,7 @@ function GlueChat(V, F, Mk) {
   // A past chat (chat-show) as the window's messages.
   var sessionMessages = function (session, models) {
     return ((session && session.messages) || []).map(function (m) {
-      return { role: m.role, text: String(m.text || ""), pending: false, failed: false, model: m.model || "", info: m.role === "assistant" ? answerInfo(models, m.model, m.quotes, m.costUsd) : "" }
+      return { role: m.role, text: String((m.role === "user" && m.display) || m.text || ""), pending: false, failed: false, model: m.model || "", info: m.role === "assistant" ? answerInfo(models, m.model, m.quotes, m.costUsd) : "" }
     })
   }
 
@@ -113,6 +113,8 @@ function GlueChat(V, F, Mk) {
   var chatHtml = function (messages, o) {
     o = o || {}
     if (!messages || !messages.length) {
+      if (o.list) return '<p class="empty">Ask anything across ' + esc(o.list) + ".</p><p class=\"empty\">The chat reads each paper's citation, abstract and the table's columns you see, and cites the papers (Author, Year). " +
+        "Ask each paper reads every full text instead: your question becomes an AI column, then the chat sums up its answers. Enter sends, ⇧↵ starts a new line, esc stops an answer.</p>"
       return '<p class="empty">Ask anything about ' + esc(o.cite || "the paper") + ".</p><p class=\"empty\">Answers quote the paper with page numbers and cite it APA 7 style. " +
         "Enter sends, ⇧↵ starts a new line, esc stops an answer.</p>"
     }
@@ -153,6 +155,8 @@ function GlueChat(V, F, Mk) {
 
   // `chat`'s argv after the command: a chat in progress resumes; a new one says what it reads.
   var chatArgs = function (item, o) {
+    // a review table's list (its docked chat's List): the list comes on stdin
+    if (item.review) return ["chat", "--review", String(item.review), "--model", o.model || "default", "--effort", o.effort || "default"].concat(o.sessionId ? ["--session", o.sessionId] : [])
     var a = ["chat", "--key", item.key, "--library", String(item.libraryID || 1), "--model", o.model || "default", "--effort", o.effort || "default"]
     return a.concat(o.sessionId ? ["--session", o.sessionId] : ["--source", o.source === "note" ? "note" : "pdf"])
   }

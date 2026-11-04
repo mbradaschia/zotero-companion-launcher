@@ -9,7 +9,120 @@ struct ChatWindowView: View {
     let launcher: LauncherModel // (not observed: the model passes its changes on, at most twice a second)
     @Environment(\.palette) private var palette
 
+    init(model: ChatWindowModel, launcher: LauncherModel) {
+        self.model = model
+        self.launcher = launcher
+    }
+
     var body: some View {
+        if model.docked { dockedBody } else { windowBody }
+    }
+
+    // Docked beside a review table: narrower, so the past chats are a menu, the banner two lines.
+    private var dockedBody: some View {
+        VStack(spacing: 0) {
+            dockedBar
+            Divider()
+            dockedBanner
+            Divider()
+            ZStack(alignment: .topTrailing) {
+                ChatWebView(body: model.page, onLink: { model.link($0) })
+                if model.showKeys { keysPanel.padding(12) }
+            }
+            Divider()
+            composer
+        }
+        .frame(minWidth: 320, minHeight: 300)
+    }
+
+    private var dockedBar: some View {
+        HStack(spacing: 8) {
+            Text(model.flash.isEmpty ? model.paperLine : model.flash)
+                .font(.callout.weight(model.flash.isEmpty ? .regular : .semibold))
+                .foregroundStyle(model.flash.isEmpty ? palette.subtext : palette.accent)
+                .lineLimit(2)
+                .help(model.paperLine)
+            Spacer(minLength: 4)
+            Menu {
+                Button("New chat") { model.newChat() }.disabled(model.busy)
+                if !model.sessions.isEmpty {
+                    Section("Past chats") {
+                        ForEach(Array(model.sessions.enumerated()), id: \.offset) { _, s in
+                            let id = s["id"] as? String ?? ""
+                            let n = s["turns"] as? Int ?? 0
+                            Button { model.openSession(id) } label: {
+                                Label((s["title"] as? String ?? "chat") + " · " + String((s["updated"] as? String ?? "").prefix(10)) + " · \(n)", systemImage: id == model.sessionId ? "checkmark" : "bubble.left")
+                            }
+                            .disabled(model.busy)
+                        }
+                    }
+                }
+                if !model.artifacts.isEmpty {
+                    Section("Artifacts") {
+                        ForEach(Array(model.artifacts.enumerated()), id: \.offset) { _, a in
+                            Button("▣ " + (a["title"] as? String ?? "")) { model.openArtifact(a["id"] as? String ?? "") }
+                        }
+                    }
+                }
+            } label: { Image(systemName: "clock.arrow.circlepath") }
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("New chat, past chats" + (model.list == nil ? ", artifacts" : ""))
+            Button { model.copyChat() } label: { Image(systemName: "doc.on.doc") }.help("Copy the whole chat as Markdown").disabled(model.messages.isEmpty)
+            if model.list == nil {
+                Button { model.saveChat() } label: { Image(systemName: "square.and.arrow.down.on.square") }.help("Save the whole chat to Zotero, as a note on the paper")
+                    .disabled(model.messages.isEmpty || model.busy)
+            }
+            Button { model.downloadChat() } label: { Image(systemName: "arrow.down.doc") }.help("Download the whole chat as a .md file").disabled(model.messages.isEmpty)
+            Button { model.showKeys.toggle() } label: { Image(systemName: "keyboard") }.help("The chat's keys")
+        }
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+    }
+
+    private var dockedBanner: some View {
+        let info = model.infoLine
+        return VStack(alignment: .leading, spacing: 4) {
+            if model.list != nil {
+                Label(model.groundingNote, systemImage: "list.bullet.rectangle")
+                    .font(.caption)
+                    .foregroundStyle(palette.subtext)
+                    .lineLimit(2)
+            } else {
+                HStack(spacing: 8) {
+                    PillView(text: model.savedText != nil ? "\u{2713} Text extracted" : "Text not extracted", selected: false, mode: model.savedText != nil ? "tag" : "off", kind: "neutral")
+                    if model.savedText == nil {
+                        Button(model.extracting ? "Extracting…" : "Extract text") { model.extract() }
+                            .disabled(model.extracting)
+                            .help("The PDF's text as a page-numbered note, for chats and prompts")
+                    }
+                    Picker("", selection: Binding(get: { model.groundSource }, set: { model.setSource($0) })) {
+                        Text(".md").tag("note")
+                        Text("PDF").tag("pdf")
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                    .disabled(model.busy)
+                    .help("What a new chat reads: the extracted text (.md note) or the PDF")
+                    Spacer(minLength: 0)
+                }
+            }
+            if !info.text.isEmpty {
+                Text(info.text)
+                    .font(.caption)
+                    .foregroundStyle(info.high ? palette.accent : palette.subtext)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var windowBody: some View {
         HStack(spacing: 0) {
             if model.showSidebar {
                 sidebar.frame(width: 280)
@@ -153,7 +266,7 @@ struct ChatWindowView: View {
     private var composer: some View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topLeading) {
-                if model.draft.isEmpty { Text("Ask about the paper…").foregroundStyle(.tertiary).padding(.horizontal, 9).padding(.vertical, 6) }
+                if model.draft.isEmpty { Text(model.list != nil ? "Ask across the papers…" : "Ask about the paper…").foregroundStyle(.tertiary).padding(.horizontal, 9).padding(.vertical, 6) }
                 ChatInput(text: $model.draft, onSend: { model.send() }, onEscape: { model.escape() }, focus: { model.focusInput = $0 })
             }
             .frame(minHeight: 36, maxHeight: CGFloat(min(8, max(2, model.draft.split(separator: "\n", omittingEmptySubsequences: false).count + 1))) * 19 + 12)
@@ -162,6 +275,11 @@ struct ChatWindowView: View {
                 promptsPicker
                 Spacer()
                 if model.busy { Button("Stop") { model.stop() }.keyboardShortcut(.cancelAction) } else {
+                    if model.list != nil {
+                        Button { model.askEach() } label: { Label("Ask each", systemImage: "rectangle.badge.plus") }
+                            .disabled(model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            .help("Ask each paper: the question becomes an AI column that reads every paper's full text (the table shows the run's plan first), then the chat sums up the answers")
+                    }
                     Button("Send") { model.send() }.disabled(model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

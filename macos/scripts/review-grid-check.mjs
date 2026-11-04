@@ -61,7 +61,8 @@ pg.on("pageerror", (e) => errors.push(e.message));
 pg.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
 await pg.setContent(shell());
 await pg.evaluate((d) => RT.load(d), data);
-const sent = () => pg.evaluate(() => (window.RT_SENT || []).splice(0));
+// (the panel's paper, said as the selection moves for the docked chat, left out unless asked for)
+const sent = (all) => pg.evaluate(() => (window.RT_SENT || []).splice(0)).then((m) => (all ? m : m.filter((x) => x.type !== "chatPaper")));
 const cell = (p, c) => `td.cell[data-p="1:${p}"][data-c="${c}"]`;
 let heads = "";
 
@@ -125,7 +126,7 @@ const layout = m.filter((x) => x.type === "layout").pop();
 ok(layout && layout.review.sort.length === 2 && layout.review.sort[1].column === "year", "the sort is saved with the review");
 const label = (sel) => pg.getAttribute(sel, "aria-label");
 ok((await label("#bSort")).startsWith("Sort: ABS, then Year") && (await label("#bOrder")).startsWith("Ascending by ABS"), "Sort names its keys, Order says its direction");
-ok((await pg.textContent(".tools")).trim() === "" && (await pg.locator(".tools button svg").count()) === 11, "the toolbar is icons, each with its name");
+ok((await pg.textContent(".tools")).trim() === "" && (await pg.locator(".tools button svg").count()) === 12, "the toolbar is icons, each with its name");
 
 // the order and the groups
 await pg.click("#bOrder");
@@ -641,6 +642,50 @@ await pg.click("#nadd");
 m = await sent();
 const lv = m.find((x) => x.type === "addColumn");
 ok(lv && lv.column.kind === "jev-one" && lv.column.labels[1].name === "industry" && lv.column.description === "At what level is the study?", "Add: a Jev best fit on your labels, its question");
+
+// the docked chat: a paper's (it follows the panel's paper) or the list's; Ask each paper
+await pg.waitForTimeout(500);
+await pg.evaluate((d) => RT.load(d), Object.assign({}, data, { chat: { open: false, mode: "paper" } }));
+await sent();
+await pg.click(cell("BBBBBBBB", "year"));
+m = await sent(true);
+ok(m.some((x) => x.type === "chatPaper" && x.paper.key === "BBBBBBBB" && x.paper.libraryID === 1), "the panel's paper is said as it moves (the chat follows it)");
+await pg.click("#panel [data-act=chat]");
+m = await sent();
+ok(m.some((x) => x.type === "chat" && x.mode === "paper" && x.paper.key === "BBBBBBBB"), "the panel's chat icon opens the paper's chat");
+await pg.evaluate((d) => RT.load(d), Object.assign({}, data, { chat: { open: true, mode: "paper" } }));
+ok((await pg.getAttribute("#bChat", "aria-pressed")) === "true" && (await pg.getAttribute("#panel [data-act=chat]", "aria-pressed")) === "true", "open: the toolbar's and the panel's icons say so (pressed, not by colour alone)");
+await sent();
+await pg.click("#bChat");
+m = await sent();
+ok(m.some((x) => x.type === "chat" && x.toggle === true), "the toolbar's icon toggles it");
+await pg.evaluate(() => RT.chatList(7));
+m = await sent();
+const cl = m.find((x) => x.type === "chatList");
+const first = cl && cl.list.papers[0];
+ok(cl && cl.token === 7 && cl.list.name === "Resilience core" && cl.list.papers.length === 4 && first.id === "1:AAAAAAAA" && first.cite === "(Sirmon et al., 2011)"
+  && first.cells.some((c) => c.label === "Include?" && c.value === "include") && !first.cells.some((c) => c.label === "Paper" || c.label === "Year"), "the list's chat: the rows as shown, each with its citation and the columns you see");
+await pg.evaluate(() => RT.askEach({ question: "Which fatigue mechanisms does it test?" }));
+m = await sent();
+const ask = m.find((x) => x.type === "addColumn");
+ok(ask && ask.column.kind === "prompt" && ask.column.reads === "full" && ask.column.label === "Ask: Which fatigue mechanisms does it…" && /not addressed/.test(ask.column.description), "Ask each paper: the question as an AI column that reads each full text");
+ok((await pg.locator('input[name="rcol"]:checked').count()) === 1 && (await pg.isChecked(`input[name="rcol"][value="${ask.column.id}"]`)), "its run's plan shown first, only it ticked");
+await pg.click("#rgo");
+m = await sent();
+ok(m.some((x) => x.type === "run" && x.jobs.length === 4 && x.jobs.every((j) => j.column === ask.column.id)), "Run: its cells, every paper shown");
+const withAsk = JSON.parse(JSON.stringify(data));
+withAsk.columns[ask.column.id] = ask.column;
+withAsk.review.columns.push({ id: ask.column.id });
+await pg.evaluate((d) => RT.load(d), Object.assign({}, withAsk, { run: { stage: "0 of 4 papers", started: "2026-11-04T10:00:00Z", cells: [], queued: [] } }));
+ok(!(await sent()).some((x) => x.type === "askedEach"), "while it runs, nothing goes to the chat");
+withAsk.cells[ask.column.id] = { "1:AAAAAAAA": { v: "glycogen depletion", by: "ai" }, "1:BBBBBBBB": { v: "not addressed", by: "ai" } };
+await pg.evaluate((d) => RT.load(d), withAsk);
+m = await sent();
+const asked = m.find((x) => x.type === "askedEach");
+ok(asked && asked.question === "Which fatigue mechanisms does it test?" && asked.papers === 4 && asked.answers.length === 2 && asked.answers[0].cite === "(Sirmon et al., 2011)" && asked.answers[0].value === "glycogen depletion",
+  "the run done: its answers, each with its citation, go to the chat");
+await pg.evaluate((d) => RT.load(d), withAsk);
+ok(!(await sent()).some((x) => x.type === "askedEach"), "once");
 
 // the list is live: a paper that leaves it gives its place to the next one (the selection doesn't jump to the top)
 await pg.waitForTimeout(500);

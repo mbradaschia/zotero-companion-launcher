@@ -4,7 +4,7 @@
 // right, by editing a cell of your own, or with ⌥→← (status) and ⇧⌥→← (task).
 var RT = (function () {
   var C = ReviewCore
-  var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true, pinned: false, preview: null, run: null }
+  var D = { review: null, columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: true, pinned: false, preview: null, run: null, chat: null }
   var review = null // the review as you arrange it (sent back on each change)
   var cols = [] // its columns, resolved (ReviewCore.columns)
   var rows = [] // the papers, in the sort's order (and grouped: the groups' order)
@@ -79,7 +79,9 @@ var RT = (function () {
     // an AI run: stop it, a cell being run now (it turns), a cell waiting its turn
     stop: "M6 6h12v12H6z",
     running: "M4.5 12a7.5 7.5 0 0 1 12.8-5.3 M17.5 3v4h-4 M19.5 12a7.5 7.5 0 0 1-12.8 5.3 M6.5 21v-4h4",
-    waiting: "M6 3h12 M6 21h12 M7 3v3l5 6-5 6v3 M17 3v3l-5 6 5 6v3"
+    waiting: "M6 3h12 M6 21h12 M7 3v3l5 6-5 6v3 M17 3v3l-5 6 5 6v3",
+    // the chat docked on the right (a paper's or the list's)
+    chat: "M4 5h16v11H10l-5 4v-4H4z"
   }
   // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
   // A paper's title with its italics, bold, sub- and superscripts (C.titleRuns), as elements: never markup from the title.
@@ -123,13 +125,14 @@ var RT = (function () {
 
   function load(data) {
     var first = !D.review || !data.review || D.review.id !== data.review.id
-    D = Object.assign({ columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: false, pinned: false, preview: null, run: null }, data || {})
+    D = Object.assign({ columns: {}, cells: {}, results: [], total: 0, ctx: {}, readOnly: false, problem: "", loading: false, pinned: false, preview: null, run: null, chat: null }, data || {})
     // your arrangement while a change is on its way stays yours (the file comes back the same a moment later)
     if (first || !layoutTimer) review = JSON.parse(JSON.stringify(D.review))
     if (!built) build()
     if (first) { act = { pid: "", c: "title" }; sel = {}; notesOf = {} }
     resolve()
     drawAll()
+    askedYet()
   }
 
   function resolve() {
@@ -187,6 +190,7 @@ var RT = (function () {
         iconButton("bRun", "run", "Run the AI columns… (⇧⌘R)"),
         el("span", { class: "tsep" }),
         iconButton("bExport", "export", "Export", { "aria-haspopup": "true" }),
+        iconButton("bChat", "chat", "Chat about the paper or the list (⌥⌘C)"),
         iconButton("bPanel", "panel", "Show or hide the panel on the right (⌥⌘I)", { "aria-controls": "panel" }),
         iconButton("bRefresh", "refresh", "Search again (⌘R)"),
         iconButton("bPin", "pin", "Pin")
@@ -230,6 +234,10 @@ var RT = (function () {
     label($("bRun"), D.run ? "Stop the AI run (" + (D.run.stage || "starting") + (nq ? "; " + nq + " more waiting" : "") + "): what's done stays" : nai ? "Run the AI columns… (⇧⌘R): the plan first, nothing starts before Run" : "Run the AI columns: + Column adds one first (An AI column)")
     $("bPanel").className = "tb icon" + (review.panel ? " on" : "")
     $("bPanel").setAttribute("aria-pressed", String(!!review.panel))
+    var chatOn = !!(D.chat && D.chat.open)
+    $("bChat").className = "tb icon" + (chatOn ? " on" : "")
+    $("bChat").setAttribute("aria-pressed", String(chatOn))
+    label($("bChat"), chatOn ? "Close the chat (⌥⌘C)" : "Chat about the paper or the list (⌥⌘C): it opens on the right")
     $("bPin").className = "tb icon" + (D.pinned ? " on" : "")
     $("bPin").setAttribute("aria-pressed", String(!!D.pinned))
     label($("bPin"), D.pinned ? "Pinned: the table stays over other apps' windows. A click unpins it" : "Pin it: the table stays over other apps' windows")
@@ -471,7 +479,18 @@ var RT = (function () {
     }))
   }
 
+  // The panel's paper, said to the app as it moves (the docked chat follows it).
+  var chatPid = ""
+  function chatPaperMoved() {
+    var r = actRow(), pid = r ? C.paperId(r) : ""
+    if (pid === chatPid) return
+    chatPid = pid
+    if (r) post("chatPaper", { paper: paperRef(r) })
+  }
+  function paperRef(r) { return { key: r.key, libraryID: Number(r.libraryID) || 1, title: C.plainTitle ? C.plainTitle(r.title) : String(r.title || ""), itemType: r.itemType || "" } }
+
   function drawPanel() {
+    chatPaperMoved()
     var pe = $("pedbox")
     var draft = pe && document.activeElement === pe ? { key: pe.getAttribute("data-k"), value: pe.value, a: pe.selectionStart, b: pe.selectionEnd } : null
     redrawingPanel = true // (its box taken away isn't you leaving it: what you typed goes to the new one)
@@ -499,6 +518,9 @@ var RT = (function () {
     var c = colById(act.c)
     if (!r || !c) { p.appendChild(el("div", { class: "hint", text: "Pick a cell to see its paper, and to change its status, its task or your columns." })); return }
     var pid = C.paperId(r)
+    var chatOn = !!(D.chat && D.chat.open && D.chat.mode === "paper")
+    p.appendChild(el("div", { class: "phead" }, [el("button", { type: "button", class: "tb icon" + (chatOn ? " on" : ""), "data-act": "chat", "aria-pressed": String(chatOn),
+      title: "Chat about this paper (⌥⌘C): the chat opens on the right; its List asks across the papers", "aria-label": "Chat about this paper" }, [icon("chat")])]))
     p.appendChild(titleView("h3", "", r.title))
     p.appendChild(el("div", { class: "sub", text: [r.creator, r.year, r.publication].filter(function (x) { return x }).join(" · ") }))
     var v = C.value(c, r, D.ctx, D.cells)
@@ -1514,7 +1536,7 @@ var RT = (function () {
   // Run… (the toolbar's ▷, a column's menu, ⇧⌘R): the plan before anything starts. Which papers (the selected ones, or
   // every one shown), which columns (this one, or every AI column), each column's cells by state, what's skipped and
   // why, the requests it makes and Jev's cost. Run posts the plan's cells; the app hands them to the runner.
-  function runDialog(only) {
+  function runDialog(only, onRun) {
     var all = visible().filter(function (c) { return c.ai })
     if (!all.length) return flash("No AI column here yet: + Column adds one (An AI column)")
     if (D.readOnly) return flash("Not run: the sync folder isn't there")
@@ -1574,6 +1596,7 @@ var RT = (function () {
         if (!plan || !plan.jobs.length) return
         var jobs = plan.jobs
         closeModal()
+        if (onRun) onRun()
         runJobs(jobs)
       })
     })
@@ -1585,7 +1608,7 @@ var RT = (function () {
     showKeys = true
     var K = [["↑↓←→", "Move between cells"], ["home end", "The row's first and last column"], ["pgup pgdn", "A page up or down"], ["space", "Select the paper's row"],
       ["↵", "Edit a cell of yours (text)"], ["⌘↵ esc", "Keep, or drop, what you typed"], ["⌥→ ⌥←", "The paper's status"], ["⇧⌥→ ⇧⌥←", "Its task's status"],
-      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
+      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌥⌘C", "The chat, docked on the right: the paper's, or the list's"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
       ["i r", "Copy the paper's citation, its bibliography entry"], ["o", "Open its PDF"], ["n", "Its notes, in the launcher"], ["z ⌘O", "Show the paper in Zotero"],
       ["/", "Filter the rows (esc clears it)"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
       ["⇧-click", "A header: add it to the sort"], ["right-click", "A cell: copy it (with its citation); an AI cell or header: run it, stop the run"],
@@ -1623,6 +1646,7 @@ var RT = (function () {
     $("bRun").addEventListener("click", function () { if (D.run) return stopRun(); runDialog(null) })
     $("bExport").addEventListener("click", toggle(exportPop))
     $("bPanel").addEventListener("click", togglePanel)
+    $("bChat").addEventListener("click", function () { var r = actRow(); post("chat", r ? { toggle: true, paper: paperRef(r) } : { toggle: true }) })
     $("bRefresh").addEventListener("click", function () { post("refresh") })
     $("bPin").addEventListener("click", function () { D.pinned = !D.pinned; drawToolbar(); post("pin", { on: D.pinned }) })
     // a press outside the pop-up closes it; on its own button the click that follows does (toggle)
@@ -1730,6 +1754,7 @@ var RT = (function () {
         return
       }
       if (e.target.closest("[data-act=open]")) openPaper(r)
+      if (r && e.target.closest("[data-act=chat]")) return post("chat", { mode: "paper", paper: paperRef(r) })
       var c = colById(act.c)
       if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) runJobs([{ column: c.id, paper: C.paperId(r), seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }])
       if (e.target.closest("[data-act=stop]")) stopRun()
@@ -1910,7 +1935,44 @@ var RT = (function () {
     setActive(C.paperId(rows[nr]), vc[nc].id, true)
   }
 
-  return { load: load, flash: flash, segments: segments, drafted: drafted, notes: notes, ready: function () { post("ready") } }
+  // ------------------------------------------------------------ the docked chat
+
+  // Its List's papers: the rows as shown, in their order, with the columns you see (ReviewCore.chatList).
+  function chatList(token) {
+    post("chatList", { token: token, list: C.chatList(rows, cols, D.ctx, D.cells, review.name) })
+  }
+
+  // Ask each paper (the list's chat): the question becomes an AI column that reads each full text, placed after the
+  // selected one; the run's plan for it is shown (nothing starts before Run); when the run is done its answers go
+  // back to the chat to be summed up (askedEach).
+  var asking = null
+  function askEach(o) {
+    var q = String((o && o.question) || "").trim()
+    if (!q) return
+    if (D.readOnly) return flash("Not asked: the sync folder isn't there")
+    var words = q.replace(/[?.!]+$/, "").split(/\s+/)
+    var name = "Ask: " + words.slice(0, 5).join(" ") + (words.length > 5 ? "…" : "")
+    var made = C.newAiColumn({ label: name.slice(0, 60), kind: "prompt", reads: "full", shape: "text", length: 80, evidence: true, model: "default",
+      description: q + "\n\nAnswer from this paper alone. If it doesn't address the question, answer \"not addressed\"." }, D.ctx)
+    if (made.error) return flash("Couldn't make the column: " + made.error)
+    addMade(made.column)
+    asking = { column: made.column.id, label: made.column.label, question: q, phase: "plan" }
+    runDialog(colById(made.column.id), function () { if (asking && asking.column === made.column.id) asking.phase = "sent" })
+  }
+
+  // After each load: Ask each's run seen going, then ended → its answers to the chat.
+  function askedYet() {
+    if (!asking || asking.phase === "plan") return
+    if (D.run) { asking.phase = "running"; return }
+    if (asking.phase !== "running") return
+    var c = colById(asking.column), a = asking
+    asking = null
+    if (!c) return
+    var answers = rows.map(function (r) { return { cite: C.citeAPA(r), value: C.text(c, C.value(c, r, D.ctx, D.cells)) } }).filter(function (x) { return x.value })
+    post("askedEach", { question: a.question, label: a.label, answers: answers, papers: rows.length })
+  }
+
+  return { load: load, flash: flash, segments: segments, drafted: drafted, notes: notes, chatList: chatList, askEach: askEach, ready: function () { post("ready") } }
 })()
 
 RT.ready()

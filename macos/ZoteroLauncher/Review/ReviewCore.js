@@ -353,6 +353,29 @@ var ReviewCore = (function () {
     return "﻿" + lines.join("\r\n") + "\r\n"
   }
 
+  // ------------------------------------------------------------ the docked chat's list
+
+  // What a list chat reads of the table (the runner adds the abstracts and Zotero's citations): the rows as shown, in
+  // their order, each with its citation (citeAPA: the runner's fallback) and the columns shown, as text (a list as
+  // bullets); the paper's own fields the runner reads itself are left out. → { name, papers: [{ id, title, cite, cells }] }
+  var CHAT_SKIP = { title: true, authors: true, year: true, publication: true }
+  function chatList(rows, cols, ctx, cells, name) {
+    var shown = (cols || []).filter(function (c) { return !c.hidden && !c.missing && !CHAT_SKIP[c.id] })
+    return {
+      name: str(name, 200),
+      papers: (rows || []).slice(0, 200).map(function (r) {
+        var out = []
+        shown.forEach(function (c) {
+          var v = value(c, r, ctx, cells)
+          if (isEmpty(v)) return
+          var t = Array.isArray(v) && c.type === "list" ? v.map(function (x) { return "• " + x }).join("\n") : text(c, v)
+          if (t) out.push({ label: c.label, value: t })
+        })
+        return { id: paperId(r), title: plainTitle(r.title), cite: citeAPA(r), cells: out }
+      })
+    }
+  }
+
   // ------------------------------------------------------------ files
 
   function randomId(prefix, rand) {
@@ -810,6 +833,7 @@ var ReviewCore = (function () {
     value: value, isEmpty: isEmpty, text: text, compareValues: compareValues, sortRows: sortRows, clickSort: clickSort,
     groupable: groupable, groupRows: groupRows, rowMatches: rowMatches,
     csvCell: csvCell, csv: csv,
+    chatList: chatList,
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
     sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
     parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,

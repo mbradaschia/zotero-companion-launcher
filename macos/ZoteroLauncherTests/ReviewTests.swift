@@ -181,6 +181,10 @@ final class ReviewTests: XCTestCase {
         func zoom(_ z: Double) { zooms.append(z) }
         var notes: [(paper: String, out: [String: Any])] = []
         func notes(_ paper: String, _ out: [String: Any]) { notes.append((paper, out)) }
+        var listAsks: [Int] = []
+        var asksEach: [[String: Any]] = []
+        func chatList(_ token: Int) { listAsks.append(token) }
+        func askEach(_ o: [String: Any]) { asksEach.append(o) }
     }
 
     private func openWindow() throws -> (ReviewWindowModel, FakePage) {
@@ -193,6 +197,59 @@ final class ReviewTests: XCTestCase {
         window.page = page
         window.handle(["type": "ready"])
         return (window, page)
+    }
+
+    // The chat docked on the right: the panel's paper's (it follows the selection), the list's (its question goes with the
+    // table's papers as the page shows them), and Ask each paper (the page makes the column; its answers come back).
+    func testTheDockedChatFollowsThePaperAsksTheListAndSumsUpEachPapersAnswers() throws {
+        let (window, page) = try openWindow()
+        window.handle(["type": "chat", "mode": "paper", "paper": ["key": "AAAA0001", "libraryID": 1, "title": "A"]])
+        XCTAssertTrue(window.chatOpen)
+        XCTAssertEqual(window.chatMode, "paper")
+        let paperChat = try XCTUnwrap(window.paperChat)
+        XCTAssertTrue(paperChat.docked)
+        XCTAssertEqual(paperChat.item.key, "AAAA0001")
+        XCTAssertEqual((page.loads.last?["chat"] as? [String: Any])?["open"] as? Bool, true)
+        window.handle(["type": "chatPaper", "paper": ["key": "BBBB0002", "libraryID": 1]])
+        XCTAssertEqual(paperChat.item.key, "BBBB0002")
+        window.handle(["type": "chatPaper", "paper": ["key": "not a key"]])
+        XCTAssertEqual(paperChat.item.key, "BBBB0002")
+
+        window.openChat("list")
+        let listChat = try XCTUnwrap(window.listChat)
+        XCTAssertNotNil(listChat.list)
+        runner.streamAnswers["chat"] = { _, _ in
+            (lines: [FakeRunner.line(["type": "session", "id": "L1"]), FakeRunner.line(["type": "done", "id": "L1", "text": "Both (A, 2000).", "model": "claude:opus"])], result: RunnerResult(status: 0))
+        }
+        listChat.draft = "Which mechanisms?"
+        listChat.send()
+        XCTAssertTrue(runner.calls("chat").isEmpty) // (the page's list first)
+        let token = try XCTUnwrap(page.listAsks.last)
+        window.handle(["type": "chatList", "token": token, "list": ["name": "T", "papers": [["id": "1:AAAA0001", "title": "A", "cite": "(A, 2000)", "cells": [Any]()]]]])
+        let call = try XCTUnwrap(runner.calls("chat").last)
+        XCTAssertTrue(call.argv.contains("--review") && call.argv.contains(window.id) && !call.argv.contains("--key"))
+        let input = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data((call.stdin ?? "").utf8)) as? [String: Any])
+        XCTAssertEqual(input["question"] as? String, "Which mechanisms?")
+        XCTAssertEqual(((input["list"] as? [String: Any])?["papers"] as? [Any])?.count, 1)
+        XCTAssertEqual(listChat.sessionId, "L1")
+
+        listChat.draft = "Which fatigue mechanisms?"
+        listChat.askEach()
+        XCTAssertEqual(page.asksEach.last?["question"] as? String, "Which fatigue mechanisms?")
+        XCTAssertEqual(listChat.draft, "")
+        window.handle(["type": "askedEach", "question": "Which fatigue mechanisms?", "label": "Ask: Which fatigue mechanisms", "papers": 2,
+                       "answers": [["cite": "(A, 2000)", "value": "glycogen depletion"], ["cite": "(B, 2001)", "value": ""]]])
+        let token2 = try XCTUnwrap(page.listAsks.last)
+        XCTAssertNotEqual(token2, token)
+        window.handle(["type": "chatList", "token": token2, "list": ["name": "T", "papers": [Any]()]])
+        let summed = try XCTUnwrap(runner.calls("chat").last?.stdin)
+        XCTAssertTrue(summed.contains("glycogen depletion") && summed.contains("(A, 2000)") && !summed.contains("(B, 2001)"))
+        XCTAssertTrue(summed.contains("\"display\""))
+        XCTAssertTrue(listChat.messages.contains { $0["text"] as? String == "Asked each paper: “Which fatigue mechanisms?” (1 of 2 answered, in “Ask: Which fatigue mechanisms”)" })
+
+        window.toggleChat()
+        XCTAssertFalse(window.chatOpen)
+        XCTAssertEqual((page.loads.last?["chat"] as? [String: Any])?["open"] as? Bool, false)
     }
 
     func testReadyLoadsThePapersTheSourceFinds() throws {

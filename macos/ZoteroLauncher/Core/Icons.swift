@@ -26,6 +26,7 @@ enum Icons {
         "panel": "sidebar.right", "refresh": "arrow.clockwise", "pin": "pin", "run": "play",
         "ai": "sparkles", "grip": "line.3.horizontal", "note": "note.text",
         "stop": "stop", "running": "arrow.triangle.2.circlepath", "waiting": "hourglass",
+        "chat": "bubble.left",
     ]
 
     // An SF Symbol for a list row, by what it does.
