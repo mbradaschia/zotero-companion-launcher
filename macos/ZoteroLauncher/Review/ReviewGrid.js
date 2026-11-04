@@ -543,6 +543,7 @@ var RT = (function () {
     try { drawPane(); panelBody() } finally { redrawingPanel = false }
     var nb = $("pedbox")
     if (draft && nb && nb.getAttribute("data-k") === draft.key) { nb.value = draft.value; nb.focus(); nb.setSelectionRange(draft.a, draft.b) }
+    if (nb) fitBox(nb)
     chatSlot()
   }
 
@@ -571,17 +572,37 @@ var RT = (function () {
     post("chatSlot", { slot: at })
   }
 
-  // A cell you can edit, edited in the panel: ⌘↵ or leaving the box keeps it, esc drops it (as ↵ in the table).
+  // A cell you can edit, in the panel: read first, all of it; Edit (or a double-click on it) opens the box, where ⌘↵
+  // or leaving it keeps it, esc drops it (as ↵ in the table). An edit that changes nothing changes nothing.
+  var pedit = "" // the cell being edited in the panel ("column|paper"), else ""
+  function panelText(c, r, v, empty) {
+    var pid = C.paperId(r), k = c.id + "|" + pid
+    if (pedit === k && !D.readOnly) return el("div", {}, [panelEditor(c, r, v), el("div", { class: "hint", text: "⌘↵ or leaving the box keeps it, esc drops it." })])
+    var shown = Array.isArray(v) && c.type === "list" ? (v.length ? bullets(v) : el("div", { class: "ptext", text: empty || "Empty." }))
+      : el("div", { class: "ptext", text: C.isEmpty(v) ? empty || "Empty." : C.text(c, v) })
+    shown.setAttribute("data-pedit", k)
+    shown.setAttribute("title", D.readOnly ? "Read only: the sync folder isn't there" : "A double-click edits it")
+    return el("div", { class: "pread" }, [shown, D.readOnly ? null : el("button", { type: "button", class: "tb pedit", "data-act": "pedit", "data-k": k, title: "Edit it here (or double-click the text)", "aria-label": "Edit " + c.label }, [icon("own"), "Edit"])])
+  }
   function panelEditor(c, r, v) {
     var pid = C.paperId(r)
-    return el("textarea", { class: "ped", id: "pedbox", "data-k": c.id + "|" + pid, "aria-label": c.label + ": edit it here", rows: c.type === "list" ? "5" : "4",
-      placeholder: D.readOnly ? "Read only: the sync folder isn't there" : c.type === "list" ? "An item a line" : "Empty: type here", disabled: D.readOnly, value: editText(c, v), spellcheck: "true" })
+    var t = editText(c, v)
+    return el("textarea", { class: "ped", id: "pedbox", "data-k": c.id + "|" + pid, "data-orig": t, "aria-label": c.label + ": edit it here", rows: String(Math.max(4, Math.min(30, t.split("\n").length + 1))),
+      placeholder: D.readOnly ? "Read only: the sync folder isn't there" : c.type === "list" ? "An item a line" : "Empty: type here", disabled: D.readOnly, value: t, spellcheck: "true" })
   }
+  function startPanelEdit(k) {
+    if (D.readOnly || !k) return
+    pedit = k
+    drawPanel()
+    var box = $("pedbox")
+    if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); fitBox(box) }
+  }
+  function fitBox(box) { box.style.height = "auto"; box.style.height = Math.min(window.innerHeight * 0.6, box.scrollHeight + 4) + "px" }
   function panelKeep(box) {
     if (!box || box.disabled) return
     var k = box.getAttribute("data-k"), i = k.indexOf("|")
     var c = colById(k.slice(0, i)), r = rows[rowIndex(k.slice(i + 1))]
-    if (c && r) setCell(r, c, fromEdit(c, box.value))
+    if (c && r && box.value !== box.getAttribute("data-orig")) setCell(r, c, fromEdit(c, box.value))
   }
 
   // The right pane's tabs, as the app's chat shows them too: Info (here) and Chat (⌥⌘C), each with its symbol.
@@ -695,7 +716,7 @@ var RT = (function () {
       p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its values here (a click on the cell only selects it)" }))
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
-      p.appendChild(el("div", { class: "ibox you" }, [panelEditor(c, r, v), el("div", { class: "hint", text: "Type here: ⌘↵ or leaving the box keeps it, esc drops it. ↵ in the table edits it there too." })]))
+      p.appendChild(el("div", { class: "ibox you" }, [panelText(c, r, v)]))
     } else if (c.ai) {
       aiPanel(p, c, r, v)
     } else if (c.prefix) {
@@ -751,7 +772,7 @@ var RT = (function () {
     if (c.problem) p.appendChild(el("div", { class: "ibox warn", text: c.problem }))
     var box = el("div", { class: "ibox ai st-" + st })
     var mk = marks[c.id + "|" + C.paperId(r)]
-    if (c.edit === "text" && !mk) box.appendChild(panelEditor(c, r, v))
+    if (c.edit === "text" && !mk) box.appendChild(panelText(c, r, v, st === "empty" ? "Not run yet." : "Empty."))
     else if (Array.isArray(v) && c.type === "list") box.appendChild(v.length ? bullets(v) : el("div", { class: "ptext", text: "Empty." }))
     else if (Array.isArray(v)) box.appendChild(el("div", { class: "opts" }, v.length ? v.map(function (l) { return el("span", { class: "pill tax", text: l }) }) : [el("span", { class: "hint", text: "No label from the threshold." })]))
     else box.appendChild(el("div", { class: "ptext", text: C.isEmpty(v) ? (st === "empty" ? "Not run yet." : "Empty.") : c.kind === "jev-relevance" && typeof v === "number" ? v + " of 100: " + C.band(v) : C.text(c, v) }))
@@ -868,7 +889,7 @@ var RT = (function () {
     var pid = C.paperId(r)
     D.cells[c.id] = D.cells[c.id] || {}
     var old = D.cells[c.id][pid] ? D.cells[c.id][pid].v : ""
-    if (JSON.stringify(old) === JSON.stringify(v)) return
+    if (sameValue(c, old, v)) return // (an edit that changed nothing isn't yours: the cell stays as it was)
     var was = D.cells[c.id][pid]
     var ai = was && was.by === "ai" && !was.error ? was : was && was.ai // (an AI cell you edit: its answer kept, as the file keeps it)
     D.cells[c.id][pid] = ai ? { v: v, by: "you", ai: ai } : { v: v, by: "you" }
@@ -877,6 +898,9 @@ var RT = (function () {
     flash(c.label + ": " + (said ? (said.length > 40 ? said.slice(0, 40) + "…" : said) : "cleared"))
     redrawRow(r)
   }
+
+  // The same value as you'd type it: its spaces at the end, a list's bullets, a list as lines or as an array alike.
+  function sameValue(c, a, b) { return JSON.stringify(fromEdit(c, editText(c, a))) === JSON.stringify(fromEdit(c, editText(c, b))) }
 
   // Several of a list: a choice on, or off again; the list in the column's order (a value no longer a choice kept).
   function toggleChoice(r, c, o) {
@@ -951,7 +975,7 @@ var RT = (function () {
     var e = editing
     editing = null
     var r = rows[rowIndex(e.pid)], c = colById(e.c)
-    if (keep && box && r && c) setCell(r, c, box.value.replace(/\s+$/, ""))
+    if (keep && box && r && c) setCell(r, c, fromEdit(c, box.value))
     drawGrid()
     drawFoot()
     $("gw").focus({ preventScroll: true })
@@ -1952,6 +1976,8 @@ var RT = (function () {
       if (e.target.closest("[data-act=info]") && D.chat && D.chat.open && !paneSplit()) { post("chat", { close: true }); return }
       if (e.target.closest("[data-act=chat]")) return post("chat", r ? { mode: D.chat && D.chat.mode === "list" ? "list" : "paper", paper: paperRef(r) } : { mode: "paper" })
       var c = colById(act.c)
+      var pe = e.target.closest("[data-act=pedit]")
+      if (pe) startPanelEdit(pe.getAttribute("data-k"))
       if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) runJobs([{ column: c.id, paper: C.paperId(r), seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }])
       if (e.target.closest("[data-act=stop]")) stopRun()
       if (r && c && c.ai && e.target.closest("[data-act=restore]:not(:disabled)")) post("restore", { column: c.id, paper: C.paperId(r) })
@@ -1961,13 +1987,21 @@ var RT = (function () {
     // it: what you typed is in the new box)
     $("panel").addEventListener("keydown", function (e) {
       if (e.target.id !== "pedbox") return
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.setAttribute("data-drop", "1"); $("gw").focus({ preventScroll: true }); drawPanel() }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.setAttribute("data-drop", "1"); pedit = ""; $("gw").focus({ preventScroll: true }); drawPanel() }
       else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.stopPropagation(); $("gw").focus({ preventScroll: true }) }
     })
     $("panel").addEventListener("focusout", function (e) {
       var box = e.target
       if (box.id !== "pedbox") return
-      if (!redrawingPanel && !box.getAttribute("data-drop")) panelKeep(box)
+      if (redrawingPanel) return
+      if (!box.getAttribute("data-drop")) panelKeep(box)
+      pedit = "" // (back to reading it)
+      drawPanel()
+    })
+    $("panel").addEventListener("input", function (e) { if (e.target.id === "pedbox") fitBox(e.target) })
+    $("panel").addEventListener("dblclick", function (e) {
+      var t = e.target.closest && e.target.closest("[data-pedit]")
+      if (t) startPanelEdit(t.getAttribute("data-pedit"))
     })
 
     document.addEventListener("keydown", onKey)

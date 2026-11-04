@@ -46,8 +46,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .body.nopanel { grid-template-columns: minmax(0, 1fr); }
 .body.nopanel .panel, .body.nopanel .prz { display: none; }
 /* the right pane's edge: drag it to size the pane (Info and the chat share its width) */
-.prz { position: absolute; top: 0; bottom: 0; right: calc(var(--pw, 360px) - 3px); width: 6px; cursor: col-resize; z-index: 6; }
+/* the pane's edge: wholly left of the pane (the app's chat, drawn over the pane, never covers it), its grip always shown */
+.prz { position: absolute; top: 0; bottom: 0; right: var(--pw, 360px); width: 8px; cursor: col-resize; z-index: 6; }
+.prz::after { content: ""; position: absolute; top: 50%; left: 3px; width: 2px; height: 32px; margin-top: -16px; border-radius: 1px; background: var(--muted); opacity: .6; }
 .prz:hover, .prz.on { background: var(--accent-soft); }
+.prz:hover::after, .prz.on::after { opacity: 1; }
 .gridwrap { overflow: auto; position: relative; outline: none; min-height: 0; }
 .empty { padding: 40px 24px; text-align: center; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.5; }
 
@@ -100,8 +103,11 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .pchat { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 #chatslot { flex: 1 1 auto; min-height: 0; }
 .panel.split .pinfo { flex: 0 0 var(--ph, 50%); }
-.psplit { flex: 0 0 6px; cursor: row-resize; border-top: 1px solid var(--line); background: var(--head); }
+.psplit { flex: 0 0 8px; position: relative; cursor: row-resize; border-top: 1px solid var(--line); background: var(--head); }
+.psplit::after { content: ""; position: absolute; left: 50%; top: 3px; width: 32px; height: 2px; margin-left: -16px; border-radius: 1px; background: var(--muted); opacity: .6; }
 .psplit:hover, .psplit.on { background: var(--accent-soft); }
+.psplit:hover::after, .psplit.on::after { opacity: 1; }
+.pread .pedit { margin-top: 6px; }
 .phd { display: flex; align-items: center; gap: 6px; padding: 4px 14px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); cursor: grab; }
 .phd svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 /* a tab dragged down: where it lands (the pane's lower half: split) */

@@ -94,6 +94,7 @@ extension ReviewWindowModel {
             if let c = paperChat { c.follow(p) } else {
                 paperChat = ChatWindowModel(item: p, launcher: launcher, docked: true)
                 paperChat?.close = { [weak self] in self?.showInfo() }
+                paperChat?.cellsOf = { [weak self] ref, done in self?.cellsOf(ref, done) ?? done(nil) }
             }
         }
     }
@@ -123,6 +124,17 @@ extension ReviewWindowModel {
         DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
             guard let self, let late = self.listAsks.removeValue(forKey: token) else { return }
             late(nil)
+        }
+    }
+
+    // A paper's columns as the table shows them (its row of ReviewCore.chatList), for a paper chat on its metadata;
+    // [] when it isn't in the list's first 200, nil when the page doesn't answer.
+    func cellsOf(_ ref: PaperRef, _ done: @escaping ([[String: Any]]?) -> Void) {
+        let id = "\(ref.libraryID == 0 ? 1 : ref.libraryID):\(ref.key)"
+        readList { list in
+            guard let list else { return done(nil) }
+            let papers = list["papers"] as? [[String: Any]] ?? []
+            done(papers.first { $0["id"] as? String == id }?["cells"] as? [[String: Any]] ?? [])
         }
     }
 
@@ -188,14 +200,10 @@ struct ReviewChatPane: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Picker("", selection: Binding(get: { review.chatMode }, set: { review.openChat($0) })) {
-                    Text("Paper").tag("paper")
-                    Text("List").tag("list")
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
-                .help("What the chat reads: the selected paper (its text, highlights and notes), or the list (each paper's citation, abstract and the columns you see)")
+                ChoiceTabs(choices: [
+                    .init(id: "paper", title: "Paper", symbol: "doc.text", help: "Chat about the selected paper: its full text, or its metadata (below)"),
+                    .init(id: "list", title: "List", symbol: "list.bullet", help: "Chat across the list: each paper's citation, abstract, and the columns you see"),
+                ], selection: review.chatMode) { review.openChat($0) }
                 Spacer()
             }
             .padding(.horizontal, 12)

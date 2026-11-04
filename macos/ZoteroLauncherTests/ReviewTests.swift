@@ -201,6 +201,39 @@ final class ReviewTests: XCTestCase {
         return (window, page)
     }
 
+    // A docked paper chat can read the paper's metadata (its abstract, highlights, notes, the table's columns for it)
+    // in place of its full text: the question goes as JSON with the paper's row of the page's list. A chat window
+    // outside a table has no Metadata.
+    func testADockedPaperChatCanReadItsMetadataWithTheTablesColumns() throws {
+        let (window, page) = try openWindow()
+        window.handle(["type": "chat", "mode": "paper", "paper": ["key": "AAAA0001", "libraryID": 1, "title": "A"]])
+        let chat = try XCTUnwrap(window.paperChat)
+        XCTAssertNotNil(chat.cellsOf)
+        chat.setSource("meta")
+        XCTAssertEqual(chat.groundSource, "meta")
+        runner.streamAnswers["chat"] = { _, _ in
+            (lines: [FakeRunner.line(["type": "session", "id": "M1"]), FakeRunner.line(["type": "done", "id": "M1", "text": "Case study.", "model": "claude:opus"])], result: RunnerResult(status: 0))
+        }
+        chat.draft = "Which method?"
+        chat.send()
+        XCTAssertTrue(runner.calls("chat").isEmpty) // (the page's columns first)
+        let token = try XCTUnwrap(page.listAsks.last)
+        window.handle(["type": "chatList", "token": token, "list": ["name": "T", "papers": [
+            ["id": "1:BBBB0002", "title": "B", "cite": "(B, 2001)", "cells": [["label": "Gap", "value": "other"]]],
+            ["id": "1:AAAA0001", "title": "A", "cite": "(A, 2000)", "cells": [["label": "Gap", "value": "Orchestration"]]],
+        ]]])
+        let call = try XCTUnwrap(runner.calls("chat").last)
+        XCTAssertTrue(call.argv.contains("--key") && call.argv.contains("AAAA0001"))
+        XCTAssertEqual(call.argv.firstIndex(of: "--source").map { call.argv[$0 + 1] }, "meta")
+        let input = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data((call.stdin ?? "").utf8)) as? [String: Any])
+        XCTAssertEqual(input["question"] as? String, "Which method?")
+        XCTAssertEqual((input["cells"] as? [[String: Any]])?.first?["value"] as? String, "Orchestration")
+
+        let alone = ChatWindowModel(item: PaperRef(key: "AAAA0001", libraryID: 1, title: "A", itemType: ""), launcher: model)
+        alone.setSource("meta")
+        XCTAssertNotEqual(alone.groundSource, "meta")
+    }
+
     // The chat docked on the right: the panel's paper's (it follows the selection), the list's (its question goes with the
     // table's papers as the page shows them), and Ask each paper (the page makes the column; its answers come back).
     func testTheDockedChatFollowsThePaperAsksTheListAndSumsUpEachPapersAnswers() throws {

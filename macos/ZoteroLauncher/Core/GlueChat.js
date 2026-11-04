@@ -165,7 +165,7 @@ function GlueChat(V, F, Mk) {
     // a review table's list (its docked chat's List): the list comes on stdin
     if (item.review) return ["chat", "--review", String(item.review), "--model", o.model || "default", "--effort", o.effort || "default"].concat(o.sessionId ? ["--session", o.sessionId] : [])
     var a = ["chat", "--key", item.key, "--library", String(item.libraryID || 1), "--model", o.model || "default", "--effort", o.effort || "default"]
-    return a.concat(o.sessionId ? ["--session", o.sessionId] : ["--source", o.source === "note" ? "note" : "pdf"])
+    return a.concat(o.sessionId ? ["--session", o.sessionId] : ["--source", o.source === "note" || o.source === "meta" ? o.source : "pdf"])
   }
 
   // The model picker's rows: Default (now <the chat default>), the models by provider; then the efforts.

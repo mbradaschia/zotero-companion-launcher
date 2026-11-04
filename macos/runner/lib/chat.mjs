@@ -94,10 +94,36 @@ export function groundingMessage(ctx, question) {
     lines.push("# The user's notes", "");
     for (const n of ctx.notes) lines.push(`## ${n.title || "Untitled note"}`, "", n.markdown.trim(), "");
   }
-  lines.push(`# The paper's text (${ctx.grounding ? ctx.grounding.label : "not available"})`, "");
-  lines.push(ctx.text ? `<paper>\n${ctx.text}\n</paper>` : "(Not available: answer from the metadata, highlights and notes, and say so.)");
+  if (ctx.grounding && ctx.grounding.source === "meta") {
+    // the user chose its metadata (the review table's docked chat, Paper › Metadata): no full text
+    const m = ctx.meta || {};
+    lines.push("# The paper's metadata", "");
+    const where = [m.publication, m.year].filter(Boolean).join(", ");
+    if (where) lines.push(`- Published: ${where}`);
+    lines.push(`- Abstract: ${String(m.abstract || "").replace(/\s+/g, " ").trim() || "(none in Zotero)"}`, "");
+    if (ctx.cells && ctx.cells.length) {
+      lines.push("# The review table's columns for it (the user's own, and answers an AI read from its full text)", "");
+      for (const c of ctx.cells) lines.push(c.value.includes("\n") ? `- ${c.label}:\n${c.value.split("\n").map((l) => "  " + l).join("\n")}` : `- ${c.label}: ${c.value}`);
+      lines.push("");
+    }
+    lines.push("(You don't have the paper's full text: the user chose to chat from its metadata. Answer from it, and say when a question needs the full text.)");
+  } else {
+    lines.push(`# The paper's text (${ctx.grounding ? ctx.grounding.label : "not available"})`, "");
+    lines.push(ctx.text ? `<paper>\n${ctx.text}\n</paper>` : "(Not available: answer from the metadata, highlights and notes, and say so.)");
+  }
   lines.push("", "# The question", "", question);
   return lines.join("\n");
+}
+
+// A metadata chat's stdin: { question, cells: [{ label, value }] } (the table's columns for the paper, as shown).
+export function parseMetaInput(raw) {
+  let o;
+  try { o = JSON.parse(String(raw || "")); } catch { throw new Error("the question and the paper's columns come on stdin, as JSON"); }
+  o = o && typeof o === "object" ? o : {};
+  const cells = (Array.isArray(o.cells) ? o.cells : []).slice(0, 24)
+    .map((c) => ({ label: String((c && c.label) || "").replace(/\s+/g, " ").trim().slice(0, 80), value: String(c && c.value != null ? c.value : "").trim().slice(0, 4000) }))
+    .filter((c) => c.label && c.value);
+  return { question: String(o.question || "").trim(), cells };
 }
 
 // When the SDK session is gone (Claude Code cleared it): the grounding again, then the

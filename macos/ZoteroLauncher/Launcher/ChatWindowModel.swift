@@ -29,7 +29,9 @@ final class ChatWindowModel: ObservableObject {
     @Published var flash = ""
     @Published var busy = false
     @Published var extracting = false
-    @Published var groundSource = "note" // what a new chat reads: "note" (the .md note) or "pdf"
+    @Published var groundSource = "note" // what a new chat reads: "note" (the .md note), "pdf", or "meta" (its metadata)
+    // A docked paper chat's: the paper's columns as its table shows them (for "meta"); nil elsewhere (no Metadata).
+    var cellsOf: ((PaperRef, @escaping ([[String: Any]]?) -> Void) -> Void)?
     @Published var effort: String
     @Published var showSidebar = false
     @Published var showKeys = false
@@ -177,6 +179,12 @@ final class ChatWindowModel: ObservableObject {
             state = s
             return
         }
+        if groundSource == "meta" {
+            var s = state
+            s["grounding"] = "its metadata: abstract, highlights, notes and the table's columns (not the full text)"
+            state = s
+            return
+        }
         if savedText == nil { groundSource = "pdf" }
         var s = state
         s["grounding"] = groundSource == "note" && savedText != nil ? "the extracted text (.md note), page by page" : "the PDF, read when you ask"
@@ -187,10 +195,11 @@ final class ChatWindowModel: ObservableObject {
     func setSource(_ src: String) {
         guard list == nil, src != groundSource, !busy else { return }
         if src == "note" && savedText == nil { return showFlash("Extract the text first") }
+        if src == "meta" && cellsOf == nil { return }
         groundSource = src
         if !messages.isEmpty {
             newChat()
-            showFlash("A new chat, grounded in " + (src == "note" ? "the extracted text" : "the PDF"))
+            showFlash("A new chat, grounded in " + (src == "note" ? "the extracted text" : src == "meta" ? "its metadata" : "the PDF"))
         }
         setGrounding()
     }
@@ -204,7 +213,7 @@ final class ChatWindowModel: ObservableObject {
             self.extracting = false
             guard r.ok, let j = r.json as? [String: Any] else { return self.showFlash("Couldn't extract: " + r.problem) }
             self.savedText = ["key": j["note"] ?? "", "title": ""]
-            if self.sessionId.isEmpty { self.groundSource = "note"; self.setGrounding() }
+            if self.sessionId.isEmpty && self.groundSource != "meta" { self.groundSource = "note"; self.setGrounding() }
             self.showFlash(j["status"] as? String == "exists" ? "The text was already extracted"
                 : "Extracted \(j["pages"] ?? 0) pages (p. \(j["first"] ?? "")–\(j["last"] ?? "")): new chats use it")
         }
@@ -231,7 +240,7 @@ final class ChatWindowModel: ObservableObject {
         savedText = nil
         sessions = []
         loading = 0
-        groundSource = "note"
+        if groundSource != "meta" { groundSource = "note" } // (full text or metadata: the choice follows to the next paper)
         setState(Self.freshState())
         setGrounding()
         loadPaper()
@@ -257,7 +266,8 @@ final class ChatWindowModel: ObservableObject {
             if let e = s["effort"] as? String { self.effort = e }
             if let g = s["grounding"] as? [String: Any] {
                 next["grounding"] = g["label"] ?? ""
-                self.groundSource = g["source"] as? String == "note" ? "note" : "pdf"
+                let src = g["source"] as? String
+                self.groundSource = src == "note" || src == "meta" ? src! : "pdf"
             }
             self.setState(next)
         }
@@ -316,6 +326,16 @@ final class ChatWindowModel: ObservableObject {
         let id = turnId
         resumable = sessionId
         gotDone = false
+        if list == nil && groundSource == "meta" {
+            // its metadata: the question with the paper's columns as the table shows them (none outside a table)
+            let send: ([[String: Any]]?) -> Void = { [weak self] cells in
+                guard let self, id == self.turnId else { return }
+                guard let data = try? JSONSerialization.data(withJSONObject: ["question": text, "cells": cells ?? []]), let stdin = String(data: data, encoding: .utf8) else { return }
+                self.start(args, stdin: stdin, id: id)
+            }
+            if let cellsOf { cellsOf(item, send) } else { send([]) }
+            return
+        }
         guard let list else { return start(args, stdin: text, id: id) }
         list.read { [weak self] papers in
             guard let self, id == self.turnId else { return }

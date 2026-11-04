@@ -8,7 +8,7 @@ curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/dow
 ```
 
 Updates keep your configuration: they replace the app and the runner's own folder, never your settings, prompts,
-taxonomies, saved searches, API keys or hotkey. The runner (0.2.8) and the bridge are unchanged.
+taxonomies, saved searches, API keys or hotkey. The runner is 0.2.9 (installed with the app); the bridge is unchanged.
 
 **The order.** Settings starts with *General* and *Defaults*, then Models & providers, Rules, Paper status, Taxonomies
 and Tasks, then Setup.
@@ -37,3 +37,14 @@ lines) that drags the whole note; each chat message has one too (the answer as w
 that takes rich text). In the review table, drag a cell for its text (hold ⌥ for its citation after it) or a title for
 its paper's reference (all the selected papers' when it is one of them). A paper dropped back on a list in your order
 still moves there.
+
+**The Info tab reads first.** A text cell (yours, or an AI's) shows whole in the right pane; *Edit*, or a double-click
+on the text, opens the box: ⌘↵ or leaving it keeps it, esc drops it. An edit that changes nothing isn't marked as
+yours.
+
+**A paper's chat on its metadata.** Docked in the table, a paper's chat reads its full text (*.md* or *PDF*) or its
+*Metadata*: the abstract, your highlights and notes, and the table's columns for it, without the full text. *List*
+reads every paper's metadata and the columns you see.
+
+**Choices you can see.** Paper or List, and what a paper's chat reads, are framed, filled and in bold when chosen (not
+by colour alone), each with its symbol. The pane's edge and the split's divider always show a grip.

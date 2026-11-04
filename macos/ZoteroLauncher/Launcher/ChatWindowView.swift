@@ -90,23 +90,10 @@ struct ChatWindowView: View {
                     .foregroundStyle(palette.subtext)
                     .lineLimit(2)
             } else {
-                HStack(spacing: 8) {
-                    PillView(text: model.savedText != nil ? "\u{2713} Text extracted" : "Text not extracted", selected: false, mode: model.savedText != nil ? "tag" : "off", kind: "neutral")
-                    if model.savedText == nil {
-                        Button(model.extracting ? "Extracting…" : "Extract text") { model.extract() }
-                            .disabled(model.extracting)
-                            .help("The PDF's text as a page-numbered note, for chats and prompts")
-                    }
-                    Picker("", selection: Binding(get: { model.groundSource }, set: { model.setSource($0) })) {
-                        Text(".md").tag("note")
-                        Text("PDF").tag("pdf")
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
-                    .disabled(model.busy)
-                    .help("What a new chat reads: the extracted text (.md note) or the PDF")
-                    Spacer(minLength: 0)
+                // what a new chat reads; narrow (a docked chat), the choices are their symbols
+                ViewThatFits(in: .horizontal) {
+                    sourceRow(compact: false)
+                    sourceRow(compact: true)
                 }
             }
             if !info.text.isEmpty {
@@ -259,6 +246,30 @@ struct ChatWindowView: View {
             Button { model.askToChange(a) } label: { Image(systemName: "pencil") }.buttonStyle(.borderless).help("Ask the chat to change it")
         }
         .padding(.vertical, 3)
+    }
+
+    // What a new chat reads: the full text (the .md note, or the PDF) or, docked in a review table, its metadata.
+    private func sourceRow(compact: Bool) -> some View {
+        var choices: [ChoiceTabs.Choice] = [
+            .init(id: "note", title: ".md", symbol: "doc.text", help: "The full text: the extracted text (.md note), page by page"),
+            .init(id: "pdf", title: "PDF", symbol: "doc.richtext", help: "The full text: the PDF, read when you ask"),
+        ]
+        if model.cellsOf != nil {
+            choices.append(.init(id: "meta", title: "Metadata", symbol: "list.bullet.rectangle", help: "Its metadata, not the full text: abstract, highlights, notes, and the table's columns for it"))
+        }
+        return HStack(spacing: 8) {
+            if !compact || model.savedText == nil {
+                PillView(text: model.savedText != nil ? "\u{2713} Text extracted" : "Text not extracted", selected: false, mode: model.savedText != nil ? "tag" : "off", kind: "neutral")
+            }
+            if model.savedText == nil {
+                Button(model.extracting ? "Extracting…" : compact ? "Extract" : "Extract text") { model.extract() }
+                    .disabled(model.extracting)
+                    .help("The PDF's text as a page-numbered note, for chats and prompts")
+            }
+            ChoiceTabs(choices: choices, selection: model.groundSource, compact: compact) { model.setSource($0) }
+                .disabled(model.busy)
+            Spacer(minLength: 0)
+        }
     }
 
     // ---- the box

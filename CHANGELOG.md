@@ -24,6 +24,17 @@ bridge and the prompt runner share one version.
   that width, kept for the next table. Drag a tab down onto the pane's lower half, or click the split button, to see
   both: Info above, the chat below, with a divider you drag. Drag the chat's bar back up to the tabs (or click the
   button again) to put the tabs back. ⌥⌘I hides the whole pane; ⌥⌘C goes to the chat and back to Info.
+- **The Info tab reads first.** A text cell (yours, or an AI's) shows whole in the right pane; *Edit* (or a
+  double-click on the text) opens the box, where ⌘↵ or leaving it keeps it and esc drops it. An edit that changes
+  nothing isn't marked as yours (in the table too: a list's bullets or a trailing space no longer count as a change).
+- **A paper's chat on its metadata.** Docked in the table, a paper's chat reads its full text (*.md* or *PDF*) or its
+  *Metadata*: the abstract, your highlights and notes, and the table's columns for it, without the full text. The
+  choice follows the selection to the next paper. *List* reads the papers' metadata and the columns you see, as before.
+- **Paper or List, and the chat's source, show which is chosen**: framed, filled and in bold (not by colour alone),
+  each with its symbol.
+- **The pane's edge and the split's divider show a grip**, always, and the pane's edge sits wholly left of the pane,
+  so the chat drawn over the pane no longer hides it.
+- Runner 0.2.9: `chat --source meta` (stdin JSON `{ question, cells }`).
 - **The chat's bottom bar fits a narrow pane.** When the model, Prompts, Ask each and Send don't fit on one line (a
   docked chat), the model's name shortens (the whole name on hover) and the others become their symbols.
 - **Drag anything out to another app: it carries its text.** A paper in the results drops as its reference line
