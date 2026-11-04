@@ -126,25 +126,24 @@ jobs:
           [[ $archs == *arm64* && $archs == *x86_64* ]] || { echo "not universal: $archs" >&2; exit 1; }
           plutil -extract LSMinimumSystemVersion raw "$APP/Contents/Info.plist"
           if [[ -n $MACOS_SIGNING ]]; then
-            kc="$RUNNER_TEMP/signing.keychain-db"
-            kp=$(openssl rand -hex 16)
-            security create-keychain -p "$kp" "$kc"
-            security set-keychain-settings -lut 3600 "$kc"
-            security unlock-keychain -p "$kp" "$kc"
-            printf '%s' "${MACOS_SIGNING#*:}" | base64 --decode > "$RUNNER_TEMP/signing.p12"
-            security import "$RUNNER_TEMP/signing.p12" -k "$kc" -P "${MACOS_SIGNING%%:*}" -T /usr/bin/codesign >/dev/null
-            rm -f "$RUNNER_TEMP/signing.p12"
-            security set-key-partition-list -S apple-tool:,apple: -s -k "$kp" "$kc" >/dev/null
-            id=$(security find-identity -p codesigning "$kc" | awk '/\)/ { print $2; exit }')
-            codesign --force --deep --sign "$id" --keychain "$kc" --preserve-metadata=identifier,entitlements,flags "$APP"
-            security delete-keychain "$kc"
-            echo "signed with the app's certificate"
+            scripts/sign-app.sh "$APP"
           else
             echo "no MACOS_SIGNING secret: ad hoc"
           fi
           codesign --verify --deep --strict "$APP"
           codesign -d -r- "$APP" 2>&1 | grep designated
           ditto -c -k --keepParent "$APP" ZoteroLauncher.zip
+
+      # The certificate script and the signing above, on a real Mac with a throwaway certificate: a copy of the app
+      # signed with it must carry a requirement that names the certificate, not the build's hash.
+      - name: Signing with a certificate works
+        run: |
+          secret="$RUNNER_TEMP/throwaway-signing"
+          SECRET_OUT="$secret" scripts/make-signing-cert.sh
+          cp -R build/Build/Products/Release/ZoteroLauncher.app "$RUNNER_TEMP/Signed.app"
+          MACOS_SIGNING=$(cat "$secret") scripts/sign-app.sh "$RUNNER_TEMP/Signed.app"
+          codesign -d -r- "$RUNNER_TEMP/Signed.app" 2>&1 | grep designated
+          rm -rf "$secret" "$RUNNER_TEMP/Signed.app"
 
       # The installer, on the zip just built: what you run is what CI checked.
       - name: Install from the zip
@@ -155,7 +154,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ZoteroLauncher-zipped-twice
-          path: ZoteroLauncher.zip
+          path: macos/ZoteroLauncher.zip # (actions' paths are from the repository's root, not the working directory)
           retention-days: 14
 
       - name: Nightly release (master only)

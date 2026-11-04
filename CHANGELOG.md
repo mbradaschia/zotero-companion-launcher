@@ -7,6 +7,15 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The signing certificate script works.** `scripts/make-signing-cert.sh` stopped without a word on macOS 26:
+  codesign finds no identity in a keychain that isn't on the search list, even named with `--keychain`, and the
+  error went to /dev/null. The scratch keychain is now on the list while it's used (the list is put back after), and a
+  failing step says which and why. Releases sign the same way (`scripts/sign-app.sh`), and CI checks both on every
+  build with a throwaway certificate. 0.4.26 and 0.4.27 were signed ad hoc: no `MACOS_SIGNING` secret was set yet.
+- CI's zipped build artifact is uploaded again (its path was the working directory's, not the repository's).
+
 ### The Mac app (`macos-v0.4.27`)
 
 - **An AI taxonomy draft waits for you.** A proposal that came while you were on another page, or with the launcher
