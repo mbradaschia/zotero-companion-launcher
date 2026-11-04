@@ -7,6 +7,16 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.31`)
+
+- **Settings, in a better order.** Settings starts with *General* and *Defaults*, then Models & providers, Rules,
+  Paper status, Taxonomies and Tasks.
+- **Automation runs on** moved from General › Sync to *Defaults › New papers*, right under the line that says where
+  new papers are handled: the machine that runs them sits next to the switches it decides.
+- **Defaults, regrouped.** *When a model fails* (the fallback model) comes right after the Prompts and Chat models it
+  stands in for. *Extract every paper's text* (and the skipped and scans to try again) moved to *Bring papers up to
+  date*, with the other catch-ups: *The paper's text* keeps only its two settings.
+
 ### The Mac app (`macos-v0.4.30`)
 
 - **A chat docked in the review table.** The chat icon at the top of the panel (or the toolbar's, or ⌥⌘C) opens the

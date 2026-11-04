@@ -95,13 +95,13 @@ test("Settings pages: the root with the setup checklist; General from the schema
   const root = S.buildRoot(state(ready), row);
   // the setup steps, in order, each with its checkmark
   assert.deepEqual(root.map((r) => [r.section, r.label, r.showCheck && r.checked]), [
-    ["Settings", "Models & providers", false], ["Settings", "Defaults", false], ["Settings", "Rules for prompts and chat", false], ["Settings", "Paper status", false], ["Settings", "Taxonomies", false], ["Settings", "Tasks", false], ["Settings", "General", false],
+    ["Settings", "General", false], ["Settings", "Defaults", false], ["Settings", "Models & providers", false], ["Settings", "Rules for prompts and chat", false], ["Settings", "Paper status", false], ["Settings", "Taxonomies", false], ["Settings", "Tasks", false],
     ["Setup", "Install Zotero", true], ["Setup", "Start Zotero", true], ["Setup", "Install the Zotero Omarchy Bridge", true], ["Setup", "Add the keybinding", true],
     ["Setup", "Open from the middle (optional)", true], ["Setup", "Install Node.js", true], ["Setup", "Install the AI features", true], ["Setup", "Set up an AI model", true],
     ["Setup", "Install pdftotext", true], ["Setup", "Read scans by OCR (optional)", false], ["Setup", "A system keyring", true]]);
   assert.equal(root[7].detail, "Installed 10.0.3");
-  assert.equal(root[3].detail, "to read, reading, read · the tags Alt+→ / Alt+← cycles on a paper");
-  assert.equal(root[0].detail, "Ollama, Lab are on");
+  assert.equal(root[4].detail, "to read, reading, read · the tags Alt+→ / Alt+← cycles on a paper");
+  assert.equal(root[2].detail, "Ollama, Lab are on");
   assert.equal(root[1].detail, "Prompts: ollama:qwen3:8b · Chat: ollama:qwen3:8b");
   const fresh = S.buildRoot(state({ runner: { installed: false, installing: false }, reqs: { node: "", pdftotext: false }, info: null,
     setup: { zotero: "", running: false, bind: "none", rule: false, node: "", pdftotext: false }, bridge: { status: "zotero-down" } }), row);
@@ -114,7 +114,8 @@ test("Settings pages: the root with the setup checklist; General from the schema
   const ocr = S.buildRoot(state(Object.assign({}, ready, { reqs: Object.assign({}, ready.reqs, { tesseract: true }) })), row).find((r) => r.label === "Read scans by OCR (optional)");
   assert.deepEqual([ocr.checked, ocr.available, ocr.badge], [true, false, ""]); // optional: never a "missing" badge
   const g = S.buildGeneral(state(), row);
-  assert.equal(g.length, S.GENERAL.length); // one row per setting; choices open a page
+  assert.equal(g.length, S.GENERAL.length - 1); // one row per setting (Automation runs on: in Defaults › New papers); choices open a page
+  assert.ok(!g.some((r) => r.value === "general.automationHost"));
   assert.deepEqual([...new Set(g.map((r) => r.section))], ["Keys", "Search", "Before you type", "Opening papers", "Citations", "Artifacts", "Sync", "Advanced"]);
   assert.ok(g.filter((r) => r.rowId === "set-choice").every((r) => r.submenu));
   const opts = S.buildChoice(state(), "general.emptyQuery.recent", row);
@@ -169,14 +170,15 @@ test("Defaults and the model picker: grouped by provider; one provider's for Use
   s.settings = S.withValue(s.settings, "defaults.chat.model", "ollama:qwen3:8b");
   const d = S.buildDefaults(s, row);
   assert.deepEqual(d.map((r) => [r.section, r.label]), [["Prompts", "Model"], ["Prompts", "Effort"], ["Chat", "Model"], ["Chat", "Effort"],
-    ["The paper's text", "Extract the text first"], ["The paper's text", "Skip PDFs larger than"], ["The paper's text", "Extract every paper's text"],
+    ["When a model fails", "Fallback model"], ["When a model fails", "Prompts can name their own model"],
+    ["The paper's text", "Extract the text first"], ["The paper's text", "Skip PDFs larger than"],
     ["When you open a paper", "Extract a paper's text when you open it"], ["When you open a paper", "Tag a paper when you open it"],
-    ["New papers", "Extract new papers' text"], ["New papers", "Tag new papers by taxonomies"], ["New papers", "Prompts to run on new papers"],
+    ["New papers", "Automation runs on"], ["New papers", "Extract new papers' text"], ["New papers", "Tag new papers by taxonomies"], ["New papers", "Prompts to run on new papers"],
+    ["Bring papers up to date", "Extract every paper's text"],
     ["Bring papers up to date", "Tag again where a taxonomy changed"], ["Bring papers up to date", "Run prompts again where they changed"],
     ["Bring papers up to date", "Prompts already on a paper"], ["Bring papers up to date", "Taxonomies already on a paper"],
-    ["Bring papers up to date", "Papers added lately: the last"], ["Bring papers up to date", "Catch up the last 30 days"],
-    ["When a model fails", "Fallback model"], ["When a model fails", "Prompts can name their own model"]]);
-  assert.deepEqual([d[4].rowId, d[4].value, /^Off/.test(d[4].detail)], ["set-toggle", "defaults.autoExtract", true]);
+    ["Bring papers up to date", "Papers added lately: the last"], ["Bring papers up to date", "Catch up the last 30 days"]]);
+  assert.deepEqual([d[6].rowId, d[6].value, /^Off/.test(d[6].detail)], ["set-toggle", "defaults.autoExtract", true]);
   assert.equal(d[0].detail, "ollama:qwen3:8b (automatic)");
   assert.equal(d[2].detail, "ollama:qwen3:8b");
   const pick = S.buildModelPicker(s, "defaults.chat.model", row);
@@ -297,8 +299,8 @@ test("New papers say where automation runs (automationHost), and name this machi
   const info = (rows) => rows.filter((r) => r.section === "New papers" && r.rowId === "set-info");
   const away = info(at({ host: "lab-mac", here: false, machine: "arch" }));
   assert.deepEqual(away.map((r) => [r.available, r.label, r.detail]), [[false, "New papers are handled on “lab-mac”, not here",
-    "Settings › General › Automation runs on; this machine is “arch”: the switches below act there"]]);
-  assert.ok(at({ host: "lab-mac", here: false, machine: "arch" }).filter((r) => r.section === "New papers" && r.rowId !== "set-info")
+    "Automation runs on, below, names it; this machine is “arch”: the switches below act there"]]);
+  assert.ok(at({ host: "lab-mac", here: false, machine: "arch" }).filter((r) => r.section === "New papers" && r.rowId !== "set-info" && r.value !== "general.automationHost")
     .every((r) => / · on “lab-mac”, the machine automation runs on$/.test(r.detail)));
   assert.deepEqual(info(at({ host: "lab-mac", here: true, machine: "lab-mac" })).map((r) => r.label), ["New papers are handled here (“lab-mac”)"]);
   assert.deepEqual(info(at({ host: "", here: true, machine: "arch", synced: true })).map((r) => r.label), ["Every machine handles new papers"]);
@@ -306,7 +308,8 @@ test("New papers say where automation runs (automationHost), and name this machi
   assert.ok(!at({ host: "", here: true }).some((r) => / · on “/.test(r.detail)));
   const general = S.buildGeneral({ settings: C.normalizeSettings(null).settings, styles: [], automation: { host: "", here: true, machine: "arch" } }, row);
   assert.equal(general.find((r) => r.value === "general.machineName").detail, "“arch” (its hostname) · How your other machine knows this one");
-  assert.match(general.find((r) => r.value === "general.automationHost").detail, /^every machine \(default\)/);
+  assert.equal(general.find((r) => r.value === "general.automationHost"), undefined); // (in Defaults › New papers, under where it's said)
+  assert.match(at({ host: "", here: true, machine: "arch" }).find((r) => r.value === "general.automationHost").detail, /^every machine \(default\)/);
 });
 
 test("Without the runner, Bring papers up to date and the auto-prompts page say Setup installs it", () => {

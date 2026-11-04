@@ -351,7 +351,7 @@ function GlueSettings(V, C, T, P, S) {
   }
 
   // The pages the Mac has, for the index (ZoteroSearch.qml:530).
-  var INDEXED = [["", "Settings"], ["general", "General"], ["providers", "Models & providers"], ["defaults", "Defaults"], ["rules", "Rules"], ["paper-status", "Paper status"], ["tasks", "Tasks"], ["taxonomies", "Taxonomies"]]
+  var INDEXED = [["", "Settings"], ["general", "General"], ["defaults", "Defaults"], ["providers", "Models & providers"], ["rules", "Rules"], ["paper-status", "Paper status"], ["taxonomies", "Taxonomies"], ["tasks", "Tasks"]]
 
   // A settings change made, saved as Service.qml's saveSettings: → { problem } or { machine,
   // shared (null without a sync folder), refused, syncDirChange, id (a new endpoint's) }.

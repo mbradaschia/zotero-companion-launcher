@@ -6,7 +6,7 @@ const S = require("../lib/Settings.js");
 const V = require("../lib/Views.js");
 
 const state = (over) => Object.assign({ settings: C.normalizeSettings(null).settings, defaults: { prompts: "", chat: "" }, extract: { pending: 12, catchup: null, skipped: 0 } }, over || {});
-const rows = (st) => S.buildDefaults(st, V.listRow).filter((r) => r.section === "The paper's text");
+const rows = (st) => S.buildDefaults(st, V.listRow).filter((r) => r.section === "The paper's text" || /^set-extract/.test(r.rowId)); // (every paper's: in Bring papers up to date)
 
 test("settings: new papers' text off by default; PDFs over 40 MB skipped; both validated and saved when changed", () => {
   const d = C.normalizeSettings(null).settings.defaults;
@@ -25,8 +25,9 @@ test("settings: new papers' text off by default; PDFs over 40 MB skipped; both v
   assert.deepEqual(C.normalizeSettings({ defaults: { tagOnOpen: 1 } }).problems, ["defaults.tagOnOpen must be true or false"]);
 });
 
-test("Settings › Defaults › The paper's text: on opening, the size limit, every paper (with how many are left), the skipped; new papers' in New papers", () => {
+test("Settings › Defaults › The paper's text: on opening, the size limit; every paper (with how many are left) and the skipped in Bring papers up to date; new papers' in New papers", () => {
   const r = rows(state());
+  assert.deepEqual(r.map((x) => x.section), ["The paper's text", "The paper's text", "Bring papers up to date"]);
   assert.deepEqual(r.map((x) => [x.rowId, x.value]), [["set-toggle", "defaults.autoExtract"], ["set-edit", "defaults.extractMaxMB"], ["set-extract-all", ""]]);
   // opening a paper: its text and its taxonomies, together (tagging was on the Taxonomies page)
   const open = S.buildDefaults(state(), V.listRow).filter((x) => x.section === "When you open a paper");
@@ -55,9 +56,10 @@ test("Settings › Defaults › New papers: their text, their taxonomies, and th
   const st = state({ prompts: [{ id: "findings", title: "Findings and Takeaways" }, { id: "litreview", title: "Literature Review" }] });
   st.settings = C.normalizeSettings({ defaults: { autoPrompts: ["litreview"] } }).settings;
   const r = S.buildDefaults(st, V.listRow).filter((x) => x.section === "New papers");
-  assert.deepEqual(r.map((x) => [x.rowId, x.value, x.label]), [["set-toggle", "defaults.autoExtractNew", "Extract new papers' text"],
+  assert.deepEqual(r.map((x) => [x.rowId, x.value, x.label]), [["set-edit", "general.automationHost", "Automation runs on"], ["set-toggle", "defaults.autoExtractNew", "Extract new papers' text"],
     ["set-toggle", "defaults.autoTagNew", "Tag new papers by taxonomies"], ["set-nav", "auto-prompts", "Prompts to run on new papers"]]);
-  assert.match(r[2].detail, /^“Literature Review” · each runs once/);
+  assert.match(r[0].detail, /^every machine \(default\) · The one machine that extracts/); // (where its effect is, not in General)
+  assert.match(r[3].detail, /^“Literature Review” · each runs once/);
   assert.match(S.buildDefaults(state({ prompts: [] }), V.listRow).find((x) => x.value === "auto-prompts").detail, /^None · /);
   const page = S.buildAutoPrompts(st, V.listRow);
   assert.deepEqual(page.map((x) => [x.rowId, x.value, x.label, x.checked]), [["set-auto-prompt", "findings", "Findings and Takeaways", false], ["set-auto-prompt", "litreview", "Literature Review", true]]);
@@ -82,7 +84,7 @@ test("Go to › Extract every paper's text; in a collection, a tag or a saved se
 });
 
 test("Settings › Defaults › Bring papers up to date: taxonomies and prompts changed since, the last days' papers; counting, running", () => {
-  const sec = (st) => S.buildDefaults(st, V.listRow).filter((x) => x.section === "Bring papers up to date" && x.rowId !== "set-choice"); // (the two choices: catchup-modes.test.js)
+  const sec = (st) => S.buildDefaults(st, V.listRow).filter((x) => x.section === "Bring papers up to date" && x.rowId !== "set-choice" && !/^set-extract/.test(x.rowId)); // (the two choices: catchup-modes.test.js; every paper's text: above)
   const job = (id, op, extra) => Object.assign({ id, op }, extra || {});
   // counting
   let r = sec(state({ catchUp: { plan: null } }));
