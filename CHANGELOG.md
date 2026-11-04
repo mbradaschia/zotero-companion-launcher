@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.32`)
+
+- **The docked chat fits its pane.** It was at least 320 points wide, so a narrower right pane cut it off at both
+  sides; it now takes the pane's width, whatever it is. Its text is the table's: 13 px at the table's text size (⌘-
+  and ⌘+ size both), with narrower margins, and its controls are the small ones.
+- **No model named twice.** Docked, the line under the source leaves the model out (the box's picker shows it): it
+  says what a chat in progress reads and how much of the context it uses.
+
 ### The Mac app (`macos-v0.4.31`)
 
 - **Settings, in a better order.** Settings starts with *General* and *Defaults*, then Models & providers, Rules,

@@ -183,7 +183,9 @@ struct ReviewWindowContent: View {
             if let s = model.chatSlot {
                 let z = ReviewWindowModel.zoom
                 ReviewChatPane(review: model, launcher: launcher)
-                    .frame(width: s.width * z, height: s.height * z)
+                    .environment(\.chatZoom, CGFloat(z))
+                    .frame(width: s.width * z, height: s.height * z, alignment: .topLeading)
+                    .clipped() // (never past the pane, whatever its content asks)
                     .background(ThemeStore.shared.palette.background)
                     .themed()
                     .offset(x: s.minX * z, y: s.minY * z)
@@ -206,8 +208,8 @@ struct ReviewChatPane: View {
                 ], selection: review.chatMode) { review.openChat($0) }
                 Spacer()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
             Divider()
             if review.chatMode == "list", let m = review.listChat {
                 ChatWindowView(model: m, launcher: launcher).id("list")

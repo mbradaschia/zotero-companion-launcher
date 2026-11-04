@@ -8,6 +8,7 @@ struct ChatWindowView: View {
     @ObservedObject var model: ChatWindowModel
     let launcher: LauncherModel // (not observed: the model passes its changes on, at most twice a second)
     @Environment(\.palette) private var palette
+    @Environment(\.chatZoom) private var zoom
 
     init(model: ChatWindowModel, launcher: LauncherModel) {
         self.model = model
@@ -26,13 +27,16 @@ struct ChatWindowView: View {
             dockedBanner
             Divider()
             ZStack(alignment: .topTrailing) {
-                ChatWebView(body: model.page, onLink: { model.link($0) })
-                if model.showKeys { keysPanel.padding(12) }
+                ChatWebView(body: model.page, onLink: { model.link($0) }, zoom: zoom, compact: true)
+                if model.showKeys { keysPanel.padding(8) }
             }
             Divider()
             composer
         }
-        .frame(minWidth: 320, minHeight: 300)
+        // as narrow as the pane (it was at least 320 wide, so a narrower pane cut it at both sides), the table's sizes
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity, alignment: .topLeading)
+        .font(.callout)
+        .controlSize(.small)
     }
 
     private var dockedBar: some View {
@@ -77,8 +81,8 @@ struct ChatWindowView: View {
             Button { model.showKeys.toggle() } label: { Image(systemName: "keyboard") }.help("The chat's keys")
         }
         .buttonStyle(.borderless)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
     }
 
     private var dockedBanner: some View {
@@ -104,8 +108,8 @@ struct ChatWindowView: View {
                     .truncationMode(.tail)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -287,7 +291,7 @@ struct ChatWindowView: View {
                 actionRow(compact: true)
             }
         }
-        .padding(12)
+        .padding(model.docked ? 8 : 12)
     }
 
     private func actionRow(compact: Bool) -> some View {
@@ -372,6 +376,15 @@ struct ChatWindowView: View {
 
     private var keysPanel: some View {
         WindowKeys(title: "The chat window's keys", group: "chat-window", launcher: model.launcher)
+    }
+}
+
+// A docked chat's text size: its review table's (the page zoom), for the conversation's web view.
+private struct ChatZoomKey: EnvironmentKey { static let defaultValue: CGFloat = 1 }
+extension EnvironmentValues {
+    var chatZoom: CGFloat {
+        get { self[ChatZoomKey.self] }
+        set { self[ChatZoomKey.self] = newValue }
     }
 }
 
