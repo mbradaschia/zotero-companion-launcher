@@ -7,8 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.27`)
 
+- **An AI taxonomy draft waits for you.** A proposal that came while you were on another page, or with the launcher
+  closed, was lost: *New taxonomy with AI…* always started over. Now a draft that's waiting, proposed or failed is
+  kept until you accept or discard it. Its row in Settings › Taxonomies (*Your new taxonomy with AI…*, or *Your changes
+  with AI…* on a taxonomy's page) says so and opens it as you left it, on *Accept*. Starting another draft asks before
+  dropping it. While it thinks, the page says since when and that you can leave; a save that fails is said on the page,
+  the draft kept; no answer in 10 minutes names the model.
 - **The companion's log keeps every line.** The app's lines and the server's no longer write over each other (the
   log is opened to append), so "started" shows after "starting".
 
