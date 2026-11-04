@@ -156,8 +156,11 @@ function GlueChat(V, F, Mk) {
   // The banner's line: what this chat reads, its model and effort, the context used.
   var chatInfoLine = function (o, models, chatDefault) {
     var used = Number(o.contextUsed) || 0, win = Number(o.contextWindow) || 0
+    var ctx = win ? "context " + kTokens(used) + " / " + kTokens(win) + " (" + Math.round(100 * used / win) + "%)" : ""
+    // docked (o.noModel): the model is the box's picker, so the line leaves it out
+    if (o.noModel) return { text: [o.sessionId ? "this chat: " + o.grounding : "", ctx].filter(Boolean).join("  ·  "), high: !!win && used / win > 0.6 }
     return { text: (o.sessionId ? "this chat: " + o.grounding + " · " : "") + V.modelLabel(models || null, o.model || "default", chatDefault || "") + (o.effort ? " · " + o.effort : "")
-      + (win ? "  ·  context " + kTokens(used) + " / " + kTokens(win) + " (" + Math.round(100 * used / win) + "%)" : ""), high: !!win && used / win > 0.6 }
+      + (ctx ? "  ·  " + ctx : ""), high: !!win && used / win > 0.6 }
   }
 
   // `chat`'s argv after the command: a chat in progress resumes; a new one says what it reads.

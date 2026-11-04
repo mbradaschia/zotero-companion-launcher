@@ -10,6 +10,13 @@ import WebKit
 struct ChatWebView: NSViewRepresentable {
     let body: String
     var onLink: (URL) -> Void = { _ in }
+    var zoom: CGFloat = 1 // docked in a review table: the table's text size
+    var compact = false // docked: a narrow pane's margins, the table's 13 px
+
+    // Docked: a review table's right pane is narrow; its text is the table's.
+    static let compactShell = shell.replacingOccurrences(of: "font: 14px -apple-system", with: "font: 13px -apple-system")
+        .replacingOccurrences(of: "margin: 14px 22px 22px", with: "margin: 10px 12px 14px")
+        .replacingOccurrences(of: ".bubble { max-width: 80%;", with: ".bubble { max-width: 88%;")
 
     static let shell = """
     <!doctype html><html><head><meta charset="utf-8">
@@ -68,12 +75,14 @@ struct ChatWebView: NSViewRepresentable {
         view.navigationDelegate = context.coordinator
         context.coordinator.view = view
         context.coordinator.watchTheme()
-        view.loadHTMLString(ThemeStyle.page(Self.shell, ThemeStore.shared.palette.pageCSS), baseURL: nil)
+        view.pageZoom = zoom
+        view.loadHTMLString(ThemeStyle.page(compact ? Self.compactShell : Self.shell, ThemeStore.shared.palette.pageCSS), baseURL: nil)
         return view
     }
 
     func updateNSView(_ view: WKWebView, context: Context) {
         context.coordinator.onLink = onLink
+        if view.pageZoom != zoom { view.pageZoom = zoom }
         context.coordinator.show(body)
     }
 

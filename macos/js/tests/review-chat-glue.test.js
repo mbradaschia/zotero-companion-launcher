@@ -23,3 +23,10 @@ test("an empty list chat says what it reads, and that Ask each paper reads the f
   assert.match(html, /Ask each paper reads every full text/);
   assert.match(Glue.chatHtml([], { cite: "(A, 2000)" }), /Ask anything about \(A, 2000\)/);
 });
+
+test("a docked chat's line leaves the model out (the box's picker shows it)", () => {
+  const o = { sessionId: "s1", grounding: "the PDF", model: "default", effort: "high", contextUsed: 12000, contextWindow: 200000 };
+  assert.equal(Glue.chatInfoLine(Object.assign({ noModel: true }, o), [], "").text, "this chat: the PDF  ·  context 12k / 200k (6%)");
+  assert.equal(Glue.chatInfoLine({ noModel: true, model: "default" }, [], "").text, "");
+  assert.match(Glue.chatInfoLine(o, [], "").text, /^this chat: the PDF · .+ · high  ·  context 12k \/ 200k \(6%\)$/);
+});

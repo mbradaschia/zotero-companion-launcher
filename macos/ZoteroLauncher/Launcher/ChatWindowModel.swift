@@ -98,6 +98,7 @@ final class ChatWindowModel: ObservableObject {
     var infoLine: (text: String, high: Bool) {
         var o = state
         o["effort"] = effort
+        if docked { o["noModel"] = true } // (the box's picker shows it)
         let out = (try? launcher.core?.glueJSON("chatInfoLine", [o, models, chatDefault])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]
         return (out?["text"] as? String ?? "", out?["high"] as? Bool ?? false)
     }
