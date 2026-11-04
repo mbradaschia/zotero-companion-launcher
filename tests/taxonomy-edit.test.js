@@ -192,6 +192,29 @@ test("the proposal page, a form: Ask (Enter sends), what you asked, then accept 
   assert.equal(S.buildTaxonomyDraft({ id: "", turns: [], error: "the model's answer has no JSON" }, V.listRow)[1].label, "Couldn't make it: the model's answer has no JSON");
 });
 
+test("a draft not accepted waits: its row in Settings › Taxonomies (or the taxonomy's page) says so and opens it; its page says since when and why a save failed", () => {
+  const st = { settings: require("../lib/Client.js").normalizeSettings(null).settings, runner: { installed: true },
+    taxonomies: { taxonomies: [], off: [], problems: [], jev: { key: { set: false } }, review: 0, classified: 0 } };
+  const aiNew = (draft) => S.buildTaxonomies(st, V.listRow, draft).find((r) => r.rowId === "tax-ai-new");
+  assert.equal(aiNew(undefined).label, "New taxonomy with AI…"); // (the QML launcher passes none)
+  assert.equal(aiNew({ id: "", turns: [], busy: false, proposal: null }).label, "New taxonomy with AI…"); // nothing asked yet
+  const waiting = aiNew({ id: "", turns: [], busy: true, since: "11:28", proposal: null });
+  assert.deepEqual([waiting.label, waiting.detail], ["Your new taxonomy with AI…", "Your prompts model is on it (since 11:28): its answer waits here"]);
+  const proposed = aiNew({ id: "", turns: [{ request: "risks" }], busy: false, proposal: Object.assign({}, t, { name: "Risks" }) });
+  assert.match(proposed.detail, /^“Risks” proposed, not saved yet/);
+  assert.match(aiNew({ id: "", turns: [], error: "no answer in 10 minutes" }).detail, /couldn't: no answer in 10 minutes/);
+  assert.equal(aiNew({ id: "method", busy: true }).label, "New taxonomy with AI…"); // another taxonomy's draft
+  const edit = (draft) => S.buildTaxonomy(t, V.listRow, draft).find((r) => r.rowId === "tax-ai-edit");
+  assert.equal(edit(null).label, "Change it with AI…");
+  assert.equal(edit({ id: "method", busy: false, proposal: t }).label, "Your changes with AI…");
+  assert.equal(edit({ id: "", busy: false, proposal: t }).label, "Change it with AI…");
+  const busy = S.buildTaxonomyDraft({ id: "", base: null, input: "risks", turns: [], busy: true, since: "11:28", proposal: null }, V.listRow);
+  assert.equal(busy[1].label, "Thinking… since 11:28 (often a few minutes; it gives up after 10)");
+  assert.match(busy[1].detail, /^You can leave this page: the answer waits here/);
+  const failed = S.buildTaxonomyDraft({ id: "", turns: [], proposal: Object.assign({}, t, { name: "Risks" }), saveError: "the prefix “method/” is Method's" }, V.listRow);
+  assert.deepEqual(failed.slice(1, 3).map((r) => [r.rowId, r.label]), [["set-info", "Not saved: the prefix “method/” is Method's"], ["tax-ai-accept", "Accept it: make “Risks”"]]);
+});
+
 test("unique taxonomies (one label per paper): a label added by hand replaces the other; two shown are flagged", () => {
   const taxonomies = [{ id: "ontology", name: "Ontology", prefix: "ont/", kind: "one" }, { id: "theories", name: "Theories", prefix: "theory/", kind: "several" }];
   assert.deepEqual(V.uniqueLabelClash("ont/realist", ["ont/not stated", "theory/rbv", "notion"], taxonomies), { taxonomy: taxonomies[0], others: ["ont/not stated"] });

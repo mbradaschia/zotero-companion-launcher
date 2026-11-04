@@ -5,13 +5,43 @@ import Foundation
 extension LauncherModel {
     // ---- AI drafts
 
+    // A draft not accepted or discarded yet (asked and waiting, or proposed) is kept when you leave its page or the
+    // launcher closes: opened again, it's as you left it. Starting another one first asks before it's dropped.
     func openTaxonomyDraft(_ id: String) {
         if !runnerInstalled { return flashMessage("Taxonomies with AI need the AI features: Settings › Setup installs them") }
         if needsSetup { return flashMessage("Set up an AI model first: Settings › Models & providers") }
         if syncedWriteRefused() { return } // (refused before a minute of work, not at its save)
-        tax.draft = ["id": id, "base": id.isEmpty ? NSNull() : (tax.edit ?? NSNull()), "input": "", "turns": [Any](), "busy": false, "error": "", "proposal": NSNull(), "notes": ""]
+        if let d = tax.draft, Self.draftPending(d) {
+            if (d["id"] as? String ?? "") == id { return reopenTaxonomyDraft() }
+            return askConfirm(ConfirmAsk(title: "Drop your AI draft “\(draftName(d))”?", yes: "Drop it and start this one", no: "Keep it",
+                                         detail: "It isn't saved: accept it first to keep it", noDetail: "Its page: Settings › Taxonomies › " + draftPlace(d),
+                                         run: { [weak self] in self?.startTaxonomyDraft(id) }))
+        }
+        startTaxonomyDraft(id)
+    }
+
+    private func startTaxonomyDraft(_ id: String) {
+        tax.draft = ["id": id, "base": id.isEmpty ? NSNull() : (tax.edit ?? NSNull()), "input": "", "turns": [Any](), "busy": false, "error": "", "saveError": "", "proposal": NSNull(), "notes": ""]
         store.push("settings-tax-ai")
         rebuildList()
+    }
+
+    private func reopenTaxonomyDraft() {
+        store.push("settings-tax-ai")
+        rebuildList()
+        if tax.draft?["proposal"] is [String: Any], tax.draft?["busy"] as? Bool != true { _ = selectRow { $0.rowId == "tax-ai-accept" } }
+    }
+
+    // (as Settings.js' pendingDraft: waiting, proposed, or the last ask failed)
+    static func draftPending(_ d: [String: Any]) -> Bool { d["busy"] as? Bool == true || d["proposal"] is [String: Any] || !(d["error"] as? String ?? "").isEmpty }
+
+    private func draftName(_ d: [String: Any]) -> String {
+        (d["proposal"] as? [String: Any])?["name"] as? String ?? (d["base"] as? [String: Any])?["name"] as? String ?? "a new taxonomy"
+    }
+
+    // Where a draft's page is, from Settings › Taxonomies.
+    private func draftPlace(_ d: [String: Any]) -> String {
+        (d["id"] as? String ?? "").isEmpty ? "New taxonomy with AI" : ((d["base"] as? [String: Any])?["name"] as? String ?? "the taxonomy") + " › Change it with AI"
     }
 
     // Ask the AI: the request (with the conversation so far) to your prompts model; its proposal shown.
@@ -24,7 +54,11 @@ extension LauncherModel {
         let input: [String: Any] = ["id": d["id"] ?? "", "request": request, "turns": turns.map { ["request": $0["request"] ?? "", "taxonomy": $0["taxonomy"] ?? NSNull(), "notes": $0["notes"] ?? ""] }]
         d["busy"] = true
         d["error"] = ""
+        d["saveError"] = ""
         d["input"] = request
+        let clock = DateFormatter()
+        clock.dateFormat = "HH:mm"
+        d["since"] = clock.string(from: Date())
         tax.draft = d
         tax.drafting = true
         let serial = UUID().uuidString
@@ -35,7 +69,9 @@ extension LauncherModel {
             guard let self else { return }
             self.tax.drafting = false
             guard var next = self.tax.draft, next["serial"] as? String == serial else { return } // left, or another one since
-            let out = r.json as? [String: Any] ?? ["error": r.problem.isEmpty ? "the model didn't answer" : r.problem]
+            let model = self.resolvedPromptsModel
+            let out = r.json as? [String: Any] ?? ["error": r.timedOut ? "no answer in 10 minutes" + (model.isEmpty ? "" : " from " + model) + " (Settings › Models & providers picks another)"
+                                                                      : r.problem.isEmpty ? "the model didn't answer" : r.problem]
             next["busy"] = false
             if let e = out["error"] as? String {
                 next["error"] = e + ((out["notes"] as? String).flatMap { $0.isEmpty ? nil : " (" + $0 + ")" } ?? "")
@@ -45,13 +81,19 @@ extension LauncherModel {
                 next["notes"] = out["notes"] ?? ""
                 next["input"] = ""
             }
+            next["since"] = ""
             self.tax.draft = next
+            let failed = out["error"] != nil
             if self.store.view == "settings-tax-ai" {
                 self.store.followTop = false
                 self.rebuildList()
-                _ = self.selectRow { $0.rowId == (out["error"] != nil ? "tax-ai-ask" : "tax-ai-accept") }
+                _ = self.selectRow { $0.rowId == (failed ? "tax-ai-ask" : "tax-ai-accept") }
+                return self.flashMessage(failed ? "The AI couldn't: " + (out["error"] as? String ?? "") : "A proposal: accept it, or ask for changes")
             }
-            self.flashMessage(out["error"] != nil ? "The AI couldn't: " + (out["error"] as? String ?? "") : "A proposal: accept it, or ask for changes")
+            // left meanwhile: the draft waits on its page, its row in Settings › Taxonomies says so
+            if self.store.inSettings { self.store.followTop = false; self.rebuildList() }
+            self.flashMessage(failed ? "The AI couldn't: " + (out["error"] as? String ?? "") + " · Settings › Taxonomies › " + self.draftPlace(next)
+                                     : "A proposal for “\(self.draftName(next))” waits: Settings › Taxonomies › " + self.draftPlace(next))
         }
     }
 
@@ -61,7 +103,12 @@ extension LauncherModel {
         let saved = (try? core.glueJSON("acceptedDraft", [p, d["base"] ?? NSNull()])) ?? "{}"
         taxJob(id.isEmpty ? ["taxonomy-save", "--new"] : ["taxonomy-save", id], stdin: saved) { [weak self] ok, data, error in
             guard let self else { return }
-            guard ok, let data else { return self.flashMessage("Not saved: " + error) }
+            guard ok, let data else {
+                // said on the page too (a flash goes in 3 seconds), the draft kept to accept again or change
+                self.tax.draft?["saveError"] = error
+                if self.store.view == "settings-tax-ai" { self.store.followTop = false; self.rebuildList() }
+                return self.flashMessage("Not saved: " + error)
+            }
             self.tax.draft = nil
             if self.store.view == "settings-tax-ai" { _ = self.back() }
             if !id.isEmpty {

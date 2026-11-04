@@ -321,9 +321,9 @@ function GlueSettings(V, C, T, P, S) {
     }
     // Settings › Taxonomies (phase 9): x.taxEdit (taxonomy-show), x.taxLabel (its label's place), x.taxDraft, x.review
     if (name === "taxonomies" && !state.taxonomies && x.taxProblem) return [L({ rowId: "set-info", icon: S.ICON.warn, label: "Couldn't read the taxonomies: " + x.taxProblem, detail: "Back, then Settings › Taxonomies tries again", available: false })]
-    if (name === "taxonomies") return S.buildTaxonomies(state, L)
+    if (name === "taxonomies") return S.buildTaxonomies(state, L, x.taxDraft || null)
     if (name === "taxonomy" && !x.taxEdit && x.taxProblem) return [L({ rowId: "set-info", icon: S.ICON.warn, label: "Couldn't read “" + (x.taxEditId || "it") + "”: " + x.taxProblem, detail: "Back, then Enter on it tries again", available: false })]
-    if (name === "taxonomy") return S.buildTaxonomy(x.taxEdit || null, L)
+    if (name === "taxonomy") return S.buildTaxonomy(x.taxEdit || null, L, x.taxDraft || null)
     if (name === "tax-label") return S.buildTaxonomyLabel(x.taxEdit || null, Number(x.taxLabel), L)
     if (name === "tax-ai") return x.taxDraft ? S.buildTaxonomyDraft(x.taxDraft, L) : []
     if (name === "tax-review") return S.buildTaxonomyReview(x.review === undefined ? null : x.review, L)
