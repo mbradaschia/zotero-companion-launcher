@@ -24,6 +24,8 @@ bridge and the prompt runner share one version.
   that width, kept for the next table. Drag a tab down onto the pane's lower half, or click the split button, to see
   both: Info above, the chat below, with a divider you drag. Drag the chat's bar back up to the tabs (or click the
   button again) to put the tabs back. ⌥⌘I hides the whole pane; ⌥⌘C goes to the chat and back to Info.
+- **The chat's bottom bar fits a narrow pane.** When the model, Prompts, Ask each and Send don't fit on one line (a
+  docked chat), the model's name shortens (the whole name on hover) and the others become their symbols.
 - **Drag anything out to another app: it carries its text.** A paper in the results drops as its reference line
   (*Sirmon et al. (2011). Title. Journal.*), a note as its whole text, a *Copy citation* or *Copy bibliography entry*
   row as the citation in your style, a collection, a tag or a saved search as its name, a task as its description.

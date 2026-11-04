@@ -270,21 +270,37 @@ struct ChatWindowView: View {
                 ChatInput(text: $model.draft, onSend: { model.send() }, onEscape: { model.escape() }, focus: { model.focusInput = $0 })
             }
             .frame(minHeight: 36, maxHeight: CGFloat(min(8, max(2, model.draft.split(separator: "\n", omittingEmptySubsequences: false).count + 1))) * 19 + 12)
-            HStack(spacing: 10) {
-                modelPicker
-                promptsPicker
-                Spacer()
-                if model.busy { Button("Stop") { model.stop() }.keyboardShortcut(.cancelAction) } else {
-                    if model.list != nil {
-                        Button { model.askEach() } label: { Label("Ask each", systemImage: "rectangle.badge.plus") }
-                            .disabled(model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                            .help("Ask each paper: the question becomes an AI column that reads every paper's full text (the table shows the run's plan first), then the chat sums up the answers")
-                    }
-                    Button("Send") { model.send() }.disabled(model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+            // the full row while it fits; narrower (a docked chat), the model's name shortens and the rest are symbols
+            ViewThatFits(in: .horizontal) {
+                actionRow(compact: false)
+                actionRow(compact: true)
             }
         }
         .padding(12)
+    }
+
+    private func actionRow(compact: Bool) -> some View {
+        let empty = model.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return HStack(spacing: compact ? 6 : 10) {
+            modelPicker(compact: compact)
+            promptsPicker(compact: compact)
+            if !compact { Spacer() }
+            if model.busy {
+                Button { model.stop() } label: { Label("Stop", systemImage: "stop") }
+                    .labelStyle(RowLabel(compact: compact))
+                    .keyboardShortcut(.cancelAction).help("Stop").accessibilityLabel("Stop")
+            } else {
+                if model.list != nil {
+                    Button { model.askEach() } label: { Label("Ask each", systemImage: "rectangle.badge.plus") }
+                        .labelStyle(RowLabel(compact: compact, both: true))
+                        .disabled(empty).accessibilityLabel("Ask each")
+                        .help("Ask each paper: the question becomes an AI column that reads every paper's full text (the table shows the run's plan first), then the chat sums up the answers")
+                }
+                Button { model.send() } label: { Label("Send", systemImage: "paperplane") }
+                    .labelStyle(RowLabel(compact: compact))
+                    .disabled(empty).help("Send").accessibilityLabel("Send")
+            }
+        }
     }
 
     // (typed pieces: the menu's Any lookups, inline, were slow for the compiler to type-check)
@@ -294,9 +310,21 @@ struct ChatWindowView: View {
         Button(action: action) { Label(title, systemImage: checked as? Bool == true ? "checkmark" : "") }
     }
 
-    private var modelPicker: some View {
+    // Compact, the button's text shortens to fit what's left of the row (its whole name on hover).
+    @ViewBuilder private func modelPicker(compact: Bool) -> some View {
+        if compact {
+            Menu { modelMenuItems } label: { Text(model.modelButton).lineLimit(1).truncationMode(.tail) }
+                .frame(minWidth: 70, maxWidth: .infinity, alignment: .leading)
+                .help(model.modelButton)
+                .disabled(model.busy)
+        } else {
+            Menu { modelMenuItems } label: { Text(model.modelButton) }.fixedSize().disabled(model.busy)
+        }
+    }
+
+    private var modelMenuItems: some View {
         let m = model.modelMenu
-        return Menu(model.modelButton) {
+        return Group {
             if m["none"] as? Bool == true {
                 Text("No models: turn a provider on in Settings › Models & providers")
             } else {
@@ -315,24 +343,33 @@ struct ChatWindowView: View {
                 }
             }
         }
-        .fixedSize()
-        .disabled(model.busy)
     }
 
-    private var promptsPicker: some View {
-        Menu("Prompts") {
+    private func promptsPicker(compact: Bool) -> some View {
+        Menu {
             if let prompts = launcher.ai.prompts, !prompts.isEmpty {
                 ForEach(Array(prompts.enumerated()), id: \.offset) { _, p in Button(p["title"] as? String ?? "") { model.usePrompt(p) } }
             } else {
                 Text(launcher.ai.prompts != nil ? "No prompts yet: make one in the launcher (a paper's menu › Prompts › New prompt…)"
                      : launcher.ai.promptsProblem.isEmpty ? "Loading your prompts…" : launcher.ai.promptsProblem)
             }
-        }
+        } label: { Label("Prompts", systemImage: "text.bubble") }
+        .labelStyle(RowLabel(compact: compact))
         .fixedSize()
+        .help("Prompts").accessibilityLabel("Prompts")
     }
 
     private var keysPanel: some View {
         WindowKeys(title: "The chat window's keys", group: "chat-window", launcher: model.launcher)
+    }
+}
+
+// A chat row's button: its words (or its symbol and words), or only its symbol when the row is short of room.
+private struct RowLabel: LabelStyle {
+    var compact: Bool
+    var both = false
+    @ViewBuilder func makeBody(configuration: Configuration) -> some View {
+        if compact { configuration.icon } else if both { HStack(spacing: 4) { configuration.icon; configuration.title } } else { configuration.title }
     }
 }
 
