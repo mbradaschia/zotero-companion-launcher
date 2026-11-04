@@ -40,6 +40,7 @@ extension ChatWindowModel {
             guard let self else { return }
             self.saving = false
             self.showFlash(r.ok ? "Saved to Zotero as a note on the paper" : "Couldn't save to Zotero: " + r.problem)
+            if r.ok { self.launcher.paperNotesChanged(self.item) } // (the launcher on this paper's menu lists it)
         }
     }
 

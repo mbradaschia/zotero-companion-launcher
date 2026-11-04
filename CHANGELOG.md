@@ -7,6 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **A paper's menu lists a new note at once.** A note made while its menu was open now shows without leaving the
+  menu and coming back: one a prompt wrote (also when it finished while you were in the paper's Prompts), one a
+  chat window saved, and one made in Zotero, read again when the launcher is back in front. The cursor stays on
+  its row.
+
 ### The Mac app (`macos-v0.4.26`)
 
 - **The reading companion starts even when the app is held up at launch.** After an update, macOS asks again
