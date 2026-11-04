@@ -228,3 +228,35 @@ textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px
 .panel button.note .ic { width: 12px; height: 12px; flex: none; align-self: center; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .panel button.note .nt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .panel button.note small { color: var(--faint); font-size: 11px; white-space: nowrap; }
+
+/* an AI run (0.4.29): a cell running now turns its symbol, one waiting shows an hourglass (never its colour alone);
+   the toolbar's run button becomes ■ while it goes */
+.cv .rmark .ic, .hint.stl .ic, .pop .pi .ic, .tb .ic, .sheet .rcols .ic { width: 11px; height: 11px; margin: 0 4px -1px 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cv.rs-running .rmark .ic { animation: rt-spin 1.4s linear infinite; }
+.cv.rs-running, .cv.rs-waiting { color: var(--muted); }
+@keyframes rt-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cv.rs-running .rmark .ic { animation: none; } }
+.pop .pi > span { display: inline-flex; align-items: center; }
+.tb .ic { margin-right: 5px; }
+/* a list's answer: bullets (tags are pills) */
+.blist { margin: 0; padding-left: 15px; white-space: normal; }
+.blist li { margin: 0 0 1px; }
+.panel .blist { padding-left: 17px; line-height: 1.45; }
+/* a row's height: dragged by its edge in its first cell, kept by paper */
+.rrz { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; cursor: row-resize; z-index: 3; }
+.rrz:hover, .rrz.on { background: linear-gradient(to bottom, transparent 2px, var(--accent) 2px, var(--accent) 4px, transparent 4px); }
+.rrz.set { background: linear-gradient(to bottom, transparent 3px, var(--line) 3px, var(--line) 4px, transparent 4px); }
+.rrz.set:hover, .rrz.set.on { background: linear-gradient(to bottom, transparent 2px, var(--accent) 2px, var(--accent) 4px, transparent 4px); }
+.cv.rh { overflow-y: auto; }
+/* the panel's editor */
+textarea.ped { width: 100%; min-height: 70px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; background: var(--win); color: inherit; font: inherit; line-height: 1.45; resize: vertical; -webkit-user-select: text; user-select: text; }
+textarea.ped:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+textarea.ped:disabled { opacity: .6; }
+/* Run…: the columns, a box each */
+.sheet .rcols { display: flex; flex-direction: column; gap: 2px; }
+.sheet .rcols label.row { display: flex; align-items: center; gap: 6px; }
+.sheet .rcols small { color: var(--faint); font-size: 11px; }
+.agroup .lnk { margin-left: 8px; border: 0; background: transparent; color: var(--accent); font-size: 11px; padding: 0; text-transform: none; letter-spacing: 0; cursor: default; }
+/* Columns: a column you can edit, its pencil */
+.pop .crow .cedit { border: 0; background: transparent; color: var(--faint); padding: 0 3px; border-radius: 4px; display: inline-flex; }
+.pop .crow .cedit:hover { color: inherit; background: var(--line); }

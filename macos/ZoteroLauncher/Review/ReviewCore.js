@@ -10,10 +10,11 @@ var ReviewCore = (function () {
   var MIN_WIDTH = 16, MAX_WIDTH = 1200 // a column's width, in px: as narrow as a sliver (it's yours to judge)
   var MAX_COLUMNS = 80
   var MAX_SORT = 6
+  var ROW_MIN = 22, ROW_MAX = 900, MAX_HEIGHTS = 400 // a row's height you dragged (px), and how many rows keep one
   // AI columns (phase 11b, macos/docs/superpowers/specs/2026-10-28-phase-11b-ai-columns-design.md)
   var AI_KINDS = ["prompt", "jev-several", "jev-one", "jev-relevance"]
   var KIND_NAMES = { prompt: "AI prompt", "jev-several": "Jev, several labels", "jev-one": "Jev, best fit", "jev-relevance": "Jev, relevance" }
-  var SHAPES = ["text", "list", "number", "choice"]
+  var SHAPES = ["text", "list", "tags", "number", "choice"] // (a list: items, drawn as bullets; tags: a few short labels, as pills)
   var BANDS = [[70, "high"], [40, "maybe"], [0, "low"]] // relevance: from 70, from 40
   var JEV_PRICE_IN = 0.042 // $ per million input tokens (the runner's taxonomies.mjs)
 
@@ -126,11 +127,12 @@ var ReviewCore = (function () {
   function aiColumn(d, ctx) {
     var t = d.taxonomy ? taxonomyOf(ctx, d.taxonomy) : null
     var type = d.kind === "jev-relevance" || (d.kind === "prompt" && d.shape === "number") ? "number"
-      : d.kind === "jev-several" ? "pills" : (d.kind === "prompt" && d.shape === "choice") || d.kind === "jev-one" ? "choice" : "text"
+      : d.kind === "jev-several" || (d.kind === "prompt" && d.shape === "tags") ? "pills" : (d.kind === "prompt" && d.shape === "choice") || d.kind === "jev-one" ? "choice"
+        : d.kind === "prompt" && d.shape === "list" ? "list" : "text"
     var wide = d.kind === "prompt" && (d.shape === "text" || d.shape === "list")
     var mine = (d.labels || []).length > 0 // (a Jev column on labels of its own, not a taxonomy's)
     var c = { id: d.id, label: d.label, group: "AI columns", type: type, options: d.kind === "jev-one" ? (mine ? d.labels.map(function (l) { return l.name }) : t ? t.labels || [] : []) : d.options || [],
-      width: wide ? 260 : d.kind === "jev-several" ? 180 : 120, lines: wide ? 3 : d.kind === "jev-several" ? 2 : 1, edit: d.kind === "prompt" && type === "text" ? "text" : "",
+      width: wide ? 260 : type === "pills" ? 180 : 120, lines: wide ? 3 : type === "pills" ? 2 : 1, edit: d.kind === "prompt" && (type === "text" || type === "list") ? "text" : "",
       ai: true, kind: d.kind, kindName: KIND_NAMES[d.kind], reads: d.kind === "prompt" ? d.reads : "tagging", shape: d.shape, length: d.length, evidence: !!d.evidence,
       model: d.model || "default", taxonomy: d.taxonomy || "", labels: mine ? d.labels : undefined, topic: d.topic || "", description: d.description || "", hash: columnHash(d, t) }
     if ((d.kind === "jev-several" || d.kind === "jev-one") && !mine && !t) c.problem = "Its taxonomy (" + d.taxonomy + ") isn't there any more: pick another in a new column"
@@ -278,7 +280,7 @@ var ReviewCore = (function () {
   // A column the papers can be grouped by: one whose values repeat (not the paper, its authors, a date, free text:
   // yours or an AI's answer in words or as a list).
   function groupable(col) {
-    return !!col && !col.missing && col.id !== "title" && col.id !== "authors" && col.type !== "date" && !((col.own || col.ai) && col.type === "text")
+    return !!col && !col.missing && col.id !== "title" && col.id !== "authors" && col.type !== "date" && col.type !== "list" && !((col.own || col.ai) && col.type === "text")
   }
 
   // The rows (already sorted) in groups by a column's value: [{ label, value, rows }], the groups in the column's
@@ -396,7 +398,8 @@ var ReviewCore = (function () {
     var sorts = (Array.isArray(o.sort) ? o.sort : []).filter(function (s) { return isObject(s) && seen[s.column] }).map(function (s) {
       return { column: String(s.column), dir: s.dir === "desc" ? "desc" : "asc" }
     }).slice(0, MAX_SORT)
-    return {
+    var heights = normalizeHeights(o.heights)
+    var out = {
       id: String(id || o.id || ""),
       name: str(o.name, 120).trim() || "Review",
       source: normalizeSource(o.source),
@@ -408,6 +411,19 @@ var ReviewCore = (function () {
       created: str(o.created, 40),
       updated: str(o.updated, 40)
     }
+    if (Object.keys(heights).length) out.heights = heights // (only once you've resized a row)
+    return out
+  }
+
+  // The rows you resized: { <paper id>: its height in px } (a paper's own: it keeps it in any order, any sort).
+  function normalizeHeights(h) {
+    var out = {}
+    if (!isObject(h)) return out
+    Object.keys(h).filter(function (k) { return /^\d+:[A-Z0-9]{8}$/.test(k) }).slice(0, MAX_HEIGHTS).forEach(function (k) {
+      var n = Math.round(Number(h[k]))
+      if (isFinite(n) && n > 0) out[k] = Math.max(ROW_MIN, Math.min(ROW_MAX, n))
+    })
+    return out
   }
 
   // A review file's text → the review, or null when it isn't one (not JSON, not an object).
@@ -505,7 +521,7 @@ var ReviewCore = (function () {
     if (kind === "prompt") {
       d.reads = meta.reads === "full" ? "full" : "abstract"
       d.shape = shape
-      d.length = shape === "text" ? Math.max(5, Math.min(500, length || 60)) : shape === "list" ? Math.max(1, Math.min(30, length || 5)) : 0
+      d.length = shape === "text" ? Math.max(5, Math.min(500, length || 60)) : shape === "list" || shape === "tags" ? Math.max(1, Math.min(30, length || 5)) : 0
       d.options = shape === "choice" ? options : []
       d.evidence = meta.evidence === true || meta.evidence === "true"
       d.model = str(meta.model, 120).trim() || "default"
@@ -657,6 +673,52 @@ var ReviewCore = (function () {
       jevUsd: Math.round(nJev * 6000 * JEV_PRICE_IN / 1e6 * 10000) / 10000, skipped: skipped }
   }
 
+  // A paper's APA 7 in-text citation, from what /search gives (Zotero's first creator: "Sirmon", "Sirmon and Hitt",
+  // "Sirmon et al."): "(Sirmon & Hitt, 2011)"; no year: "n.d."; no author: the title's first words, in quotes.
+  function citeAPA(r) {
+    var who = str(r && r.creator, 200).trim().replace(/^(.+?)\s+(and|und|e|y|et|en|och|og|i)\s+(.+)$/, function (m, a, and, b) { return /\bal\.?$/.test(b) ? m : a + " & " + b })
+    if (!who) {
+      var words = plainTitle(r && r.title).split(/\s+/).filter(Boolean)
+      who = words.length ? "“" + words.slice(0, 4).join(" ") + (words.length > 4 ? "…" : "") + "”" : "Untitled"
+    }
+    var y = /\b(\d{4})\b/.exec(str(r && r.year, 40))
+    return "(" + who + ", " + (y ? y[1] : "n.d.") + ")"
+  }
+
+  // A cell's text with its paper's citation after it, before the sentence's last stop: "Firms adapt (Sirmon et al.,
+  // 2011)." A list's items one a line, the citation after the last.
+  function withCitation(textIn, r) {
+    var t = String(textIn || "").replace(/\s+$/, "")
+    var cite = citeAPA(r)
+    if (!t) return cite
+    var m = /([.!?])(["”’)]?)$/.exec(t)
+    return m ? t.slice(0, t.length - m[0].length) + m[2] + " " + cite + m[1] : t + " " + cite
+  }
+
+  // While a table's AI run goes, each of its cells not done yet: "running" (its paper is being asked now) or "waiting"
+  // (a paper after it, or asked while the run went: it runs next). run: { cells: ["<column>|<paper>"] (the run's, in
+  // its papers' order), queued: [same], started (ISO), done (papers done, when the runner says) }. A cell the run
+  // wrote since it started is done. → { "<column>|<paper>": "running" | "waiting" }
+  function runMarks(run, cells) {
+    var out = {}
+    if (!isObject(run)) return out
+    var started = Date.parse(run.started || "")
+    var keys = Array.isArray(run.cells) ? run.cells.map(String) : []
+    var papers = []
+    keys.forEach(function (k) { var p = k.slice(k.indexOf("|") + 1); if (papers.indexOf(p) < 0) papers.push(p) })
+    var done = typeof run.done === "number" ? run.done : -1
+    keys.forEach(function (k) {
+      var i = k.indexOf("|"), col = k.slice(0, i), p = k.slice(i + 1)
+      var rec = cells && cells[col] && own(cells[col], p) ? cells[col][p] : null
+      if (rec && isFinite(started) && Date.parse(rec.updated || "") >= started) return
+      var at = papers.indexOf(p)
+      if (done < 0 || at === done) out[k] = "running"
+      else if (at > done) out[k] = "waiting"
+    })
+    ;(Array.isArray(run.queued) ? run.queued : []).forEach(function (k) { if (!out[k]) out[String(k)] = "waiting" })
+    return out
+  }
+
   // An AI cell's band (relevance): "high", "maybe", "low".
   function band(score) {
     var n = Number(score)
@@ -752,7 +814,7 @@ var ReviewCore = (function () {
     sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
     parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,
     AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, cleanLabels: cleanLabels, labelsText: labelsText, columnHash: columnHash, hash12: hash12,
-    cellOf: cellOf, cellState: cellState, runPlan: runPlan, band: band
+    cellOf: cellOf, cellState: cellState, runPlan: runPlan, runMarks: runMarks, band: band, citeAPA: citeAPA, withCitation: withCitation, ROW_MIN: ROW_MIN, ROW_MAX: ROW_MAX, normalizeHeights: normalizeHeights
   }
 })()
 

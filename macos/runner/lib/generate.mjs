@@ -22,13 +22,16 @@ function final(e) {
 
 // → { text, usage, costUsd, session, window, spec, provider, model, effort, fellBack? }
 // `target`: a resolved model ({ provider, model, spec }). `resume`: the thread to continue (stateful).
-export async function generate({ settings, ctx, target, effort = "", system, messages, resume = null, persist = false, onDelta, onStatus, signal, onFallback }) {
+// `cache`: { prefix, mark } when the first message starts with a part worth caching on its own (a review table's
+// paper, before its questions): split there, and marked for the provider's cache only when `mark` (it costs more to
+// write than it saves unless it's read again). Left out: the first message is cached whole (a chat's paper).
+export async function generate({ settings, ctx, target, effort = "", system, messages, resume = null, persist = false, onDelta, onStatus, signal, onFallback, cache = null }) {
   const attempt = async (t, withResume) => {
     const p = providerById(t.provider, settings);
     if (!p) throw new Error(`no provider "${t.provider}"`);
     const info = await findModelInfo(settings, ctx, t.provider, t.model);
     const e = info && Array.isArray(info.efforts) && !info.efforts.length ? "" : effort && info && info.efforts && !info.efforts.includes(effort) ? info.efforts[info.efforts.length - 1] : effort;
-    const common = { config: configFor(p.id, settings), model: t.model, effort: e, system, onDelta, onStatus, signal, ctx, persist };
+    const common = { config: configFor(p.id, settings), model: t.model, effort: e, system, onDelta, onStatus, signal, ctx, persist, cache };
     const r = p.stateful
       ? await p.stream(Object.assign(common, withResume ? { message: messages[messages.length - 1].content, resume: withResume } : { message: foldMessages(messages), resume: null }))
       : await p.stream(Object.assign(common, { messages }));

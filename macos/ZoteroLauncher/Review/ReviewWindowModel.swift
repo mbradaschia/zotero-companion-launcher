@@ -168,8 +168,9 @@ final class ReviewWindowModel: ObservableObject {
             "loading": loading,
             "pinned": pinned,
             "preview": preview ?? NSNull(),
-            "run": runTask ?? NSNull()
+            "run": runState ?? NSNull()
         ])
+        stopIfAsked()
     }
 
     // What the page sends (ReviewGrid.js's post).
@@ -182,7 +183,7 @@ final class ReviewWindowModel: ObservableObject {
         case "layout":
             guard let l = m["review"] as? [String: Any] else { return }
             let had = Set(columnIds(review))
-            change { r in for k in ["columns", "sort", "group", "lines", "panel"] { if let v = l[k] { r[k] = v } } }
+            change { r in for k in ["columns", "sort", "group", "lines", "panel", "heights"] { if let v = l[k] { r[k] = v } } }
             if !Set(columnIds(review)).isSubset(of: had) { send() } // a column added from Columns: its cells (other tables' answers too)
         case "rename":
             if let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty { change { $0["name"] = n } }
@@ -242,6 +243,11 @@ final class ReviewWindowModel: ObservableObject {
             launcher.openWindow(["key": key, "libraryID": n["libraryID"] as? Int ?? 1, "title": (n["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Untitled note"])
         case "csv": exportCSV(name: m["name"] as? String ?? title, text: m["text"] as? String ?? "")
         case "run": runAI(m["jobs"] as? [[String: Any]] ?? [])
+        case "stop": stopRun()
+        case "copy": // a cell's text (with its paper's citation, APA 7: the page makes it)
+            let text = m["text"] as? String ?? ""
+            guard !text.isEmpty else { return }
+            page?.flash(launcher.desktop.copy(text) ? (m["said"] as? String ?? "Copied") + ": " + Self.excerpt(text) : "Couldn't copy it")
         case "draftColumn": draftColumn(m)
         case "restore":
             guard let core = launcher.core, let files, let column = m["column"] as? String, let paper = m["paper"] as? String else { return }
@@ -329,18 +335,74 @@ final class ReviewWindowModel: ObservableObject {
 
     // ---- AI columns (phase 11b)
 
-    // This table's AI run, while one runs: { stage, started } (its task in Processes).
+    // This table's AI run's task, while one runs (its row in Processes: its pid, how far it is).
     private var runTask: [String: Any]? {
-        guard let t = launcher.ai.tasks.first(where: { $0["kind"] as? String == "review" && $0["review"] as? String == id && $0["status"] as? String == "running" }) else { return nil }
-        return ["stage": t["stage"] ?? "", "started": t["started"] ?? ""]
+        launcher.ai.tasks.first(where: { $0["kind"] as? String == "review" && $0["review"] as? String == id && $0["status"] as? String == "running" })
     }
 
-    // Run… › Run: the plan's cells to review-run, the job made from the column files (their fingerprint now). The
-    // cells come back as it writes them (the launcher draws the open tables again as the run's task moves).
+    // One run at a time per table: the cells asked while it goes wait (queued), then run as one job (a paper asked by
+    // several columns read once, in one request where the columns share a model and what they read). Stop (the
+    // toolbar's ■, a cell's menu) stops the run and drops what waits; what was written stays.
+    private var running = false
+    private var runCells: [String] = [] // "<column>|<paper>": the run's, in its papers' order
+    private var queued: [[String: Any]] = []
+    private var runStarted = ""
+    private var stopAsked = false
+
+    private static func key(_ j: [String: Any]) -> String { "\(j["column"] as? String ?? "")|\(j["paper"] as? String ?? "")" }
+    private static func excerpt(_ s: String) -> String {
+        let one = s.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return one.count > 60 ? String(one.prefix(60)) + "…" : one
+    }
+
+    // What the page draws of it: { stage, started, done, cells, queued }; a run of this table's started elsewhere (its
+    // task alone): { stage, started }.
+    private var runState: [String: Any]? {
+        let t = runTask
+        if !running {
+            guard let t else { return nil }
+            return ["stage": t["stage"] ?? "", "started": t["started"] ?? ""]
+        }
+        var o: [String: Any] = ["stage": stopAsked ? "stopping" : ((t?["stage"] as? String) ?? "starting"), "started": runStarted, "cells": runCells, "queued": queued.map(Self.key)]
+        if let done = t?["done"] as? Int { o["done"] = done }
+        return o
+    }
+
+    private func stopRun() {
+        guard running || runTask != nil else { return }
+        queued = []
+        stopAsked = true
+        send() // (and stopped there, when its task is known)
+    }
+
+    // The run's process stopped once its task (its pid) is there: asked before, it's stopped as the task shows up.
+    private var stoppedPid: Int32 = 0
+    private func stopIfAsked() {
+        guard stopAsked, let pid = (runTask?["pid"] as? NSNumber)?.int32Value, pid > 0, pid != stoppedPid else { return }
+        stoppedPid = pid
+        launcher.killProcess(pid)
+        if !running { stopAsked = false } // (a run of another window's: nothing of ours to end)
+    }
+
+    // Run (Run…, a cell's or a header's menu, the panel's Run it): the cells to review-run, the job made from the
+    // column files (their fingerprint now). While a run goes they wait for it. The cells come back as it writes them
+    // (the launcher draws the open tables again as the run's task moves).
     private func runAI(_ jobs: [[String: Any]]) {
-        guard let core = launcher.core, let files, let review else { return }
+        guard let files else { return }
         if launcher.syncFolderGone || files.readOnly { return refused("Not run: " + launcher.syncFolderAway) } // (the cells are in the sync folder)
-        if runTask != nil { return refused("This table's AI run is still going: it's in Processes (Stop all stops it)") }
+        if running {
+            let have = Set(runCells + queued.map(Self.key))
+            let more = jobs.filter { !have.contains(Self.key($0)) }
+            queued += more
+            page?.flash(more.isEmpty ? "Already in the run" : "Waiting: \(more.count) \(more.count == 1 ? "cell runs" : "cells run") when the one going ends (■ stops them)")
+            return send()
+        }
+        if runTask != nil { return refused("This table's AI run is still going: it's in Processes (■ or Stop all stops it)") }
+        startRun(jobs)
+    }
+
+    private func startRun(_ jobs: [[String: Any]]) {
+        guard let core = launcher.core, let files, let review else { return }
         let asked = Array(Set(jobs.compactMap { $0["column"] as? String })).sorted()
         let job = (try? core.glueJSON("reviewRunJob", [review, files.columns(core), launcher.reviewContext(), jobs, files.cells(asked, core)])).flatMap(ReviewFiles.object) ?? ["error": "Couldn't make the run"]
         if let e = job["error"] as? String { return refused(e) } // (refused draws the table again: the answers it hadn't shown too)
@@ -350,17 +412,36 @@ final class ReviewWindowModel: ObservableObject {
         if skipped > 0 { send() } // (the answers the table hadn't shown)
         page?.flash("Running \(n) \(n == 1 ? "cell" : "cells"): they fill in as each paper is done (Processes has the run)"
                     + (skipped > 0 ? "; \(skipped) had an answer already, left as \(skipped == 1 ? "it is" : "they are")" : ""))
+        running = true
+        runCells = (job["jobs"] as? [[String: Any]] ?? []).map(Self.key)
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        runStarted = iso.string(from: Date())
+        send()
         launcher.tasksSoon()
         launcher.runRunner(["review-run"], stdin: stdin, timeout: 3 * 3600, quiet: false) { [weak self] r in
             guard let self else { return }
+            let stopped = self.stopAsked || r.status == 130 || r.status == 143 // (the ■, or Stop all in Processes)
+            self.running = false
+            self.runCells = []
+            self.stopAsked = false
             let out = r.json as? [String: Any]
-            if out == nil, !r.ok {
+            if stopped {
+                self.queued = []
+                self.page?.flash("Stopped: what was done stays")
+            } else if out == nil, !r.ok {
                 // (a runner from before 11b: review-run isn't one of its commands)
                 let old = r.status == 2 && r.stderr.contains("usage:")
                 self.page?.flash(old ? "The AI features here are older than the app: Settings › Setup › Install the AI features updates them" : "The run failed: " + r.problem)
             }
             self.launcher.refreshTasks()
-            self.send()
+            if !self.queued.isEmpty {
+                let next = self.queued
+                self.queued = []
+                self.startRun(next)
+            } else {
+                self.send()
+            }
         }
     }
 

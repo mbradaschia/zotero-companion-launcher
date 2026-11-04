@@ -203,6 +203,18 @@ test("contract: the API providers (OpenAI, Anthropic, Gemini, OpenRouter, compat
   await a.stream({ config: {}, model: "claude-x", effort: "high", system: "s", messages: [{ role: "user", content: "paper" }, { role: "assistant", content: "a" }, { role: "user", content: "q" }], ctx: Object.assign({}, ctx, { streamText: capture }) });
   assert.deepEqual(sent.messages[0].providerOptions, { anthropic: { cacheControl: { type: "ephemeral" } } });
   assert.equal(sent.messages[2].providerOptions, undefined);
+  // a review table's request: the paper split from its questions, marked only when asked (cache.mark)
+  await a.stream({ config: {}, model: "claude-x", system: "s", messages: [{ role: "user", content: "<paper>P</paper>Q?" }], cache: { prefix: "<paper>P</paper>", mark: true }, ctx: Object.assign({}, ctx, { streamText: capture }) });
+  assert.deepEqual(sent.messages[0].content, [{ type: "text", text: "<paper>P</paper>", providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } }, { type: "text", text: "Q?" }]);
+  assert.equal(sent.messages[0].providerOptions, undefined, "not the whole message (its questions change)");
+  await a.stream({ config: {}, model: "claude-x", system: "s", messages: [{ role: "user", content: "<paper>P</paper>Q?" }], cache: { prefix: "<paper>P</paper>", mark: false }, ctx: Object.assign({}, ctx, { streamText: capture }) });
+  assert.deepEqual(sent.messages[0].content, [{ type: "text", text: "<paper>P</paper>" }, { type: "text", text: "Q?" }]);
+  assert.equal(sent.messages[0].providerOptions, undefined, "nothing written to the cache");
+  // OpenAI caches a repeated start on its own: the message as it is
+  const o = Object.create(openai);
+  o.createModel = async () => mockModel(MockLanguageModelV4);
+  await o.stream({ config: {}, model: "gpt-x", system: "s", messages: [{ role: "user", content: "<paper>P</paper>Q?" }], cache: { prefix: "<paper>P</paper>", mark: true }, ctx: Object.assign({}, ctx, { streamText: capture }) });
+  assert.equal(sent.messages[0].content, "<paper>P</paper>Q?");
   assert.equal(sent.instructions, "s");
   assert.equal(sent.reasoning, undefined); // "claude-x" isn't a known reasoning model: no effort sent
   // no key: a clear reason, before any request
