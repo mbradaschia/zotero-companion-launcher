@@ -190,6 +190,25 @@ struct SubmenuArrow: View {
     }
 }
 
+// A paper's status and default task beside its ranks, on its notes (the list, the reader): each with its kind's symbol
+// (a flag, a checklist), so neither is told by colour alone; none is a faint "no status" / "no task", where ⌥→← and
+// ⇧⌥→← make one. nil: not shown.
+struct HeaderStatusPills: View {
+    let status: String?
+    let task: String?
+
+    var body: some View {
+        if let status {
+            PillView(text: status.isEmpty ? "no status" : status, selected: false, mode: status.isEmpty ? "off" : "tag", kind: "status")
+                .help("Its status · ⌥→← changes it")
+        }
+        if let task {
+            PillView(text: task.isEmpty ? "no task" : task, selected: false, mode: task.isEmpty ? "off" : "tag", kind: "task")
+                .help("Its default task · ⇧⌥→← changes it")
+        }
+    }
+}
+
 // A pill, drawn as the QML draws its three: "on" (filled: the one chosen), "tag" (a tinted outline:
 // something a paper has, as its status or its extracted text) and "off" (faint: one of the
 // choices, a rank), each in its kind's colour; on a selected row, in white. A kind's symbol goes first, so two kinds

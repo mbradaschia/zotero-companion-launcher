@@ -170,6 +170,59 @@ final class LauncherModel9Tests: XCTestCase {
         XCTAssertEqual(model.flash, "Accepted: saved as yours")
     }
 
+    // Left while the model thinks (or the launcher closed): the proposal waits; New taxonomy with AI… opens it as it
+    // was, Accept saves it. A failed save is said on the page and the draft kept; another draft asks first.
+    func testAnAIDraftWaitsWhenYouLeaveAndAFailedSaveKeepsIt() throws {
+        runner.hold = ["taxonomy-draft"]
+        model.openSettings("taxonomies")
+        try select { $0.rowId == "tax-ai-new" }
+        model.execute(.activate)
+        try select { $0.rowId == "tax-ai-ask" }
+        model.execute(.activate)
+        type("supply chain risks")
+        XCTAssertTrue(model.listRows.contains { $0.label.hasPrefix("Thinking… since ") })
+        _ = model.back()
+        XCTAssertEqual(model.store.view, "settings-taxonomies")
+        XCTAssertEqual(model.listRows.first { $0.rowId == "tax-ai-new" }?.label, "Your new taxonomy with AI…")
+        runner.release("taxonomy-draft", FakeRunner.json(["taxonomy": ["name": "Risks", "prefix": "risk/", "kind": "several", "question": "Q", "threshold": 0.6, "low": 0.3, "show": true,
+                                                                      "labels": [["name": "supplier", "definition": "S"], ["name": "demand", "definition": "D"]]], "notes": ""]))
+        XCTAssertEqual(model.flash, "A proposal for “Risks” waits: Settings › Taxonomies › New taxonomy with AI")
+        XCTAssertTrue(model.listRows.first { $0.rowId == "tax-ai-new" }?.detail.hasPrefix("“Risks” proposed, not saved yet") == true)
+        // opened again: as it was, on Accept
+        try select { $0.rowId == "tax-ai-new" }
+        model.execute(.activate)
+        XCTAssertEqual(model.store.view, "settings-tax-ai")
+        XCTAssertEqual(model.selectedListRow?.rowId, "tax-ai-accept")
+        // a save that fails: said on the page, the draft kept
+        runner.answers["taxonomy-save"] = { _, _ in RunnerResult(status: 1, stderr: "oma-zotero-prompt: draft: the prefix “risk/” is Risk's\n") }
+        model.execute(.activate)
+        XCTAssertEqual(model.store.view, "settings-tax-ai")
+        XCTAssertTrue(model.listRows.contains { $0.label == "Not saved: draft: the prefix “risk/” is Risk's" })
+        XCTAssertNotNil(model.tax.draft?["proposal"] as? [String: Any])
+        // another taxonomy's draft asks before this one is dropped
+        _ = model.back()
+        try select { $0.rowId == "tax-open" && $0.value == "methods" }
+        model.execute(.activate)
+        try select { $0.rowId == "tax-ai-edit" }
+        model.execute(.activate)
+        XCTAssertEqual(model.store.view, "confirm")
+        model.answerConfirm(false)
+        XCTAssertEqual((model.tax.draft?["proposal"] as? [String: Any])?["name"] as? String, "Risks")
+    }
+
+    // No answer in time: the model is named, and where to pick another.
+    func testAnAIDraftThatTimesOutSaysWhichModel() throws {
+        runner.answers["taxonomy-draft"] = { _, _ in RunnerResult(status: 143, timedOut: true) }
+        model.openSettings("taxonomies")
+        try select { $0.rowId == "tax-ai-new" }
+        model.execute(.activate)
+        try select { $0.rowId == "tax-ai-ask" }
+        model.execute(.activate)
+        type("supply chain risks")
+        XCTAssertTrue(model.flash.hasPrefix("The AI couldn't: no answer in 10 minutes"))
+        XCTAssertTrue(model.listRows.contains { $0.label.hasPrefix("Couldn't make it: no answer in 10 minutes") })
+    }
+
     func testANewTaxonomyTypesItsNameAtOnceAndAProposalsRowsAreInert() throws {
         runner.answers["taxonomy-new"] = { _, _ in FakeRunner.json(["id": "methods", "path": "/tmp/t/methods.json"]) }
         model.openSettings("taxonomies")

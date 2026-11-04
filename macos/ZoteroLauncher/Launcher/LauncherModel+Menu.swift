@@ -76,6 +76,7 @@ extension LauncherModel {
         refreshPrompts() // its Prompts row (and the models it names) as they are now
         refreshModels()
         ai.tasksRead = Date()
+        detailsAsked = Date()
         detailsSerial += 1
         let serial = detailsSerial
         bridge.post("/item", ["key": item.key, "libraryID": item.libraryID], timeout: 8) { [weak self] result in
@@ -101,21 +102,30 @@ extension LauncherModel {
     }
 
     // The paper's details again, keeping the view and the row (ZoteroSearch.qml:413).
+    // (the views drawn from them: rebuilt when they come)
+    static let detailsViews: Set<String> = ["actions", "files", "notes", "extract-menu", "tax-paper", "tax-audit"]
+
     func refreshDetails() {
         guard let item = actionItem else { return }
         detailsSerial += 1
+        detailsAsked = Date()
         let serial = detailsSerial
         bridge.post("/item", ["key": item.key, "libraryID": item.libraryID], timeout: 8) { [weak self] result in
             MainActor.assumeIsolated {
                 guard let self, serial == self.detailsSerial, self.opened, case .ok(let answer) = result else { return }
                 self.details = answer
-                if ["actions", "files", "notes", "extract-menu", "tax-paper", "tax-audit"].contains(self.store.view) {
+                if Self.detailsViews.contains(self.store.view) {
+                    // the cursor stays on its row (a new note above it would otherwise move it to another)
+                    let was = self.selectedListRow
                     self.store.followTop = false
                     self.rebuildList()
+                    if let was, self.selectedListRow.map({ !Self.sameRow($0, was) }) ?? true { _ = self.selectRow { Self.sameRow($0, was) } }
                 }
             }
         }
     }
+
+    static func sameRow(_ a: ListRow, _ b: ListRow) -> Bool { a.rowId == b.rowId && a.noteKey == b.noteKey && a.value == b.value }
 
     // o / w once the details are known: one file acts at once, several get the picker, none
     // stays on the row that says why (ZoteroSearch.qml:1146).

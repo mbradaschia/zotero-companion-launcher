@@ -105,7 +105,7 @@ extension LauncherModel {
         if store.view == "settings-tax-ai" {
             if listRow?.rowId == "tax-ai-ask" {
                 if listRow?.available == false { return ["↑↓ move"] + back } // (busy)
-                return ["↵ type what you want"] + (tax.draft?["proposal"] is [String: Any] ? ["↓ the proposal"] : []) + ["esc back (nothing saved)"]
+                return ["↵ type what you want"] + (tax.draft?["proposal"] is [String: Any] ? ["↓ the proposal"] : []) + ["esc back (the draft waits)"]
             }
             if listRow?.rowId == "tax-ai-accept" { return ["↵ accept it", "↑ ask for changes"] + back }
             return ["↑↓ move", "↵ on Accept or Discard"] + back

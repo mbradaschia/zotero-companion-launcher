@@ -57,6 +57,7 @@ extension LauncherModel {
             return
         }
         note.data = nil
+        refreshPaperPills() // (not the last note's paper's, while this one loads)
         let serial = note.serial
         bridge.post("/note", ["key": key, "libraryID": target["libraryID"] ?? 1, "format": "html"], timeout: 8) { [weak self] result in
             MainActor.assumeIsolated {
@@ -96,6 +97,7 @@ extension LauncherModel {
                     let info = answer["item"] as? [String: Any] ?? [:]
                     self.actionItem = PaperRef(key: key, libraryID: lib, title: info["title"] as? String ?? parent["title"] as? String ?? "", itemType: info["itemType"] as? String ?? "")
                     self.details = answer
+                    self.refreshPaperPills() // (its pills: the paper in view only now)
                 }
                 self.objectWillChange.send()
             }
@@ -143,6 +145,19 @@ extension LauncherModel {
                 }
             }
         }))
+    }
+
+    // Back on the launcher (its window, or a pinned panel) after Zotero, a chat or a note window: the paper's menu
+    // reads its details again, for a note made there meanwhile. (Not right after an opening, which read them.)
+    func cameBack() {
+        guard opened, actionItem != nil, Self.detailsViews.contains(store.view), Date().timeIntervalSince(detailsAsked) > 1 else { return }
+        refreshDetails()
+    }
+
+    // A note saved on a paper from elsewhere (a chat window): its menu, if it's the one open, lists it at once.
+    func paperNotesChanged(_ paper: PaperRef) {
+        guard opened, let item = actionItem, item.key == paper.key, (item.libraryID == 0 ? 1 : item.libraryID) == (paper.libraryID == 0 ? 1 : paper.libraryID) else { return }
+        refreshDetails()
     }
 
     // The note under the cursor in a list, or the one being read.

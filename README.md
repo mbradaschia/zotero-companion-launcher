@@ -860,7 +860,8 @@ it's saved as yours (a bundled one: your copy, which then replaces it).
 what you want in *Ask the AI* and `Enter` sends it to your prompts model, which proposes the taxonomy (or its
 changes) and says what it did. The proposal is listed with each change marked (a label *new*, *changed* or
 *removed*, a field with what it was); ask for changes as often as you like (it revises its last proposal), then
-*Accept* it (only then is it saved) or *Discard* it.
+*Accept* it (only then is it saved) or *Discard* it. On the Mac, a draft waits until you do either: leave its page or close the launcher while the model
+thinks, and the row (*Your new taxonomy with AI…*, *Your changes with AI…*) opens it as you left it.
 
 **A paper's taxonomies**: its menu › *Taxonomies* (under *Tags*) lists every taxonomy in a section, hidden ones too,
 with the paper's labels (`Enter`: the papers with one), then *Audit the taxonomies* and *Tag again*. Under its status

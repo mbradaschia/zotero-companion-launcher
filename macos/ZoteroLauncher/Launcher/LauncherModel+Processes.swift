@@ -50,8 +50,9 @@ extension LauncherModel {
             ai.reviewRunState = runs
             reviewsRefresh()
         }
-        // a task about the paper whose menu is open, finished since its details were read: read again
-        if let item = actionItem, ["actions", "notes", "extract-menu"].contains(store.view) {
+        // a task about the paper whose menu is open, finished since its details were read: read again (also from
+        // a view under the menu, its Prompts: the menu you go back to lists the new note)
+        if let item = actionItem, Self.pillViews.contains(store.view) || Self.detailsViews.contains(store.view) {
             let iso = ISO8601DateFormatter()
             iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
             let ended = list.contains { t in
