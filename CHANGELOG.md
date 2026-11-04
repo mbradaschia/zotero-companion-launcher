@@ -17,6 +17,9 @@ bridge and the prompt runner share one version.
   the draft kept; no answer in 10 minutes names the model.
 - **The companion's log keeps every line.** The app's lines and the server's no longer write over each other (the
   log is opened to append), so "started" shows after "starting".
+- **A paper's notes show its status and default task.** Beside its rankings, on the list of its notes and while
+  reading one: each pill with its kind's icon (a flag, a checklist), a faint *no status* / *no task* when it has none.
+  ⌥→← and ⇧⌥→← change them in the notes list too, as in the reader and the paper's menu.
 
 ### The Mac app (`macos-v0.4.26`)
 

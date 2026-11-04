@@ -255,6 +255,11 @@ paper has, its status, its extracted text), **off** (faint: a choice, a rank); e
 colour (status orange, priority red, rank purple, taxonomy teal, task green, else the accent); in
 white on a selected row.
 
+**A paper's status and default task** show as tag pills on its result row (status over task), in the note window's
+header, and beside its rankings in the context bar on its notes (the list, the reader on one of them); there, none is
+an off pill (*no status*, *no task*), so the place to change it with ⌥→← / ⇧⌥→← is always visible. Its menu has their
+rows instead.
+
 **Never colour alone** (a colour-blind eye can't tell red from green, nor orange from either): each
 kind has its symbol first, from the one icon map (`Icons.concept`: status `flag`, task `checklist`,
 priority `exclamationmark`, rank `star`, taxonomy `tag`), the review table's SVG of the same name

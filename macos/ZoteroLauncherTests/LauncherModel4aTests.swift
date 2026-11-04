@@ -203,6 +203,41 @@ final class LauncherModel4aTests: XCTestCase {
         XCTAssertEqual(model.placeholder(), "‹ Notes · " + model.paperLabel)
     }
 
+    // A paper's notes show its status and default task beside its ranks (none: a faint pill), and ⌥→← / ⇧⌥→← change
+    // them there; its menu has their rows instead.
+    func testThePapersNotesShowItsStatusAndTask() throws {
+        openMenu()
+        XCTAssertNil(model.headerStatus)
+        XCTAssertNil(model.headerTask)
+        model.enterNotes()
+        XCTAssertEqual(model.store.view, "notes")
+        XCTAssertEqual(model.headerStatus, "")
+        XCTAssertEqual(model.headerTask, "")
+        XCTAssertTrue(model.keyState.statusTarget)
+        XCTAssertTrue(model.keyState.taskTarget)
+        model.execute(.cycleStatus(1))
+        XCTAssertEqual(model.headerStatus, "to read")
+        model.execute(.cycleDefaultTask(1))
+        XCTAssertEqual(model.headerTask?.isEmpty, false)
+        XCTAssertEqual(model.store.view, "notes") // (still in its notes)
+        model.back()
+        XCTAssertNil(model.headerStatus)
+    }
+
+    // Reading one of the paper's notes: its status and task there too, the status pill moving at once.
+    func testTheReaderShowsItsPapersStatusAndTask() throws {
+        openMenu()
+        model.openNoteView(["key": "SYNNOTE1", "libraryID": 1, "title": "n"])
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertTrue(model.notePaperInView)
+        XCTAssertEqual(model.headerStatus, "")
+        XCTAssertEqual(model.headerTask, "")
+        model.noteKey(KeyEvent(key: .right, text: "", option: true))
+        XCTAssertEqual(model.headerStatus, "to read")
+        model.noteKey(KeyEvent(key: .right, text: "", shift: true, option: true))
+        XCTAssertEqual(model.headerTask?.isEmpty, false)
+    }
+
     func testNoteOrderIsKeptPerPaper() throws {
         openMenu()
         model.enterNotes()

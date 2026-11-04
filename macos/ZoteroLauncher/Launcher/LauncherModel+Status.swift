@@ -34,8 +34,27 @@ extension LauncherModel {
             guard store.pickFor.isEmpty, let r = selectedSearchRow, r.kind == "item", !["note", "attachment"].contains(r.itemType) else { return nil }
             return (["key": r.key, "libraryID": r.libraryID], marks.statusShown["\(r.libraryID):\(r.key)"] ?? r.status, store.selectedIndex)
         }
-        guard store.view == "actions" || (store.inNote && notePaperInView), let item = actionItem, paperInMenu else { return nil }
+        guard onPaperOrItsNotes, let item = actionItem, paperInMenu else { return nil }
         return (["key": item.key, "libraryID": item.libraryID], menuPaperStatus(), -1)
+    }
+
+    // Where ⌥→/← and ⇧⌥→/← change the paper in view: its menu, its notes, the reader on one of them.
+    var onPaperOrItsNotes: Bool { store.view == "actions" || store.view == "notes" || (store.inNote && notePaperInView) }
+
+    // Its notes (the list, the reader on the paper's own note): its status and default task as pills beside its ranks,
+    // as the results' rows and the note window show them (its menu has their rows). Made as the paper's other pills are.
+    static let statusPillViews: Set<String> = ["notes", "note"]
+    var computeHeaderStatus: String? {
+        guard Self.statusPillViews.contains(store.view), !store.inNote || notePaperInView, paperInMenu, !paperStatuses.isEmpty, let core else { return nil }
+        let status = menuPaperStatus()
+        if status == "\u{0}" { return nil } // (a bridge too old to tell)
+        return (try? core.glue("statusName", [status], as: String.self)) ?? ""
+    }
+
+    // Its default task's name there ("": none; nil: not here), from the rows' (kept as the task changes).
+    var headerTask: String? {
+        guard Self.statusPillViews.contains(store.view), !store.inNote || notePaperInView, paperInMenu, let item = actionItem else { return nil }
+        return rowTasks[item.id] ?? ""
     }
 
     @discardableResult
@@ -53,6 +72,8 @@ extension LauncherModel {
         } else if !store.inNote {
             store.followTop = false
             rebuildList()
+        } else {
+            refreshPaperPills() // (the reader's: its status pill, at once)
         }
         statusTimer?.invalidate()
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { [weak self] _ in MainActor.assumeIsolated { self?.flushStatuses() } }
@@ -122,7 +143,7 @@ extension LauncherModel {
             let cite = parts.count > 1 && parts[1].count == 4 && Int(parts[1]) != nil ? "\(parts[0]) (\(parts[1]))" : ""
             return (["key": r.key, "libraryID": r.libraryID, "title": r.title, "cite": cite], "\(r.libraryID):\(r.key)")
         }
-        guard store.view == "actions" || (store.inNote && notePaperInView), paperInMenu, let it = actionItemRef, let item = actionItem else { return nil }
+        guard onPaperOrItsNotes, paperInMenu, let it = actionItemRef, let item = actionItem else { return nil }
         return (it, item.id)
     }
 

@@ -24,6 +24,7 @@ struct LauncherView: View {
                     // (whole: the breadcrumb wraps in what's left, the pills never squeezed)
                     HStack(spacing: 8) {
                         ForEach(context.ranks, id: \.self) { PillView(text: $0, selected: false, kind: "rank") }
+                        HeaderStatusPills(status: model.headerStatus, task: model.headerTask)
                         if !context.count.isEmpty { Text(context.count).font(.callout).foregroundStyle(.secondary) }
                     }
                     .fixedSize()

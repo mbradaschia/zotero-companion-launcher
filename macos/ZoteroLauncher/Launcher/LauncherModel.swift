@@ -112,9 +112,11 @@ final class LauncherModel: ObservableObject {
     @Published private(set) var paperPills: [Pill] = []
     @Published var rowTasks: [String: String] = [:] // each paper's default task, by its id (refreshRowTasks)
     @Published private(set) var taxonomyStrip: [String: Any]?
+    @Published private(set) var headerStatus: String? // the paper's status beside its ranks, on its notes ("": none; nil: not here)
     func refreshPaperPills() {
         paperPills = computePaperPills
         taxonomyStrip = computeTaxonomyStrip
+        headerStatus = computeHeaderStatus
     }
     var openChat: (PaperRef, String) -> Void = { _, _ in } // a paper's chat window, on a past chat or its latest (LauncherPanel's ChatWindows)
     var openReviewWindow: (String) -> Void = { _ in } // a review table's window, by the review's id (LauncherPanel's ReviewWindows)

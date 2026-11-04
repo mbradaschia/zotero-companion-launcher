@@ -57,6 +57,7 @@ extension LauncherModel {
             return
         }
         note.data = nil
+        refreshPaperPills() // (not the last note's paper's, while this one loads)
         let serial = note.serial
         bridge.post("/note", ["key": key, "libraryID": target["libraryID"] ?? 1, "format": "html"], timeout: 8) { [weak self] result in
             MainActor.assumeIsolated {
@@ -96,6 +97,7 @@ extension LauncherModel {
                     let info = answer["item"] as? [String: Any] ?? [:]
                     self.actionItem = PaperRef(key: key, libraryID: lib, title: info["title"] as? String ?? parent["title"] as? String ?? "", itemType: info["itemType"] as? String ?? "")
                     self.details = answer
+                    self.refreshPaperPills() // (its pills: the paper in view only now)
                 }
                 self.objectWillChange.send()
             }

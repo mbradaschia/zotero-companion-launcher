@@ -1,4 +1,4 @@
-An AI taxonomy draft waits for you: leave its page while the model thinks, and the proposal is there when you come back.
+An AI taxonomy draft waits for you, and a paper's notes show its status and default task.
 
 **Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
 (*Update to 0.4.27…*); otherwise:
@@ -26,3 +26,9 @@ that fails is said on the page (not only in a flash that goes in 3 seconds), and
 answer in 10 minutes names your prompts model and where to pick another.
 
 **The companion's log keeps every line.** The app's lines and the server's no longer write over each other.
+
+**A paper's notes show its status and default task.** On the list of a paper's notes and while reading one, its
+status and its default task sit beside its rankings, as in the results and the note window. Each pill has its kind's
+icon (a flag for the status, a checklist for the task), so they're never told apart by colour alone; a paper without
+one shows a faint *no status* or *no task*. ⌥→← changes the status and ⇧⌥→← the task in the notes list too, as they
+already did in the reader and the paper's menu.
