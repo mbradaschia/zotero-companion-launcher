@@ -50,6 +50,9 @@ final class NoteWindowModel: ObservableObject {
         return launcher.noteBody(html, title: data?["title"] as? String ?? "")
     }
 
+    // What the note carries dragged out (its header, its grip): its whole text.
+    var dragText: String { (data?["html"] as? String).flatMap { launcher.plainText(html: $0) } ?? title }
+
     var ranks: [String] { paper.flatMap { (try? launcher.core?.glue("rankLabels", [$0["rank"] ?? NSNull()], as: [String].self)) ?? [] } ?? [] }
 
     var paperStatus: String {

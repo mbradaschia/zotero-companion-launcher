@@ -421,8 +421,10 @@ var RT = (function () {
           el("div", { class: "rrz" + (h ? " set" : ""), "data-rrz": pid, title: "Drag to resize the row (the selected ones too, when it's one of them); a double-click puts it back" })])
       ])
       vc.forEach(function (c, i) {
-        var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id })
-        if (editing && editing.pid === pid && editing.c === c.id) {
+        var ed = editing && editing.pid === pid && editing.c === c.id
+        // (a cell is dragged out to another app with its text: dragOut)
+        var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id, draggable: ed ? null : "true" })
+        if (ed) {
           td.appendChild(el("textarea", { class: "ed", id: "edbox", "aria-label": c.label, value: editText(c, C.value(c, r, D.ctx, D.cells)) }))
         } else td.appendChild(sized(cellView(c, r), h))
         tr.appendChild(td)
@@ -1778,6 +1780,31 @@ var RT = (function () {
     layoutChanged()
   }
 
+  // ------------------------------------------------------------ dragged out
+
+  // A cell dragged to another app carries its text, plain (⌥ held: with its paper's citation, as Copy with its citation);
+  // a paper's title cell, its reference (one of the selected papers: all of them, a line each, in the table's order).
+  // Text you selected (the whole cell shown, the panel, a box you type in) drags as the page drags it; anything else
+  // (a header: a drag moves a column) doesn't drag.
+  function dragOut(e) {
+    var t = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement
+    if (t && t.closest("#peek, .panel, textarea, input, .sheet")) return
+    var td = t && !editing && t.closest("td.cell[draggable]")
+    var text = td ? dragText(td.getAttribute("data-c"), td.getAttribute("data-p"), e.altKey) : ""
+    if (!text || !e.dataTransfer) return e.preventDefault()
+    e.dataTransfer.clearData()
+    e.dataTransfer.setData("text/plain", text)
+    e.dataTransfer.effectAllowed = "copy"
+  }
+
+  function dragText(cid, pid, cited) {
+    var c = colById(cid), r = rows[rowIndex(pid)]
+    if (!c || !r) return ""
+    if (c.id === "title") return sel[pid] ? C.references(rows.filter(function (x) { return sel[C.paperId(x)] })) : C.reference(r)
+    var txt = C.text(c, C.value(c, r, D.ctx, D.cells))
+    return txt && cited ? C.withCitation(txt, r) : txt
+  }
+
   // ------------------------------------------------------------ events
 
   function wire() {
@@ -1796,7 +1823,7 @@ var RT = (function () {
     $("bPin").addEventListener("click", function () { D.pinned = !D.pinned; drawToolbar(); post("pin", { on: D.pinned }) })
     // a press outside the pop-up closes it; on its own button the click that follows does (toggle)
     document.addEventListener("mousedown", function (e) { if (popEl && !popEl.contains(e.target) && !(popFor && popFor.contains(e.target))) closePop() })
-    document.addEventListener("dragstart", function (e) { e.preventDefault() }) // (nothing here is dragged out: a drag moves a column)
+    document.addEventListener("dragstart", dragOut)
 
     var gw = $("gw")
     gw.addEventListener("click", function (e) {

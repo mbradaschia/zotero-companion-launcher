@@ -180,6 +180,13 @@ says so.
   dragging a paper onto another puts it there, the target outlined. Either one, in another sort, switches the list to
   Manual from the order you see, and the flash says so. Papers you haven't placed (new in the list) come after yours.
   The Order chip is off in Manual, as for relevance. The hint is `⇧↑↓ reorder`, as for the pins.
+- **Dragged out to another app, a thing carries its text** (plain text, so every app takes it; no link beside it, as an
+  app that prefers a link would take that instead): a paper its reference line (APA 7's shape from the first creator,
+  year, title and journal), a note its whole text, a Copy citation row the citation in your style, a collection, a tag
+  or a saved search its name, a task its description. Rows drag themselves; where a drag selects text (a note read,
+  a chat's messages) the thing is dragged by its grip, three lines (`line.3.horizontal`, the same as a column's
+  handle), and a selection still drags as text. In the review table a cell carries its text (⌥: with its citation, as
+  *Copy with its citation*), a title cell its paper's reference (the selected papers' when it is one of them).
 
 ## Windows
 

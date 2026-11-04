@@ -24,6 +24,13 @@ bridge and the prompt runner share one version.
   that width, kept for the next table. Drag a tab down onto the pane's lower half, or click the split button, to see
   both: Info above, the chat below, with a divider you drag. Drag the chat's bar back up to the tabs (or click the
   button again) to put the tabs back. ⌥⌘I hides the whole pane; ⌥⌘C goes to the chat and back to Info.
+- **Drag anything out to another app: it carries its text.** A paper in the results drops as its reference line
+  (*Sirmon et al. (2011). Title. Journal.*), a note as its whole text, a *Copy citation* or *Copy bibliography entry*
+  row as the citation in your style, a collection, a tag or a saved search as its name, a task as its description.
+  The note reader and a note's window have a grip (three lines) that drags the whole note; a chat's messages each have
+  one too (the answer's text as written, its formatting for an app that takes rich text). In the review table, drag a
+  cell for its text (hold ⌥ for its citation after it) or a title for its paper's reference (all the selected papers'
+  when it is one of them). A paper dropped back on a list in your order still moves there.
 
 ### The Mac app (`macos-v0.4.30`)
 
