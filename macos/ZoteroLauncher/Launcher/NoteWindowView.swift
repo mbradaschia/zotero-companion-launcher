@@ -19,10 +19,17 @@ struct NoteWindowView: View {
                     }
                     Text(item["title"] as? String ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
-                Text(model.title).font(.title3.weight(.semibold)).lineLimit(2)
+                HStack(alignment: .firstTextBaseline) {
+                    Text(model.title).font(.title3.weight(.semibold)).lineLimit(2)
+                    Spacer(minLength: 8)
+                    if model.data != nil { DragGrip(what: "the note's text") { model.dragText } }
+                }
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
+            // (the header, as its grip: the note's text into another app)
+            .contentShape(Rectangle())
+            .draggable(model.dragText)
             Divider()
             if !model.error.isEmpty {
                 Text("Couldn't load the note: " + model.error).foregroundStyle(.secondary).padding()

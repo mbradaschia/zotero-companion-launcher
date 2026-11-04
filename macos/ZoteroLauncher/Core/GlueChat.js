@@ -108,6 +108,13 @@ function GlueChat(V, F, Mk) {
     })
   }
 
+  // A message's handle to drag it into another app: three lines (the launcher's grip), its text (as written: an answer's
+  // Markdown, as Copy gives it) in data-text; ChatWebView's drag script puts it on the drag, the message's HTML beside it.
+  var grip = function (text) {
+    return '<span class="grip" draggable="true" title="Drag into another app: it carries the message\'s text" data-text="' + esc(text) + '">' +
+      '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6.5h16 M4 12h16 M4 17.5h16"/></svg></span>'
+  }
+
   // The conversation as the web view's body (JavaScript off: an answer's Copy, Save to Zotero and Download
   // are oma-answer: links the app takes). o: { cite, status } → HTML
   var chatHtml = function (messages, o) {
@@ -119,13 +126,13 @@ function GlueChat(V, F, Mk) {
         "Enter sends, ⇧↵ starts a new line, esc stops an answer.</p>"
     }
     return messages.map(function (m, i) {
-      if (m.role === "user") return '<div class="msg user"><div class="bubble">' + esc(m.text).replace(/\n/g, "<br>") + "</div></div>"
+      if (m.role === "user") return '<div class="msg user">' + grip(m.text) + '<div class="bubble">' + esc(m.text).replace(/\n/g, "<br>") + "</div></div>"
       if (m.role === "note") return '<p class="note"><em>' + esc(m.text) + "</em></p>"
       var body = m.pending && !m.text ? '<p class="status">' + esc(o.status || "Reading the paper…") + "</p>" : md(m.pending ? streamView(m.text) : m.text)
       var info = !m.pending && m.info ? '<p class="info' + (/^⚠|· ⚠/.test(m.info) ? " warn" : "") + '">' + esc(m.info) + "</p>" : ""
-      var acts = !m.pending && !m.failed && m.text ? '<p class="acts"><a href="oma-answer:copy/' + i + '">Copy</a> · <a href="oma-answer:save/' + i +
+      var acts = !m.pending && !m.failed && m.text ? '<p class="acts">' + grip(m.text) + ' <a href="oma-answer:copy/' + i + '">Copy</a> · <a href="oma-answer:save/' + i +
         '">Save to Zotero</a> · <a href="oma-answer:download/' + i + '">Download</a></p>' : ""
-      return '<div class="msg assistant' + (m.failed ? " failed" : "") + '" id="m' + i + '">' + body + info + acts + "</div>"
+      return '<div class="msg assistant' + (m.failed ? " failed" : "") + '" id="m' + i + '"><div class="body">' + body + "</div>" + info + acts + "</div>"
     }).join("\n")
   }
 
@@ -158,7 +165,7 @@ function GlueChat(V, F, Mk) {
     // a review table's list (its docked chat's List): the list comes on stdin
     if (item.review) return ["chat", "--review", String(item.review), "--model", o.model || "default", "--effort", o.effort || "default"].concat(o.sessionId ? ["--session", o.sessionId] : [])
     var a = ["chat", "--key", item.key, "--library", String(item.libraryID || 1), "--model", o.model || "default", "--effort", o.effort || "default"]
-    return a.concat(o.sessionId ? ["--session", o.sessionId] : ["--source", o.source === "note" ? "note" : "pdf"])
+    return a.concat(o.sessionId ? ["--session", o.sessionId] : ["--source", o.source === "note" || o.source === "meta" ? o.source : "pdf"])
   }
 
   // The model picker's rows: Default (now <the chat default>), the models by provider; then the efforts.

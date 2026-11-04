@@ -92,7 +92,10 @@ final class LauncherModel7Tests: XCTestCase {
         XCTAssertNotEqual(((extractState["autoPrompts"] as? [String: Any])?["summary"] as? [String: Any])?["since"] as? String, "2026-10-13 10:00:00")
         model.openSettings("defaults")
         let info = try XCTUnwrap(model.listRows.first { $0.label == "New papers are handled on “lab-mac”, not here" })
-        XCTAssertEqual(info.detail, "Settings › General › Automation runs on; this machine is “mac”: the switches below act there")
+        XCTAssertEqual(info.detail, "Automation runs on, below, names it; this machine is “mac”: the switches below act there")
+        // (the setting itself is right under it, in Defaults, not in General)
+        let at = try XCTUnwrap(model.listRows.firstIndex { $0.label == "New papers are handled on “lab-mac”, not here" })
+        XCTAssertEqual(model.listRows[at + 1].value, "general.automationHost")
         XCTAssertTrue(try XCTUnwrap(model.listRows.first { $0.value == "defaults.autoTagNew" }).detail.hasSuffix(" · on “lab-mac”, the machine automation runs on"))
         try select { $0.value == "defaults.autoTagNew" }
         model.execute(.activate) // off

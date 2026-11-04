@@ -33,7 +33,26 @@ struct ChatWebView: NSViewRepresentable {
     pre { padding: 8px 10px; border-radius: 6px; background: color-mix(in srgb, var(--zl-text, CanvasText) 6%, transparent); overflow-x: auto; }
     blockquote { margin-left: 0; padding-left: 12px; border-left: 3px solid color-mix(in srgb, var(--zl-text, CanvasText) 25%, transparent); }
     table { border-collapse: collapse; } td, th { border: 1px solid var(--zl-line, GrayText); padding: 4px 6px; }
+    .grip { display: inline-flex; vertical-align: middle; padding: 2px; border-radius: 4px; cursor: grab; color: var(--zl-subtext, GrayText); -webkit-user-select: none; -webkit-user-drag: element; }
+    .grip:hover { color: var(--zl-text, CanvasText); background: color-mix(in srgb, var(--zl-text, CanvasText) 8%, transparent); }
+    .user .grip { align-self: center; margin-right: 6px; opacity: 0; }
+    .user:hover .grip { opacity: 1; }
     </style></head><body></body></html>
+    """
+
+    // A message dragged out by its grip (GlueChat's): its text as plain text, the message as HTML beside it (an app that
+    // takes rich text keeps its formatting). The app's own world, as the page's JavaScript is off.
+    static let dragScript = """
+    document.addEventListener("dragstart", function (e) {
+      var t = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement
+      var g = t && t.closest(".grip[data-text]")
+      if (!g || !e.dataTransfer) return
+      var m = g.closest(".msg"), b = m && m.querySelector(".body, .bubble")
+      e.dataTransfer.clearData()
+      e.dataTransfer.setData("text/plain", g.getAttribute("data-text") || "")
+      if (b) { e.dataTransfer.setData("text/html", b.innerHTML); e.dataTransfer.setDragImage(b, 12, 12) }
+      e.dataTransfer.effectAllowed = "copy"
+    }, true)
     """
 
     func makeCoordinator() -> Coordinator { Coordinator(onLink: onLink) }
@@ -42,6 +61,7 @@ struct ChatWebView: NSViewRepresentable {
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = false
         config.websiteDataStore = .nonPersistent()
+        config.userContentController.addUserScript(WKUserScript(source: Self.dragScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
         let view = WKWebView(frame: .zero, configuration: config)
         view.setValue(false, forKey: "drawsBackground")
         view.allowsLinkPreview = false

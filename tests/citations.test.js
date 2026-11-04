@@ -26,7 +26,7 @@ test("the citation style: APA 7th edition by default; a Zotero style's short nam
 test("Settings › General › Citation style: a row that opens the installed styles, yours checked", () => {
   const state = (over) => Object.assign({ settings: C.normalizeSettings(null).settings, styles: null, stylesProblem: "" }, over || {})
   const g = S.buildGeneral(state(), V.listRow).find((r) => r.rowId === "set-styles")
-  assert.deepEqual([g.section, g.label, g.value, g.submenu], ["Citations", "Citation style", "general.citationStyle", true])
+  assert.deepEqual([g.section, g.label, g.value, g.submenu], ["Papers", "Citation style", "general.citationStyle", true])
   assert.match(g.detail, /^American Psychological Association 7th edition \(default\) · Copy citation \(i\)/)
   const styles = [{ id: "apa", title: "American Psychological Association 7th edition" }, { id: "mla", title: "Modern Language Association 9th edition" }]
   const mla = state({ settings: S.withValue(C.normalizeSettings(null).settings, "general.citationStyle", "mla"), styles })

@@ -28,6 +28,7 @@ final class ReviewWindowModel: ObservableObject {
     @Published var chatWidth: Double = ReviewWindowModel.savedChatWidth
     @Published var paperChat: ChatWindowModel?
     @Published var listChat: ChatWindowModel?
+    @Published var chatSlot: CGRect? // where the page leaves the chat its place (CSS px; ReviewWindowContent scales it), or none
     var chatPaper: PaperRef? // the panel's paper (the page says, as the selection moves)
     var listAsks: [Int: ([String: Any]?) -> Void] = [:]
     var listAsked = 0
@@ -178,7 +179,7 @@ final class ReviewWindowModel: ObservableObject {
             "pinned": pinned,
             "preview": preview ?? NSNull(),
             "run": runState ?? NSNull(),
-            "chat": ["open": chatOpen, "mode": chatMode]
+            "chat": ["open": chatOpen, "mode": chatMode, "width": chatWidth, "split": Self.paneSplit, "ratio": Self.paneRatio]
         ])
         stopIfAsked()
     }
@@ -186,7 +187,7 @@ final class ReviewWindowModel: ObservableObject {
     // What the page sends (ReviewGrid.js's post).
     func handle(_ m: [String: Any]) {
         let type = m["type"] as? String ?? ""
-        if !["ready", "layout", "segments", "preview", "chatPaper", "chatList"].contains(type) { UsageLog.shared.count("review:" + type + (type == "paper" ? "-" + (m["what"] as? String ?? "") : "")) } // (what the page sends on its own isn't a use)
+        if !["ready", "layout", "segments", "preview", "chatPaper", "chatList", "chatSlot", "pane", "paneWidth"].contains(type) { UsageLog.shared.count("review:" + type + (type == "paper" ? "-" + (m["what"] as? String ?? "") : "")) } // (what the page sends on its own isn't a use)
         switch type {
         case "ready": ready = true; send()
         case "refresh": reload(); search()
@@ -262,6 +263,9 @@ final class ReviewWindowModel: ObservableObject {
         case "chat": chatAsked(m)
         case "chatPaper": chatPaperMoved(m["paper"] as? [String: Any])
         case "chatList": listAnswered(m)
+        case "paneWidth": if let w = m["width"] as? Double { keepChatWidth(w) } // (the page drew it; the chat's tab takes it too)
+        case "pane": paneChanged(m)
+        case "chatSlot": slotMoved(m["slot"] as? [String: Any])
         case "askedEach": askedEach(m)
         case "restore":
             guard let core = launcher.core, let files, let column = m["column"] as? String, let paper = m["paper"] as? String else { return }

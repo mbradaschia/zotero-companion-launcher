@@ -81,7 +81,12 @@ var RT = (function () {
     running: "M4.5 12a7.5 7.5 0 0 1 12.8-5.3 M17.5 3v4h-4 M19.5 12a7.5 7.5 0 0 1-12.8 5.3 M6.5 21v-4h4",
     waiting: "M6 3h12 M6 21h12 M7 3v3l5 6-5 6v3 M17 3v3l-5 6 5 6v3",
     // the chat docked on the right (a paper's or the list's)
-    chat: "M4 5h16v11H10l-5 4v-4H4z"
+    chat: "M4 5h16v11H10l-5 4v-4H4z",
+    // the right pane's Info tab (the paper, its cells, its notes)
+    info: "M12 3a9 9 0 1 0 .01 0z M12 11v6 M12 7.5v.01",
+    // the right pane split (Info above, the chat below), or back to its tabs
+    split: "M3 4h18v16H3z M3 12h18",
+    tabs: "M3 9h18v11H3z M3 9V5h8v4"
   }
   // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
   // A paper's title with its italics, bold, sub- and superscripts (C.titleRuns), as elements: never markup from the title.
@@ -198,7 +203,8 @@ var RT = (function () {
     ]))
     app.appendChild(el("div", { class: "body", id: "body" }, [
       el("div", { class: "gridwrap", id: "gw", tabindex: "0", "aria-label": "Review table" }),
-      el("aside", { class: "panel", id: "panel", "aria-live": "polite" })
+      el("aside", { class: "panel", id: "panel", "aria-live": "polite" }),
+      el("div", { class: "prz", id: "prz", title: "Drag to size the right pane (Info and Chat); a double-click puts it back" })
     ]))
     app.appendChild(el("div", { class: "foot", id: "foot" }))
     wire()
@@ -241,7 +247,45 @@ var RT = (function () {
     $("bPin").className = "tb icon" + (D.pinned ? " on" : "")
     $("bPin").setAttribute("aria-pressed", String(!!D.pinned))
     label($("bPin"), D.pinned ? "Pinned: the table stays over other apps' windows. A click unpins it" : "Pin it: the table stays over other apps' windows")
-    $("body").className = "body" + (review.panel ? "" : " nopanel")
+    // the right pane: Info (this page's panel) or Chat (the app's, drawn by the app in its place, so the page leaves room)
+    // the right pane: Info (this page's), the chat's place (the app draws its chat there), or both, split
+    $("body").className = "body" + (paneShown() ? "" : " nopanel") + (chatOn && !paneSplit() ? " chatting" : "")
+    $("body").style.setProperty("--pw", paneWidth() + "px")
+  }
+
+  // The right pane is shown with Info on (review.panel), or the chat open; split, it shows both, Info above.
+  function paneShown() { return !!review.panel || !!(D.chat && D.chat.open) }
+  function paneSplit() { return !!(D.chat && D.chat.split) }
+  function paneRatio() { return liveRatio || Math.min(0.8, Math.max(0.2, Number(D.chat && D.chat.ratio) || 0.5)) }
+  var liveRatio = 0
+
+  // The right pane's width: the app's (one for Info and Chat, kept for the next table), while you drag it, yours.
+  var PANE = { min: 260, max: 900, def: 360 }
+  var dragging = 0
+  function paneWidth() { return dragging || Math.round(Math.min(PANE.max, Math.max(PANE.min, Number(D.chat && D.chat.width) || PANE.def))) }
+  function startPaneResize(e) {
+    e.preventDefault()
+    var h = $("prz"), x0 = e.clientX, w0 = paneWidth(), most = Math.max(PANE.min, Math.min(PANE.max, $("body").clientWidth - 320))
+    h.classList.add("on")
+    h.setPointerCapture(e.pointerId)
+    var move = function (ev) {
+      dragging = Math.round(Math.max(PANE.min, Math.min(most, w0 - (ev.clientX - x0))))
+      $("body").style.setProperty("--pw", dragging + "px")
+      chatSlot()
+    }
+    var up = function () {
+      h.classList.remove("on")
+      h.removeEventListener("pointermove", move)
+      h.removeEventListener("pointerup", up)
+      quiet()
+      var w = dragging
+      if (w && Math.abs(w - w0) >= 2) { D.chat = Object.assign({}, D.chat || {}, { width: w }); post("paneWidth", { width: w }) }
+      dragging = 0
+      drawToolbar()
+      chatSlot()
+    }
+    h.addEventListener("pointermove", move)
+    h.addEventListener("pointerup", up)
   }
 
   function sortMark(id) {
@@ -377,8 +421,10 @@ var RT = (function () {
           el("div", { class: "rrz" + (h ? " set" : ""), "data-rrz": pid, title: "Drag to resize the row (the selected ones too, when it's one of them); a double-click puts it back" })])
       ])
       vc.forEach(function (c, i) {
-        var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id })
-        if (editing && editing.pid === pid && editing.c === c.id) {
+        var ed = editing && editing.pid === pid && editing.c === c.id
+        // (a cell is dragged out to another app with its text: dragOut)
+        var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id, draggable: ed ? null : "true" })
+        if (ed) {
           td.appendChild(el("textarea", { class: "ed", id: "edbox", "aria-label": c.label, value: editText(c, C.value(c, r, D.ctx, D.cells)) }))
         } else td.appendChild(sized(cellView(c, r), h))
         tr.appendChild(td)
@@ -494,33 +540,155 @@ var RT = (function () {
     var pe = $("pedbox")
     var draft = pe && document.activeElement === pe ? { key: pe.getAttribute("data-k"), value: pe.value, a: pe.selectionStart, b: pe.selectionEnd } : null
     redrawingPanel = true // (its box taken away isn't you leaving it: what you typed goes to the new one)
-    try { panelBody() } finally { redrawingPanel = false }
+    try { drawPane(); panelBody() } finally { redrawingPanel = false }
     var nb = $("pedbox")
     if (draft && nb && nb.getAttribute("data-k") === draft.key) { nb.value = draft.value; nb.focus(); nb.setSelectionRange(draft.a, draft.b) }
+    if (nb) fitBox(nb)
+    chatSlot()
   }
 
-  // A cell you can edit, edited in the panel: ⌘↵ or leaving the box keeps it, esc drops it (as ↵ in the table).
+  // The pane's frame: its tabs (or, split, Info's bar), Info's place (#pinfo), the chat's (#chatslot, under the app's chat).
+  function drawPane() {
+    var p = clear($("panel"))
+    var split = paneSplit(), chatOn = !!(D.chat && D.chat.open)
+    p.className = "panel" + (split ? " split" : "")
+    p.style.setProperty("--ph", Math.round(paneRatio() * 100) + "%")
+    p.appendChild(paneTabs(split, chatOn))
+    if (split || !chatOn) p.appendChild(el("div", { class: "pinfo", id: "pinfo" }))
+    if (split) p.appendChild(el("div", { class: "psplit", id: "psplit", role: "separator", "aria-orientation": "horizontal", title: "Drag: Info's and the chat's heights; a double-click halves them" }))
+    if (split || chatOn) p.appendChild(el("div", { class: "pchat" }, (split ? [el("div", { class: "phd", "data-drag": "chat", title: "Drag it up to the tabs: the pane back to its tabs" }, [icon("chat"), "Chat"])] : [])
+      .concat([el("div", { id: "chatslot", "aria-hidden": "true" })])))
+  }
+
+  // Where the app draws its chat: #chatslot's place in the page (CSS px), or none; said when it moves.
+  var lastSlot = ""
+  function chatSlot() {
+    var s = $("chatslot")
+    var r = s && paneShown() ? s.getBoundingClientRect() : null
+    var at = r && r.width > 0 && r.height > 0 ? { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } : null
+    var key = JSON.stringify(at)
+    if (key === lastSlot) return
+    lastSlot = key
+    post("chatSlot", { slot: at })
+  }
+
+  // A cell you can edit, in the panel: read first, all of it; Edit (or a double-click on it) opens the box, where ⌘↵
+  // or leaving it keeps it, esc drops it (as ↵ in the table). An edit that changes nothing changes nothing.
+  var pedit = "" // the cell being edited in the panel ("column|paper"), else ""
+  function panelText(c, r, v, empty) {
+    var pid = C.paperId(r), k = c.id + "|" + pid
+    if (pedit === k && !D.readOnly) return el("div", {}, [panelEditor(c, r, v), el("div", { class: "hint", text: "⌘↵ or leaving the box keeps it, esc drops it." })])
+    var shown = Array.isArray(v) && c.type === "list" ? (v.length ? bullets(v) : el("div", { class: "ptext", text: empty || "Empty." }))
+      : el("div", { class: "ptext", text: C.isEmpty(v) ? empty || "Empty." : C.text(c, v) })
+    shown.setAttribute("data-pedit", k)
+    shown.setAttribute("title", D.readOnly ? "Read only: the sync folder isn't there" : "A double-click edits it")
+    return el("div", { class: "pread" }, [shown, D.readOnly ? null : el("button", { type: "button", class: "tb pedit", "data-act": "pedit", "data-k": k, title: "Edit it here (or double-click the text)", "aria-label": "Edit " + c.label }, [icon("own"), "Edit"])])
+  }
   function panelEditor(c, r, v) {
     var pid = C.paperId(r)
-    return el("textarea", { class: "ped", id: "pedbox", "data-k": c.id + "|" + pid, "aria-label": c.label + ": edit it here", rows: c.type === "list" ? "5" : "4",
-      placeholder: D.readOnly ? "Read only: the sync folder isn't there" : c.type === "list" ? "An item a line" : "Empty: type here", disabled: D.readOnly, value: editText(c, v), spellcheck: "true" })
+    var t = editText(c, v)
+    return el("textarea", { class: "ped", id: "pedbox", "data-k": c.id + "|" + pid, "data-orig": t, "aria-label": c.label + ": edit it here", rows: String(Math.max(4, Math.min(30, t.split("\n").length + 1))),
+      placeholder: D.readOnly ? "Read only: the sync folder isn't there" : c.type === "list" ? "An item a line" : "Empty: type here", disabled: D.readOnly, value: t, spellcheck: "true" })
   }
+  function startPanelEdit(k) {
+    if (D.readOnly || !k) return
+    pedit = k
+    drawPanel()
+    var box = $("pedbox")
+    if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); fitBox(box) }
+  }
+  function fitBox(box) { box.style.height = "auto"; box.style.height = Math.min(window.innerHeight * 0.6, box.scrollHeight + 4) + "px" }
   function panelKeep(box) {
     if (!box || box.disabled) return
     var k = box.getAttribute("data-k"), i = k.indexOf("|")
     var c = colById(k.slice(0, i)), r = rows[rowIndex(k.slice(i + 1))]
-    if (c && r) setCell(r, c, fromEdit(c, box.value))
+    if (c && r && box.value !== box.getAttribute("data-orig")) setCell(r, c, fromEdit(c, box.value))
+  }
+
+  // The right pane's tabs, as the app's chat shows them too: Info (here) and Chat (⌥⌘C), each with its symbol.
+  function paneTabs(split, chatOn) {
+    var splitter = el("button", { type: "button", class: "tb icon", "data-act": "split", "aria-pressed": String(split),
+      title: split ? "Back to tabs (or drag the chat's bar up here)" : "Split the pane: Info above, the chat below (or drag a tab down)",
+      "aria-label": split ? "Back to tabs" : "Split the pane" }, [icon(split ? "tabs" : "split")])
+    if (split) return el("div", { class: "ptabs" }, [el("span", { class: "phd", style: "border: 0; padding: 0; cursor: default" }, [icon("info"), "Info"]), el("span", { class: "pgap" }), splitter])
+    var tab = function (id, name, text, tip) {
+      var on = id === "chat" ? chatOn : !chatOn
+      return el("button", { type: "button", class: "ptab", role: "tab", "aria-selected": String(on), "data-act": id === "chat" ? "chat" : "info", "data-drag": id, title: tip }, [icon(name), text])
+    }
+    return el("div", { class: "ptabs", role: "tablist", "aria-label": "The right pane" }, [
+      tab("info", "info", "Info", "The paper: its cells, status, task and notes (⌥⌘I hides the pane; drag it down to split the pane)"),
+      tab("chat", "chat", "Chat", "Chat about this paper, or the list (⌥⌘C; drag it down to split the pane)"), el("span", { class: "pgap" }), splitter])
+  }
+
+  // Split or not: said to the app (it keeps it, for the next table too); split, the chat is opened (its place is there).
+  function setSplit(on) {
+    D.chat = Object.assign({}, D.chat || {}, { split: on })
+    if (!review.panel) review.panel = true
+    post("pane", { split: on })
+    var r = actRow()
+    if (on || (D.chat && D.chat.open)) post("chat", r ? { mode: D.chat.mode === "list" ? "list" : "paper", paper: paperRef(r) } : { mode: D.chat.mode === "list" ? "list" : "paper" })
+    layoutChanged(false)
+    drawToolbar()
+    drawPanel()
+  }
+
+  // A tab dragged down onto the pane's lower half splits it; split, the chat's bar dragged up to the tabs puts them back.
+  function startPaneDrag(e, h) {
+    var what = h.getAttribute("data-drag"), pane = $("panel"), y0 = e.clientY, moved = false, drop = null, split = paneSplit()
+    var box = pane.getBoundingClientRect()
+    var onDrop = function (y) { return split ? y < box.top + 44 : y > box.top + box.height / 2 }
+    var move = function (ev) {
+      if (!moved && Math.abs(ev.clientY - y0) < 8) return
+      moved = true
+      var over = onDrop(ev.clientY)
+      if (over && !drop) {
+        drop = el("div", { class: "drop", text: split ? "Back to tabs" : (what === "chat" ? "Chat here, Info above" : "Split: Info above, the chat here") })
+        if (split) { drop.style.top = "0"; drop.style.bottom = "auto"; drop.style.height = "44px" }
+        pane.appendChild(drop)
+      } else if (!over && drop) { drop.remove(); drop = null }
+    }
+    var up = function (ev) {
+      document.removeEventListener("pointermove", move)
+      document.removeEventListener("pointerup", up)
+      if (drop) drop.remove()
+      if (!moved) return
+      quiet()
+      if (onDrop(ev.clientY)) setSplit(!split)
+    }
+    document.addEventListener("pointermove", move)
+    document.addEventListener("pointerup", up)
+  }
+
+  // The divider, split: Info's height (a share of the pane), kept by the app.
+  function startSplitResize(e) {
+    e.preventDefault()
+    var h = $("psplit"), pane = $("panel"), box = pane.getBoundingClientRect(), top = box.top + $("panel").querySelector(".ptabs").offsetHeight
+    h.classList.add("on")
+    h.setPointerCapture(e.pointerId)
+    var move = function (ev) {
+      liveRatio = Math.min(0.8, Math.max(0.2, (ev.clientY - top) / Math.max(1, box.bottom - top)))
+      pane.style.setProperty("--ph", Math.round(liveRatio * 100) + "%")
+      chatSlot()
+    }
+    var up = function () {
+      h.classList.remove("on")
+      h.removeEventListener("pointermove", move)
+      h.removeEventListener("pointerup", up)
+      quiet()
+      if (liveRatio) { D.chat = Object.assign({}, D.chat || {}, { ratio: liveRatio }); post("pane", { ratio: Math.round(liveRatio * 100) / 100 }) }
+      liveRatio = 0
+    }
+    h.addEventListener("pointermove", move)
+    h.addEventListener("pointerup", up)
   }
 
   function panelBody() {
-    var p = clear($("panel"))
+    var p = $("pinfo")
+    if (!p) return // (the chat's tab: no Info to draw)
     var r = actRow()
     var c = colById(act.c)
     if (!r || !c) { p.appendChild(el("div", { class: "hint", text: "Pick a cell to see its paper, and to change its status, its task or your columns." })); return }
     var pid = C.paperId(r)
-    var chatOn = !!(D.chat && D.chat.open && D.chat.mode === "paper")
-    p.appendChild(el("div", { class: "phead" }, [el("button", { type: "button", class: "tb icon" + (chatOn ? " on" : ""), "data-act": "chat", "aria-pressed": String(chatOn),
-      title: "Chat about this paper (⌥⌘C): the chat opens on the right; its List asks across the papers", "aria-label": "Chat about this paper" }, [icon("chat")])]))
     p.appendChild(titleView("h3", "", r.title))
     p.appendChild(el("div", { class: "sub", text: [r.creator, r.year, r.publication].filter(function (x) { return x }).join(" · ") }))
     var v = C.value(c, r, D.ctx, D.cells)
@@ -548,7 +716,7 @@ var RT = (function () {
       p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its values here (a click on the cell only selects it)" }))
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
-      p.appendChild(el("div", { class: "ibox you" }, [panelEditor(c, r, v), el("div", { class: "hint", text: "Type here: ⌘↵ or leaving the box keeps it, esc drops it. ↵ in the table edits it there too." })]))
+      p.appendChild(el("div", { class: "ibox you" }, [panelText(c, r, v)]))
     } else if (c.ai) {
       aiPanel(p, c, r, v)
     } else if (c.prefix) {
@@ -604,7 +772,7 @@ var RT = (function () {
     if (c.problem) p.appendChild(el("div", { class: "ibox warn", text: c.problem }))
     var box = el("div", { class: "ibox ai st-" + st })
     var mk = marks[c.id + "|" + C.paperId(r)]
-    if (c.edit === "text" && !mk) box.appendChild(panelEditor(c, r, v))
+    if (c.edit === "text" && !mk) box.appendChild(panelText(c, r, v, st === "empty" ? "Not run yet." : "Empty."))
     else if (Array.isArray(v) && c.type === "list") box.appendChild(v.length ? bullets(v) : el("div", { class: "ptext", text: "Empty." }))
     else if (Array.isArray(v)) box.appendChild(el("div", { class: "opts" }, v.length ? v.map(function (l) { return el("span", { class: "pill tax", text: l }) }) : [el("span", { class: "hint", text: "No label from the threshold." })]))
     else box.appendChild(el("div", { class: "ptext", text: C.isEmpty(v) ? (st === "empty" ? "Not run yet." : "Empty.") : c.kind === "jev-relevance" && typeof v === "number" ? v + " of 100: " + C.band(v) : C.text(c, v) }))
@@ -721,7 +889,7 @@ var RT = (function () {
     var pid = C.paperId(r)
     D.cells[c.id] = D.cells[c.id] || {}
     var old = D.cells[c.id][pid] ? D.cells[c.id][pid].v : ""
-    if (JSON.stringify(old) === JSON.stringify(v)) return
+    if (sameValue(c, old, v)) return // (an edit that changed nothing isn't yours: the cell stays as it was)
     var was = D.cells[c.id][pid]
     var ai = was && was.by === "ai" && !was.error ? was : was && was.ai // (an AI cell you edit: its answer kept, as the file keeps it)
     D.cells[c.id][pid] = ai ? { v: v, by: "you", ai: ai } : { v: v, by: "you" }
@@ -730,6 +898,9 @@ var RT = (function () {
     flash(c.label + ": " + (said ? (said.length > 40 ? said.slice(0, 40) + "…" : said) : "cleared"))
     redrawRow(r)
   }
+
+  // The same value as you'd type it: its spaces at the end, a list's bullets, a list as lines or as an array alike.
+  function sameValue(c, a, b) { return JSON.stringify(fromEdit(c, editText(c, a))) === JSON.stringify(fromEdit(c, editText(c, b))) }
 
   // Several of a list: a choice on, or off again; the list in the column's order (a value no longer a choice kept).
   function toggleChoice(r, c, o) {
@@ -804,7 +975,7 @@ var RT = (function () {
     var e = editing
     editing = null
     var r = rows[rowIndex(e.pid)], c = colById(e.c)
-    if (keep && box && r && c) setCell(r, c, box.value.replace(/\s+$/, ""))
+    if (keep && box && r && c) setCell(r, c, fromEdit(c, box.value))
     drawGrid()
     drawFoot()
     $("gw").focus({ preventScroll: true })
@@ -1633,6 +1804,31 @@ var RT = (function () {
     layoutChanged()
   }
 
+  // ------------------------------------------------------------ dragged out
+
+  // A cell dragged to another app carries its text, plain (⌥ held: with its paper's citation, as Copy with its citation);
+  // a paper's title cell, its reference (one of the selected papers: all of them, a line each, in the table's order).
+  // Text you selected (the whole cell shown, the panel, a box you type in) drags as the page drags it; anything else
+  // (a header: a drag moves a column) doesn't drag.
+  function dragOut(e) {
+    var t = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement
+    if (t && t.closest("#peek, .panel, textarea, input, .sheet")) return
+    var td = t && !editing && t.closest("td.cell[draggable]")
+    var text = td ? dragText(td.getAttribute("data-c"), td.getAttribute("data-p"), e.altKey) : ""
+    if (!text || !e.dataTransfer) return e.preventDefault()
+    e.dataTransfer.clearData()
+    e.dataTransfer.setData("text/plain", text)
+    e.dataTransfer.effectAllowed = "copy"
+  }
+
+  function dragText(cid, pid, cited) {
+    var c = colById(cid), r = rows[rowIndex(pid)]
+    if (!c || !r) return ""
+    if (c.id === "title") return sel[pid] ? C.references(rows.filter(function (x) { return sel[C.paperId(x)] })) : C.reference(r)
+    var txt = C.text(c, C.value(c, r, D.ctx, D.cells))
+    return txt && cited ? C.withCitation(txt, r) : txt
+  }
+
   // ------------------------------------------------------------ events
 
   function wire() {
@@ -1651,7 +1847,7 @@ var RT = (function () {
     $("bPin").addEventListener("click", function () { D.pinned = !D.pinned; drawToolbar(); post("pin", { on: D.pinned }) })
     // a press outside the pop-up closes it; on its own button the click that follows does (toggle)
     document.addEventListener("mousedown", function (e) { if (popEl && !popEl.contains(e.target) && !(popFor && popFor.contains(e.target))) closePop() })
-    document.addEventListener("dragstart", function (e) { e.preventDefault() }) // (nothing here is dragged out: a drag moves a column)
+    document.addEventListener("dragstart", dragOut)
 
     var gw = $("gw")
     gw.addEventListener("click", function (e) {
@@ -1735,6 +1931,27 @@ var RT = (function () {
       moveColumnTo(p.id, p.to, p.after)
     })
 
+    $("prz").addEventListener("pointerdown", startPaneResize)
+    $("panel").addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return
+      if (e.target.closest("#psplit")) return startSplitResize(e)
+      var h = e.target.closest("[data-drag]")
+      if (h) startPaneDrag(e, h)
+    })
+    $("panel").addEventListener("dblclick", function (e) {
+      if (!e.target.closest("#psplit")) return
+      D.chat = Object.assign({}, D.chat || {}, { ratio: 0.5 })
+      post("pane", { ratio: 0.5 })
+      drawPanel()
+    })
+    window.addEventListener("resize", function () { chatSlot() })
+    if (window.ResizeObserver) new ResizeObserver(function () { chatSlot() }).observe($("panel"))
+    $("prz").addEventListener("dblclick", function () {
+      D.chat = Object.assign({}, D.chat || {}, { width: PANE.def })
+      post("paneWidth", { width: PANE.def })
+      drawToolbar()
+    })
+
     $("panel").addEventListener("click", function (e) {
       var nb = e.target.closest("[data-note]")
       if (nb) {
@@ -1754,8 +1971,13 @@ var RT = (function () {
         return
       }
       if (e.target.closest("[data-act=open]")) openPaper(r)
-      if (r && e.target.closest("[data-act=chat]")) return post("chat", { mode: "paper", paper: paperRef(r) })
+      if (noClick) return
+      if (e.target.closest("[data-act=split]")) return setSplit(!paneSplit())
+      if (e.target.closest("[data-act=info]") && D.chat && D.chat.open && !paneSplit()) { post("chat", { close: true }); return }
+      if (e.target.closest("[data-act=chat]")) return post("chat", r ? { mode: D.chat && D.chat.mode === "list" ? "list" : "paper", paper: paperRef(r) } : { mode: "paper" })
       var c = colById(act.c)
+      var pe = e.target.closest("[data-act=pedit]")
+      if (pe) startPanelEdit(pe.getAttribute("data-k"))
       if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) runJobs([{ column: c.id, paper: C.paperId(r), seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }])
       if (e.target.closest("[data-act=stop]")) stopRun()
       if (r && c && c.ai && e.target.closest("[data-act=restore]:not(:disabled)")) post("restore", { column: c.id, paper: C.paperId(r) })
@@ -1765,13 +1987,21 @@ var RT = (function () {
     // it: what you typed is in the new box)
     $("panel").addEventListener("keydown", function (e) {
       if (e.target.id !== "pedbox") return
-      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.setAttribute("data-drop", "1"); $("gw").focus({ preventScroll: true }); drawPanel() }
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.setAttribute("data-drop", "1"); pedit = ""; $("gw").focus({ preventScroll: true }); drawPanel() }
       else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.stopPropagation(); $("gw").focus({ preventScroll: true }) }
     })
     $("panel").addEventListener("focusout", function (e) {
       var box = e.target
       if (box.id !== "pedbox") return
-      if (!redrawingPanel && !box.getAttribute("data-drop")) panelKeep(box)
+      if (redrawingPanel) return
+      if (!box.getAttribute("data-drop")) panelKeep(box)
+      pedit = "" // (back to reading it)
+      drawPanel()
+    })
+    $("panel").addEventListener("input", function (e) { if (e.target.id === "pedbox") fitBox(e.target) })
+    $("panel").addEventListener("dblclick", function (e) {
+      var t = e.target.closest && e.target.closest("[data-pedit]")
+      if (t) startPanelEdit(t.getAttribute("data-pedit"))
     })
 
     document.addEventListener("keydown", onKey)
@@ -1870,6 +2100,15 @@ var RT = (function () {
   }
 
   function togglePanel() {
+    if (paneShown() && (D.chat && D.chat.open)) { // (the chat showing: the pane goes, the chat too)
+      review.panel = false
+      D.chat = Object.assign({}, D.chat, { open: false })
+      post("chat", { close: true })
+      layoutChanged(false)
+      drawToolbar()
+      chatSlot()
+      return flash("Pane hidden: ⌥⌘I brings it back, ⌥⌘C the chat")
+    }
     review.panel = !review.panel
     drawToolbar()
     if (review.panel) drawPanel() // (its paper's notes asked now)
@@ -1972,7 +2211,16 @@ var RT = (function () {
     post("askedEach", { question: a.question, label: a.label, answers: answers, papers: rows.length })
   }
 
-  return { load: load, flash: flash, segments: segments, drafted: drafted, notes: notes, chatList: chatList, askEach: askEach, ready: function () { post("ready") } }
+  // The app's Info tab (the chat's pane): this panel again, shown if you'd hidden it.
+  function showInfo() {
+    if (review.panel) return
+    review.panel = true
+    drawToolbar()
+    drawPanel()
+    layoutChanged(false)
+  }
+
+  return { load: load, flash: flash, segments: segments, drafted: drafted, notes: notes, chatList: chatList, askEach: askEach, showInfo: showInfo, ready: function () { post("ready") } }
 })()
 
 RT.ready()

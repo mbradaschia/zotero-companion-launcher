@@ -42,9 +42,15 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tb.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .tb.danger { background: var(--red); color: var(--on-accent, #fff); border-color: var(--red); }
 
-.body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; min-height: 0; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) var(--pw, 360px); min-height: 0; position: relative; }
 .body.nopanel { grid-template-columns: minmax(0, 1fr); }
-.body.nopanel .panel { display: none; }
+.body.nopanel .panel, .body.nopanel .prz { display: none; }
+/* the right pane's edge: drag it to size the pane (Info and the chat share its width) */
+/* the pane's edge: wholly left of the pane (the app's chat, drawn over the pane, never covers it), its grip always shown */
+.prz { position: absolute; top: 0; bottom: 0; right: var(--pw, 360px); width: 8px; cursor: col-resize; z-index: 6; }
+.prz::after { content: ""; position: absolute; top: 50%; left: 3px; width: 2px; height: 32px; margin-top: -16px; border-radius: 1px; background: var(--muted); opacity: .6; }
+.prz:hover, .prz.on { background: var(--accent-soft); }
+.prz:hover::after, .prz.on::after { opacity: 1; }
 .gridwrap { overflow: auto; position: relative; outline: none; min-height: 0; }
 .empty { padding: 40px 24px; text-align: center; color: var(--muted); max-width: 520px; margin: 0 auto; line-height: 1.5; }
 
@@ -90,7 +96,22 @@ td.cell.active { box-shadow: inset 0 0 0 2px var(--accent); z-index: 1; }
 .pill.own { color: var(--you); background: var(--you-soft); }
 textarea.ed { width: 100%; min-height: 90px; border: 0; outline: 0; padding: 5px 8px; background: var(--win); resize: vertical; line-height: var(--lh); display: block; -webkit-user-select: text; user-select: text; }
 
-.panel { border-left: 1px solid var(--line); background: var(--head); padding: 12px 14px; overflow: auto; display: flex; flex-direction: column; gap: 10px; min-width: 0; -webkit-user-select: text; user-select: text; }
+/* the right pane: its tabs, then Info (.pinfo) or the chat's place (.pchat: the app draws its chat over #chatslot), or
+   both, split (Info above, a divider, the chat below) */
+.panel { border-left: 1px solid var(--line); background: var(--head); display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+.pinfo { padding: 12px 14px; overflow: auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; flex: 1 1 auto; -webkit-user-select: text; user-select: text; }
+.pchat { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+#chatslot { flex: 1 1 auto; min-height: 0; }
+.panel.split .pinfo { flex: 0 0 var(--ph, 50%); }
+.psplit { flex: 0 0 8px; position: relative; cursor: row-resize; border-top: 1px solid var(--line); background: var(--head); }
+.psplit::after { content: ""; position: absolute; left: 50%; top: 3px; width: 32px; height: 2px; margin-left: -16px; border-radius: 1px; background: var(--muted); opacity: .6; }
+.psplit:hover, .psplit.on { background: var(--accent-soft); }
+.psplit:hover::after, .psplit.on::after { opacity: 1; }
+.pread .pedit { margin-top: 6px; }
+.phd { display: flex; align-items: center; gap: 6px; padding: 4px 14px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); cursor: grab; }
+.phd svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+/* a tab dragged down: where it lands (the pane's lower half: split) */
+.panel .drop { position: absolute; left: 0; right: 0; bottom: 0; height: 50%; border: 2px dashed var(--accent); background: var(--accent-soft); pointer-events: none; display: flex; align-items: center; justify-content: center; color: var(--accent); font-weight: 600; }
 .panel h3 { margin: 0; font-size: 13px; }
 .panel .sub { color: var(--muted); font-size: 12px; margin-top: -6px; }
 .panel .ptext { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
@@ -262,5 +283,13 @@ textarea.ped:disabled { opacity: .6; }
 .pop .crow .cedit:hover { color: inherit; background: var(--line); }
 
 /* the panel's chat icon (the docked chat about its paper), at its top right */
-.panel .phead { display: flex; justify-content: flex-end; margin: -4px 0 -6px; }
-.panel .phead .tb.icon { width: 26px; height: 26px; }
+/* the right pane's tabs: Info (this panel) and Chat (the app's chat, in its place) */
+.panel { position: relative; }
+.panel .ptabs { flex: 0 0 auto; display: flex; align-items: center; gap: 0; padding: 8px 14px; background: var(--head); border-bottom: 1px solid var(--line); }
+.ptabs .pgap { flex: 1 1 auto; }
+.ptabs .tb.icon { width: 26px; height: 26px; }
+.ptabs .ptab { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; }
+.ptabs .ptab:first-child { border-radius: 6px 0 0 6px; }
+.ptabs .ptab:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+.ptabs .ptab[aria-selected=true] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+.ptabs .ptab svg { width: 13px; height: 13px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

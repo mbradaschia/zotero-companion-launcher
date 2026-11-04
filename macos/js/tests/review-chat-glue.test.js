@@ -7,6 +7,8 @@ test("a list's turn: --review, no paper flags; a paper's as before", () => {
   assert.deepEqual(Glue.chatArgs({ review: "r-0123456789" }, { model: "lab:m1", effort: "high", sessionId: "" }), ["chat", "--review", "r-0123456789", "--model", "lab:m1", "--effort", "high"]);
   assert.deepEqual(Glue.chatArgs({ review: "r-0123456789" }, { sessionId: "2026-11-04T10-00-00-000-abcdef" }).slice(-2), ["--session", "2026-11-04T10-00-00-000-abcdef"]);
   assert.deepEqual(Glue.chatArgs({ key: "AAAA0001", libraryID: 1 }, { source: "note" }), ["chat", "--key", "AAAA0001", "--library", "1", "--model", "default", "--effort", "default", "--source", "note"]);
+  assert.deepEqual(Glue.chatArgs({ key: "AAAA0001", libraryID: 1 }, { source: "meta" }).slice(-2), ["--source", "meta"]);
+  assert.deepEqual(Glue.chatArgs({ key: "AAAA0001", libraryID: 1 }, { source: "odd" }).slice(-2), ["--source", "pdf"]);
 });
 
 test("a saved list chat shows what you asked (Ask each paper's line), not the answers the model was given", () => {

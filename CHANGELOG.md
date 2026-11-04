@@ -7,6 +7,44 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.31`)
+
+- **Settings, in a better order.** Settings starts with *General* and *Defaults*, then Models & providers, Rules,
+  Paper status, Taxonomies and Tasks.
+- **Automation runs on** moved from General › Sync to *Defaults › New papers*, right under the line that says where
+  new papers are handled: the machine that runs them sits next to the switches it decides.
+- **Defaults, regrouped.** *When a model fails* (the fallback model) comes right after the Prompts and Chat models it
+  stands in for. *Extract every paper's text* (and the skipped and scans to try again) moved to *Bring papers up to
+  date*, with the other catch-ups: *The paper's text* keeps only its two settings.
+- **General, fewer one-row sections.** *Opening papers* and *Citations* are one section, *Papers*; the artifacts'
+  folder joins the sync folder and this machine's name in *Folders and sync*. *Processes at once* says what it does
+  now: it also limits a catch-up (it said a catch-up ran one at a time).
+- **The review table's right pane, in tabs.** *Info* (the paper, its cells, its notes) and *Chat* share the pane, each
+  tab with its symbol. Drag the pane's left edge to size it (a double-click puts it back); Info and the chat share
+  that width, kept for the next table. Drag a tab down onto the pane's lower half, or click the split button, to see
+  both: Info above, the chat below, with a divider you drag. Drag the chat's bar back up to the tabs (or click the
+  button again) to put the tabs back. ⌥⌘I hides the whole pane; ⌥⌘C goes to the chat and back to Info.
+- **The Info tab reads first.** A text cell (yours, or an AI's) shows whole in the right pane; *Edit* (or a
+  double-click on the text) opens the box, where ⌘↵ or leaving it keeps it and esc drops it. An edit that changes
+  nothing isn't marked as yours (in the table too: a list's bullets or a trailing space no longer count as a change).
+- **A paper's chat on its metadata.** Docked in the table, a paper's chat reads its full text (*.md* or *PDF*) or its
+  *Metadata*: the abstract, your highlights and notes, and the table's columns for it, without the full text. The
+  choice follows the selection to the next paper. *List* reads the papers' metadata and the columns you see, as before.
+- **Paper or List, and the chat's source, show which is chosen**: framed, filled and in bold (not by colour alone),
+  each with its symbol.
+- **The pane's edge and the split's divider show a grip**, always, and the pane's edge sits wholly left of the pane,
+  so the chat drawn over the pane no longer hides it.
+- Runner 0.2.9: `chat --source meta` (stdin JSON `{ question, cells }`).
+- **The chat's bottom bar fits a narrow pane.** When the model, Prompts, Ask each and Send don't fit on one line (a
+  docked chat), the model's name shortens (the whole name on hover) and the others become their symbols.
+- **Drag anything out to another app: it carries its text.** A paper in the results drops as its reference line
+  (*Sirmon et al. (2011). Title. Journal.*), a note as its whole text, a *Copy citation* or *Copy bibliography entry*
+  row as the citation in your style, a collection, a tag or a saved search as its name, a task as its description.
+  The note reader and a note's window have a grip (three lines) that drags the whole note; a chat's messages each have
+  one too (the answer's text as written, its formatting for an app that takes rich text). In the review table, drag a
+  cell for its text (hold ⌥ for its citation after it) or a title for its paper's reference (all the selected papers'
+  when it is one of them). A paper dropped back on a list in your order still moves there.
+
 ### The Mac app (`macos-v0.4.30`)
 
 - **A chat docked in the review table.** The chat icon at the top of the panel (or the toolbar's, or ⌥⌘C) opens the

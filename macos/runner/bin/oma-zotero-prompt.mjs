@@ -39,8 +39,9 @@
 //                                       in Processes), large PDFs and scans skipped; JSON: { results }
 //                                       the PDF's text as a page-numbered note (pdftotext)
 //   oma-zotero-prompt chat --key <item-key> [--library <id>] [--session <id>] [--model M] [--effort E]
-//                          [--source auto|note|pdf]  one chat turn: the question on stdin, JSON lines out
-//                                       (--source: ground a new chat in the extracted-text note or the PDF)
+//                          [--source auto|note|pdf|meta]  one chat turn: the question on stdin, JSON lines out
+//                                       (--source: ground a new chat in the extracted-text note or the PDF; meta:
+//                                       the paper's metadata only, stdin JSON { question, cells: [{ label, value }] })
 //   oma-zotero-prompt chat --review <review id> [--session <id>] [--model M] [--effort E]
 //                                       a list chat's turn (a review table's docked chat): stdin JSON { question,
 //                                       display, list: { name, papers } } (lib/listchat.mjs); chats, chat-show,
@@ -90,7 +91,7 @@ import { loadRules, loadInstructions, instructionsPath, ensureInstructionsFile, 
 import { FULLTEXT_TAG, OCR_MAX_PAGES, OCR_PAGE_SECONDS, OCR_PAPER_SECONDS, MIN_PAGE_CHARS, pdftotext, rawPages, pagesToOcr, ocrLanguages, ocrPage, tesseractHint, splitPages, pageLabels, buildNote, groundingText, skipReason, isScan, scanReason } from "../lib/extract.mjs";
 import { startTask, updateTask, finishTask, failTask, writeIndex, clearTasks } from "../lib/tasks.mjs";
 import { windowFor, needsCompaction, splitHistory, compactionPrompt, COMPACT_SYSTEM, fitContext, PAPER_SHARE, loadWindows, saveWindow, threadOf, threadMessages } from "../lib/context.mjs";
-import { CHAT_SYSTEM, chatsDir, newSessionId, validSessionId, titleFor, loadSession, saveSession, listSessions, deleteSession } from "../lib/chat.mjs";
+import { CHAT_SYSTEM, chatsDir, newSessionId, validSessionId, titleFor, loadSession, saveSession, listSessions, deleteSession, parseMetaInput } from "../lib/chat.mjs";
 import { loadSettings } from "../lib/settings.mjs";
 import { makeCtx, resolveModel, providerById, findModelInfo, listAll, describeAll, configFor, SUGGESTED } from "../lib/providers/index.mjs";
 import { generate, costOf } from "../lib/generate.mjs";
@@ -197,7 +198,12 @@ async function gather(bridge, key, libraryID, source = "auto", extractFirst = fa
       log("note failed", { key: n.key, error: e.message });
     }
   }
-  Object.assign(ctx, await paperText(bridge, details, source, extractFirst));
+  if (source === "meta") {
+    // its metadata only (the review table's docked chat, Paper › Metadata): no full text
+    const p = details.paper || {};
+    ctx.meta = { publication: p.publication || "", year: p.year || "", abstract: p.abstract || "" };
+    Object.assign(ctx, { text: "", grounding: { source: "meta", label: "the paper's metadata: its abstract, and the review table's columns (not its full text)" } });
+  } else Object.assign(ctx, await paperText(bridge, details, source, extractFirst));
   ctx.details = details;
   return ctx;
 }
@@ -972,17 +978,22 @@ const tooLong = (e) => /prompt is too long|too long for the model|context (windo
 async function chat(flags) {
   if (flags.review != null) return listChat(flags);
   const { key, libraryID } = itemFlags(flags);
-  const question = readFileSync(0, "utf8").trim();
-  if (!question) throw new Error("the question comes on stdin");
   const dir = chatsDir(key, libraryID);
   const now = new Date().toISOString();
   let session = flags.session ? loadSession(dir, String(flags.session)) : null;
+  const sources = ["note", "pdf", "meta"];
+  const source = sources.includes(flags.source) ? flags.source : session && session.grounding && sources.includes(session.grounding.source) ? session.grounding.source : "auto";
+  // a metadata chat's question comes as JSON, with the table's columns for the paper: { question, cells: [{ label, value }] }
+  const raw = readFileSync(0, "utf8");
+  const input = source === "meta" ? parseMetaInput(raw) : { question: raw.trim(), cells: [] };
+  const question = input.question;
+  if (!question) throw new Error("the question comes on stdin");
   const settings = loadSettings();
   const pctx = providerCtx();
   const target = resolveModel(String(flags.model || (session && session.model) || "default"), settings, "chat");
   const bridge = bridgeClient();
-  const source = ["note", "pdf"].includes(flags.source) ? flags.source : session && session.grounding && ["note", "pdf"].includes(session.grounding.source) ? session.grounding.source : "auto";
   const ctx = await gather(bridge, key, libraryID, source);
+  if (source === "meta") ctx.cells = input.cells;
   const effort = flags.effort != null ? (flags.effort === "default" ? "" : String(flags.effort)) : session ? session.effort : settings.defaults.chat.effort;
   if (!session) {
     session = { id: newSessionId(), key, libraryID, title: titleFor(question), paper: ctx.citation || ctx.title, created: now, updated: now, model: target.spec, effort, grounding: ctx.grounding,
