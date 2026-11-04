@@ -24,6 +24,8 @@ var RT = (function () {
   var find = "" // the rows' filter (/): words in the columns shown
   var finding = false // its box in the footer
   var unfiltered = 0 // the papers before the filter
+  var redrawingPanel = false
+  var marks = {} // while an AI run goes: its cells not done yet, "running" or "waiting" (ReviewCore.runMarks)
   var $ = function (id) { return document.getElementById(id) }
 
   function post(type, o) {
@@ -73,7 +75,11 @@ var RT = (function () {
     // an AI column (a sparkle: its header and its row in Columns), a row's handle to drag it, a paper's note
     ai: "M10 4l1.8 5.2L17 11l-5.2 1.8L10 18l-1.8-5.2L3 11l5.2-1.8z M18.5 3v4 M16.5 5h4",
     grip: "M4 6.5h16 M4 12h16 M4 17.5h16",
-    note: "M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 16h7"
+    note: "M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 16h7",
+    // an AI run: stop it, a cell being run now (it turns), a cell waiting its turn
+    stop: "M6 6h12v12H6z",
+    running: "M4.5 12a7.5 7.5 0 0 1 12.8-5.3 M17.5 3v4h-4 M19.5 12a7.5 7.5 0 0 1-12.8 5.3 M6.5 21v-4h4",
+    waiting: "M6 3h12 M6 21h12 M7 3v3l5 6-5 6v3 M17 3v3l-5 6 5 6v3"
   }
   // A pill of a kind ("status", "task", "rank", "tax", "own"): its symbol, then its text.
   // A paper's title with its italics, bold, sub- and superscripts (C.titleRuns), as elements: never markup from the title.
@@ -157,7 +163,7 @@ var RT = (function () {
     clearTimeout(layoutTimer)
     layoutTimer = setTimeout(function () {
       layoutTimer = null
-      post("layout", { review: { columns: review.columns, sort: review.sort, group: review.group, lines: review.lines, panel: review.panel } })
+      post("layout", { review: { columns: review.columns, sort: review.sort, group: review.group, lines: review.lines, panel: review.panel, heights: review.heights || {} } })
     }, 400)
   }
 
@@ -218,8 +224,10 @@ var RT = (function () {
     $("bOrder").disabled = !k
     label($("bOrder"), k ? (k.dir === "desc" ? "Descending by " : "Ascending by ") + (kc ? kc.label : k.column) + ": a click turns it" : "Order: sort by a column first")
     var nai = visible().filter(function (c) { return c.ai }).length
+    var nq = D.run && D.run.queued ? D.run.queued.length : 0
     $("bRun").className = "tb icon" + (D.run ? " on" : "")
-    label($("bRun"), D.run ? "An AI run is going (" + (D.run.stage || "starting") + "): it's in the launcher's Processes" : nai ? "Run the AI columns… (⇧⌘R): the plan first, nothing starts before Run" : "Run the AI columns: + Column adds one first (An AI column)")
+    setIcon($("bRun"), D.run ? "stop" : "run")
+    label($("bRun"), D.run ? "Stop the AI run (" + (D.run.stage || "starting") + (nq ? "; " + nq + " more waiting" : "") + "): what's done stays" : nai ? "Run the AI columns… (⇧⌘R): the plan first, nothing starts before Run" : "Run the AI columns: + Column adds one first (An AI column)")
     $("bPanel").className = "tb icon" + (review.panel ? " on" : "")
     $("bPanel").setAttribute("aria-pressed", String(!!review.panel))
     $("bPin").className = "tb icon" + (D.pinned ? " on" : "")
@@ -239,6 +247,7 @@ var RT = (function () {
   function cellHeight(c) { return c.lines ? c.lines * 17 + 10 : 0 }
 
   function drawGrid() {
+    marks = C.runMarks(D.run, D.cells)
     var gw = clear($("gw"))
     if (!rows.length) {
       var msg = D.problem ? D.problem : D.loading ? "Searching…" : "No papers here. Pick another saved search or query in the box above, or open a collection or a tag in the launcher and press ⌘T."
@@ -281,7 +290,23 @@ var RT = (function () {
     gw.appendChild(table)
     var box = $("edbox")
     if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length) }
+    fillRows()
     showPeek()
+  }
+
+  // Each cell as tall as its row: one whose column shows fewer lines than the row is tall (another column's longer
+  // text) fills the row rather than stopping short of it, cut, with a scroll bar of its own. Measured first, then set
+  // (one layout).
+  function fillRows(list) {
+    var g = $("grid")
+    var trs = list || (g ? g.querySelectorAll("tbody tr[data-p]") : [])
+    var todo = []
+    Array.prototype.forEach.call(trs, function (tr) {
+      var cvs = tr.querySelectorAll("td.cell > .cv"), h = 0
+      Array.prototype.forEach.call(cvs, function (cv) { h = Math.max(h, cv.offsetHeight) })
+      Array.prototype.forEach.call(cvs, function (cv) { if (cv.offsetHeight < h && cv.scrollHeight > cv.clientHeight + 1) todo.push([cv, h]) })
+    })
+    todo.forEach(function (x) { x[0].style.maxHeight = x[1] + "px" })
   }
 
   // The selected cell, when what it holds doesn't fit (its lines, its width): the whole of it, over the cells below.
@@ -338,17 +363,35 @@ var RT = (function () {
 
   function paperRow(r, vc) {
       var pid = C.paperId(r)
+      var h = rowHeight(pid)
       var tr = el("tr", { class: sel[pid] ? "selrow" : "", "data-p": pid }, [
-        el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + C.plainTitle(r.title) })])])
+        el("td", { class: "fz0" }, [el("div", { class: "ck" }, [el("input", { type: "checkbox", "data-sel": pid, checked: !!sel[pid], "aria-label": "Select " + C.plainTitle(r.title) })]),
+          el("div", { class: "rrz" + (h ? " set" : ""), "data-rrz": pid, title: "Drag to resize the row (the selected ones too, when it's one of them); a double-click puts it back" })])
       ])
       vc.forEach(function (c, i) {
         var td = el("td", { class: "cell" + (i === 0 ? " fz1" : "") + (act.pid === pid && act.c === c.id ? " active" : ""), "data-p": pid, "data-c": c.id })
         if (editing && editing.pid === pid && editing.c === c.id) {
-          td.appendChild(el("textarea", { class: "ed", id: "edbox", "aria-label": c.label, value: C.value(c, r, D.ctx, D.cells) }))
-        } else td.appendChild(cellView(c, r))
+          td.appendChild(el("textarea", { class: "ed", id: "edbox", "aria-label": c.label, value: editText(c, C.value(c, r, D.ctx, D.cells)) }))
+        } else td.appendChild(sized(cellView(c, r), h))
         tr.appendChild(td)
       })
       return tr
+  }
+
+  // A row you resized: its height (px), else 0 (its columns' lines decide).
+  function rowHeight(pid) { return (review.heights && review.heights[pid]) || 0 }
+  function sized(cv, h) {
+    if (h) { cv.style.height = h + "px"; cv.style.maxHeight = h + "px"; cv.classList.add("rh") }
+    return cv
+  }
+  // A list's items, as bullets (never as tags: those are pills).
+  function bullets(list) { return el("ul", { class: "blist" }, list.map(function (x) { return el("li", { text: String(x) }) })) }
+  // What a cell's editor holds (a list: an item a line), and back.
+  function editText(c, v) { return Array.isArray(v) ? v.join("\n") : v === null || v === undefined ? "" : String(v) }
+  function fromEdit(c, text) {
+    var t = String(text || "").replace(/\s+$/, "")
+    if (c.type !== "list") return t
+    return t.split(/\n/).map(function (x) { return x.replace(/^\s*([-*•]|\d+[.)])\s*/, "").trim() }).filter(Boolean)
   }
 
   function cellView(c, r) {
@@ -373,14 +416,20 @@ var RT = (function () {
   function aiCell(c, r, cv, v) {
     var rec = C.cellOf(D.cells, c.id, r)
     var st = C.cellState(c, rec, r)
-    cv.className += " st-" + st
-    if (st !== "ok" && st !== "empty") cv.appendChild(el("span", { class: "smark", text: st === "yours" ? "✎" : st === "failed" ? "⚠" : "●", title: stateText(st, rec) }))
+    var mk = marks[c.id + "|" + C.paperId(r)]
+    cv.className += " st-" + st + (mk ? " rs-" + mk : "")
+    // (running or waiting: its own symbol, never its colour alone)
+    if (mk) cv.appendChild(el("span", { class: "smark rmark", title: runText(mk) }, [icon(mk)]))
+    else if (st !== "ok" && st !== "empty") cv.appendChild(el("span", { class: "smark", text: st === "yours" ? "✎" : st === "failed" ? "⚠" : "●", title: stateText(st, rec) }))
     if (C.isEmpty(v)) return
     if (c.kind === "jev-relevance" && typeof v === "number") cv.appendChild(el("span", { class: "pill band b-" + C.band(v), text: v + " " + C.band(v) }))
+    else if (Array.isArray(v) && c.type === "list") cv.appendChild(bullets(v))
     else if (Array.isArray(v)) v.forEach(function (l) { cv.appendChild(pill("tax", l)) })
     else if (c.type === "choice") cv.appendChild(pill("tax", String(v) + (c.kind === "jev-one" && rec && typeof rec.p === "number" ? " " + Math.round(rec.p * 100) + "%" : "")))
     else cv.appendChild(document.createTextNode(String(v)))
   }
+
+  function runText(mk) { return mk === "running" ? "Running now (the toolbar's ■ stops the run)" : "Waiting: it runs after the cells before it (the toolbar's ■ stops the run)" }
 
   var READS = { note: "the extracted text", pdf: "the PDF, read on the fly", zotero: "Zotero's full-text index", abstract: "the title and abstract", none: "no text" }
   function stateText(st, rec) {
@@ -423,6 +472,28 @@ var RT = (function () {
   }
 
   function drawPanel() {
+    var pe = $("pedbox")
+    var draft = pe && document.activeElement === pe ? { key: pe.getAttribute("data-k"), value: pe.value, a: pe.selectionStart, b: pe.selectionEnd } : null
+    redrawingPanel = true // (its box taken away isn't you leaving it: what you typed goes to the new one)
+    try { panelBody() } finally { redrawingPanel = false }
+    var nb = $("pedbox")
+    if (draft && nb && nb.getAttribute("data-k") === draft.key) { nb.value = draft.value; nb.focus(); nb.setSelectionRange(draft.a, draft.b) }
+  }
+
+  // A cell you can edit, edited in the panel: ⌘↵ or leaving the box keeps it, esc drops it (as ↵ in the table).
+  function panelEditor(c, r, v) {
+    var pid = C.paperId(r)
+    return el("textarea", { class: "ped", id: "pedbox", "data-k": c.id + "|" + pid, "aria-label": c.label + ": edit it here", rows: c.type === "list" ? "5" : "4",
+      placeholder: D.readOnly ? "Read only: the sync folder isn't there" : c.type === "list" ? "An item a line" : "Empty: type here", disabled: D.readOnly, value: editText(c, v), spellcheck: "true" })
+  }
+  function panelKeep(box) {
+    if (!box || box.disabled) return
+    var k = box.getAttribute("data-k"), i = k.indexOf("|")
+    var c = colById(k.slice(0, i)), r = rows[rowIndex(k.slice(i + 1))]
+    if (c && r) setCell(r, c, fromEdit(c, box.value))
+  }
+
+  function panelBody() {
     var p = clear($("panel"))
     var r = actRow()
     var c = colById(act.c)
@@ -455,7 +526,7 @@ var RT = (function () {
       p.appendChild(el("div", { class: "ibox you", text: "Yours" + (c.description ? ": " + c.description : ""), title: "Your column: pick its values here (a click on the cell only selects it)" }))
     } else if (c.own) {
       p.appendChild(el("div", { class: "ilab", text: c.label }))
-      p.appendChild(el("div", { class: "ibox you" }, [el("div", { class: "ptext", text: v || "Empty." }), el("div", { class: "hint", text: "↵ or a double-click edits it; ⌘↵ keeps it, esc drops it." })]))
+      p.appendChild(el("div", { class: "ibox you" }, [panelEditor(c, r, v), el("div", { class: "hint", text: "Type here: ⌘↵ or leaving the box keeps it, esc drops it. ↵ in the table edits it there too." })]))
     } else if (c.ai) {
       aiPanel(p, c, r, v)
     } else if (c.prefix) {
@@ -510,9 +581,12 @@ var RT = (function () {
     p.appendChild(el("div", { class: "ilab" }, [el("span", { text: c.label }), el("span", { class: "k", text: c.kindName })]))
     if (c.problem) p.appendChild(el("div", { class: "ibox warn", text: c.problem }))
     var box = el("div", { class: "ibox ai st-" + st })
-    if (Array.isArray(v)) box.appendChild(el("div", { class: "opts" }, v.length ? v.map(function (l) { return el("span", { class: "pill tax", text: l }) }) : [el("span", { class: "hint", text: "No label from the threshold." })]))
+    var mk = marks[c.id + "|" + C.paperId(r)]
+    if (c.edit === "text" && !mk) box.appendChild(panelEditor(c, r, v))
+    else if (Array.isArray(v) && c.type === "list") box.appendChild(v.length ? bullets(v) : el("div", { class: "ptext", text: "Empty." }))
+    else if (Array.isArray(v)) box.appendChild(el("div", { class: "opts" }, v.length ? v.map(function (l) { return el("span", { class: "pill tax", text: l }) }) : [el("span", { class: "hint", text: "No label from the threshold." })]))
     else box.appendChild(el("div", { class: "ptext", text: C.isEmpty(v) ? (st === "empty" ? "Not run yet." : "Empty.") : c.kind === "jev-relevance" && typeof v === "number" ? v + " of 100: " + C.band(v) : C.text(c, v) }))
-    box.appendChild(el("div", { class: "hint stl", text: stateText(st, rec) }))
+    box.appendChild(el("div", { class: "hint stl" }, [mk ? icon(mk) : null, mk ? runText(mk) : stateText(st, rec)]))
     p.appendChild(box)
     if (rec && rec.probs) {
       var probs = Object.keys(rec.probs).map(function (l) { return [l, rec.probs[l]] }).sort(function (a, b) { return b[1] - a[1] }).slice(0, 10)
@@ -530,9 +604,10 @@ var RT = (function () {
     }
     var made = rec && rec.by === "ai" ? rec : rec && rec.ai
     if (made && made.model) p.appendChild(el("div", { class: "hint", text: "By " + made.model + (made.updated ? " on " + String(made.updated).slice(0, 10) : "") + (made.input && READS[made.input.text] ? ", from " + READS[made.input.text] : "") }))
-    if (c.edit === "text") p.appendChild(el("div", { class: "hint", text: "↵ or a double-click edits it; it's yours then, and the AI's answer is kept." }))
+    if (c.edit === "text" && !mk) p.appendChild(el("div", { class: "hint", text: "Edit it in the box (⌘↵ or leaving it keeps it, esc drops it), or ↵ in the table: it's yours then, and the AI's answer is kept." }))
     p.appendChild(el("div", { class: "acts" }, [
-      el("button", { class: "tb", type: "button", "data-act": "run1", text: st === "empty" ? "Run it" : "Run it again", disabled: !!c.problem || !!D.run || D.readOnly }),
+      el("button", { class: "tb", type: "button", "data-act": "run1", text: mk === "running" ? "Running…" : mk === "waiting" ? "Waiting to run" : st === "empty" ? "Run it" : "Run it again", disabled: !!c.problem || !!mk || D.readOnly }),
+      D.run ? el("button", { class: "tb", type: "button", "data-act": "stop", title: "What's done stays" }, [icon("stop"), "Stop the run"]) : null,
       rec && rec.ai ? el("button", { class: "tb", type: "button", "data-act": "restore", text: "Back to the AI's answer", disabled: D.readOnly }) : null
     ]))
   }
@@ -557,7 +632,7 @@ var RT = (function () {
     var nsel = Object.keys(sel).length
     if (nsel) count += " · " + nsel + " selected"
     if (D.readOnly) count += " · read only: the sync folder isn't there"
-    if (D.run) count += " · AI run: " + (D.run.stage || "starting")
+    if (D.run) count += " · AI run: " + (D.run.stage || "starting") + (D.run.queued && D.run.queued.length ? ", " + D.run.queued.length + " waiting" : "") + " (■ stops it)"
     var c = $("fcount")
     c.className = flashText ? "flash" : D.problem && n ? "problem" : ""
     c.textContent = flashText || (D.problem && n ? D.problem : count)
@@ -648,8 +723,10 @@ var RT = (function () {
     var pid = C.paperId(r)
     visible().forEach(function (c) {
       var td = cellEl(pid, c.id)
-      if (td) { clear(td).appendChild(cellView(c, r)) }
+      if (td) { clear(td).appendChild(sized(cellView(c, r), rowHeight(pid))) }
     })
+    var tr = $("grid") && $("grid").querySelector('tr[data-p="' + pid + '"]')
+    if (tr) fillRows([tr])
     showPeek()
     drawPanel()
   }
@@ -766,15 +843,16 @@ var RT = (function () {
     if (popEl) { popEl.remove(); popEl = null; popFor = null }
     if (previewing) { previewing = false; clearTimeout(previewTimer); post("preview", { query: null }) }
   }
-  function openPop(anchor, kids, bind) {
+  // at: { x, y }, a right-click's menu, opened where it was clicked (and not toggled by its anchor).
+  function openPop(anchor, kids, bind, at) {
     closePop()
     popEl = el("div", { class: "pop", role: "menu" }, kids)
     document.body.appendChild(popEl)
-    var b = anchor.getBoundingClientRect()
+    var b = at ? { bottom: at.y - 4, left: at.x } : anchor.getBoundingClientRect()
     var w = popEl.offsetWidth
-    popEl.style.top = Math.min(b.bottom + 4, window.innerHeight - popEl.offsetHeight - 8) + "px"
+    popEl.style.top = Math.max(8, Math.min(b.bottom + 4, window.innerHeight - popEl.offsetHeight - 8)) + "px"
     popEl.style.left = Math.max(8, Math.min(b.left, window.innerWidth - w - 8)) + "px"
-    popFor = anchor
+    popFor = at ? null : anchor
     if (bind) bind(popEl)
     var first = popEl.querySelector("input[type=search], input[type=text]")
     if (first) first.focus()
@@ -792,7 +870,7 @@ var RT = (function () {
     return el("div", { class: "seg" }, C.LINES.map(function (n) { var a = { type: "button", class: current === n ? "on" : "", text: n ? String(n) : "All" }; a[attr] = String(n); return el("button", a) }))
   }
 
-  function headerMenu(c, anchor) {
+  function headerMenu(c, anchor, at) {
     var s = null
     review.sort.forEach(function (k) { if (k.column === c.id) s = k })
     var kids = [el("div", { class: "ph", text: c.label }),
@@ -801,10 +879,14 @@ var RT = (function () {
       el("hr"), el("div", { class: "ph", text: "Lines in each cell" }), linesSeg(c.lines, "data-lines"), el("hr"),
       item("Move left", { "data-m": "left", disabled: c.id === "title" }, "⌥⌘←"), item("Move right", { "data-m": "right", disabled: c.id === "title" }, "⌥⌘→"),
       item("Fit its width", { "data-m": "fit" }), item("Hide it", { "data-m": "hide", disabled: c.id === "title" })]
-    if (c.ai) kids.splice(1, 0, item("Run this column…", { "data-m": "run", disabled: !!c.problem }, "⇧⌘R"), el("hr"))
+    var cp = c.ai ? C.runPlan([c], rows, D.cells, {}) : null
+    if (c.ai) kids.splice(1, 0, item("Run this column", { "data-m": "runcol", disabled: !!c.problem || D.readOnly || !cp.jobs.length },
+      cp.jobs.length ? cells(cp.jobs.length) + " not run or out of date" : "up to date: Run… runs them again"),
+      item("Run…", { "data-m": "run", disabled: !!c.problem }, "which papers, which columns ⇧⌘R"), D.run ? stopItem() : null, el("hr"))
     if ((c.own || c.ai) && D.columns[c.id]) kids.splice(1, 0, item("Edit it…", { "data-m": "edit" }, c.ai ? "its prompt, its labels…" : "its name, its choices"), c.ai ? null : el("hr"))
     if (c.own || c.ai) kids.push(item("Remove it from this review", { "data-m": "remove" }, "its values stay"))
-    openPop(anchor, kids, function (p) {
+    openPop(anchor, kids, bindHeader, at)
+    function bindHeader(p) {
       p.addEventListener("click", function (e) {
         var ln = e.target.closest("[data-lines]")
         if (ln) { layoutOf(c.id).lines = Number(ln.getAttribute("data-lines")); closePop(); return layoutChanged() }
@@ -818,11 +900,76 @@ var RT = (function () {
         else if (m === "left" || m === "right") moveColumn(c.id, m === "left" ? -1 : 1)
         else if (m === "fit") fitColumn(c.id)
         else if (m === "run") runDialog(c)
+        else if (m === "runcol") runJobs(cp.jobs)
+        else if (m === "stop") stopRun()
         else if (m === "edit") addDialog(c.ai ? "ai" : "own", D.columns[c.id])
         else if (m === "hide") { layoutOf(c.id).hidden = true; layoutChanged(); flash("Hidden: “" + c.label + "” (the Columns button shows it again)") }
         else if (m === "remove") { review.columns = review.columns.filter(function (l) { return l.id !== c.id }); layoutChanged(); flash("Removed “" + c.label + "” from this review: its values stay, + Column adds it back") }
       })
-    })
+    }
+  }
+
+  function cells(n) { return n + (n === 1 ? " cell" : " cells") }
+  function stopItem() { return el("button", { class: "pi", type: "button", role: "menuitem", "data-m": "stop" }, [el("span", {}, [icon("stop"), "Stop the run"]), el("small", { text: "what's done stays" })]) }
+
+  // A cell's menu (a right-click): copy it (with its paper's citation, APA 7), and for an AI cell run it, its row, the
+  // selected papers' cells of its column; stop the run.
+  function cellMenu(c, r, at) {
+    var pid = C.paperId(r), v = C.value(c, r, D.ctx, D.cells)
+    var txt = c.id === "title" ? C.plainTitle(r.title) : C.text(c, v)
+    var kids = [el("div", { class: "ph", text: c.label }),
+      item("Copy", { "data-m": "copy", disabled: !txt }),
+      item("Copy with its citation", { "data-m": "cite", disabled: !txt }, C.citeAPA(r))]
+    var plans = {}
+    if (c.ai) {
+      var rec = C.cellOf(D.cells, c.id, r), st = C.cellState(c, rec, r), mk = marks[c.id + "|" + pid]
+      var selRows = sel[pid] ? rows.filter(function (x) { return sel[C.paperId(x)] }) : []
+      plans.row = C.runPlan(visible().filter(function (x) { return x.ai && !x.problem }), [r], D.cells, {})
+      plans.sel = selRows.length > 1 ? C.runPlan([c], selRows, D.cells, {}) : null
+      var reqs = plans.row.requests.jev + plans.row.requests.prompt
+      kids.push(el("hr"), item(mk === "running" ? "Running now" : mk === "waiting" ? "Waiting to run" : st === "empty" ? "Run it" : "Run it again", { "data-m": "cell", disabled: !!c.problem || D.readOnly || !!mk }, st === "yours" ? "the AI's answer replaces yours" : ""))
+      if (plans.sel) kids.push(item("Run it on the " + selRows.length + " selected papers", { "data-m": "sel", disabled: !!c.problem || D.readOnly || !plans.sel.jobs.length }, plans.sel.jobs.length ? cells(plans.sel.jobs.length) : "up to date"))
+      kids.push(item("Run this paper's AI cells", { "data-m": "row", disabled: D.readOnly || !plans.row.jobs.length },
+        plans.row.jobs.length ? cells(plans.row.jobs.length) + ", " + reqs + (reqs === 1 ? " request" : " requests") : "up to date"))
+      if (rec && rec.ai) kids.push(item("Back to the AI's answer", { "data-m": "restore", disabled: D.readOnly }))
+    }
+    if (D.run) kids.push(el("hr"), stopItem())
+    openPop(null, kids, function (p) {
+      p.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-m]")
+        if (!b || b.disabled) return
+        var m = b.getAttribute("data-m")
+        closePop()
+        if (m === "copy") post("copy", { text: txt, said: "Copied" })
+        else if (m === "cite") post("copy", { text: C.withCitation(txt, r), said: "Copied with its citation" })
+        else if (m === "cell") runJobs([{ column: c.id, paper: pid, seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }])
+        else if (m === "sel") runJobs(plans.sel.jobs)
+        else if (m === "row") runJobs(plans.row.jobs)
+        else if (m === "restore") post("restore", { column: c.id, paper: pid })
+        else if (m === "stop") stopRun()
+      })
+    }, at)
+  }
+
+  // Cells to run: now, or after the run going (the app keeps them waiting, then runs them as one: a paper asked by
+  // several columns is read once).
+  function runJobs(jobs) {
+    if (D.readOnly) return flash("Not run: the sync folder isn't there")
+    if (!jobs || !jobs.length) return flash("Nothing to run: up to date (Run… runs them again)")
+    var keys = jobs.map(function (j) { return j.column + "|" + j.paper })
+    if (D.run) D.run.queued = (D.run.queued || []).concat(keys)
+    else D.run = { stage: "starting", cells: keys, queued: [], started: new Date().toISOString() }
+    post("run", { jobs: jobs })
+    drawToolbar()
+    drawGrid()
+    drawPanel()
+    drawFoot()
+  }
+
+  function stopRun() {
+    if (!D.run) return
+    post("stop")
+    flash("Stopping the run: what's done stays")
   }
 
   function groupPop(anchor) {
@@ -912,7 +1059,22 @@ var RT = (function () {
         var box = popEl && popEl.querySelector('input[data-show="' + id + '"]')
         if (box) box.focus({ preventScroll: true })
       })
-      p.addEventListener("click", function (e) { if (e.target.closest("[data-addcols]")) { closePop(); addDialog() } })
+      p.addEventListener("click", function (e) {
+        if (e.target.closest("[data-addcols]")) { closePop(); addDialog() }
+        var eb = e.target.closest("[data-edit]")
+        if (eb) { closePop(); editColumn(eb.getAttribute("data-edit")) }
+      })
+      // a right-click on a row: its menu (Edit it…)
+      p.addEventListener("contextmenu", function (e) {
+        var row = e.target.closest("[data-col]")
+        if (!row) return
+        e.preventDefault()
+        var id = row.getAttribute("data-col"), c = colById(id) || C.available(D.ctx, D.columns).filter(function (x) { return x.id === id })[0]
+        if (!c) return
+        openPop(null, [el("div", { class: "ph", text: c.label }), item("Edit it…", { "data-edit": id, disabled: !editable(c) }, editable(c) ? (c.ai ? "its prompt, its labels…" : "its name, its choices") : "from Zotero: not editable")], function (q) {
+          q.addEventListener("click", function (ev) { var b = ev.target.closest("[data-edit]"); if (b && !b.disabled) { closePop(); editColumn(id) } })
+        }, { x: e.clientX, y: e.clientY })
+      })
       p.addEventListener("keydown", function (e) {
         var id = e.target.getAttribute && e.target.getAttribute("data-show")
         var d = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0
@@ -960,8 +1122,17 @@ var RT = (function () {
     return el("div", { class: "pi crow" + (on ? " on" : ""), "data-col": c.id, title: c.label + ": " + what }, [
       on && c.id !== "title" ? el("span", { class: "grip", title: "Drag to move it" }, [icon("grip")]) : el("span", { class: "grip none" }),
       el("label", {}, [k ? icon(k) : el("span", { class: "ic" }), el("span", { class: "cl", text: c.label }),
-        el("input", { type: "checkbox", "data-show": c.id, checked: on, disabled: c.id === "title", "aria-label": c.label + ", " + what })])
+        el("input", { type: "checkbox", "data-show": c.id, checked: on, disabled: c.id === "title", "aria-label": c.label + ", " + what })]),
+      editable(c) ? el("button", { type: "button", class: "cedit", "data-edit": c.id, title: "Edit it… (or a right-click)", "aria-label": "Edit " + c.label }, [icon("own")]) : null
     ])
+  }
+
+  // Yours and the AI columns are edited (their file's), the rest aren't.
+  function editable(c) { return !!c && (c.own || c.ai) && !!D.columns[c.id] }
+  function editColumn(id) {
+    var c = colById(id) || C.available(D.ctx, D.columns).filter(function (x) { return x.id === id })[0]
+    if (!editable(c)) return flash("Only your columns and the AI ones can be edited: the rest come from Zotero")
+    addDialog(c.ai ? "ai" : "own", D.columns[c.id])
   }
 
   // A row dragged past a few px: the mark shows where it lands (above or below the shown row under the pointer; the
@@ -1210,7 +1381,7 @@ var RT = (function () {
         var k = kind()
         Array.prototype.forEach.call(m.querySelectorAll("[data-for]"), function (x) { x.hidden = x.getAttribute("data-for").split(" ").indexOf(k) < 0 })
         if (k === "prompt") $("aoptsl").hidden = $("ashape").value !== "choice"
-        if (k === "prompt") $("alenl").hidden = !($("ashape").value === "text" || $("ashape").value === "list")
+        if (k === "prompt") $("alenl").hidden = ["text", "list", "tags"].indexOf($("ashape").value) < 0
         $("adesc").placeholder = k === "jev-relevance" ? "Papers on how firms build dynamic capabilities, not ones that only cite the idea" : "Each study's sample: how many firms or people, and from which countries"
         if (k === "jev-several" || k === "jev-one") {
           // the labels: your own (the first), or one of your taxonomies of the kind
@@ -1296,7 +1467,7 @@ var RT = (function () {
     set("aname", c.label)
     set("aprompt", c.prompt)
     set("areads", c.reads === "full" ? "full" : c.reads ? "abstract" : undefined)
-    if (["text", "list", "number", "choice"].indexOf(c.shape) >= 0) set("ashape", c.shape)
+    if (["text", "list", "tags", "number", "choice"].indexOf(c.shape) >= 0) set("ashape", c.shape)
     set("alen", c.length)
     set("aopts", c.options)
     if (typeof c.evidence === "boolean") $("aev").checked = c.evidence
@@ -1325,8 +1496,8 @@ var RT = (function () {
       el("label", { "data-for": "prompt" }, ["The prompt: what to ask of each paper", el("textarea", { id: "aprompt", rows: "3", placeholder: "What research gap does the paper say it fills?" })]),
       el("div", { class: "arow", "data-for": "prompt" }, [
         el("label", {}, ["It reads", el("select", { id: "areads" }, [el("option", { value: "abstract", text: "The title and abstract" }), el("option", { value: "full", text: "The full text (the extracted text, else the PDF)" })])]),
-        el("label", {}, ["The answer", el("select", { id: "ashape" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "list", text: "A list" }), el("option", { value: "number", text: "A number" }), el("option", { value: "choice", text: "One of a list" })])]),
-        el("label", { id: "alenl" }, ["At most (words, or items)", el("input", { type: "text", id: "alen", placeholder: "60 words, 5 items", inputmode: "numeric", size: "6" })])
+        el("label", {}, ["The answer", el("select", { id: "ashape" }, [el("option", { value: "text", text: "Text" }), el("option", { value: "list", text: "A list (bullets)" }), el("option", { value: "tags", text: "Tags (a few short labels)" }), el("option", { value: "number", text: "A number" }), el("option", { value: "choice", text: "One of a list" })])]),
+        el("label", { id: "alenl" }, ["At most (words, items or tags)", el("input", { type: "text", id: "alen", placeholder: "60 words, 5 items", inputmode: "numeric", size: "6" })])
       ]),
       el("label", { id: "aoptsl", "data-for": "prompt", hidden: true }, ["The choices, separated by commas", el("input", { type: "text", id: "aopts", placeholder: "firm, industry, country" })]),
       el("label", { class: "row", "data-for": "prompt" }, [el("input", { type: "checkbox", id: "aev" }), "Evidence: quotes with their page, each checked word for word against the paper"]),
@@ -1347,18 +1518,19 @@ var RT = (function () {
     var all = visible().filter(function (c) { return c.ai })
     if (!all.length) return flash("No AI column here yet: + Column adds one (An AI column)")
     if (D.readOnly) return flash("Not run: the sync folder isn't there")
-    if (D.run) return flash("An AI run is going (" + (D.run.stage || "starting") + "): it's in the launcher's Processes")
     var selected = rows.filter(function (r) { return sel[C.paperId(r)] })
     var radio = function (name, value, on, text) { return el("label", { class: "row" }, [el("input", { type: "radio", name: name, value: value, checked: on }), text]) }
     var n = function (k, one, many) { return k + " " + (k === 1 ? one : many) }
-    openModal([el("header", {}, [el("h2", { text: "Run the AI columns" }), el("p", { text: "What it would do: nothing starts before Run. It's one row in the launcher's Processes, and Stop all stops it." })]),
+    var colBox = function (c) {
+      return el("label", { class: "row" }, [el("input", { type: "checkbox", name: "rcol", value: c.id, checked: !c.problem && (!only || only.id === c.id), disabled: !!c.problem }), icon("ai"), el("span", { text: c.label }), el("small", { text: c.kindName })])
+    }
+    openModal([el("header", {}, [el("h2", { text: "Run the AI columns" }), el("p", { text: D.run ? "A run is going: these wait for it, then run (■ in the toolbar stops them all)." : "What it would do: nothing starts before Run. It's one row in the launcher's Processes; ■ in the toolbar stops it." })]),
       el("div", { class: "sb" }, [
         el("div", { class: "agroup", text: "The papers" }),
         selected.length ? radio("rrows", "sel", true, "The selected ones (" + selected.length + ")") : null,
         radio("rrows", "all", !selected.length, "Every paper shown (" + rows.length + ")"),
-        el("div", { class: "agroup", text: "The columns" }),
-        only ? radio("rcols", "one", true, "“" + only.label + "”") : null,
-        radio("rcols", "all", !only, "Every AI column (" + all.length + ")"),
+        el("div", { class: "agroup" }, [el("span", { text: "The columns" }), el("button", { type: "button", class: "lnk", id: "rcall", text: "All" }), el("button", { type: "button", class: "lnk", id: "rcnone", text: "None" })]),
+        el("div", { class: "rcols" }, all.map(colBox)),
         el("div", { class: "agroup", text: "Also" }),
         el("label", { class: "row" }, [el("input", { type: "checkbox", id: "ryours" }), "Run the cells you edited again (the AI's new answer replaces yours)"]),
         el("label", { class: "row" }, [el("input", { type: "checkbox", id: "ragain" }), "Run the up-to-date ones again (another model, say)"]),
@@ -1368,7 +1540,9 @@ var RT = (function () {
       var plan = null
       var draw = function () {
         var rr = (m.querySelector("input[name=rrows]:checked") || {}).value === "sel" ? selected : rows
-        var cc = (m.querySelector("input[name=rcols]:checked") || {}).value === "one" ? [only] : all
+        var on = {}
+        Array.prototype.forEach.call(m.querySelectorAll("input[name=rcol]:checked"), function (x) { on[x.value] = true })
+        var cc = all.filter(function (c) { return on[c.id] })
         plan = C.runPlan(cc, rr, D.cells, { yours: $("ryours").checked, again: $("ragain").checked })
         var box = clear($("rplan"))
         cc.forEach(function (c) {
@@ -1384,21 +1558,23 @@ var RT = (function () {
         var req = []
         if (plan.requests.jev) req.push(n(plan.requests.jev, "Jev request", "Jev requests") + (D.ctx.jev ? " (about $" + plan.jevUsd.toFixed(4) + ")" : " (on your prompts model: no Jev key)"))
         if (plan.requests.prompt) req.push(n(plan.requests.prompt, "prompt request", "prompt requests"))
+        if (!cc.length) box.appendChild(el("div", { class: "hint", text: "Tick a column to run it." }))
         box.appendChild(el("div", { class: "pl total" }, [el("b", { text: plan.jobs.length ? n(plan.jobs.length, "cell", "cells") + " on " + n(plan.papers, "paper", "papers") : "Nothing to run" }),
           el("span", { text: req.join(" · ") })]))
         if (rr.length > 200) box.appendChild(el("div", { class: "hint", text: "At most 200 papers a run: the first 200 here." }))
         $("rgo").disabled = !plan.jobs.length
       }
       m.addEventListener("change", draw)
+      var tick = function (v) { return function () { Array.prototype.forEach.call(m.querySelectorAll("input[name=rcol]:not(:disabled)"), function (x) { x.checked = v }); draw() } }
+      $("rcall").addEventListener("click", tick(true))
+      $("rcnone").addEventListener("click", tick(false))
       draw()
+      $("rgo").textContent = D.run ? "Run after it" : "Run"
       $("rgo").addEventListener("click", function () {
         if (!plan || !plan.jobs.length) return
         var jobs = plan.jobs
         closeModal()
-        D.run = { stage: "starting" }
-        drawToolbar()
-        drawFoot()
-        post("run", { jobs: jobs })
+        runJobs(jobs)
       })
     })
   }
@@ -1412,7 +1588,8 @@ var RT = (function () {
       ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
       ["i r", "Copy the paper's citation, its bibliography entry"], ["o", "Open its PDF"], ["n", "Its notes, in the launcher"], ["z ⌘O", "Show the paper in Zotero"],
       ["/", "Filter the rows (esc clears it)"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
-      ["⇧-click", "A header: add it to the sort"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
+      ["⇧-click", "A header: add it to the sort"], ["right-click", "A cell: copy it (with its citation); an AI cell or header: run it, stop the run"],
+      ["a row's edge", "Drag: its height (a double-click: back)"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
     var dl = el("dl")
     K.forEach(function (k) { dl.appendChild(el("dt", { text: k[0] })); dl.appendChild(el("dd", { text: k[1] })) })
     document.body.appendChild(el("div", { class: "keys", id: "keys", role: "dialog", "aria-label": "Keys" }, [el("h3", { text: "The review table's keys" }), dl]))
@@ -1443,7 +1620,7 @@ var RT = (function () {
     $("bLines").addEventListener("click", toggle(linesPop))
     $("bCols").addEventListener("click", toggle(colsPop))
     $("bAdd").addEventListener("click", function () { addDialog("") })
-    $("bRun").addEventListener("click", function () { runDialog(null) })
+    $("bRun").addEventListener("click", function () { if (D.run) return stopRun(); runDialog(null) })
     $("bExport").addEventListener("click", toggle(exportPop))
     $("bPanel").addEventListener("click", togglePanel)
     $("bRefresh").addEventListener("click", function () { post("refresh") })
@@ -1471,9 +1648,29 @@ var RT = (function () {
       var td = e.target.closest("td.cell")
       if (td && !editing) { setActive(td.getAttribute("data-p"), td.getAttribute("data-c")); gw.focus({ preventScroll: true }) }
     })
+    // a right-click: a header's menu, or a cell's (copy it; run an AI one), where it was clicked
+    gw.addEventListener("contextmenu", function (e) {
+      if (editing) return
+      var th = e.target.closest("th[data-c]")
+      if (th) {
+        var hc = colById(th.getAttribute("data-c"))
+        if (!hc) return
+        e.preventDefault()
+        return headerMenu(hc, th, { x: e.clientX, y: e.clientY })
+      }
+      var td = e.target.closest("#peek") ? cellUnder(e) || cellEl(act.pid, act.c) : e.target.closest("td.cell")
+      if (!td) return
+      var c = colById(td.getAttribute("data-c")), r = rows[rowIndex(td.getAttribute("data-p"))]
+      if (!c || !r) return
+      e.preventDefault()
+      setActive(td.getAttribute("data-p"), c.id)
+      cellMenu(c, r, { x: e.clientX, y: e.clientY })
+    })
     gw.addEventListener("dblclick", function (e) {
       var rz = e.target.closest("[data-rz]")
       if (rz) return fitColumn(rz.getAttribute("data-rz"))
+      var rr = e.target.closest("[data-rrz]")
+      if (rr) return resetRows(rr.getAttribute("data-rrz"))
       if (e.target.closest("#peek") && !editing) { // (the selected cell, whole)
         if (act.c === "title") return openPaper(actRow())
         var pc = colById(act.c)
@@ -1498,6 +1695,8 @@ var RT = (function () {
       if (e.button !== 0) return
       var rz = e.target.closest("[data-rz]")
       if (rz) return startResize(e, rz)
+      var rr = e.target.closest("[data-rrz]")
+      if (rr) return startRowResize(e, rr)
       var th = e.target.closest("th[data-c]")
       if (th && !e.target.closest(".hmenu")) press = { id: th.getAttribute("data-c"), x: e.clientX, moving: false, to: null, after: false }
     })
@@ -1532,11 +1731,67 @@ var RT = (function () {
       }
       if (e.target.closest("[data-act=open]")) openPaper(r)
       var c = colById(act.c)
-      if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) { D.run = { stage: "starting" }; drawToolbar(); drawFoot(); post("run", { jobs: [{ column: c.id, paper: C.paperId(r), seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }] }) }
+      if (r && c && c.ai && e.target.closest("[data-act=run1]:not(:disabled)")) runJobs([{ column: c.id, paper: C.paperId(r), seen: C.cellState(c, C.cellOf(D.cells, c.id, r), r) }])
+      if (e.target.closest("[data-act=stop]")) stopRun()
       if (r && c && c.ai && e.target.closest("[data-act=restore]:not(:disabled)")) post("restore", { column: c.id, paper: C.paperId(r) })
     })
 
+    // the panel's editor: ⌘↵ keeps it, esc drops it, leaving it keeps it (the panel drawn again under it isn't leaving
+    // it: what you typed is in the new box)
+    $("panel").addEventListener("keydown", function (e) {
+      if (e.target.id !== "pedbox") return
+      if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.setAttribute("data-drop", "1"); $("gw").focus({ preventScroll: true }); drawPanel() }
+      else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.stopPropagation(); $("gw").focus({ preventScroll: true }) }
+    })
+    $("panel").addEventListener("focusout", function (e) {
+      var box = e.target
+      if (box.id !== "pedbox") return
+      if (!redrawingPanel && !box.getAttribute("data-drop")) panelKeep(box)
+    })
+
     document.addEventListener("keydown", onKey)
+  }
+
+  // A row's height by its edge (in its first cell): the selected rows too when it's one of them; kept by paper.
+  function startRowResize(e, h) {
+    e.preventDefault()
+    var pid = h.getAttribute("data-rrz")
+    var pids = sel[pid] ? Object.keys(sel) : [pid]
+    var tr = h.closest("tr")
+    var h0 = 0
+    Array.prototype.forEach.call(tr.querySelectorAll(".cv"), function (cv) { h0 = Math.max(h0, cv.offsetHeight) })
+    var y0 = e.clientY, now = h0
+    h.classList.add("on")
+    h.setPointerCapture(e.pointerId)
+    var move = function (ev) {
+      now = Math.round(Math.max(C.ROW_MIN, Math.min(C.ROW_MAX, h0 + ev.clientY - y0)))
+      pids.forEach(function (p) { sizeRow(p, now) })
+    }
+    var up = function () {
+      h.classList.remove("on")
+      h.removeEventListener("pointermove", move)
+      h.removeEventListener("pointerup", up)
+      quiet()
+      if (Math.abs(now - h0) < 2) return
+      review.heights = Object.assign({}, review.heights || {})
+      pids.forEach(function (p) { review.heights[p] = now })
+      layoutChanged()
+    }
+    h.addEventListener("pointermove", move)
+    h.addEventListener("pointerup", up)
+  }
+  function sizeRow(pid, px) {
+    var tr = $("grid") && $("grid").querySelector('tr[data-p="' + pid + '"]')
+    if (tr) Array.prototype.forEach.call(tr.querySelectorAll(".cv"), function (cv) { sized(cv, px) })
+  }
+  // a double-click on the edge: back to the height its columns' lines give
+  function resetRows(pid) {
+    var pids = sel[pid] ? Object.keys(sel) : [pid]
+    if (!review.heights || !pids.some(function (p) { return review.heights[p] })) return
+    review.heights = Object.assign({}, review.heights)
+    pids.forEach(function (p) { delete review.heights[p] })
+    layoutChanged()
+    flash(pids.length === 1 ? "The row's height: back to its lines" : pids.length + " rows' height: back to their lines")
   }
 
   // The click that ends a drag isn't a click on what's under it.

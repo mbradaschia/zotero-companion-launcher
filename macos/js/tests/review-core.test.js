@@ -358,3 +358,45 @@ test("a title's rich text: italics, bold, sub- and superscripts read, other tags
   assert.deepEqual(R.titleRuns(""), []);
   assert.equal(R.value({ id: "title" }, { title: "The <i>dynamic</i> view" }, {}, {}), "The dynamic view", "sorted, filtered and exported as read");
 });
+
+test("an AI prompt's list is items (drawn as bullets, edited a line each), its tags are pills (they group)", () => {
+  const list = R.aiColumn({ id: "c-l", label: "Findings", kind: "prompt", shape: "list" }, {});
+  const tags = R.aiColumn({ id: "c-t", label: "Constructs", kind: "prompt", shape: "tags" }, {});
+  assert.deepEqual([list.type, list.edit, list.width], ["list", "text", 260]);
+  assert.deepEqual([tags.type, tags.edit, tags.width, tags.lines], ["pills", "", 180, 2]);
+  assert.equal(R.groupable(list), false);
+  assert.equal(R.groupable(tags), true);
+  const d = R.parseColumn(R.columnText({ id: "c-0123456789", label: "Constructs", kind: "prompt", reads: "abstract", shape: "tags", length: 4, description: "Which constructs?" }), "c-0123456789");
+  assert.deepEqual([d.shape, d.length], ["tags", 4]);
+  assert.notEqual(R.columnHash(Object.assign({}, d, { shape: "list" })), R.columnHash(d), "a list's answers aren't a tags column's");
+});
+
+test("a review's row heights: by paper, in bounds, junk left out, none written until a row is resized", () => {
+  const r = R.normalizeReview({ heights: { "1:AAAAAAAA": 120.4, "1:BBBBBBBB": 5, "2:CCCCCCCC": 5000, "../x": 50, "__proto__": 40, "1:DDDDDDDD": "x" } }, "r-0123456789");
+  assert.deepEqual(r.heights, { "1:AAAAAAAA": 120, "1:BBBBBBBB": R.ROW_MIN, "2:CCCCCCCC": R.ROW_MAX });
+  assert.equal("heights" in R.normalizeReview({ heights: {} }, "r-0123456789"), false);
+  assert.equal(JSON.parse(R.reviewText({ id: "r-0123456789", heights: { "1:AAAAAAAA": 60 } })).heights["1:AAAAAAAA"], 60);
+});
+
+test("runMarks: the paper being asked runs, the ones after it wait, what it wrote since it started is done, asked meanwhile waits", () => {
+  const run = { cells: ["c-a|1:AAAAAAAA", "c-b|1:AAAAAAAA", "c-a|1:BBBBBBBB", "c-a|1:CCCCCCCC"], queued: ["c-b|1:CCCCCCCC"], started: "2026-11-04T10:00:00.000Z", done: 1 };
+  const cells = { "c-a": { "1:AAAAAAAA": { v: "x", updated: "2026-11-04T10:00:03.120Z" }, "1:BBBBBBBB": { v: "old", updated: "2026-11-03T09:00:00Z" } } };
+  // (the first paper is done: one cell written, the other left as it was; the second's old answer isn't this run's)
+  assert.deepEqual(R.runMarks(run, cells), { "c-a|1:BBBBBBBB": "running", "c-a|1:CCCCCCCC": "waiting", "c-b|1:CCCCCCCC": "waiting" });
+  // the runner hasn't said how far it is: every cell not done runs
+  assert.deepEqual(R.runMarks({ cells: ["c-a|1:AAAAAAAA"], started: "2026-11-04T10:00:00Z" }, {}), { "c-a|1:AAAAAAAA": "running" });
+  assert.deepEqual(R.runMarks(null, {}), {});
+});
+
+test("a cell copied with its citation: APA 7 in text, after the text, before its last stop", () => {
+  assert.equal(R.citeAPA(row("A", { creator: "Sirmon et al.", year: "2011" })), "(Sirmon et al., 2011)");
+  assert.equal(R.citeAPA(row("A", { creator: "Helfat and Peteraf", year: "2003-05-01" })), "(Helfat & Peteraf, 2003)");
+  assert.equal(R.citeAPA(row("A", { creator: "Helfat e Peteraf", year: "2003" })), "(Helfat & Peteraf, 2003)");
+  assert.equal(R.citeAPA(row("A", { creator: "Teece", year: "" })), "(Teece, n.d.)");
+  assert.equal(R.citeAPA(row("A", { creator: "", year: "2020", title: "Supply chain resilience in <i>practice</i> today" })), "(“Supply chain resilience in…”, 2020)");
+  const r = row("A", { creator: "Sirmon et al.", year: "2011" });
+  assert.equal(R.withCitation("Firms orchestrate resources.", r), "Firms orchestrate resources (Sirmon et al., 2011).");
+  assert.equal(R.withCitation("They call it “orchestration.”", r), "They call it “orchestration” (Sirmon et al., 2011).");
+  assert.equal(R.withCitation("12", r), "12 (Sirmon et al., 2011)");
+  assert.equal(R.withCitation("", r), "(Sirmon et al., 2011)");
+});

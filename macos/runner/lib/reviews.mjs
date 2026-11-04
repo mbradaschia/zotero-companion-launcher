@@ -14,6 +14,7 @@ import { fatalKind } from "./fatal.mjs";
 
 export const MAX_PAPERS = 200;
 export const KINDS = ["prompt", "jev-several", "jev-one", "jev-relevance"];
+export const SHAPES = ["text", "list", "tags", "number", "choice"];
 const PAPER = /^\d+:[A-Z0-9]{8}$/;
 const COLUMN = /^c-[a-z0-9]{10}$/;
 
@@ -92,16 +93,27 @@ export const CELL_SYSTEM = [
 ].join("\n");
 
 function shapeLine(c) {
-  if (c.shape === "list") return `Answer: a list of at most ${c.length || 5} short items (a JSON array of strings).`;
+  if (c.shape === "list") return `Answer: a list of at most ${c.length || 5} items, each a short phrase or sentence (a JSON array of strings, one item each).`;
+  if (c.shape === "tags") return `Answer: at most ${c.length || 5} tags, each one to three words, lower case unless a name (a JSON array of strings).`;
   if (c.shape === "number") return "Answer: a number (a JSON number), or null when the paper doesn't say.";
   if (c.shape === "choice") return `Answer: exactly one of ${(c.options || []).map((o) => JSON.stringify(o)).join(", ")}, or "not stated".`;
   return `Answer: text of at most ${c.length || 60} words.`;
 }
 
 // The request for a paper's prompt columns (those sharing a model and what they read): the paper once, then each
-// question, then the JSON to answer with, keyed by column.
+// question, then the JSON to answer with, keyed by column. The paper comes first and alone (promptParts' `paper`):
+// the same paper asked other questions starts with the same text, the part a provider's cache can hold.
 export function promptMessage(cols, text) {
-  const lines = ["<paper>", String(text || ""), "</paper>", "", "Answer each question below about this paper.", ""];
+  const p = promptParts(cols, text);
+  return p.paper + p.questions;
+}
+
+export function paperPart(text) {
+  return ["<paper>", String(text || ""), "</paper>", "", ""].join("\n");
+}
+
+export function promptParts(cols, text) {
+  const lines = ["Answer each question below about this paper.", ""];
   for (const c of cols) {
     lines.push(`## ${c.id}: ${c.label}`, String(c.description || "").trim(), shapeLine(c));
     if (c.evidence) lines.push("Evidence: up to 3 quotes from the paper that support the answer, each with its page (\"p. 12\"; \"\" when the text has no page marks).");
@@ -109,7 +121,7 @@ export function promptMessage(cols, text) {
   }
   const shape = (c) => `{"answer": …${c.evidence ? ', "evidence": [{"quote": "…", "page": "…"}]' : ""}}`;
   lines.push("Reply with JSON only: {" + cols.map((c) => `"${c.id}": ${shape(c)}`).join(", ") + "}");
-  return lines.join("\n");
+  return { paper: paperPart(text), questions: lines.join("\n") };
 }
 
 // The model's answer → { <column id>: { v, evidence? } | { error } }; a column missing from it, or whose part
@@ -153,9 +165,11 @@ export function shapeValue(c, answer) {
     if (!isFinite(n)) throw new Error("the answer isn't a number");
     return n;
   }
-  if (c.shape === "list") {
-    const list = Array.isArray(answer) ? answer : answer === null ? [] : String(answer).split(/\n|;\s*/);
-    return list.map((x) => String(x == null ? "" : x).replace(/^\s*[-*•]\s*/, "").trim().slice(0, 80)).filter((x) => x && !said(x)).slice(0, c.length || 5);
+  if (c.shape === "list" || c.shape === "tags") {
+    const list = Array.isArray(answer) ? answer : answer === null ? [] : String(answer).split(c.shape === "tags" ? /\n|[;,]\s*/ : /\n|;\s*/);
+    const seen = new Set();
+    return list.map((x) => String(x == null ? "" : x).replace(/^\s*([-*•]|\d+[.)])\s*/, "").trim().slice(0, c.shape === "tags" ? 40 : 300))
+      .filter((x) => x && !said(x) && (c.shape !== "tags" || (!seen.has(x.toLowerCase()) && seen.add(x.toLowerCase())))).slice(0, c.length || 5);
   }
   if (c.shape === "choice") {
     if (answer === null || said(answer)) return NOT_STATED;
@@ -214,7 +228,7 @@ export function readCell(path, paper) {
 // The run, paper by paper. deps: {
 //   paper(id) → { title, abstract, extracted (the note's text, or ""), full() → { text, source } } (the bridge),
 //   classify(taxonomies, text) → { probs, by, costUsd } (Jev, else the prompts model),
-//   ask({ model, system, message }) → { text, spec, costUsd },
+//   ask({ model, system, message, cache: { prefix (the paper part), mark (keep it cached) } }) → { text, spec, costUsd },
 //   taxonomies, previous(column, paper) → its record or null, write(column, paper, record),
 //   progress({ done, papers, cells, failed, costUsd, model }), now() }
 // → { papers, done, cells, failed, error (the first), stopped (a problem every paper would meet: the rest left), costUsd, models }
@@ -224,6 +238,7 @@ export async function runReview(job, deps) {
   const stats = { papers: job.papers.length, done: 0, cells: 0, failed: 0, costUsd: 0, stopped: "", error: "", models: [] };
   const used = (m) => { if (m && !stats.models.includes(m)) stats.models.push(m); };
   const cost = (x) => { if (typeof x === "number") stats.costUsd += x; };
+  const one = job.papers.length === 1;
   for (const p of job.papers) {
     if (stats.stopped) break;
     const cols = p.columns.map((id) => byId.get(id)).filter(Boolean);
@@ -286,8 +301,13 @@ export async function runReview(job, deps) {
         }
         if (full.text) { text = `Title: ${String(paper.title || "").trim()}\n\n${full.text}`; input = { text: full.source }; }
       }
-      const askFor = async (list) => {
-        const a = await deps.ask({ model: list[0].model || "default", system: CELL_SYSTEM, message: promptMessage(list, text) });
+      // the paper kept in the provider's cache (Anthropic's: OpenAI's and Gemini's keep a repeated start on their own)
+      // only when it's read again soon: a run of one paper (a cell, a row: the next cell's run likely follows), or the
+      // columns asked again one by one. A column's run over many papers reads each once: a cache write there would
+      // only cost more, and its question is too short to be worth caching.
+      const askFor = async (list, again) => {
+        const parts = promptParts(list, text);
+        const a = await deps.ask({ model: list[0].model || "default", system: CELL_SYSTEM, message: parts.paper + parts.questions, cache: { prefix: parts.paper, mark: one || !!again } });
         cost(a.costUsd);
         used(a.spec);
         return { parts: parseAnswers(a.text, list, text), spec: a.spec };
@@ -301,11 +321,12 @@ export async function runReview(job, deps) {
           r = { parts: {}, spec: "" }; // the whole answer malformed: each asked alone
           group.forEach((c) => (r.parts[c.id] = { error: e.message }));
         }
+        const redo = group.filter((c) => r.parts[c.id].error).length;
         for (const c of group) {
           let part = r.parts[c.id], spec = r.spec;
           if (part.error && group.length > 1) {
             try {
-              const again = await askFor([c]);
+              const again = await askFor([c], redo > 1);
               part = again.parts[c.id];
               spec = again.spec;
             } catch (e) {
@@ -337,7 +358,7 @@ export const DRAFT_SYSTEM = [
 ].join("\n");
 
 const DRAFT_SHAPES = {
-  prompt: '{"label": "a short column name (1-4 words)", "prompt": "the question asked of each paper, one to three sentences", "reads": "abstract" or "full" (the full text when the answer is usually in the body: methods, samples, results, measures), "shape": "text" | "list" | "number" | "choice", "length": words for text (10-150) or items for a list (2-10), "options": ["…"] (only for choice: 2-8 short choices), "evidence": true when quotes from the paper would help check the answer, "notes": "one sentence on your choices"}',
+  prompt: '{"label": "a short column name (1-4 words)", "prompt": "the question asked of each paper, one to three sentences", "reads": "abstract" or "full" (the full text when the answer is usually in the body: methods, samples, results, measures), "shape": "text" | "list" (a bulleted list of phrases or sentences) | "tags" (a few short labels, one to three words each) | "number" | "choice", "length": words for text (10-150) or items for a list or tags (2-10), "options": ["…"] (only for choice: 2-8 short choices), "evidence": true when quotes from the paper would help check the answer, "notes": "one sentence on your choices"}',
   "jev-relevance": '{"label": "a short column name (1-4 words)", "topic": "the topic, a few words", "definition": "what relevant means: what a paper must do to count, and what doesn\'t count, one or two sentences", "notes": "one sentence on your choices"}',
 };
 
@@ -373,9 +394,9 @@ export function parseColumnDraft(text, kind) {
   }
   const prompt = str(j.prompt, 4000);
   if (!prompt) return { error: "the model's answer has no question" };
-  const shape = ["text", "list", "number", "choice"].includes(j.shape) ? j.shape : "text";
+  const shape = ["text", "list", "tags", "number", "choice"].includes(j.shape) ? j.shape : "text";
   const options = shape === "choice" ? (Array.isArray(j.options) ? j.options : String(j.options || "").split(",")).map((o) => str(o, 60)).filter((o, i, all) => o && all.indexOf(o) === i).slice(0, 20) : [];
   const n = Math.round(Number(j.length));
-  const length = shape === "text" ? (n >= 5 && n <= 400 ? n : 60) : shape === "list" ? (n >= 1 && n <= 30 ? n : 5) : "";
+  const length = shape === "text" ? (n >= 5 && n <= 400 ? n : 60) : shape === "list" || shape === "tags" ? (n >= 1 && n <= 30 ? n : 5) : "";
   return { column: { label: label || "AI column", prompt, reads: j.reads === "full" ? "full" : "abstract", shape: shape === "choice" && options.length < 2 ? "text" : shape, length: shape === "choice" && options.length < 2 ? 60 : length, options, evidence: j.evidence === true }, notes };
 }

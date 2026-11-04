@@ -32,10 +32,25 @@ const base = {
     const key = o.ctx.key(this.id);
     if (this.needsKey && !key) throw new Error(`${this.name}: no API key (Settings › Models & providers)`);
     const model = await createModel.call(this, o.config, key ? key.value : "", o.model);
-    const messages = this.cacheFirstMessage && o.messages.length ? [Object.assign({}, o.messages[0], { providerOptions: this.cacheFirstMessage })].concat(o.messages.slice(1)) : o.messages;
+    const messages = firstCached(o.messages, this.cacheFirstMessage, o.cache);
     return streamAnswer({ model, modelId: o.model, system: o.system, messages, effort: o.effort, onDelta: o.onDelta, signal: o.signal, streamText: o.ctx.streamText });
   },
 };
+
+// The first message as the provider caches it: whole (a chat: its later turns re-read the paper), or, given `cache`
+// ({ prefix, mark }: a review table's request), split into the paper and the questions, the paper marked only when
+// it will be read again soon (a cache write costs more than a plain read: marking every paper of a column's run,
+// each read once, would only cost more). Providers that cache prefixes on their own (OpenAI, Gemini) get it as it is.
+export function firstCached(messages, mark, cache) {
+  if (!mark || !messages.length) return messages;
+  const [first, ...rest] = messages;
+  if (!cache) return [Object.assign({}, first, { providerOptions: mark })].concat(rest);
+  const text = typeof first.content === "string" ? first.content : null;
+  const prefix = cache && typeof cache.prefix === "string" ? cache.prefix : "";
+  if (text === null || !prefix || !text.startsWith(prefix) || text.length === prefix.length) return messages;
+  const paper = Object.assign({ type: "text", text: prefix }, cache.mark ? { providerOptions: mark } : {});
+  return [Object.assign({}, first, { content: [paper, { type: "text", text: text.slice(prefix.length) }] })].concat(rest);
+}
 
 export const openai = Object.assign(Object.create(base), {
   id: "openai",

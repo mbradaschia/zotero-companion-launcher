@@ -435,6 +435,56 @@ final class ReviewTests: XCTestCase {
         XCTAssertEqual(page.flashes.last, "Nothing to run: no AI cell was asked for")
     }
 
+    func testCellsAskedWhileARunGoesWaitThenRunAsOneAndStopDropsThem() throws {
+        let (window, page) = try openWindow()
+        let id = try aiColumn(window)
+        runner.hold = ["review-run"]
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:P3NM4G92"]]])
+        XCTAssertEqual(runner.calls("review-run").count, 1)
+        let first = try XCTUnwrap(page.loads.last?["run"] as? [String: Any])
+        XCTAssertEqual(first["cells"] as? [String], [id + "|1:P3NM4G92"])
+        XCTAssertNotNil(first["started"] as? String)
+        // asked meanwhile: waits (the cell already in the run isn't asked twice)
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:ABCD2345"], ["column": id, "paper": "1:EFGH6789"], ["column": id, "paper": "1:P3NM4G92"]]])
+        XCTAssertEqual(runner.calls("review-run").count, 1)
+        XCTAssertEqual((page.loads.last?["run"] as? [String: Any])?["queued"] as? [String], [id + "|1:ABCD2345", id + "|1:EFGH6789"])
+        XCTAssertEqual(page.flashes.last, "Waiting: 2 cells run when the one going ends (■ stops them)")
+        // the run ends: what waited runs, as one job
+        runner.release("review-run", FakeRunner.json(["papers": 1, "cells": 1, "failed": 0]))
+        XCTAssertEqual(runner.calls("review-run").count, 2)
+        let job = try XCTUnwrap(ReviewFiles.object(try XCTUnwrap(runner.calls("review-run").last?.stdin)))
+        XCTAssertEqual((job["jobs"] as? [[String: Any]])?.compactMap { $0["paper"] as? String }, ["1:ABCD2345", "1:EFGH6789"])
+        // stopped: its process (once its task shows), what waits dropped, said
+        var killed: [Int32] = []
+        model.killProcess = { killed.append($0) }
+        window.handle(["type": "run", "jobs": [["column": id, "paper": "1:IJKL2345"]]])
+        window.handle(["type": "stop"])
+        XCTAssertTrue(killed.isEmpty, "no task yet: nothing to stop")
+        XCTAssertEqual((page.loads.last?["run"] as? [String: Any])?["stage"] as? String, "stopping")
+        XCTAssertEqual((page.loads.last?["run"] as? [String: Any])?["queued"] as? [String], [])
+        runner.answers["tasks"] = { [unowned window] _, _ in FakeRunner.json(["tasks": [["id": "t1", "kind": "review", "review": window.id, "status": "running", "pid": 4242, "stage": "0 of 2 papers", "done": 0, "started": "2026-11-04T10:00:00Z"]]]) }
+        model.refreshTasks()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        window.send()
+        XCTAssertEqual(killed, [4242])
+        window.send()
+        XCTAssertEqual(killed, [4242], "once")
+        runner.answers["tasks"] = { _, _ in FakeRunner.json(["tasks": []]) }
+        runner.release("review-run", RunnerResult(status: 130))
+        XCTAssertEqual(runner.calls("review-run").count, 2, "what waited isn't run")
+        XCTAssertEqual(page.flashes.last, "Stopped: what was done stays")
+    }
+
+    func testACellCopiedWithItsCitationAndARowsHeightKept() throws {
+        let (window, page) = try openWindow()
+        window.handle(["type": "copy", "text": "Firms orchestrate resources (Sirmon et al., 2011).", "said": "Copied with its citation"])
+        XCTAssertEqual((model.desktop as? FakeDesktop)?.copied.last, "Firms orchestrate resources (Sirmon et al., 2011).")
+        XCTAssertEqual(page.flashes.last, "Copied with its citation: Firms orchestrate resources (Sirmon et al., 2011).")
+        window.handle(["type": "layout", "review": ["heights": ["1:P3NM4G92": 140]]])
+        let saved = try XCTUnwrap(model.reviewFiles?.review(window.id, try core()))
+        XCTAssertEqual((saved["heights"] as? [String: Any])?["1:P3NM4G92"] as? Int, 140)
+    }
+
     func testWriteItWithAIAsksReviewDraftAndAnswersTheDialog() throws {
         let (window, page) = try openWindow()
         runner.answers["review-draft"] = { _, _ in FakeRunner.json(["column": ["label": "Sample", "prompt": "How many firms?", "shape": "number"], "notes": "A number."]) }

@@ -7,6 +7,36 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.29`)
+
+- **Run one AI cell, a row or a column from a right-click.** A cell's menu: *Run it* (or *Run it again*), *Run it on
+  the N selected papers*, *Run this paper's AI cells* (says how many requests). A header's menu: *Run this column*
+  (the shown papers' cells not run or out of date) or *Run…* for the choices. Cells asked while a run goes wait, then
+  run together.
+- **Stop a run.** While a table's AI run goes, the toolbar's ▷ becomes ■ (and every cell's menu has *Stop the run*):
+  what's done stays, what waits is dropped. Processes says how far it got. A cell being asked shows a turning arrow, one
+  waiting an hourglass (symbols, never colour alone).
+- **Run… picks the columns.** Each AI column with a box (All, None); the selected cell's column ticked to start.
+- **Runs cost less.** A paper comes first in each request, alone, so a provider's cache can keep it: Anthropic's is
+  asked to only when the paper is read again soon (a cell or a row's run, or columns asked again one by one); OpenAI and
+  Gemini cache a repeated start on their own. Before, every review request on the Anthropic API wrote the whole request
+  to the cache (25% more) and never read it back. Cells asked while a run goes join the next run, so a paper with
+  several columns to fill is read once.
+- **Copy a cell, with its citation.** A cell's menu (any column): *Copy*, and *Copy with its citation*, APA 7 in text
+  after it ("… (Sirmon et al., 2011).").
+- **Edit in the panel.** Your text columns and the AI's words or lists are edited in the panel on the right: ⌘↵ or
+  leaving the box keeps it, esc drops it. A redraw while you type keeps what you typed.
+- **Resize a row.** Drag its edge in its first cell (the selected rows together, when it's one of them); a
+  double-click puts it back. Kept per paper in the review's file (`heights`).
+- **A cell fills its row.** A cell whose column shows fewer lines than its row is tall shows as much as the row holds,
+  rather than stopping short with a scroll bar of its own.
+- **An AI list is bullets; tags are their own answer.** *A list (bullets)* answers in phrases or sentences, drawn as
+  bullets and edited a line each; the new *Tags* answers with a few short labels, drawn as pills (a table groups by
+  them).
+- **Edit a column from Columns.** A right-click on its row, or its pencil (yours and the AI's). A header's right-click
+  opens its menu, *Edit it…* included.
+- Runner 0.2.7 (the app offers to update the AI features).
+
 ### The Mac app (`macos-v0.4.28`)
 
 - **The signing certificate script works.** `scripts/make-signing-cert.sh` stopped without a word on macOS 26:

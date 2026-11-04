@@ -459,16 +459,24 @@ async function reviewRun() {
       return { title: p.title, abstract: p.abstract, extracted, full: async () => { const t = await paperText(b, details); return { text: t.text, source: t.grounding.source }; } };
     },
     classify: (ts, text) => classifyText(ts, text, settings),
-    ask: async ({ model, system, message }) => {
+    ask: async ({ model, system, message, cache }) => {
       const target = resolveModel(model, settings, "prompts");
-      const answer = await generate({ settings, ctx: providerCtx(), target, effort: "low", system, messages: [{ role: "user", content: message }],
+      const answer = await generate({ settings, ctx: providerCtx(), target, effort: "low", system, messages: [{ role: "user", content: message }], cache,
         onFallback: (t) => log("fallback", { reviewRun: true, note: t }) });
       return { text: answer.text, spec: answer.spec, costUsd: costOf(answer) };
     },
     previous: (col, paper) => readCell(cellsPath(dir, col), paper),
     write: (col, paper, record) => writeCell(cellsPath(dir, col), paper, record),
-    progress: (s) => updateTask(currentTask, { stage: s.done + " of " + plural(s.papers, "paper", "papers") + (s.failed ? ", " + s.failed + " failed" : ""), model: s.models.join(", ") }),
+    progress: (s) => { last = s; updateTask(currentTask, { stage: s.done + " of " + plural(s.papers, "paper", "papers") + (s.failed ? ", " + s.failed + " failed" : ""), done: s.done, model: s.models.join(", ") }); },
   };
+  // Stopped (the table's ■, Processes' Stop all): what's written stays, the task says how far it got, the paper being
+  // asked is left as it was.
+  let last = null;
+  for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => {
+    const n = last ? last.cells : 0;
+    try { if (currentTask) finishTask(currentTask, { stage: "", detail: "Stopped: " + plural(n, "cell", "cells") + " filled, the rest left as they were", model: last ? last.models.join(", ") : "", costUsd: last ? Math.round(last.costUsd * 1e6) / 1e6 : 0 }); } catch { /* exiting anyway */ }
+    process.exit(130);
+  });
   const r = await runReview(job, deps);
   const detail = plural(r.cells, "cell", "cells") + " filled" + (r.failed ? ", " + r.failed + " failed" : "") + (r.stopped ? "; stopped: " + r.stopped : "");
   if (!r.cells && r.failed) failTask(currentTask, r.stopped || r.error || "failed");

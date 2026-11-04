@@ -158,6 +158,43 @@ test("runReview: one Jev request per paper for every Jev cell, one request per m
   assert.equal(R.cellState(Object.assign(shown, { hash: "h-m" }), x.written[m.id]["1:BBBB0002"], { extracted: true }), "paper")
 });
 
+test("runReview: the paper first and alone (the cacheable part), marked for the cache only when it's read again soon", async () => {
+  const { parseJob, runReview, paperPart } = await RV();
+  const a = col("a", "prompt", { reads: "full", shape: "text" }), b = col("b", "prompt", { reads: "full", shape: "list" })
+  // a column over three papers: each paper read once, nothing marked (a cache write would only cost more)
+  const x = fakes()
+  await runReview(parseJob({ columns: [a], jobs: ["1:AAAA0001", "1:BBBB0002", "1:CCCC0003"].map((p) => ({ column: a.id, paper: p })) }), x.deps)
+  assert.equal(x.asked.length, 3)
+  x.asked.forEach((q) => {
+    assert.ok(q.message.startsWith(q.cache.prefix), "the message starts with the paper")
+    assert.ok(q.cache.prefix.startsWith("<paper>\nTitle: "), "the paper alone, no question in it")
+    assert.equal(q.cache.mark, false)
+  })
+  assert.equal(x.asked[0].cache.prefix, paperPart("Title: Title 1:AAAA0001\n\nFull text. firms adapt their routines over time"))
+  // a cell (one paper): marked, the next cell of the row reads it from the cache; its prefix is the same whatever is asked
+  const y = fakes()
+  await runReview(parseJob({ columns: [a], jobs: [{ column: a.id, paper: "1:AAAA0001" }] }), y.deps)
+  await runReview(parseJob({ columns: [b], jobs: [{ column: b.id, paper: "1:AAAA0001" }] }), y.deps)
+  assert.deepEqual(y.asked.map((q) => q.cache.mark), [true, true])
+  assert.equal(y.asked[0].cache.prefix, y.asked[1].cache.prefix)
+  assert.notEqual(y.asked[0].message, y.asked[1].message)
+  // two papers, two columns each, both parts malformed: asked again one by one, those marked (the paper read twice more)
+  let n = 0
+  const z = fakes({ ask: async (q) => { n++; z.asked.push(q); return { text: n % 3 === 1 ? "{}" : JSON.stringify({ [a.id]: { answer: "x" }, [b.id]: { answer: ["y"] } }), spec: "claude:sonnet" } } })
+  await runReview(parseJob({ columns: [a, b], jobs: ["1:AAAA0001", "1:BBBB0002"].flatMap((p) => [a, b].map((c) => ({ column: c.id, paper: p }))) }), z.deps)
+  assert.deepEqual(z.asked.map((q) => q.cache.mark), [false, true, true, false, true, true])
+});
+
+test("shapes: a list is items (phrases, numbering dropped), tags are short and once each", async () => {
+  const { shapeValue, promptMessage } = await RV();
+  assert.deepEqual(shapeValue({ shape: "list", length: 3 }, "1. Firms adapt routines over time.\n2) Managers sense change\n- not stated"), ["Firms adapt routines over time.", "Managers sense change"])
+  assert.deepEqual(shapeValue({ shape: "tags", length: 4 }, "survey, Survey; case study\nnot stated"), ["survey", "case study"])
+  assert.deepEqual(shapeValue({ shape: "tags", length: 1 }, ["a", "b"]), ["a"])
+  const t = col("t", "prompt", { shape: "tags", length: 4 }), l = col("l", "prompt", { shape: "list", length: 4 })
+  assert.match(promptMessage([t], "x"), /at most 4 tags, each one to three words/)
+  assert.match(promptMessage([l], "x"), /at most 4 items, each a short phrase or sentence/)
+});
+
 test("runReview: a malformed part asked again alone; a failed cell keeps what it held, with why; a problem every paper meets stops the run", async () => {
   const { parseJob, runReview } = await RV();
   const a = col("a", "prompt", { shape: "number" }), b = col("b", "prompt", { shape: "text" })
@@ -257,6 +294,48 @@ test("review-run: Jev's cells in the column's file, no tags written, one task fo
     assert.match(bad.err, /no AI columns/);
   } finally {
     bridge.close();
+    jev.close();
+  }
+});
+
+test("review-run stopped (the table's stop, Stop all): what it wrote stays, its task says how far it got", async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "review-stop-"));
+  const bridge = await serve((url, b) => url === "/oma-zotero/item"
+    ? { body: { ok: true, item: { key: b.key, libraryID: 1, itemType: "journalArticle", title: "T" }, paper: { key: b.key, title: "T " + b.key, abstract: "A." }, notes: [], tags: [] } }
+    : { status: 404, body: { ok: false, error: { code: "nope", message: url } } });
+  let n = 0;
+  const jev = http.createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      if (++n > 1) return; // the second paper: never answered (the run is stopped while it waits)
+      const b = JSON.parse(body), answers = {};
+      Object.keys(b.questions).forEach((k) => (answers[k] = { type: "noul", noul: 0.8 }));
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ model: "jev-1", answers, usage: { input_tokens: 10 } }));
+    });
+  });
+  await new Promise((r) => jev.listen(0, "127.0.0.1", r));
+  fs.mkdirSync(path.join(tmp, "run/oma-zotero"), { recursive: true });
+  fs.writeFileSync(path.join(tmp, "run/oma-zotero/bridge.json"), JSON.stringify({ port: bridge.address().port, token: "a".repeat(64) }));
+  const env = { HOME: tmp, XDG_RUNTIME_DIR: path.join(tmp, "run"), XDG_STATE_HOME: path.join(tmp, "state"), XDG_CONFIG_HOME: path.join(tmp, "config"), JEV_API_KEY: "test-key", OMA_JEV_URL: `http://127.0.0.1:${jev.address().port}/v1`, PATH: path.join(tmp, "bin") };
+  const { paths } = await import("../../runner/lib/paths.mjs");
+  const r = { id: "c-relevant01", label: "Relevant?", kind: "jev-relevance", topic: "routines", description: "", hash: "bbbbbbbbbbbb" };
+  const cells = path.join(paths(env).reviews, "cells", r.id + ".cells.json");
+  try {
+    const p = spawn(process.execPath, [RUNNER, "review-run", "--quiet"], { env: Object.assign({}, process.env, env) });
+    const closed = new Promise((resolve) => p.on("close", (code, signal) => resolve({ code, signal })));
+    p.stdin.end(JSON.stringify({ review: "r-0123456789", name: "Ch", columns: [r], jobs: ["1:AAAA0001", "1:BBBB0002"].map((x) => ({ column: r.id, paper: x })) }));
+    for (let i = 0; i < 100 && !(fs.existsSync(cells) && n > 1); i++) await new Promise((x) => setTimeout(x, 50));
+    p.kill("SIGTERM");
+    const end = await closed;
+    assert.equal(end.code, 130);
+    assert.deepEqual(Object.keys(R.parseCells(fs.readFileSync(cells, "utf8"))), ["1:AAAA0001"]);
+    const tasks = JSON.parse(fs.readFileSync(path.join(paths(env).runnerTasks, "tasks.json"), "utf8")).tasks;
+    assert.deepEqual([tasks[0].status, tasks[0].detail], ["done", "Stopped: 1 cell filled, the rest left as they were"]);
+  } finally {
+    bridge.close();
+    jev.closeAllConnections();
     jev.close();
   }
 });

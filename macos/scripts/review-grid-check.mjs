@@ -362,13 +362,140 @@ await pg.keyboard.press("Meta+Shift+KeyR");
 const plan = await pg.textContent("#rplan");
 ok(plan.includes("1 failed") && plan.includes("1 prompt changed") && plan.includes("1 up to date") && plan.includes("Left as they are: 1 up to date, 1 of yours"), "⇧⌘R on an AI column: the plan, by state, what's left as it is");
 ok(plan.includes("2 cells on 2 papers") && plan.includes("1 prompt request") === false && plan.includes("2 prompt requests"), "its requests");
-await pg.click('input[name="rcols"][value="all"]');
-ok((await pg.textContent("#rplan")).includes("Jev request"), "every AI column: Jev's requests too");
+ok((await pg.locator('input[name="rcol"]').count()) === 2 && (await pg.isChecked(`input[name="rcol"][value="${gap.id}"]`)) && !(await pg.isChecked(`input[name="rcol"][value="${rel.id}"]`)), "the columns, a box each: the selected cell's ticked");
+await pg.click("#rcnone");
+ok((await pg.isDisabled("#rgo")) && (await pg.textContent("#rplan")).includes("Tick a column"), "none ticked: nothing to run");
+await pg.click("#rcall");
+ok((await pg.textContent("#rplan")).includes("Jev request"), "every AI column ticked: Jev's requests too");
 await pg.click("#rgo");
 m = await sent();
 const run = m.find((x) => x.type === "run");
-ok(run && run.jobs.length === 5 && (await label("#bRun")).startsWith("An AI run is going"), "Run sends the plan's cells, and the toolbar shows the run");
+ok(run && run.jobs.length === 5 && (await label("#bRun")).startsWith("Stop the AI run") && (await pg.getAttribute("#bRun", "data-icon")) === "stop", "Run sends the plan's cells, and the toolbar's button stops the run");
+await pg.click("#bRun");
+m = await sent();
+ok(m.some((x) => x.type === "stop"), "■ stops it");
 await pg.evaluate((d) => RT.load(d), ai);
+
+// a run's cells: the one being asked turns, the ones after it wait (a symbol each, not a colour)
+await pg.evaluate((d) => RT.load(d), Object.assign({}, ai, { run: { stage: "1 of 3 papers", started: "2026-11-04T10:00:00Z", done: 1, cells: [gap.id + "|1:AAAAAAAA", gap.id + "|1:BBBBBBBB", gap.id + "|1:CCCCCCCC"], queued: [rel.id + "|1:DDDDDDDD"] } }));
+ok((await pg.locator(cell("BBBBBBBB", gap.id) + " .cv.rs-running .rmark svg.ic-running").count()) === 1, "the paper being asked: running, its turning symbol");
+ok((await pg.locator(cell("CCCCCCCC", gap.id) + " .cv.rs-waiting .rmark svg.ic-waiting").count()) === 1 && (await pg.locator(cell("DDDDDDDD", rel.id) + " svg.ic-waiting").count()) === 1, "the ones after it, and one asked meanwhile: waiting");
+ok((await pg.locator(cell("AAAAAAAA", gap.id) + " .rmark").count()) === 0, "a paper done: no mark");
+ok((await label("#bRun")).includes("1 more waiting"), "the ■ says what waits");
+await pg.click(cell("BBBBBBBB", gap.id), { button: "right" });
+ok((await pg.textContent(".pop")).includes("Running now") && (await pg.locator('.pop [data-m="stop"]').count()) === 1, "its menu: running now, Stop the run");
+await pg.click('.pop [data-m="stop"]');
+ok((await sent()).some((x) => x.type === "stop"), "Stop the run, from a cell's menu");
+await pg.evaluate((d) => RT.load(d), ai);
+await sent();
+
+// a right-click on a cell: copy it, with its citation (APA 7); an AI one: run it, its row, the selected
+await pg.click(cell("BBBBBBBB", gap.id), { button: "right" });
+const cm = await pg.textContent(".pop");
+ok(cm.includes("Copy") && cm.includes("(Helfat & Peteraf, 2003)") && cm.includes("Run it again") && cm.includes("Run this paper's AI cells"), "a cell's menu: copy, with its citation, run it, its row");
+ok((await pg.getAttribute("td.cell.active", "data-p")) === "1:BBBBBBBB", "the cell right-clicked is the one selected");
+await pg.click('.pop [data-m="cite"]');
+m = await sent();
+ok(m.some((x) => x.type === "copy" && x.text === "stale (Helfat & Peteraf, 2003)"), "Copy with its citation: the text, then (author, year)");
+await pg.click(cell("AAAAAAAA", "title"), { button: "right" });
+await pg.click('.pop [data-m="copy"]');
+m = await sent();
+ok(m.some((x) => x.type === "copy" && x.text === "Resource orchestration to create competitive advantage breadth"), "a Zotero cell copies too (its plain text)");
+await pg.click(cell("CCCCCCCC", gap.id), { button: "right" });
+await pg.click('.pop [data-m="row"]');
+m = await sent();
+const rowRun = m.find((x) => x.type === "run");
+ok(rowRun && rowRun.jobs.length === 2 && rowRun.jobs.every((j) => j.paper === "1:CCCCCCCC"), "Run this paper's AI cells: the row's, not up to date ones");
+ok((await pg.locator(cell("CCCCCCCC", gap.id) + " .rmark").count()) === 1, "and they show as running at once");
+await pg.evaluate((d) => RT.load(d), ai);
+await sent();
+// a header's: run the column now (what's not run or out of date), or Run… for the choices
+await pg.click(`th[data-c="${gap.id}"]`, { button: "right" });
+ok((await pg.textContent(".pop")).includes("Run this column") && (await pg.textContent(".pop")).includes("2 cells not run or out of date") && (await pg.locator('.pop [data-m="edit"]').count()) === 1, "a header's menu: run the column now, edit it");
+await pg.click('.pop [data-m="runcol"]');
+m = await sent();
+const colRun = m.find((x) => x.type === "run");
+ok(colRun && colRun.jobs.map((j) => j.paper).sort().join() === "1:BBBBBBBB,1:CCCCCCCC", "Run this column: the shown papers' cells that need it (not up to date, not yours)");
+await pg.evaluate((d) => RT.load(d), ai);
+await sent();
+// Columns: a right-click or the pencil edits a column
+await pg.click("#bCols");
+await pg.click(`.pop .crow[data-col="${gap.id}"] label`, { button: "right" });
+ok((await pg.textContent(".pop")).includes("Edit it…"), "a column's row in Columns: right-click, Edit it…");
+await pg.click('.pop [data-edit]');
+ok((await pg.inputValue("#aname")) === "Gap", "Edit it… opens the column's form");
+await pg.keyboard.press("Escape");
+await pg.click("#bCols");
+ok((await pg.locator(`.pop .crow[data-col="${gap.id}"] .cedit`).count()) === 1 && (await pg.locator('.pop .crow[data-col="year"] .cedit').count()) === 0, "the pencil on yours and the AI's, not Zotero's");
+await pg.keyboard.press("Escape");
+
+// the panel edits: type, ⌘↵ keeps it; esc drops it
+await pg.click(cell("AAAAAAAA", gap.id));
+await pg.fill("#pedbox", "Orchestration, revised");
+await pg.keyboard.press("Meta+Enter");
+m = await sent();
+ok(m.some((x) => x.type === "cell" && x.column === gap.id && x.paper === "1:AAAAAAAA" && x.value === "Orchestration, revised"), "the panel's editor: ⌘↵ keeps it");
+await pg.click(cell("BBBBBBBB", gap.id));
+await pg.fill("#pedbox", "never kept");
+await pg.keyboard.press("Escape");
+m = await sent();
+ok(!m.some((x) => x.type === "cell") && (await pg.inputValue("#pedbox")) === "stale", "esc drops it");
+await pg.click(cell("BBBBBBBB", gap.id));
+await pg.fill("#pedbox", "typed, the table drawn again meanwhile");
+await pg.evaluate((d) => RT.load(d), ai);
+ok((await pg.inputValue("#pedbox")) === "typed, the table drawn again meanwhile", "what you're typing survives the table being drawn again");
+await pg.click(cell("CCCCCCCC", "title"));
+m = await sent();
+ok(m.some((x) => x.type === "cell" && x.paper === "1:BBBBBBBB" && x.value === "typed, the table drawn again meanwhile"), "leaving the box keeps it");
+await pg.evaluate((d) => RT.load(d), ai);
+await sent();
+
+// a cell whose column shows fewer lines than its row is tall fills the row (not cut short with a scroll bar of its own)
+const tall = JSON.parse(JSON.stringify(ai));
+tall.review.columns = [{ id: "title", lines: 0, width: 140 }, { id: gap.id, lines: 2, width: 140 }, { id: rel.id }];
+tall.results[0].title = "A long title that wraps over many lines in a narrow column, so the row is tall: resource orchestration across the life cycle of firms";
+tall.cells[gap.id]["1:AAAAAAAA"].v = "Orchestration over time, a long answer that goes on well past two lines in this narrow column, and on, and on, and on";
+await pg.evaluate((d) => RT.load(d), tall);
+const hs = await pg.evaluate(([g]) => ["title", g].map((c) => { const cv = document.querySelector(`td.cell[data-p="1:AAAAAAAA"][data-c="${c}"] .cv`); return [cv.offsetHeight, cv.scrollHeight - cv.clientHeight] }), [gap.id]);
+ok(hs[1][0] > 44 && hs[1][0] <= hs[0][0] && hs[1][1] <= 1, "a cell shows as much as its row's height holds, not cut at its 2 lines (" + hs[1][0] + " of " + hs[0][0] + " px)");
+await pg.evaluate((d) => RT.load(d), ai);
+
+// a row's height: dragged by its edge, kept by paper; a double-click puts it back
+const edge = await pg.locator('[data-rrz="1:AAAAAAAA"]').boundingBox();
+await pg.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2);
+await pg.mouse.down();
+await pg.mouse.move(edge.x + edge.width / 2, edge.y + 120, { steps: 4 });
+await pg.mouse.up();
+await pg.waitForTimeout(500);
+m = await sent();
+const lay = m.filter((x) => x.type === "layout").pop();
+const hA = lay && lay.review.heights["1:AAAAAAAA"];
+ok(hA > 100 && (await pg.locator(cell("AAAAAAAA", gap.id) + " .cv.rh").count()) === 1, "dragged: the row's height kept for the paper (" + hA + " px)");
+await pg.dblclick('[data-rrz="1:AAAAAAAA"]');
+await pg.waitForTimeout(500);
+m = await sent();
+const lay2 = m.filter((x) => x.type === "layout").pop();
+ok(lay2 && !lay2.review.heights["1:AAAAAAAA"] && (await pg.locator(cell("AAAAAAAA", gap.id) + " .cv.rh").count()) === 0, "a double-click: back to its lines");
+
+// a list is bullets, tags are pills
+const lst = { id: "c-lst0000000", label: "Findings", kind: "prompt", reads: "abstract", shape: "list", length: 5, options: [], evidence: false, model: "default", description: "Findings?" };
+const tgs = { id: "c-tgs0000000", label: "Constructs", kind: "prompt", reads: "abstract", shape: "tags", length: 5, options: [], evidence: false, model: "default", description: "Constructs?" };
+const shapes = JSON.parse(JSON.stringify(ai));
+shapes.review.columns.push({ id: lst.id }, { id: tgs.id });
+Object.assign(shapes.columns, { [lst.id]: lst, [tgs.id]: tgs });
+shapes.cells[lst.id] = { "1:AAAAAAAA": { v: ["Firms adapt", "Managers sense"], by: "ai", hash: await hashOf(lst) } };
+shapes.cells[tgs.id] = { "1:AAAAAAAA": { v: ["routines", "sensing"], by: "ai", hash: await hashOf(tgs) } };
+await pg.evaluate((d) => RT.load(d), shapes);
+ok((await pg.locator(cell("AAAAAAAA", lst.id) + " ul.blist li").count()) === 2 && (await pg.locator(cell("AAAAAAAA", lst.id) + " .pill").count()) === 0, "a list's answer: bullets");
+ok((await pg.locator(cell("AAAAAAAA", tgs.id) + " .pill.tax").count()) === 2, "tags: pills");
+await pg.click(cell("AAAAAAAA", lst.id));
+ok((await pg.inputValue("#pedbox")) === "Firms adapt\nManagers sense", "a list in the panel's editor: an item a line");
+await pg.fill("#pedbox", "- Firms adapt\n- Managers sense change\n");
+await pg.keyboard.press("Meta+Enter");
+m = await sent();
+ok(m.some((x) => x.type === "cell" && JSON.stringify(x.value) === JSON.stringify(["Firms adapt", "Managers sense change"])), "kept as items (its bullets dropped)");
+await pg.evaluate((d) => RT.load(d), ai);
+await sent();
 await pg.click("#bAdd");
 await pg.click('.sheet .choice[data-step="ai"]');
 await pg.check('input[name="akind"][value="prompt"]');
