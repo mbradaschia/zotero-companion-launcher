@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.28`)
 
 - **The signing certificate script works.** `scripts/make-signing-cert.sh` stopped without a word on macOS 26:
   codesign finds no identity in a keychain that isn't on the search list, even named with `--keychain`, and the
