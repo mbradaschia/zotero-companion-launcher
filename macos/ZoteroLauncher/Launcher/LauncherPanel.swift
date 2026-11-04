@@ -251,6 +251,12 @@ final class LauncherController: NSObject, NSWindowDelegate {
         LauncherPanel.lastSize = w.contentRect(forFrameRect: w.frame).size
     }
 
+    // Back on the launcher (from Zotero, a chat or a note window): the paper's menu lists the notes made meanwhile.
+    func windowDidBecomeKey(_ notification: Notification) {
+        guard visible, let w = notification.object as? NSWindow, w === panel || w === window else { return }
+        model.cameBack()
+    }
+
     func windowDidResignKey(_ notification: Notification) {
         if (notification.object as? NSWindow) === panel && !model.windowed && !moving && !model.pinnedOpen { hide() } // (pinned: it stays)
     }

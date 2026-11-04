@@ -81,6 +81,7 @@ final class LauncherModel: ObservableObject {
     var actionItem: PaperRef?
     var details: [String: Any]?
     var detailsSerial = 0
+    var detailsAsked = Date.distantPast // when the paper's details were last asked of Zotero
     var quickAction = ""
     var pendingSelect: ((ListRow) -> Bool)?
     var killProcess: (Int32) -> Void = { _ = kill($0, SIGTERM) } // (the tests' own: no process of yours is stopped)

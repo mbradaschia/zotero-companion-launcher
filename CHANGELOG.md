@@ -20,6 +20,10 @@ bridge and the prompt runner share one version.
 - **A paper's notes show its status and default task.** Beside its rankings, on the list of its notes and while
   reading one: each pill with its kind's icon (a flag, a checklist), a faint *no status* / *no task* when it has none.
   ⌥→← and ⇧⌥→← change them in the notes list too, as in the reader and the paper's menu.
+- **A paper's menu lists a new note at once.** A note made while its menu was open now shows without leaving the
+  menu and coming back: one a prompt wrote (also when it finished while you were in the paper's Prompts), one a
+  chat window saved, and one made in Zotero, read again when the launcher is back in front. The cursor stays on
+  its row.
 
 ### The Mac app (`macos-v0.4.26`)
 

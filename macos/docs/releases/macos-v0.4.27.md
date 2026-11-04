@@ -1,4 +1,4 @@
-An AI taxonomy draft waits for you, and a paper's notes show its status and default task.
+An AI taxonomy draft waits for you, a paper's notes show its status and default task, and a new note shows in its paper's menu at once.
 
 **Install or update** (macOS 14 or newer; Zotero 10 with the bridge plugin). From 0.3.1 on, the menu bar offers it
 (*Update to 0.4.27…*); otherwise:
@@ -32,3 +32,8 @@ status and its default task sit beside its rankings, as in the results and the n
 icon (a flag for the status, a checklist for the task), so they're never told apart by colour alone; a paper without
 one shows a faint *no status* or *no task*. ⌥→← changes the status and ⇧⌥→← the task in the notes list too, as they
 already did in the reader and the paper's menu.
+
+**A paper's menu lists a new note at once.** A note made while the paper's menu was open used to show only after you
+left the menu and came back. Now it shows right away: one a prompt wrote (also when it finished while you were in the
+paper's Prompts), one a chat window saved, and one made in Zotero, read again when the launcher is back in front. The
+cursor stays on its row.

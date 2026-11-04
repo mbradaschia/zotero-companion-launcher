@@ -147,6 +147,19 @@ extension LauncherModel {
         }))
     }
 
+    // Back on the launcher (its window, or a pinned panel) after Zotero, a chat or a note window: the paper's menu
+    // reads its details again, for a note made there meanwhile. (Not right after an opening, which read them.)
+    func cameBack() {
+        guard opened, actionItem != nil, Self.detailsViews.contains(store.view), Date().timeIntervalSince(detailsAsked) > 1 else { return }
+        refreshDetails()
+    }
+
+    // A note saved on a paper from elsewhere (a chat window): its menu, if it's the one open, lists it at once.
+    func paperNotesChanged(_ paper: PaperRef) {
+        guard opened, let item = actionItem, item.key == paper.key, (item.libraryID == 0 ? 1 : item.libraryID) == (paper.libraryID == 0 ? 1 : paper.libraryID) else { return }
+        refreshDetails()
+    }
+
     // The note under the cursor in a list, or the one being read.
     func selectedNoteTarget() -> [String: Any]? {
         if store.inNote { return note.target }
