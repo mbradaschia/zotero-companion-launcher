@@ -41,6 +41,10 @@
 //   oma-zotero-prompt chat --key <item-key> [--library <id>] [--session <id>] [--model M] [--effort E]
 //                          [--source auto|note|pdf]  one chat turn: the question on stdin, JSON lines out
 //                                       (--source: ground a new chat in the extracted-text note or the PDF)
+//   oma-zotero-prompt chat --review <review id> [--session <id>] [--model M] [--effort E]
+//                                       a list chat's turn (a review table's docked chat): stdin JSON { question,
+//                                       display, list: { name, papers } } (lib/listchat.mjs); chats, chat-show,
+//                                       chat-rename and chat-delete take --review too
 //   oma-zotero-prompt chat-rename --key <item-key> [--library <id>] --session <id> --title T
 //   oma-zotero-prompt chats --key <item-key> [--library <id>]            the paper's chats (JSON)
 //   oma-zotero-prompt chat-show --key <item-key> [--library <id>] --session <id>   one chat (JSON)
@@ -100,6 +104,7 @@ import { versionsFor, promptNotes, promptRuns, stalePromptJobs, staleTaxonomyJob
 import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
 import { checkQuotes, quoteCheckLine, groundingText as quoteSources } from "../lib/quotes.mjs";
+import { LIST_CHAT_SYSTEM, LIST_SHARE, listChatsDir, parseListInput, fitList, listContext } from "../lib/listchat.mjs";
 import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell, DRAFT_SYSTEM as COLUMN_DRAFT_SYSTEM, draftMessage as columnDraftMessage, parseColumnDraft } from "../lib/reviews.mjs";
 
 // On macOS an app that starts the runner hands it a PATH without Homebrew or ~/.local/bin, where
@@ -941,6 +946,13 @@ async function extractToNote(bridge, details, again, existing, opts) {
   }
 }
 
+// A chat command's folder: a list's (--review) or a paper's (--key).
+function chatDirOf(flags) {
+  if (flags.review != null) return listChatsDir(String(flags.review));
+  const { key, libraryID } = itemFlags(flags);
+  return chatsDir(key, libraryID);
+}
+
 function itemFlags(flags) {
   const key = String(flags.key || "");
   if (!/^[A-Z0-9]{8}$/.test(key)) throw new Error("--key <item key> is required");
@@ -958,6 +970,7 @@ function emit(o) {
 const tooLong = (e) => /prompt is too long|too long for the model|context (window|length)|maximum context|too many tokens/i.test(String(e && e.message));
 
 async function chat(flags) {
+  if (flags.review != null) return listChat(flags);
   const { key, libraryID } = itemFlags(flags);
   const question = readFileSync(0, "utf8").trim();
   if (!question) throw new Error("the question comes on stdin");
@@ -1050,6 +1063,137 @@ async function chat(flags) {
   finishTask(currentTask, { detail: madeText ? "answered; " + madeText : "answered", model: answer.spec, usage: answer.usage, costUsd: cost, subscription: !!answer.subscription });
 }
 
+// The papers a list chat reads, from the bridge: each one's details (its abstract) and Zotero's APA 7 citation and
+// reference (50 keys a request). A paper the bridge can't give keeps what the table sent. → { by id: info }
+async function listInfos(bridge, papers) {
+  const infos = {};
+  const queue = papers.slice();
+  const worker = async () => {
+    for (let p = queue.shift(); p; p = queue.shift()) {
+      const [lib, key] = p.id.split(":");
+      try {
+        const d = await bridge.post("/item", { key, libraryID: Number(lib) });
+        const x = d.paper || {};
+        infos[p.id] = { title: x.title || p.title, year: x.year || "", publication: x.publication || "", abstract: x.abstract || "" };
+      } catch (e) {
+        log("list chat: paper failed", { id: p.id, error: e.message });
+        infos[p.id] = { title: p.title };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, papers.length) }, worker));
+  const byLib = new Map();
+  for (const p of papers) {
+    const [lib, key] = p.id.split(":");
+    if (!byLib.has(lib)) byLib.set(lib, []);
+    byLib.get(lib).push(key);
+  }
+  for (const [lib, keys] of byLib) {
+    for (let i = 0; i < keys.length; i += 50) {
+      const chunk = keys.slice(i, i + 50);
+      for (const mode of ["citation", "bibliography"]) {
+        try {
+          const r = await bridge.post("/cite", { keys: chunk, libraryID: Number(lib), style: APA, mode, format: "text" });
+          for (const e of r.entries || []) {
+            const info = infos[`${lib}:${e.key}`];
+            if (info && e.text) info[mode === "citation" ? "citation" : "reference"] = e.text;
+          }
+        } catch (e) {
+          log("list chat: cite failed", { lib, mode, keys: chunk.length, error: e.message }); // (the table's own citation stays)
+        }
+      }
+    }
+  }
+  return infos;
+}
+
+// A turn of a list chat (the review table's docked chat, List): stdin { question, display, list } (lib/listchat.mjs);
+// the same JSON lines out as a paper's chat. The list is read at the first question and kept in the chat's file.
+async function listChat(flags) {
+  const review = String(flags.review || "");
+  const dir = listChatsDir(review);
+  let input;
+  try { input = parseListInput(JSON.parse(readFileSync(0, "utf8"))); } catch (e) { throw new Error(e instanceof SyntaxError ? "the question and the list come on stdin, as JSON" : e.message); }
+  const question = input.question;
+  const now = new Date().toISOString();
+  let session = flags.session ? loadSession(dir, String(flags.session)) : null;
+  if (session && !session.list) throw new Error("that chat isn't a list's");
+  const settings = loadSettings();
+  const pctx = providerCtx();
+  const target = resolveModel(String(flags.model || (session && session.model) || "default"), settings, "chat");
+  const effort = flags.effort != null ? (flags.effort === "default" ? "" : String(flags.effort)) : session ? session.effort : settings.defaults.chat.effort;
+  const info = await findModelInfo(settings, pctx, target.provider, target.model);
+  const window = session && session.model && sameModel(session.model, target.spec) && session.context && session.context.window ? session.context.window : windowFor(target.spec, loadWindows(WINDOWS), info && info.context);
+  if (!session) {
+    if (!input.list.papers.length) throw new Error("the list has no papers");
+    emit({ type: "status", text: `Reading the list: ${input.list.papers.length} papers…` });
+    const infos = await listInfos(bridgeClient(), input.list.papers);
+    const fit = fitList(input.list, infos, window, LIST_SHARE);
+    session = { id: newSessionId(), review, title: titleFor(input.display || question), paper: input.list.name, created: now, updated: now, model: target.spec, effort,
+      grounding: { source: "list", label: fit.label }, list: { name: input.list.name, papers: input.list.papers.length, label: fit.label, text: fit.text, read: now },
+      thread: { provider: target.provider, id: null, start: 0, summarized: false }, messages: [] };
+  }
+  if (session.context) session.context.window = window;
+  session.model = target.spec;
+  session.effort = effort;
+  const ctx = listContext(session.list);
+  emit({ type: "session", id: session.id, title: session.title, grounding: ctx.grounding, model: target.spec });
+  currentTask = startTask({ kind: "chat", title: "Chat: " + titleFor(input.display || question, 60), review, paper: session.list.name, chatSession: session.id, model: target.spec });
+  if (target.note) {
+    session.messages.push({ role: "note", text: target.note, at: now });
+    emit({ type: "note", text: target.note });
+  }
+  if (session.context) emit({ type: "context", used: session.context.used, window });
+  const provider = providerById(target.provider, settings);
+  const system = composeSystem(LIST_CHAT_SYSTEM, settings, "chat");
+  const asked = session.messages.some((m) => m.role === "user");
+  let compacted = false;
+  if (asked && needsCompaction(session.context, question)) {
+    await compact(session, settings, pctx, target, effort);
+    compacted = true;
+  }
+  const turn = () => {
+    const t = threadOf(session);
+    const resume = provider.stateful && t.id && t.provider === target.provider ? t.id : null;
+    return generate({ settings, ctx: pctx, target, effort, system, resume, persist: true,
+      messages: resume ? [{ role: "user", content: question }] : threadMessages(session, ctx, question),
+      onDelta: (d) => emit({ type: "delta", text: d }),
+      onStatus: (text) => emit({ type: "status", text }),
+      onFallback: (text) => {
+        session.messages.push({ role: "note", text, at: new Date().toISOString() });
+        emit({ type: "note", text });
+      } });
+  };
+  let answer;
+  try {
+    answer = await turn();
+  } catch (e) {
+    const t = threadOf(session);
+    const resumed = provider.stateful && t.id && t.provider === target.provider;
+    if (!asked || !(tooLong(e) || resumed)) throw e;
+    log(tooLong(e) ? "list chat over the context window, compacting" : "list chat resume failed, continuing from a summary", { session: session.id, error: e.message });
+    await compact(session, settings, pctx, target, effort);
+    compacted = true;
+    answer = await turn();
+  }
+  const t = threadOf(session);
+  session.thread = { provider: answer.provider, id: answer.stateful ? answer.session || null : null, start: t.start, summarized: t.summarized };
+  const quotes = checkQuotes(answer.text, ctx.text);
+  const cost = costOf(answer);
+  session.messages.push({ role: "user", text: question, at: now, ...(input.display ? { display: input.display } : {}) },
+    { role: "assistant", text: answer.text, at: new Date().toISOString(), model: answer.spec, ...(quotes.checked ? { quotes } : {}), ...(cost != null && !answer.subscription ? { costUsd: cost } : {}) });
+  if (answer.window) saveWindow(WINDOWS, answer.spec, answer.window);
+  session.context = { used: answer.usage.input + answer.usage.output || (session.context && session.context.used) || 0, window: answer.window || window, updated: new Date().toISOString() };
+  if (cost != null && !answer.subscription) session.costUsd = (session.costUsd || 0) + cost;
+  session.updated = new Date().toISOString();
+  saveSession(dir, session);
+  log("list chat", { review, session: session.id, papers: session.list.papers, model: answer.spec, turns: session.messages.filter((x) => x.role === "user").length, context: session.context, compacted, costUsd: cost });
+  emit({ type: "context", used: session.context.used, window: session.context.window, compacted });
+  if (quotes.checked) emit({ type: "quotes", checked: quotes.checked, missing: quotes.missing });
+  emit({ type: "done", id: session.id, text: answer.text, model: answer.spec, ...(cost != null && !answer.subscription ? { costUsd: cost, sessionCostUsd: session.costUsd } : {}) });
+  finishTask(currentTask, { detail: "answered", model: answer.spec, usage: answer.usage, costUsd: cost, subscription: !!answer.subscription });
+}
+
 // Summarize the exchanges before the last few (adding to an earlier summary), note it in the
 // chat, and start a new thread from it: the paper, the summary, the last exchanges verbatim.
 async function compact(session, settings, pctx, target, effort) {
@@ -1065,7 +1209,8 @@ async function compact(session, settings, pctx, target, effort) {
   session.summary = summary;
   session.summarizedTurns = older.length;
   session.compactions = (session.compactions || []).concat([{ at: new Date().toISOString(), questions, before: session.context ? session.context.used : null }]);
-  const note = { role: "note", text: `The first ${questions} question${questions === 1 ? " was" : "s were"} summarized to fit the model's context; the paper is still read in full.`, at: new Date().toISOString() };
+  const what = session.list ? "the list" : "the paper";
+  const note = { role: "note", text: `The first ${questions} question${questions === 1 ? " was" : "s were"} summarized to fit the model's context; ${what} is still read in full.`, at: new Date().toISOString() };
   session.messages.push(note);
   emit({ type: "note", text: note.text });
   session.thread = { provider: target.provider, id: null, start: session.messages.length, summarized: true };
@@ -1430,8 +1575,7 @@ async function main() {
         process.stdout.write(JSON.stringify({ chats: allChats() }) + "\n");
         return;
       }
-      const { key, libraryID } = itemFlags(flags);
-      process.stdout.write(JSON.stringify({ chats: listSessions(chatsDir(key, libraryID)) }) + "\n");
+      process.stdout.write(JSON.stringify({ chats: listSessions(chatDirOf(flags)) }) + "\n");
       return;
     }
     case "artifacts": {
@@ -1474,11 +1618,10 @@ async function main() {
       process.stdout.write(JSON.stringify({ tasks: flags.clear ? clearTasks() : writeIndex() }) + "\n");
       return;
     case "chat-rename": {
-      const { key, libraryID } = itemFlags(flags);
+      const dir = chatDirOf(flags);
       if (!validSessionId(flags.session)) throw new Error("--session <id> is required");
       const title = String(flags.title || "").replace(/\s+/g, " ").trim().slice(0, 120);
       if (!title) throw new Error("--title can't be empty");
-      const dir = chatsDir(key, libraryID);
       const session = loadSession(dir, String(flags.session));
       session.title = title;
       saveSession(dir, session);
@@ -1486,16 +1629,16 @@ async function main() {
       return;
     }
     case "chat-delete": {
-      const { key, libraryID } = itemFlags(flags);
+      const dir = chatDirOf(flags);
       if (!validSessionId(flags.session)) throw new Error("--session <id> is required");
-      deleteSession(chatsDir(key, libraryID), String(flags.session));
+      deleteSession(dir, String(flags.session));
       process.stdout.write(JSON.stringify({ id: String(flags.session), deleted: true }) + "\n");
       return;
     }
     case "chat-show": {
-      const { key, libraryID } = itemFlags(flags);
+      const dir = chatDirOf(flags);
       if (!validSessionId(flags.session)) throw new Error("--session <id> is required");
-      process.stdout.write(JSON.stringify(loadSession(chatsDir(key, libraryID), String(flags.session))) + "\n");
+      process.stdout.write(JSON.stringify(loadSession(dir, String(flags.session))) + "\n");
       return;
     }
     case "note":

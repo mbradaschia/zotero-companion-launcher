@@ -86,6 +86,8 @@ struct ReviewWebView: NSViewRepresentable {
         func drafted(_ out: [String: Any]) { call("RT.drafted", [out]) }
         func notes(_ paper: String, _ out: [String: Any]) { call("RT.notes", [paper, out]) }
         func zoom(_ z: Double) { view?.pageZoom = CGFloat(z) }
+        func chatList(_ token: Int) { call("RT.chatList", [token]) }
+        func askEach(_ o: [String: Any]) { call("RT.askEach", [o]) }
 
         private func call(_ function: String, _ value: Any) {
             guard JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) else { return }
@@ -122,4 +124,6 @@ protocol ReviewPage: AnyObject {
     func drafted(_ out: [String: Any]) // Write it with AI's answer: { column, notes } or { error }
     func notes(_ paper: String, _ out: [String: Any]) // the panel's paper's notes: { notes } or { error }
     func zoom(_ z: Double) // the text size (⌘- ⌘+ ⌘0)
+    func chatList(_ token: Int) // the docked chat's list: the page answers { type: "chatList", token, list }
+    func askEach(_ o: [String: Any]) // Ask each paper: { question }; the page makes the column, shows the run, says askedEach
 }

@@ -260,3 +260,7 @@ textarea.ped:disabled { opacity: .6; }
 /* Columns: a column you can edit, its pencil */
 .pop .crow .cedit { border: 0; background: transparent; color: var(--faint); padding: 0 3px; border-radius: 4px; display: inline-flex; }
 .pop .crow .cedit:hover { color: inherit; background: var(--line); }
+
+/* the panel's chat icon (the docked chat about its paper), at its top right */
+.panel .phead { display: flex; justify-content: flex-end; margin: -4px 0 -6px; }
+.panel .phead .tb.icon { width: 26px; height: 26px; }

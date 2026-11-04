@@ -2,12 +2,24 @@ import AppKit
 import Combine
 import Foundation
 
+// What a list's chat reads (a review table's docked chat, List): the table's papers as it shows them, asked of the
+// page when a question goes (the runner reads them at a chat's first question, and keeps them in the chat).
+struct ChatList {
+    let review: String
+    let name: () -> String
+    let read: (@escaping ([String: Any]?) -> Void) -> Void // { name, papers } (ReviewCore.chatList), or nil: the page didn't answer
+    let askEach: (String) -> Void // Ask each paper: the question as an AI column, run, then summed up here
+}
+
 // One paper's chat in its own window (reference/ChatWindow.qml): the runner's `chat`, a turn at a time,
 // streamed; its past chats and artifacts; the source it reads, its model and effort; the outputs. The
-// pure parts (the events, the lines under answers, the page, the transcript) are GlueChat.js's.
+// pure parts (the events, the lines under answers, the page, the transcript) are GlueChat.js's. Docked in a review
+// table, the same chat: a paper's (it follows the table's selection), or the table's list's (`list`).
 @MainActor
 final class ChatWindowModel: ObservableObject {
     unowned let launcher: LauncherModel
+    let docked: Bool
+    let list: ChatList?
     @Published private(set) var item: PaperRef
     @Published var paper: [String: Any]? // the bridge's paper info: title, authors, year
     @Published var savedText: [String: Any]? // its extracted-text note, or nil
@@ -38,12 +50,14 @@ final class ChatWindowModel: ObservableObject {
     private var renderTimer: Timer?
     private var renderDue = false
 
-    init(item: PaperRef, launcher: LauncherModel, session: String = "") {
+    init(item: PaperRef, launcher: LauncherModel, session: String = "", docked: Bool = false, list: ChatList? = nil) {
         self.item = item
         self.launcher = launcher
+        self.docked = docked
+        self.list = list
         effort = (launcher.defaultsRaw["chat"] as? [String: Any])?["effort"] as? String ?? "high"
         render()
-        loadPaper()
+        if list == nil { loadPaper() } else { setGrounding() }
         refreshSessions()
         if !session.isEmpty { openSession(session) }
         if launcher.runnerState.models == nil { launcher.refreshModels() }
@@ -63,14 +77,21 @@ final class ChatWindowModel: ObservableObject {
     var sessionId: String { state["sessionId"] as? String ?? "" }
     var model: String { state["model"] as? String ?? "default" }
     var models: Any { launcher.runnerModels }
-    var cite: String { (paper.flatMap { (try? launcher.core?.glue("paperCite", [$0], as: String.self)) }).flatMap { $0.isEmpty ? nil : $0 } ?? item.title }
+    var cite: String {
+        if let list { return list.name() }
+        return paperCite
+    }
+    private var paperCite: String { (paper.flatMap { (try? launcher.core?.glue("paperCite", [$0], as: String.self)) }).flatMap { $0.isEmpty ? nil : $0 } ?? item.title }
     var paperTitle: String { paper?["title"] as? String ?? item.title }
     // The top bar: the cite, and the title once Zotero says it (not "Title · Title" meanwhile).
-    var paperLine: String { paper?["title"] is String ? cite + " · " + paperTitle : cite }
+    var paperLine: String {
+        if list != nil { return "The list · " + cite }
+        return paper?["title"] is String ? cite + " · " + paperTitle : cite
+    }
     var windowTitle: String { "Chat · " + cite }
     var chatDefault: String { (launcher.runnerState.models?["defaults"] as? [String: Any])?["chat"] as? String ?? "" }
 
-    var artifacts: [[String: Any]] { launcher.artifacts(of: item) }
+    var artifacts: [[String: Any]] { list == nil ? launcher.artifacts(of: item) : [] }
 
     var infoLine: (text: String, high: Bool) {
         var o = state
@@ -94,7 +115,9 @@ final class ChatWindowModel: ObservableObject {
 
     private func render() {
         let status = state["statusText"] as? String ?? ""
-        page = (try? launcher.core?.glue("chatHtml", [messages, ["cite": cite, "status": status]], as: String.self)) ?? ""
+        var o: [String: Any] = ["cite": cite, "status": status]
+        if let list { o["list"] = "the papers of “\(list.name())”" }
+        page = (try? launcher.core?.glue("chatHtml", [messages, o], as: String.self)) ?? ""
     }
 
     private func renderSoon() {
@@ -122,12 +145,17 @@ final class ChatWindowModel: ObservableObject {
 
     // ---- the paper
 
-    var itemArgs: [String] { ["--key", item.key, "--library", String(item.libraryID == 0 ? 1 : item.libraryID)] }
+    var itemArgs: [String] {
+        if let list { return ["--review", list.review] }
+        return ["--key", item.key, "--library", String(item.libraryID == 0 ? 1 : item.libraryID)]
+    }
 
     func loadPaper() {
+        guard list == nil else { return }
+        let asked = item
         launcher.bridge.post("/item", ["key": item.key, "libraryID": item.libraryID == 0 ? 1 : item.libraryID], timeout: 8) { [weak self] result in
             MainActor.assumeIsolated {
-                guard let self, case .ok(let d) = result else { return }
+                guard let self, case .ok(let d) = result, asked == self.item else { return } // (a docked chat moved on to another paper)
                 self.paper = d["paper"] as? [String: Any]
                 self.savedText = (try? self.launcher.core?.glueJSON("fulltextNote", [d])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]
                 if self.sessionId.isEmpty { self.setGrounding() }
@@ -143,6 +171,12 @@ final class ChatWindowModel: ObservableObject {
     }
 
     func setGrounding() {
+        if list != nil {
+            var s = state
+            s["grounding"] = "the table's papers as it shows them: citations, abstracts, the columns you see (read at the first question)"
+            state = s
+            return
+        }
         if savedText == nil { groundSource = "pdf" }
         var s = state
         s["grounding"] = groundSource == "note" && savedText != nil ? "the extracted text (.md note), page by page" : "the PDF, read when you ask"
@@ -151,7 +185,7 @@ final class ChatWindowModel: ObservableObject {
 
     // Ground new chats in the .md note or the PDF; a chat in progress keeps its source, so switching starts a new one.
     func setSource(_ src: String) {
-        guard src != groundSource, !busy else { return }
+        guard list == nil, src != groundSource, !busy else { return }
         if src == "note" && savedText == nil { return showFlash("Extract the text first") }
         groundSource = src
         if !messages.isEmpty {
@@ -162,7 +196,7 @@ final class ChatWindowModel: ObservableObject {
     }
 
     func extract() {
-        guard !extracting else { return }
+        guard list == nil, !extracting else { return }
         extracting = true
         showFlash("Extracting the text…")
         launcher.runRunner(["extract", "--json"] + itemArgs, timeout: 3600) { [weak self] r in
@@ -179,9 +213,30 @@ final class ChatWindowModel: ObservableObject {
     // ---- sessions
 
     func refreshSessions() {
+        let asked = item
         launcher.runRunner(["chats"] + itemArgs, timeout: 30) { [weak self] r in
-            self?.sessions = (r.json as? [String: Any])?["chats"] as? [[String: Any]] ?? []
+            guard let self, asked == self.item else { return }
+            self.sessions = (r.json as? [String: Any])?["chats"] as? [[String: Any]] ?? []
         }
+    }
+
+    // A docked paper chat follows the table's selection: the paper's chat it had in this window comes back, else a new
+    // one. While an answer comes in it stays on its paper.
+    private var lastSessions: [String: String] = [:]
+    func follow(_ next: PaperRef) {
+        guard list == nil, next.id != item.id, !busy else { return }
+        if !sessionId.isEmpty { lastSessions[item.id] = sessionId }
+        item = next
+        paper = nil
+        savedText = nil
+        sessions = []
+        loading = 0
+        groundSource = "note"
+        setState(Self.freshState())
+        setGrounding()
+        loadPaper()
+        refreshSessions()
+        if let s = lastSessions[next.id] { openSession(s) }
     }
 
     func openSession(_ id: String) {
@@ -234,25 +289,46 @@ final class ChatWindowModel: ObservableObject {
 
     func send() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, !busy, launcher.core != nil else { return }
+        guard loading == 0 else { return showFlash("Opening the chat: a moment") }
+        draft = ""
+        ask(text)
+    }
+
+    // A question: the box's, or (a list's) Ask each paper's, shown as `display` (what you asked) while the model reads
+    // the answers too. A list's goes with the table's papers as it shows them now.
+    func ask(_ text: String, display: String = "") {
         guard !text.isEmpty, !busy, let core = launcher.core else { return }
         guard loading == 0 else { return showFlash("Opening the chat: a moment") }
         var s = state
         var ms = messages
-        ms.append(["role": "user", "text": text, "pending": false, "failed": false, "info": ""])
+        ms.append(["role": "user", "text": display.isEmpty ? text : display, "pending": false, "failed": false, "info": ""])
         ms.append(["role": "assistant", "text": "", "pending": true, "failed": false, "info": ""])
         s["messages"] = ms
         setState(s)
-        draft = ""
         busy = true
         var o = state
         o["effort"] = effort
         o["source"] = groundSource
-        let args = (try? core.glue("chatArgs", [["key": item.key, "libraryID": item.libraryID == 0 ? 1 : item.libraryID], o], as: [String].self)) ?? []
+        let target: [String: Any] = list.map { ["review": $0.review] } ?? ["key": item.key, "libraryID": item.libraryID == 0 ? 1 : item.libraryID]
+        let args = (try? core.glue("chatArgs", [target, o], as: [String].self)) ?? []
         turnId += 1
         let id = turnId
         resumable = sessionId
         gotDone = false
-        turn = launcher.runner.stream(launcher.runnerArgv(args), stdin: text, onLine: { [weak self] line in
+        guard let list else { return start(args, stdin: text, id: id) }
+        list.read { [weak self] papers in
+            guard let self, id == self.turnId else { return }
+            guard let papers else { return self.turnEnded(RunnerResult(status: 1, stderr: "the table didn't give its papers: try again")) }
+            var input: [String: Any] = ["question": text, "list": papers]
+            if !display.isEmpty { input["display"] = display }
+            guard let data = try? JSONSerialization.data(withJSONObject: input), let stdin = String(data: data, encoding: .utf8) else { return }
+            self.start(args, stdin: stdin, id: id)
+        }
+    }
+
+    private func start(_ args: [String], stdin: String, id: Int) {
+        turn = launcher.runner.stream(launcher.runnerArgv(args), stdin: stdin, onLine: { [weak self] line in
             guard let self, id == self.turnId else { return }
             self.event(line)
         }, completion: { [weak self] r in
@@ -304,7 +380,14 @@ final class ChatWindowModel: ObservableObject {
         launcher.refreshChats()
     }
 
-    func stop() { turn?.stop() }
+    func stop() {
+        if let turn { return turn.stop() }
+        // (a list's question waiting for the table's papers: it doesn't go)
+        if busy, list != nil {
+            turnId += 1
+            turnEnded(RunnerResult(status: 143))
+        }
+    }
 
     // ---- the box
 
@@ -338,11 +421,21 @@ final class ChatWindowModel: ObservableObject {
 
     // esc: the keys hidden, else a running answer stopped, else (nothing typed) back to the launcher on the paper's
     // menu, the window closed (the chat is kept: the menu reopens it). A question being typed stays.
+    // Docked in a table: nothing typed, esc closes the chat (the table stays).
     func escape() {
         if showKeys { showKeys = false } else if busy { stop() } else if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            backToMenu()
+            if !docked { backToMenu() }
             close()
         }
+    }
+
+    // Ask each paper (a list's): the question in the box becomes an AI column that reads each paper's full text; the
+    // table shows its run's plan (Run starts it), and the chat sums up the answers when the run is done.
+    func askEach() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let list, !text.isEmpty, !busy else { return }
+        draft = ""
+        list.askEach(text)
     }
 
     // The window's own keys (its local monitor). → taken

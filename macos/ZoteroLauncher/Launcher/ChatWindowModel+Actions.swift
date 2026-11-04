@@ -32,6 +32,7 @@ extension ChatWindowModel {
     }
 
     func saveToZotero(_ title: String, _ text: String) {
+        guard list == nil else { return showFlash("A list's chat has no paper to be a note on: Copy or Download keeps it") }
         guard !saving else { return showFlash("Still saving the last note") }
         saving = true
         showFlash("Saving to Zotero…")
@@ -88,6 +89,7 @@ extension ChatWindowModel {
 
     // Menu (⌥M): the launcher, on the paper's menu, its chat row highlighted.
     func backToMenu() {
+        guard !docked else { return }
         launcher.showMenuFor?(item, ["rowId": "chat"])
     }
 

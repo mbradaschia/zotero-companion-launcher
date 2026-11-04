@@ -43,7 +43,7 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
         window.title = "Review · " + model.title
         window.isReleasedWhenClosed = false
         window.contentMinSize = Self.minSize
-        window.contentView = NSHostingView(rootView: ReviewWebView(model: model).frame(minWidth: Self.minSize.width, minHeight: Self.minSize.height))
+        window.contentView = NSHostingView(rootView: ReviewWindowContent(model: model, launcher: launcher).frame(minWidth: Self.minSize.width, minHeight: Self.minSize.height))
         ThemeStore.shared.adopt(window)
         window.delegate = self
         window.center()
@@ -90,6 +90,8 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, let key = open.first(where: { $0.value.window === window })?.key else { return }
+        open[key]?.model.paperChat?.windowClosing() // (an answer coming in stops: the chat keeps what it had)
+        open[key]?.model.listChat?.windowClosing()
         open[key] = nil
         if open.isEmpty, let monitor {
             NSEvent.removeMonitor(monitor)

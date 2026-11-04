@@ -22,6 +22,15 @@ final class ReviewWindowModel: ObservableObject {
     private var searchedAt = Date.distantPast
     private var ready = false
     private var preview: String? // a query typed in the source's box, searched as you type; ↵ keeps it, esc drops it
+    // The chat docked on the right (ReviewWindowModel+Chat.swift): a paper's (the panel's paper) or the list's.
+    @Published var chatOpen = false
+    @Published var chatMode = "paper" // "paper" or "list"
+    @Published var chatWidth: Double = ReviewWindowModel.savedChatWidth
+    @Published var paperChat: ChatWindowModel?
+    @Published var listChat: ChatWindowModel?
+    var chatPaper: PaperRef? // the panel's paper (the page says, as the selection moves)
+    var listAsks: [Int: ([String: Any]?) -> Void] = [:]
+    var listAsked = 0
     private static let pinKey = "ZLReviewPinned"
     // Pinned: the windows stay over other apps' (as the launcher's pin); kept for the next table.
     var pinned: Bool {
@@ -56,7 +65,7 @@ final class ReviewWindowModel: ObservableObject {
         search()
     }
 
-    private var files: ReviewFiles? { launcher.reviewFiles }
+    var files: ReviewFiles? { launcher.reviewFiles }
 
     // The review's file read again (another machine may have changed it).
     func reload() {
@@ -168,7 +177,8 @@ final class ReviewWindowModel: ObservableObject {
             "loading": loading,
             "pinned": pinned,
             "preview": preview ?? NSNull(),
-            "run": runState ?? NSNull()
+            "run": runState ?? NSNull(),
+            "chat": ["open": chatOpen, "mode": chatMode]
         ])
         stopIfAsked()
     }
@@ -176,7 +186,7 @@ final class ReviewWindowModel: ObservableObject {
     // What the page sends (ReviewGrid.js's post).
     func handle(_ m: [String: Any]) {
         let type = m["type"] as? String ?? ""
-        if !["ready", "layout", "segments", "preview"].contains(type) { UsageLog.shared.count("review:" + type + (type == "paper" ? "-" + (m["what"] as? String ?? "") : "")) } // (what the page sends on its own isn't a use)
+        if !["ready", "layout", "segments", "preview", "chatPaper", "chatList"].contains(type) { UsageLog.shared.count("review:" + type + (type == "paper" ? "-" + (m["what"] as? String ?? "") : "")) } // (what the page sends on its own isn't a use)
         switch type {
         case "ready": ready = true; send()
         case "refresh": reload(); search()
@@ -249,6 +259,10 @@ final class ReviewWindowModel: ObservableObject {
             guard !text.isEmpty else { return }
             page?.flash(launcher.desktop.copy(text) ? (m["said"] as? String ?? "Copied") + ": " + Self.excerpt(text) : "Couldn't copy it")
         case "draftColumn": draftColumn(m)
+        case "chat": chatAsked(m)
+        case "chatPaper": chatPaperMoved(m["paper"] as? [String: Any])
+        case "chatList": listAnswered(m)
+        case "askedEach": askedEach(m)
         case "restore":
             guard let core = launcher.core, let files, let column = m["column"] as? String, let paper = m["paper"] as? String else { return }
             do {
@@ -499,6 +513,7 @@ final class ReviewWindowModel: ObservableObject {
             return true
         }
         if flags == .command && chars == "r" { reload(); search(); return true }
+        if flags == [.command, .option] && e.keyCode == 8 { toggleChat(); return true } // ⌥⌘C: the chat, docked
         // the editing keys, for the page's text fields (an app without an Edit menu doesn't send them)
         let edits: [String: Selector] = ["c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "x": #selector(NSText.cut(_:)),
                                          "a": #selector(NSText.selectAll(_:)), "z": Selector(("undo:"))]

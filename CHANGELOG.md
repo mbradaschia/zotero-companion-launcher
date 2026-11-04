@@ -7,6 +7,23 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.30`)
+
+- **A chat docked in the review table.** The chat icon at the top of the panel (or the toolbar's, or ⌥⌘C) opens the
+  app's chat on the table's right; drag its edge to size it. *Paper* chats about the selected paper as the chat window
+  does, and follows the selection (a paper's chat in this window comes back when you return to it). *List* asks across
+  the papers as the table shows them: each one's APA 7 citation and reference (Zotero's), where and when it was
+  published, its abstract, and the columns you see. Answers cite each paper (Author, Year). The list is read at a
+  chat's first question and kept with it (a new chat reads the table again); too long for the model, the abstracts are
+  shortened first, then the columns, and the chat says so. A list's chats are kept with the table's
+  (`chats/review-<id>/`).
+- **Ask each paper.** In *List*, *Ask each* turns the question into an AI column that reads every paper's full text;
+  the run's plan shows first (nothing starts before Run). When the run is done, the chat is given the answers, each
+  with its citation, and sums them up: what the papers say, how many support each point, which disagree or don't
+  address it.
+- Runner 0.2.8: `chat --review <id>` (the list on stdin, as JSON); `chats`, `chat-show`, `chat-rename` and
+  `chat-delete` take `--review` too.
+
 ### The Mac app (`macos-v0.4.29`)
 
 - **Run one AI cell, a row or a column from a right-click.** A cell's menu: *Run it* (or *Run it again*), *Run it on

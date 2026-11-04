@@ -400,3 +400,18 @@ test("a cell copied with its citation: APA 7 in text, after the text, before its
   assert.equal(R.withCitation("12", r), "12 (Sirmon et al., 2011)");
   assert.equal(R.withCitation("", r), "(Sirmon et al., 2011)");
 });
+
+// The docked chat's List: what it reads of the table (the runner adds abstracts and Zotero's citations).
+test("chatList: the rows as shown, each with its citation and the columns you see (a list as bullets)", () => {
+  const list = { id: "c-list000000", label: "Mechanisms", kind: "prompt", reads: "full", shape: "list", length: 5, options: [], evidence: false, model: "default", description: "Which?" };
+  const review = R.newReview({ type: "query", query: "x" }, {}, "")
+  review.columns = [{ id: "title" }, { id: "year" }, { id: own.id }, { id: notes.id, hidden: true }, { id: list.id }]
+  const all = Object.assign({}, defs, { [list.id]: list })
+  const cols = R.columns(review, ctx, all)
+  const cells = { [own.id]: { "1:AAAA0001": { v: "include" } }, [list.id]: { "1:AAAA0001": { v: ["routines", "habits"], by: "ai" } }, [notes.id]: { "1:AAAA0001": { v: "hidden one" } } }
+  const out = R.chatList([row("AAAA0001", { creator: "Feldman and Pentland", year: "2003", title: "Reconceptualizing <i>routines</i>" }), row("BBBB0002")], cols, ctx, cells, "Chapter 2")
+  assert.equal(out.name, "Chapter 2")
+  assert.deepEqual(out.papers[0], { id: "1:AAAA0001", title: "Reconceptualizing routines", cite: "(Feldman & Pentland, 2003)", cells: [{ label: "Include?", value: "include" }, { label: "Mechanisms", value: "• routines\n• habits" }] })
+  assert.deepEqual(out.papers[1].cells, [])
+  assert.equal(R.chatList(Array.from({ length: 230 }, (_, i) => row("A" + String(i).padStart(7, "0"))), cols, ctx, {}, "x").papers.length, 200)
+})

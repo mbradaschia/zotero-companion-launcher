@@ -7,6 +7,7 @@ import { paths } from "./paths.mjs";
 import { writeAtomic, ensureDir } from "./atomic.mjs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { listGroundingMessage } from "./listchat.mjs";
 
 export function stateDir(env = process.env) {
   return paths(env).runnerState;
@@ -76,8 +77,9 @@ export function listSessions(dir) {
 // What the assistant is and what it gets; the rules are the user's (Settings › Rules, lib/system.mjs).
 export const CHAT_SYSTEM = `You are a research assistant helping the user understand and use one academic paper. The first message gives you the paper: its metadata, its APA 7 reference and in-text citation (formatted by Zotero, exact), the user's highlights and notes, and its text, page by page ("[p. 275]" or "## p. 275" marks where each page starts).`;
 
-// The first message of a session: the paper, then the question.
+// The first message of a session: the paper, then the question (a list chat's: the list).
 export function groundingMessage(ctx, question) {
+  if (ctx && ctx.list) return listGroundingMessage(ctx, question);
   const lines = ["# The paper", ""];
   lines.push(`- Title: ${ctx.title}`);
   if (ctx.reference) lines.push(`- APA 7 reference: ${ctx.reference}`);
