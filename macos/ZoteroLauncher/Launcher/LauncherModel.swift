@@ -95,6 +95,8 @@ final class LauncherModel: ObservableObject {
 
     // Phase 4a's views.
     var note = NoteState()
+    var dragSource: String? // the result a drag last started from ("<libraryID>:<key>")
+    var notesAsked = Set<String>() // notes asked of Zotero ahead, for a drag out (prefetchNote)
     var tags = TagState()
     var marks = PaperMarks()
     var settingsView = SettingsState()
@@ -198,6 +200,7 @@ final class LauncherModel: ObservableObject {
             laterNote = ""
         }
         note.cache = [:]
+        notesAsked = []
         tags.cache = [:]
         searchState.facetCache = [:]
         refreshSync() // when Zotero last synced: the footer says

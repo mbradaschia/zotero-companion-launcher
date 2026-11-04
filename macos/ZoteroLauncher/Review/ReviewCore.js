@@ -718,6 +718,49 @@ var ReviewCore = (function () {
     return m ? t.slice(0, t.length - m[0].length) + m[2] + " " + cite + m[1] : t + " " + cite
   }
 
+  // ---- what a drag out of the app carries (to another app: plain text first)
+
+  // A paper as one line of text, shaped as an APA 7 reference from what /search gives: "Sirmon et al. (2011). Resource
+  // orchestration. Journal of Management." (Zotero's first creator, so "et al." where APA lists them all; your own style's
+  // entry is on the paper's Copy bibliography row.) No author: the title leads; no year: "n.d.".
+  function reference(r) {
+    var title = plainTitle(r && r.title).trim().replace(/[.\s]+$/, "")
+    var who = str(r && r.creator, 200).trim().replace(/^(.+?)\s+(and|und|e|y|et|en|och|og|i)\s+(.+)$/, function (m, a, and, b) { return /\bal\.?$/.test(b) ? m : a + " & " + b })
+    var y = /\b(\d{4})\b/.exec(str(r && r.year, 40))
+    var when = "(" + (y ? y[1] : "n.d.") + ")."
+    var where = str(r && r.publication, 300).trim().replace(/[.\s]+$/, "")
+    var t = title && !/[?!]$/.test(title) ? title + "." : title
+    var lead = who ? who + " " + when + (t ? " " + t : "") : (t ? t + " " : "") + when
+    return lead + (where ? " " + where + "." : "")
+  }
+
+  // Several papers (a drag of the checked rows): their references, one a line.
+  function references(rows) { return (rows || []).map(reference).join("\n") }
+
+  // A note's HTML as plain text: blocks on lines of their own (a blank line between paragraphs), list items with "- ",
+  // table cells with a tab, the tags out, the entities read.
+  var BLOCK_END = /<\/(p|div|h[1-6]|blockquote|pre|ul|ol|table)\s*>/gi
+  function htmlText(html) {
+    var s = String(html || "")
+      .replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, "")
+      .replace(/\r\n?/g, "\n")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<li\b[^>]*>/gi, "\n- ")
+      .replace(/<\/(td|th)\s*>/gi, "\t")
+      .replace(/<\/tr\s*>/gi, "\n")
+      .replace(BLOCK_END, "\n\n")
+      .replace(/<[^>]*>/g, "")
+      .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+\d*);/gi, function (m, e) {
+        var low = e.toLowerCase()
+        if (low[0] === "#") {
+          var n = low[1] === "x" ? parseInt(low.slice(2), 16) : parseInt(low.slice(1), 10)
+          return n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m
+        }
+        return low === "nbsp" ? " " : ENTITIES[low] !== undefined ? ENTITIES[low] : m
+      })
+    return s.split("\n").map(function (l) { return l.replace(/[ \t]+$/, "") }).join("\n").replace(/\n{3,}/g, "\n\n").trim()
+  }
+
   // While a table's AI run goes, each of its cells not done yet: "running" (its paper is being asked now) or "waiting"
   // (a paper after it, or asked while the run went: it runs next). run: { cells: ["<column>|<paper>"] (the run's, in
   // its papers' order), queued: [same], started (ISO), done (papers done, when the runner says) }. A cell the run
@@ -838,7 +881,7 @@ var ReviewCore = (function () {
     sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
     parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,
     AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, cleanLabels: cleanLabels, labelsText: labelsText, columnHash: columnHash, hash12: hash12,
-    cellOf: cellOf, cellState: cellState, runPlan: runPlan, runMarks: runMarks, band: band, citeAPA: citeAPA, withCitation: withCitation, ROW_MIN: ROW_MIN, ROW_MAX: ROW_MAX, normalizeHeights: normalizeHeights
+    cellOf: cellOf, cellState: cellState, runPlan: runPlan, runMarks: runMarks, band: band, citeAPA: citeAPA, withCitation: withCitation, reference: reference, references: references, htmlText: htmlText, ROW_MIN: ROW_MIN, ROW_MAX: ROW_MAX, normalizeHeights: normalizeHeights
   }
 })()
 

@@ -187,6 +187,20 @@ final class SortLabelTests: XCTestCase {
         XCTAssertEqual(model.selectedSearchRow.map(LauncherModel.paperId), before[0])
     }
 
+    // A paper dragged carries its reference line (to another app); dropped back on the list, that moves it.
+    func testADraggedPaperCarriesItsReferenceAndStillMoves() throws {
+        try openACollection()
+        let before = papers
+        let rows = model.searchRows
+        let from = try XCTUnwrap(rows.firstIndex { $0.isPaper && LauncherModel.paperId($0) == before[0] })
+        let onto = try XCTUnwrap(rows.firstIndex { $0.isPaper && LauncherModel.paperId($0) == before[2] })
+        let text = model.startDrag(rows[from])
+        XCTAssertFalse(text.hasPrefix("zotero:"), text)
+        XCTAssertTrue(text.contains("(") && text.count > 12, "a reference line: \(text)")
+        XCTAssertTrue(model.dropPaper(text, onto: onto))
+        XCTAssertEqual(Array(papers.prefix(3)), [before[1], before[2], before[0]])
+    }
+
     func testWhatYouTypeDoesNotMove() throws {
         try openACollection()
         model.setFilter("work")

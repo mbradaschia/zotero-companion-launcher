@@ -78,6 +78,19 @@ const before = await pg.textContent(cell("AAAAAAAA", "c-0123456789"));
 await pg.click(cell("AAAAAAAA", "c-0123456789"));
 await pg.click(cell("AAAAAAAA", "c-0123456789"));
 ok((await pg.textContent(cell("AAAAAAAA", "c-0123456789"))) === before, "clicking a choice cell changes nothing");
+
+// dragged out to another app: a cell's text, plain (⌥: with its citation); a title, the paper's reference
+const drag = (sel, alt) => pg.evaluate(([q, a]) => {
+  const dt = new DataTransfer(), e = new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt, altKey: !!a });
+  document.querySelector(q).dispatchEvent(e);
+  return { text: dt.getData("text/plain"), stopped: e.defaultPrevented };
+}, [sel, alt]);
+ok((await pg.getAttribute(cell("AAAAAAAA", "year"), "draggable")) === "true", "a cell can be dragged");
+ok((await drag(cell("AAAAAAAA", "c-0123456789"))).text === "include", "a cell dragged out carries its text");
+ok((await drag(cell("AAAAAAAA", "c-0123456789"), true)).text === "include (Sirmon et al., 2011)", "with ⌥, its citation after it");
+ok((await drag(cell("AAAAAAAA", "title"))).text === "Sirmon et al. (2011). Resource orchestration to create competitive advantage breadth.", "a title carries the paper's reference");
+ok((await drag(cell("DDDDDDDD", "c-abcdefghij"))).stopped, "an empty cell doesn't drag");
+ok((await drag("th[data-c=year]")).stopped, "nor a header (a drag moves a column)");
 ok((await sent()).length === 0, "and sends nothing");
 await pg.click('#panel [data-set="own"][data-val="exclude"]');
 ok((await pg.textContent(cell("AAAAAAAA", "c-0123456789"))) === "exclude", "the panel's pill sets it");

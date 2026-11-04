@@ -99,6 +99,7 @@ struct LauncherView: View {
             CalendarView(model: model)
         } else if store.inNote && model.note.data != nil && !model.noteBodyHTML.isEmpty {
             NoteView(html: model.noteBodyHTML, size: model.noteTextSize, onLink: { model.openLink($0) }, display: { model.noteDisplay = $0 })
+                .overlay(alignment: .topTrailing) { DragGrip(what: "the note's text") { model.readerDragText }.padding(.top, 6).padding(.trailing, 10) }
         } else if model.content.count == 0 {
             let empty = model.emptyState
             VStack(spacing: 6) {
@@ -129,7 +130,8 @@ struct LauncherView: View {
                                 SearchRowView(row: row, selected: index == store.selectedIndex, hint: hint, opens: model.searchRowOpens(row),
                                               task: row.isPaper ? model.rowTasks["\(row.libraryID):\(row.key)"] ?? "" : "")
                                     .contentShape(Rectangle())
-                                    .modifier(PaperReorder(enabled: model.paperReorderable(row), link: LauncherModel.paperLink(row)) { model.dropPaper($0, onto: index) })
+                                    .modifier(DragOut(drags: LauncherModel.dragsOut(row), text: { model.startDrag(row) }, note: LauncherModel.noteOf(row),
+                                                      reorder: model.paperReorderable(row), model: model) { model.dropPaper($0, onto: index) })
                                     .onTapGesture { store.selectedIndex = index; model.enterActions(index) }
                                     .accessibilityAction { store.selectedIndex = index; model.enterActions(index) }
                             }
@@ -141,6 +143,7 @@ struct LauncherView: View {
                                 section(row.section, first: index == 0 || rows[index - 1].section != row.section)
                                 ListRowView(row: row, selected: index == store.selectedIndex, hint: hint)
                                     .contentShape(Rectangle())
+                                    .modifier(DragOut(drags: LauncherModel.dragsOut(row), text: { model.dragText(row) ?? row.label }, note: LauncherModel.noteOf(row), model: model))
                                     .onTapGesture { store.selectedIndex = index; model.activateAction(index) }
                                     .accessibilityAction { store.selectedIndex = index; model.activateAction(index) }
                             }
@@ -255,26 +258,54 @@ struct ArrangeBar: View {
     }
 }
 
-// Drag a paper onto another to move it there, in a list you browse (Sort › Manual; sorted another way, the list switches
-// to Manual). The row it would land on is outlined. What's dragged is the paper's Zotero link, so dropped in another app
-// it selects the paper in Zotero.
-struct PaperReorder: ViewModifier {
-    let enabled: Bool
-    let link: String
-    let drop: (String) -> Bool
+// A row dragged out to another app carries its text (LauncherModel.dragText: a paper's reference, a note's text, a
+// name), made when the drag starts. A note row the pointer rests on is asked for ahead, so its whole text is there.
+// In a list you browse, a paper also moves when dropped on another (Sort › Manual; sorted another way, the list
+// switches to Manual): the row it would land on is outlined, and what's dropped (its text) names the paper.
+struct DragOut: ViewModifier {
+    let drags: Bool
+    let text: () -> String
+    var note: (key: String, libraryID: Int)? = nil
+    var reorder = false
+    let model: LauncherModel
+    var drop: (String) -> Bool = { _ in false }
     @State private var targeted = false
     @Environment(\.palette) private var palette
 
     @ViewBuilder
     func body(content: Self.Content) -> some View { // (Self.: the launcher has an enum named Content)
-        if enabled {
+        if drags && reorder {
             content
-                .draggable(link)
+                .draggable(text())
+                .onHover { if $0, let note { model.prefetchNote(key: note.key, libraryID: note.libraryID) } }
                 .dropDestination(for: String.self) { items, _ in items.first.map(drop) ?? false } isTargeted: { targeted = $0 }
                 .overlay { if targeted { RoundedRectangle(cornerRadius: 6).stroke(palette.accent, lineWidth: 2).padding(.horizontal, 4) } }
+        } else if drags {
+            content
+                .draggable(text())
+                .onHover { if $0, let note { model.prefetchNote(key: note.key, libraryID: note.libraryID) } }
         } else {
             content
         }
+    }
+}
+
+// The handle a whole thing is dragged out by where a drag inside it selects text (a note read, a chat's message): three
+// lines, as the review table's columns are moved by; what it carries is made when the drag starts.
+struct DragGrip: View {
+    let what: String // "the note's text"
+    let text: () -> String
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(palette.subtext)
+            .frame(width: 22, height: 22)
+            .contentShape(Rectangle())
+            .draggable(text())
+            .help("Drag into another app: it carries " + what)
+            .accessibilityLabel("Drag " + what + " into another app")
     }
 }
 

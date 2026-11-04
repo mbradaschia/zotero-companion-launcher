@@ -194,7 +194,7 @@ extension LauncherModel {
     // A paper's id in paperOrder (Glue.js's arrange reads the same).
     static func paperId(_ row: SearchRow) -> String { "\(row.libraryID):\(row.key)" }
 
-    // What a dragged paper carries: its Zotero link (dropped in another app, it selects the paper in Zotero).
+    // A paper's Zotero link (what a dragged paper carried before 0.4.31; still taken when dropped).
     static func paperLink(_ row: SearchRow) -> String { "zotero://select/items/\(row.libraryID)_\(row.key)" }
 
     // Whether this result moves in your order: a paper in a list you browse (not the pins, not what you type).
@@ -216,12 +216,15 @@ extension LauncherModel {
         reorderPaper(row, to: rows[j])
     }
 
-    // A paper dropped on another (the payload: paperLink): it takes that paper's place. Only within a group.
+    // A paper dropped on another: it takes that paper's place. Only within a group. The payload is what the drag
+    // carries (its text, LauncherModel+Drag: the paper the drag started from when two read the same), or its link.
     @discardableResult
     func dropPaper(_ payload: String, onto index: Int) -> Bool {
         let rows = searchRows
+        let source = rows.firstIndex { paperReorderable($0) && Self.paperId($0) == dragSource && dragText($0) == payload }
         guard rows.indices.contains(index), paperReorderable(rows[index]),
-              let from = rows.firstIndex(where: { paperReorderable($0) && Self.paperLink($0) == payload }), from != index else { return false }
+              let from = source ?? rows.firstIndex(where: { paperReorderable($0) && (Self.paperLink($0) == payload || dragText($0) == payload) }),
+              from != index else { return false }
         guard rows[from].section == rows[index].section else {
             flashMessage("A paper moves within its group (\(rows[from].section))")
             return false
