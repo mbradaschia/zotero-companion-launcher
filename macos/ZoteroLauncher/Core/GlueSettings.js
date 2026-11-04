@@ -12,7 +12,7 @@ function GlueSettings(V, C, T, P, S) {
   function processesRow(state, L) {
     var n = ((state.settings && state.settings.defaults) || {}).processesAtOnce || 1
     return L({ section: "Processes", rowId: "set-edit", value: "defaults.processesAtOnce", icon: S.ICON.defaults, label: "Processes at once", available: true, submenu: true,
-      detail: n + " at a time on this Mac · extraction, tagging and prompts on new papers; a catch-up runs one at a time, a prompt you run yourself never waits" })
+      detail: n + " at a time on this Mac · extraction, tagging and prompts on new papers and in a catch-up, never two on one paper; a prompt you run yourself never waits" })
   }
 
   // ---- catching up (the Mac's): what each catch-up checks, the plan's argv, the jobs a plan holds, the question when

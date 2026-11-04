@@ -116,7 +116,7 @@ test("Settings pages: the root with the setup checklist; General from the schema
   const g = S.buildGeneral(state(), row);
   assert.equal(g.length, S.GENERAL.length - 1); // one row per setting (Automation runs on: in Defaults › New papers); choices open a page
   assert.ok(!g.some((r) => r.value === "general.automationHost"));
-  assert.deepEqual([...new Set(g.map((r) => r.section))], ["Keys", "Search", "Before you type", "Opening papers", "Citations", "Artifacts", "Sync", "Advanced"]);
+  assert.deepEqual([...new Set(g.map((r) => r.section))], ["Keys", "Search", "Before you type", "Papers", "Folders and sync", "Advanced"]);
   assert.ok(g.filter((r) => r.rowId === "set-choice").every((r) => r.submenu));
   const opts = S.buildChoice(state(), "general.emptyQuery.recent", row);
   assert.deepEqual(opts.map((r) => [r.tag, r.checked]), [["latest", true], ["added", false], ["modified", false], ["none", false]]);
@@ -255,9 +255,9 @@ test("Rules: every rule a checkbox, by section; changes saved over the defaults;
   assert.deepEqual(C.normalizeSettings({ rules: { concise: "no", "Bad Id": true } }).problems, ["rules.concise must be true or false", "rules.Bad Id must be true or false"]);
 });
 
-test("General › Sync: the folder, this machine's name, the automation host", () => {
-  const keys = S.GENERAL.filter((g) => g.section === "Sync").map((g) => g.key);
-  assert.deepEqual(keys, ["syncDir", "machineName", "automationHost"]);
+test("General › Folders and sync: the folder, this machine's name, the automation host (shown in Defaults), the artifacts' folder", () => {
+  const keys = S.GENERAL.filter((g) => g.section === "Folders and sync").map((g) => g.key);
+  assert.deepEqual(keys, ["syncDir", "machineName", "automationHost", "artifactsDir"]);
   for (const k of keys) assert.equal(S.GENERAL_DEFAULTS[k], null, k);
 });
 

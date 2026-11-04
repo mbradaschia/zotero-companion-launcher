@@ -59,7 +59,7 @@ final class ReviewWindows: NSObject, NSWindowDelegate {
     }
 
     private func zoomAll(_ z: Double) {
-        for entry in open.values { entry.model.page?.zoom(z) }
+        for entry in open.values { entry.model.page?.zoom(z); entry.model.objectWillChange.send() } // (the chat's place, scaled again)
     }
 
     private func pinAll(_ on: Bool) {

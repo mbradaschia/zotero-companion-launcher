@@ -3,15 +3,44 @@ import SwiftUI
 
 // The chat docked on the right of a review table: the app's chat (ChatWindowModel, ChatWindowView), about the panel's
 // paper (it follows the selection) or about the list, the papers as the table shows them (the runner reads their
-// citations and abstracts, and the columns you see). The panel's chat icon, the toolbar's and ⌥⌘C open it; ✕, esc in
-// an empty box or ⌥⌘C again close it. A list's Ask each paper makes the question an AI column, the table shows the
-// run's plan, and when the run is done its answers come back here to be summed up.
+// citations and abstracts, and the columns you see). The page lays out the right pane: its tabs, Info and Chat, or both
+// split (Info above, the chat below; a tab dragged down splits it); its width (a drag at its edge) and the split's
+// heights are kept here, for the next table. The chat is drawn over the place the page leaves it (#chatslot).
+// The Chat tab, the toolbar's icon and ⌥⌘C open it; the Info tab, esc in an empty box or ⌥⌘C again go back to Info.
+// A list's Ask each paper makes the question an AI column, the table shows the run's plan, and when the run is done
+// its answers come back here to be summed up.
 extension ReviewWindowModel {
     nonisolated private static let chatWidthKey = "ZLReviewChatWidth"
-    nonisolated static let chatWidths: ClosedRange<Double> = 320...900
+    nonisolated static let chatWidths: ClosedRange<Double> = 260...900
     nonisolated static var savedChatWidth: Double {
         let w = UserDefaults.standard.double(forKey: chatWidthKey)
-        return w > 0 ? min(max(w, chatWidths.lowerBound), chatWidths.upperBound) : 420
+        return w > 0 ? min(max(w, chatWidths.lowerBound), chatWidths.upperBound) : 360
+    }
+
+    // The pane split (Info above, the chat below) and Info's share of its height, kept for the next table.
+    nonisolated private static let splitKey = "ZLReviewPaneSplit"
+    nonisolated private static let ratioKey = "ZLReviewPaneRatio"
+    nonisolated static var paneSplit: Bool { UserDefaults.standard.bool(forKey: splitKey) }
+    nonisolated static var paneRatio: Double {
+        let r = UserDefaults.standard.double(forKey: ratioKey)
+        return r > 0 ? min(max(r, 0.2), 0.8) : 0.5
+    }
+
+    func paneChanged(_ m: [String: Any]) {
+        if let on = m["split"] as? Bool { UserDefaults.standard.set(on, forKey: Self.splitKey) }
+        if let r = m["ratio"] as? Double { UserDefaults.standard.set(min(max(r, 0.2), 0.8), forKey: Self.ratioKey) }
+        if let w = m["width"] as? Double { keepChatWidth(w) }
+    }
+
+    // The chat's place in the page moved (or went): the chat drawn there; a place and no chat yet: it's made.
+    func slotMoved(_ s: [String: Any]?) {
+        guard let s, let x = s["x"] as? Double, let y = s["y"] as? Double, let w = s["w"] as? Double, let h = s["h"] as? Double, w > 0, h > 0 else {
+            if chatSlot != nil { chatSlot = nil }
+            return
+        }
+        let next = CGRect(x: x, y: y, width: w, height: h)
+        if next != chatSlot { chatSlot = next }
+        makeChat(chatMode)
     }
 
     func keepChatWidth(_ w: Double) {
@@ -27,34 +56,46 @@ extension ReviewWindowModel {
     // The page's chat icon (the panel's: its paper; the toolbar's: toggle), { mode, paper, toggle }.
     func chatAsked(_ m: [String: Any]) {
         if let p = Self.paperRef(m["paper"] as? [String: Any]) { chatPaper = p }
+        if m["close"] as? Bool == true { return closeChat() } // (the pane hidden: ⌥⌘I)
         if m["toggle"] as? Bool == true { return toggleChat() }
         openChat(m["mode"] as? String == "list" ? "list" : "paper")
     }
 
     func toggleChat() {
-        if chatOpen { closeChat() } else { openChat(chatMode) }
+        if chatOpen { showInfo() } else { openChat(chatMode) }
+    }
+
+    // The Info tab: the page's panel back in the pane (shown if you'd hidden it).
+    func showInfo() {
+        closeChat()
+        page?.showInfo()
     }
 
     func openChat(_ mode: String) {
         UsageLog.shared.count("window:review-chat-" + mode)
+        makeChat(mode)
+        chatMode = mode
+        chatOpen = true
+        send()
+        DispatchQueue.main.async { [weak self] in (mode == "list" ? self?.listChat : self?.paperChat)?.focusInput() }
+    }
+
+    // The mode's chat made, if it isn't yet (a paper's needs the panel's paper); a paper's follows it.
+    func makeChat(_ mode: String) {
         if mode == "list" {
             if listChat == nil {
                 listChat = ChatWindowModel(item: PaperRef(key: "", libraryID: 1, title: title, itemType: ""), launcher: launcher, docked: true,
                                            list: ChatList(review: id, name: { [weak self] in self?.title ?? "the list" },
                                                           read: { [weak self] done in self?.readList(done) ?? done(nil) },
                                                           askEach: { [weak self] q in self?.askEach(q) }))
-                listChat?.close = { [weak self] in self?.closeChat() }
+                listChat?.close = { [weak self] in self?.showInfo() }
             }
         } else if let p = chatPaper {
             if let c = paperChat { c.follow(p) } else {
                 paperChat = ChatWindowModel(item: p, launcher: launcher, docked: true)
-                paperChat?.close = { [weak self] in self?.closeChat() }
+                paperChat?.close = { [weak self] in self?.showInfo() }
             }
         }
-        chatMode = mode
-        chatOpen = true
-        send()
-        DispatchQueue.main.async { [weak self] in (mode == "list" ? self?.listChat : self?.paperChat)?.focusInput() }
     }
 
     func closeChat() {
@@ -67,9 +108,9 @@ extension ReviewWindowModel {
     func chatPaperMoved(_ p: [String: Any]?) {
         guard let ref = Self.paperRef(p) else { return }
         chatPaper = ref
-        if chatOpen, chatMode == "paper" {
-            if let c = paperChat { c.follow(ref) } else { openChat("paper") }
-        }
+        guard chatMode == "paper" else { return }
+        if chatOpen { if let c = paperChat { c.follow(ref) } else { openChat("paper") } }
+        else if chatSlot != nil { makeChat("paper") } // (split: the chat below follows too)
     }
 
     // The list as the page shows it (ReviewCore.chatList), for a list chat's question; nil when the page doesn't
@@ -118,36 +159,22 @@ extension ReviewWindowModel {
     }
 }
 
-// A review table's window: the grid, and the chat docked on its right when it's open (its width dragged at its edge,
-// kept for the next table).
+// A review table's window: the grid, and the chat drawn over the place the page leaves it in the right pane (its CSS
+// px, scaled by the page's zoom).
 struct ReviewWindowContent: View {
     @ObservedObject var model: ReviewWindowModel
     let launcher: LauncherModel
-    @State private var dragFrom: Double?
 
     var body: some View {
-        HStack(spacing: 0) {
+        ZStack(alignment: .topLeading) {
             ReviewWebView(model: model).frame(minWidth: 320, minHeight: ReviewWindows.minSize.height)
-            if model.chatOpen {
-                ZStack {
-                    Color.clear
-                    Rectangle().fill(Color(nsColor: .separatorColor)).frame(width: 1)
-                }
-                .frame(width: 6)
-                .contentShape(Rectangle())
-                .onHover { inside in if inside { NSCursor.resizeLeftRight.push() } else { NSCursor.pop() } }
-                .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { g in
-                    let from = dragFrom ?? model.chatWidth
-                    if dragFrom == nil { dragFrom = from }
-                    model.chatWidth = min(max(from - g.translation.width, ReviewWindowModel.chatWidths.lowerBound), ReviewWindowModel.chatWidths.upperBound)
-                }.onEnded { _ in
-                    dragFrom = nil
-                    model.keepChatWidth(model.chatWidth)
-                })
-                .help("Drag: the chat's width")
+            if let s = model.chatSlot {
+                let z = ReviewWindowModel.zoom
                 ReviewChatPane(review: model, launcher: launcher)
-                    .frame(width: model.chatWidth)
+                    .frame(width: s.width * z, height: s.height * z)
+                    .background(ThemeStore.shared.palette.background)
                     .themed()
+                    .offset(x: s.minX * z, y: s.minY * z)
             }
         }
     }
@@ -170,9 +197,6 @@ struct ReviewChatPane: View {
                 .fixedSize()
                 .help("What the chat reads: the selected paper (its text, highlights and notes), or the list (each paper's citation, abstract and the columns you see)")
                 Spacer()
-                Button { review.closeChat() } label: { Image(systemName: "xmark") }
-                    .buttonStyle(.borderless)
-                    .help("Close the chat (⌥⌘C): it's kept, the icon brings it back")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 6)

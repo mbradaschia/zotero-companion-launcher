@@ -185,6 +185,8 @@ final class ReviewTests: XCTestCase {
         var asksEach: [[String: Any]] = []
         func chatList(_ token: Int) { listAsks.append(token) }
         func askEach(_ o: [String: Any]) { asksEach.append(o) }
+        var infos = 0
+        func showInfo() { infos += 1 }
     }
 
     private func openWindow() throws -> (ReviewWindowModel, FakePage) {
@@ -247,9 +249,39 @@ final class ReviewTests: XCTestCase {
         XCTAssertTrue(summed.contains("\"display\""))
         XCTAssertTrue(listChat.messages.contains { $0["text"] as? String == "Asked each paper: “Which fatigue mechanisms?” (1 of 2 answered, in “Ask: Which fatigue mechanisms”)" })
 
+        // ⌥⌘C again: back to the pane's Info tab (the page's panel, shown if it was hidden)
         window.toggleChat()
         XCTAssertFalse(window.chatOpen)
         XCTAssertEqual((page.loads.last?["chat"] as? [String: Any])?["open"] as? Bool, false)
+        XCTAssertEqual(page.infos, 1)
+        // ⌥⌘I with the chat's tab showing hides the pane: the chat closes, Info isn't asked for
+        window.openChat("paper")
+        window.handle(["type": "chat", "close": true])
+        XCTAssertFalse(window.chatOpen)
+        XCTAssertEqual(page.infos, 1)
+        // one width for the pane, Info's and the chat's: the page's drag keeps it, and the page is told it
+        let was = window.chatWidth
+        defer { window.keepChatWidth(was) }
+        window.handle(["type": "paneWidth", "width": 480.0])
+        XCTAssertEqual(window.chatWidth, 480)
+        window.send()
+        XCTAssertEqual((page.loads.last?["chat"] as? [String: Any])?["width"] as? Double, 480)
+        window.handle(["type": "paneWidth", "width": 9000.0])
+        XCTAssertEqual(window.chatWidth, ReviewWindowModel.chatWidths.upperBound)
+        // split (a tab dragged down): kept, with Info's share of the height, and said to the page
+        let (wasSplit, wasRatio) = (ReviewWindowModel.paneSplit, ReviewWindowModel.paneRatio)
+        defer { window.handle(["type": "pane", "split": wasSplit, "ratio": wasRatio]) }
+        window.handle(["type": "pane", "split": true, "ratio": 0.6])
+        window.send()
+        let chat = try XCTUnwrap(page.loads.last?["chat"] as? [String: Any])
+        XCTAssertEqual(chat["split"] as? Bool, true)
+        XCTAssertEqual(chat["ratio"] as? Double, 0.6)
+        // the chat's place in the page: the chat is drawn there (made if it wasn't), and goes with it
+        window.handle(["type": "chatSlot", "slot": ["x": 500.0, "y": 40.0, "w": 360.0, "h": 300.0]])
+        XCTAssertEqual(window.chatSlot, CGRect(x: 500, y: 40, width: 360, height: 300))
+        XCTAssertNotNil(window.paperChat)
+        window.handle(["type": "chatSlot", "slot": NSNull()])
+        XCTAssertNil(window.chatSlot)
     }
 
     func testReadyLoadsThePapersTheSourceFinds() throws {

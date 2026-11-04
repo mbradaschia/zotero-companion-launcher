@@ -88,6 +88,7 @@ struct ReviewWebView: NSViewRepresentable {
         func zoom(_ z: Double) { view?.pageZoom = CGFloat(z) }
         func chatList(_ token: Int) { call("RT.chatList", [token]) }
         func askEach(_ o: [String: Any]) { call("RT.askEach", [o]) }
+        func showInfo() { call("RT.showInfo", [Any]()) }
 
         private func call(_ function: String, _ value: Any) {
             guard JSONSerialization.isValidJSONObject(value), let json = try? JSONSerialization.data(withJSONObject: value) else { return }
@@ -126,4 +127,5 @@ protocol ReviewPage: AnyObject {
     func zoom(_ z: Double) // the text size (⌘- ⌘+ ⌘0)
     func chatList(_ token: Int) // the docked chat's list: the page answers { type: "chatList", token, list }
     func askEach(_ o: [String: Any]) // Ask each paper: { question }; the page makes the column, shows the run, says askedEach
+    func showInfo() // the right pane's Info tab: the page's panel, shown if it was hidden
 }

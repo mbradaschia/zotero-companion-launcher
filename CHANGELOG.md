@@ -16,6 +16,14 @@ bridge and the prompt runner share one version.
 - **Defaults, regrouped.** *When a model fails* (the fallback model) comes right after the Prompts and Chat models it
   stands in for. *Extract every paper's text* (and the skipped and scans to try again) moved to *Bring papers up to
   date*, with the other catch-ups: *The paper's text* keeps only its two settings.
+- **General, fewer one-row sections.** *Opening papers* and *Citations* are one section, *Papers*; the artifacts'
+  folder joins the sync folder and this machine's name in *Folders and sync*. *Processes at once* says what it does
+  now: it also limits a catch-up (it said a catch-up ran one at a time).
+- **The review table's right pane, in tabs.** *Info* (the paper, its cells, its notes) and *Chat* share the pane, each
+  tab with its symbol. Drag the pane's left edge to size it (a double-click puts it back); Info and the chat share
+  that width, kept for the next table. Drag a tab down onto the pane's lower half, or click the split button, to see
+  both: Info above, the chat below, with a divider you drag. Drag the chat's bar back up to the tabs (or click the
+  button again) to put the tabs back. ⌥⌘I hides the whole pane; ⌥⌘C goes to the chat and back to Info.
 
 ### The Mac app (`macos-v0.4.30`)
 
