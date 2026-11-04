@@ -162,15 +162,12 @@ final class CompanionServer: ObservableObject {
         if let size = (try? FileManager.default.attributesOfItem(atPath: logURL.path))?[.size] as? Int, size > 1_000_000 { try? FileManager.default.removeItem(at: logURL) }
     }
 
-    // The log, at its end.
+    // The log, opened to append: the app's lines and the server's (it has its own copy) each land at the end, never
+    // over each other.
     nonisolated private static func logHandle() -> FileHandle? {
-        let fm = FileManager.default
-        let path = logURL.path
-        try? fm.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if !fm.fileExists(atPath: path) { fm.createFile(atPath: path, contents: nil) }
-        guard let h = FileHandle(forWritingAtPath: path) else { return nil }
-        h.seekToEndOfFile()
-        return h
+        try? FileManager.default.createDirectory(at: logURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let fd = open(logURL.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+        return fd < 0 ? nil : FileHandle(fileDescriptor: fd, closeOnDealloc: true)
     }
 
     var statusLine: String {
