@@ -21,6 +21,10 @@ Bringing the Mac app's features to Omarchy, phase 1 of [the plan](docs/omarchy-p
   checklist, a taxonomy's tag, a priority's !, and a star on a top journal grade (the others stay faint). The pills are
   drawn in colour-blind safe hues (status amber, task teal, rank blue, taxonomy sky blue, priority magenta, as the Mac
   app's default), each made to read on the Omarchy theme's background; a light theme darkens two that would look alike.
+- **Shared, for what comes next:** the results' Group, Sort and Order, the top level's sort and a list's manual order
+  (`Views.arrangement`, `arrange`, `arrangeTop`), and the check for a problem every paper would meet
+  (`Client.fatalProblem`) move from the Mac app into `lib/`, where the Omarchy launcher can use them; the Mac app calls
+  the same code. A test keeps every row the shared builders make one the Omarchy launcher handles.
 
 ### The Mac app (`macos-v0.4.32`)
 

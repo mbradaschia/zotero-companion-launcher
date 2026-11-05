@@ -225,12 +225,17 @@ together when Marcelo wants to install (he batches).
    items, the merged General sections, the moved catch-up rows); a test that every schema item is reachable from
    some page. (validated: changed) The QML already renders them (S1, X1). What's left: the guard test (every `rowId`
    the lib's Settings and Views builders emit has a case in `ZoteroSearch.qml`, next to `scripts/check-qml-calls.js`).
+   (2026-11-05: done, `tests/qml-row-handlers.test.js`.)
 3. **Colour-blind pills and kind symbols (S8, S9):** `Pill.qml` takes a kind and draws its symbol; the safe palette
    is the default, behind a `colourBlindSafe` setting. (validated: done in `cc0be82`, without the setting)
 4. (validation: added) **Lift the portable Mac JS into `lib/` (D5, D6):** `Glue.js` arrangement into `lib/Views.js`
    with `top-sort` and `manual-sort` tests; the Processes at once and launch catch-up rows and logic from
    `GlueSettings.js` into `lib/Settings.js` behind a `state` flag; `GlueRunner.fatalProblem` (the same as
    `daemon/lib/fatal.mjs`). Copy to `macos/js/lib`; `Glue*.js` then delegate (a Mac PR, Mac CI).
+   (2026-11-05: the arrangement (`Views.arrangement`, `topArrangement`, `arrange`, `arrangeTop`, `arrangeOptions`) and
+   `Client.fatalProblem` moved, with `tests/arrange.test.js` and `tests/fatal-problem.test.js`; `Glue.js` and
+   `GlueRunner.js` delegate. The Processes at once and launch catch-up rows stay in `GlueSettings.js` until phase 2b
+   wires them on Omarchy, so they never show twice on the Mac.)
 - Exit: `make test` green with the new runner tests; `scripts/check-qml-calls.js` and lint green; Settings pages
   checked on Omarchy.
 

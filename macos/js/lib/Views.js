@@ -2934,8 +2934,99 @@ function insertAt(text, caret, token) {
   return { text: before + lead + t + trail + after, caret: caret + lead.length + t.length + trail.length, live: false }
 }
 
+// The results' Group, Sort and Order, and the top level's sort (view.json's group, sort, order, topSort, topOrder,
+// paperOrder): the Mac app's (its Glue.js) moved here so the Omarchy launcher arranges the same way.
+var ARRANGE_SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["title", "Title"],
+  ["author", "First author"], ["manual", "Manual"]]
+// Before you type (view.json's topSort, topOrder): the recent papers, or the library's first ones in a sort the bridge
+// applies before it cuts the list (bridge 0.2.6; an older one sorts only the recent few)
+var TOP_SORTS = [["recent", "Recent"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["title", "Title"],
+  ["author", "First author"]]
+var BRIDGE_SORTS = ["added", "modified", "year", "title", "author"]
+var topArrangement = function (values) {
+  var v = values && typeof values === "object" ? values : {}
+  var a = { group: "", sort: "recent", order: v.topOrder === "asc" ? "asc" : "desc" }
+  for (var i = 0; i < TOP_SORTS.length; i++) if (TOP_SORTS[i][0] === v.topSort) a.sort = v.topSort
+  return a
+}
+// A paper's value for a sort (a row's answer from the bridge): "" when it has none.
+var arrangeSortKey = function (by, x) {
+  if (by === "year") { var y = Number(x.year) || 0; return y > 0 ? ("000" + y).slice(-4) : "" }
+  if (by === "title") return String(x.title || "").trim().toLowerCase()
+  if (by === "author") return String(x.creator || "").trim().toLowerCase()
+  return String((by === "added" ? x.dateAdded : x.dateModified) || "")
+}
+var bySortKeyOrder = function (order) {
+  return function (p, q) {
+    if (p.k !== q.k) {
+      if (!p.k || !q.k) return p.k ? -1 : 1
+      return (p.k < q.k ? -1 : 1) * (order === "asc" ? 1 : -1)
+    }
+    return p.i - q.i
+  }
+}
+var ARRANGE_RECENT_SECTIONS = ["Recently added", "Recently modified", "Recent"]
+// The top level's recent papers in its sort, under Papers; the pins and the open papers stay as they are.
+var arrangeTop = function (rows, a, response) {
+  if (a.sort === "recent") return rows
+  var raw = {}
+  ;(response.recent || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
+  var isRecent = function (r) { return r.kind === "item" && ARRANGE_RECENT_SECTIONS.indexOf(r.section) >= 0 }
+  var papers = rows.filter(isRecent).map(function (r, i) { return { r: r, i: i, k: arrangeSortKey(a.sort, raw[r.libraryID + ":" + r.key] || {}) } })
+  papers.sort(bySortKeyOrder(a.order))
+  var n = 0
+  return rows.map(function (r) { return isRecent(r) ? Object.assign({}, papers[n++].r, { section: "Papers" }) : r })
+}
+var isArrangeGroup = function (id) { return id === "status" || id === "task" || id === "taskgroup" || /^tax:./.test(String(id)) }
+var arrangement = function (values) {
+  var v = values && typeof values === "object" ? values : {}
+  var a = { group: isArrangeGroup(v.group) ? v.group : "", sort: "relevance", order: v.order === "asc" ? "asc" : "desc" }
+  for (var i = 0; i < ARRANGE_SORTS.length; i++) if (ARRANGE_SORTS[i][0] === v.sort) a.sort = v.sort
+  if (!("group" in v) && !("sort" in v) && !("order" in v) && typeof v.grouping === "string") { // (before 0.4.10: one key for both)
+    var g = v.grouping.replace(/:asc$/, "")
+    if (g === "added" || g === "modified" || g === "year") { a.sort = g; a.order = /:asc$/.test(v.grouping) ? "asc" : "desc" }
+    else if (isArrangeGroup(g)) a.group = g
+  }
+  return a
+}
+// The papers sorted (none last, either way; relevance within a tie), then grouped: the rest stay where they were.
+// Manual: your order for this list (info.manual: ["libraryID:key"], view.json's paperOrder), the papers you haven't
+// placed after it, as they came.
+var arrange = function (rows, a, info) {
+  if (a.sort === "manual") {
+    var place = {}
+    ;(info.manual || []).forEach(function (id, i) { if (!(id in place)) place[id] = i })
+    var isListed = function (r) { return r.kind === "item" && r.section !== "Pinned" }
+    var listed = rows.filter(isListed).map(function (r, i) {
+      var at = place[r.libraryID + ":" + r.key]
+      return { r: r, i: i, at: at === undefined ? Infinity : at }
+    })
+    listed.sort(function (p, q) { return p.at !== q.at ? (p.at < q.at ? -1 : 1) : p.i - q.i })
+    var m = 0
+    rows = rows.map(function (r) { return isListed(r) ? listed[m++].r : r })
+  } else if (a.sort !== "relevance") {
+    var raw = {}
+    ;(info.results || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
+    var isPaper = function (r) { return r.kind === "item" && r.section !== "Pinned" }
+    var papers = rows.filter(isPaper).map(function (r, i) { return { r: r, i: i, k: arrangeSortKey(a.sort, raw[r.libraryID + ":" + r.key] || {}) } })
+    papers.sort(bySortKeyOrder(a.order))
+    var n = 0
+    rows = rows.map(function (r) { return isPaper(r) ? papers[n++].r : r })
+  }
+  return a.group ? groupRows(rows, a.group, info) : rows
+}
+
+// What the Group and Sort menus offer: [[id, name]] each.
+var arrangeOptions = function (taxonomies) {
+  return { groups: [["", "None"]].concat(groupings(taxonomies || []).filter(function (g) { return isArrangeGroup(g[0]) }).map(function (g) {
+    var n = String(g[1]).replace(/^by /, "")
+    return [g[0], n.charAt(0).toUpperCase() + n.slice(1)]
+  })), sorts: ARRANGE_SORTS.map(function (s) { return s.slice() }) }
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
+    ARRANGE_SORTS: ARRANGE_SORTS, TOP_SORTS: TOP_SORTS, BRIDGE_SORTS: BRIDGE_SORTS, arrangement: arrangement, topArrangement: topArrangement, arrange: arrange, arrangeTop: arrangeTop, arrangeOptions: arrangeOptions, isArrangeGroup: isArrangeGroup,
     safeMarkdown: safeMarkdown, groupings: groupings, contextLabel: contextLabel, typeHint: typeHint, scopeCount: scopeCount, GROUPINGS: GROUPINGS, groupingName: groupingName, groupingDirection: groupingDirection, nextGrouping: nextGrouping, groupRows: groupRows, monthOf: monthOf, syncDetail: syncDetail, syncFooter: syncFooter, pinnedFirst: pinnedFirst, withNoteRows: withNoteRows, KEYBINDINGS: KEYBINDINGS, VIEW_KEYS: VIEW_KEYS, keysContext: keysContext, altKeys: altKeys, buildKeyRows: buildKeyRows, rowIdentity: rowIdentity, orderRows: orderRows, pinRows: pinRows, moveIdentity: moveIdentity, toggleIdentity: toggleIdentity, SECTION_MENU_PINNED: SECTION_MENU_PINNED, SECTION_MENU_OTHER: SECTION_MENU_OTHER, otherRows: otherRows, pillPalette: pillPalette, SAFE_PILLS: SAFE_PILLS, readableOn: readableOn, PILL_SYMBOLS: PILL_SYMBOLS, pillSymbol: pillSymbol, hintParts: hintParts, fitHints: fitHints, colorDistance: colorDistance, contrast: contrast, paperTaxonomies: paperTaxonomies, uniqueLabelClash: uniqueLabelClash, taxonomyStrip: taxonomyStrip, classifyRow: classifyRow, buildTaxonomyAudit: buildTaxonomyAudit, buildPaperTaxonomies: buildPaperTaxonomies, paperFooter: paperFooter, COMMANDS: COMMANDS,
     ICONS: ICONS, iconFor: iconFor, escapeHtml: escapeHtml, highlight: highlight, subtitle: subtitle, openState: openState,
     thousands: thousands, toRow: toRow, rankLabels: rankLabels, rankShort: rankShort, statusFromTags: statusFromTags, noteHtml: noteHtml, splitNoteTitle: splitNoteTitle, paperCite: paperCite, chatTitle: chatTitle, rankIsTop: rankIsTop, buildRows: buildRows, countText: countText, selectionAfter: selectionAfter, namedPlaceRow: namedPlaceRow,
