@@ -65,6 +65,46 @@ test("pills: a colour per kind, the status in the accent; apart from each other 
   assert.notEqual(V.pillPalette({ magenta: "#bb9af7" }, { accent: "#7aa2f7", foreground: "#c0caf5", background: "#1a1b26" }).taxonomy, "#bb9af7");
 });
 
+test("pills, colour-blind safe (the Mac's default): the five kinds in their safe hues, readable, apart; scope in the accent", () => {
+  const samples = [
+    { accent: "#7aa2f7", background: "#1a1b26", foreground: "#c0caf5" }, // dark
+    { accent: "#1e66f5", background: "#eff1f5", foreground: "#4c4f69" }, // light
+    { accent: "#e68e0d", background: "#121212", foreground: "#bebebe" }, // an amber accent, as the status's
+    { accent: "#d79921", background: "#fbf1c7", foreground: "#3c3836" }, // a light theme with a yellow accent
+  ];
+  const kinds = ["status", "task", "rank", "taxonomy", "priority"];
+  for (const t of samples) {
+    const p = V.pillPalette({ green: "#9ece6a", magenta: "#f7768e" }, { accent: t.accent, foreground: t.foreground, background: t.background }, { safe: true });
+    for (const k of kinds.concat("scope")) {
+      assert.match(p[k], /^#[0-9a-f]{6}$/);
+      assert.ok(V.contrast(p[k], t.background) >= 3, `${k} ${p[k]} on ${t.background}`);
+    }
+    for (let i = 0; i < kinds.length; i++) for (let j = i + 1; j < kinds.length; j++)
+      assert.ok(V.colorDistance(p[kinds[i]], p[kinds[j]]) >= 100, `${kinds[i]} ${p[kinds[i]]} vs ${kinds[j]} ${p[kinds[j]]}`);
+    for (const k of kinds) assert.ok(V.colorDistance(p.scope, p[k]) >= 100 || p.scope === V.readableOn(t.foreground, t.background, 3), `scope ${p.scope} vs ${k}`);
+  }
+  // on a dark background the hues are used as they are; on a light one darkened only as far as they must
+  const dark = V.pillPalette({}, { accent: "#7aa2f7", foreground: "#c0caf5", background: "#1a1b26" }, { safe: true });
+  assert.deepEqual(kinds.map((k) => dark[k]), kinds.map((k) => V.SAFE_PILLS[k]));
+  assert.equal(V.readableOn("#e69f00", "#ffffff", 3) !== "#e69f00", true);
+  assert.equal(V.readableOn("#009988", "#1a1b26", 3), "#009988");
+});
+
+test("pills: each kind's symbol before its text, so a kind never differs by colour alone", () => {
+  assert.equal(V.pillSymbol("status", "Reading", "on"), V.PILL_SYMBOLS.status);
+  assert.equal(V.pillSymbol("status", "no status", "off"), V.PILL_SYMBOLS.status);
+  assert.equal(V.pillSymbol("task", "Draft", "tag"), V.PILL_SYMBOLS.task);
+  assert.equal(V.pillSymbol("taxonomy", "survey", "tag"), V.PILL_SYMBOLS.taxonomy);
+  assert.equal(V.pillSymbol("priority", "changed", "tag"), V.PILL_SYMBOLS.priority);
+  assert.equal(V.pillSymbol("rank", "ABS 4*", "tag"), V.PILL_SYMBOLS.rank, "a top grade: the star");
+  assert.equal(V.pillSymbol("rank", "ABS 3", "off"), "", "the others stay quiet");
+  assert.equal(V.pillSymbol("scope", "Collection  X", "on"), "");
+  assert.equal(V.pillSymbol("neutral", "x", "tag"), "");
+  assert.equal(V.pillSymbol("task", "\uf4a0 no task", "tag"), "", "a text with its icon already");
+  assert.equal(V.pillSymbol("status", "\u2713 Done", "tag"), "");
+  assert.equal(new Set(Object.values(V.PILL_SYMBOLS)).size, Object.keys(V.PILL_SYMBOLS).length, "one symbol per kind");
+});
+
 test("? / F1: where you are decides the keys shown first", () => {
   const ctx = (view, more) => V.keysContext(view, more).group;
   assert.equal(ctx("search", {}), "results");

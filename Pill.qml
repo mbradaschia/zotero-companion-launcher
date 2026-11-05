@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import qs.Ui
+import "lib/Views.js" as Views
 
 // A pill, the same everywhere (the results, the paper's menu, its header, the note window, the footer).
 // Three states (Views.pillPalette's notes):
@@ -8,6 +9,8 @@ import qs.Ui
 //   "tag" something the item has: tinted, outlined, in its kind's colour
 //   "off" the other choices, a minor mark: a faint outline, dimmed text
 // kind: status, task, rank, taxonomy, scope, priority or neutral; colors: Views.pillPalette()'s.
+// Each kind draws its symbol before the text (Views.pillSymbol: a status's flag, a task's checklist, a rank's star on a
+// top grade, a taxonomy's tag, a priority's !), so kinds never differ by colour alone.
 Rectangle {
   id: pill
 
@@ -24,6 +27,9 @@ Rectangle {
   property real maxWidth: 0 // 0: as wide as the text needs; else the text is cut short with …
   property int padX: Style.space(12)
   property int padY: Style.space(3)
+  property bool showSymbol: true
+
+  readonly property string symbol: pill.showSymbol ? Views.pillSymbol(pill.kind, pill.text, pill.mode) : ""
 
   readonly property color ink: (pill.colors && pill.colors[pill.kind]) || pill.foreground
 
@@ -44,7 +50,7 @@ Rectangle {
     horizontalAlignment: Text.AlignHCenter
     elide: Text.ElideRight
     textFormat: Text.PlainText
-    text: pill.text
+    text: pill.symbol ? pill.symbol + " " + pill.text : pill.text
     color: pill.mode === "on" ? pill.background : pill.ink
     opacity: pill.mode === "off" ? (pill.hot ? 0.8 : 0.6) : 1
     font.family: pill.fontFamily
