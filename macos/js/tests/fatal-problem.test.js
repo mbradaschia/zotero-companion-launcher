@@ -1,4 +1,4 @@
-// A problem every paper would meet (Glue.fatalProblem, GlueRunner.js): what to fix, said once, and when the
+// A problem every paper would meet (Glue.fatalProblem: lib/Client.js): what to fix, said once, and when the
 // automation tries again; the patterns the runner's (runner/lib/fatal.mjs) in the same order.
 const test = require("node:test");
 const assert = require("node:assert/strict");
@@ -24,7 +24,7 @@ test("fatalProblem: what to fix for each kind; a paper's own problem, or Zotero 
 
 test("the patterns are the runner's, in its order", () => {
   const src = (file, re) => [...fs.readFileSync(file, "utf8").matchAll(re)].map((m) => m[1] + " " + m[2]);
-  const ours = src(path.join(__dirname, "../../ZoteroLauncher/Core/GlueRunner.js"), /^\s*\["(\w+)", (\/.*\/i)\],?$/gm);
+  const ours = src(path.join(__dirname, "../lib/Client.js"), /^\s*\["(\w+)", (\/.*\/i)\],?$/gm);
   const runner = src(path.join(__dirname, "../../runner/lib/fatal.mjs"), /^\s*\["(\w+)", (\/.*\/i)\],?$/gm);
   assert.equal(ours.length, 6);
   assert.deepEqual(ours, runner);

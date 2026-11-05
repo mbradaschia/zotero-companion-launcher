@@ -1244,9 +1244,42 @@ function contrast(a, b) {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05)
 }
 
-// base: { accent, foreground, background } (the shell's). → { status, task, rank, taxonomy, scope, priority,
-// neutral }: "#rrggbb" each.
-function pillPalette(theme, base) {
+// The colour-blind safe hues (the Mac's SafeColours, from Okabe and Ito's and Paul Tol's palettes): the five pill kinds
+// stay apart for a red-green colour-blind eye too, in every theme. Status amber, task teal, rank blue, taxonomy sky
+// blue, priority magenta.
+var SAFE_PILLS = { status: "#e69f00", task: "#009988", rank: "#0077bb", taxonomy: "#33bbee", priority: "#ee3377" }
+
+// c made to read on bg at `ratio` (WCAG): lightened on a dark background, darkened on a light one, its hue kept.
+function readableOn(c, bg, ratio) {
+  var rgb = hexRgb(c)
+  if (!rgb) return c
+  var hex = rgbHex(rgb)
+  if (!hexRgb(bg) || contrast(hex, bg) >= ratio) return hex
+  var hsl = rgbHsl(rgb), dark = luminance(bg) < 0.25
+  for (var i = 1; i <= 40; i++) {
+    var l = Math.max(0, Math.min(1, hsl[2] + (dark ? 1 : -1) * i * 0.0125))
+    var next = rgbHex(hslRgb([hsl[0], hsl[1], l]))
+    if (contrast(next, bg) >= ratio) return next
+  }
+  return dark ? "#ffffff" : "#000000"
+}
+
+// A pill kind's symbol (the Mac's Icons.concept), so kinds never differ by colour alone: a status's flag, a task's
+// checklist, a priority's !, a rank's star, a taxonomy's tag. Nerd Font glyphs.
+var PILL_SYMBOLS = { status: "\uf024", task: "\uf4a0", priority: "\uf12a", rank: "\uf005", taxonomy: "\uf02b" }
+
+// The symbol a pill draws before its text, or "": none for a kind without one, a rank that isn't a top grade (drawn
+// faint, mode "off"), or a text that already starts with a mark or an icon (✓, ⚠, a Nerd Font glyph).
+function pillSymbol(kind, text, mode) {
+  var s = PILL_SYMBOLS[kind]
+  if (!s || (kind === "rank" && mode === "off")) return ""
+  var t = String(text || "")
+  return /^[\u2713\u26a0\ue000-\uf8ff]/.test(t) ? "" : s
+}
+
+// base: { accent, foreground, background } (the shell's). opts: { safe } draws the five kinds in SAFE_PILLS and a
+// scope in the accent, each made to read on the background (3:1). → { status, task, rank, taxonomy, scope, priority, neutral }: "#rrggbb" each.
+function pillPalette(theme, base, opts) {
   theme = theme || {}
   base = base || {}
   var accent = hexRgb(base.accent) ? rgbHex(hexRgb(base.accent)) : "#7aa2f7"
@@ -1254,6 +1287,23 @@ function pillPalette(theme, base) {
   var dark = luminance(bg) < 0.25
   var out = { neutral: base.foreground || (dark ? "#cccccc" : "#333333") }
   var used = []
+  if (opts && opts.safe) {
+    var safe = Object.keys(SAFE_PILLS)
+    safe.forEach(function (kind) { out[kind] = readableOn(SAFE_PILLS[kind], bg, 3) })
+    // two hues made alike by that (a light background darkens the sky blue toward the rank's blue): the one further
+    // from the background goes further still, until they stand apart
+    for (var pass = 0; pass < 24; pass++) {
+      var clash = null
+      safe.forEach(function (a, i) { safe.slice(i + 1).forEach(function (b) { if (!clash && colorDistance(out[a], out[b]) < 100) clash = [a, b] }) })
+      if (!clash) break
+      var far = contrast(out[clash[0]], bg) >= contrast(out[clash[1]], bg) ? clash[0] : clash[1]
+      out[far] = readableOn(out[far], bg, contrast(out[far], bg) + 0.25)
+    }
+    safe.forEach(function (kind) { used.push(out[kind]) })
+    // a list's badge, named by its words: the accent, as on the Mac; the text colour when the accent is one of the five
+    var scope = readableOn(accent, bg, 3)
+    out.scope = used.every(function (u) { return colorDistance(scope, u) >= 100 }) ? scope : readableOn(out.neutral, bg, 3)
+  }
   var usable = function (c) {
     var rgb = hexRgb(c)
     return !!rgb && rgbHsl(rgb)[1] >= 0.3 && contrast(c, bg) >= 3 && used.every(function (u) { return colorDistance(c, u) >= 110 })
@@ -1261,6 +1311,7 @@ function pillPalette(theme, base) {
   // first the theme's own colours (each kind in turn), then a turned hue for the kinds left
   var pending = []
   PILL_KINDS.forEach(function (kind) {
+    if (out[kind]) return // (a safe hue)
     var pick = null
     PILL_THEME[kind].forEach(function (name) {
       var c = name === "accent" ? accent : theme[name]
@@ -2883,9 +2934,100 @@ function insertAt(text, caret, token) {
   return { text: before + lead + t + trail + after, caret: caret + lead.length + t.length + trail.length, live: false }
 }
 
+// The results' Group, Sort and Order, and the top level's sort (view.json's group, sort, order, topSort, topOrder,
+// paperOrder): the Mac app's (its Glue.js) moved here so the Omarchy launcher arranges the same way.
+var ARRANGE_SORTS = [["relevance", "Relevance"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["title", "Title"],
+  ["author", "First author"], ["manual", "Manual"]]
+// Before you type (view.json's topSort, topOrder): the recent papers, or the library's first ones in a sort the bridge
+// applies before it cuts the list (bridge 0.2.6; an older one sorts only the recent few)
+var TOP_SORTS = [["recent", "Recent"], ["added", "Date added"], ["modified", "Date changed"], ["year", "Year published"], ["title", "Title"],
+  ["author", "First author"]]
+var BRIDGE_SORTS = ["added", "modified", "year", "title", "author"]
+var topArrangement = function (values) {
+  var v = values && typeof values === "object" ? values : {}
+  var a = { group: "", sort: "recent", order: v.topOrder === "asc" ? "asc" : "desc" }
+  for (var i = 0; i < TOP_SORTS.length; i++) if (TOP_SORTS[i][0] === v.topSort) a.sort = v.topSort
+  return a
+}
+// A paper's value for a sort (a row's answer from the bridge): "" when it has none.
+var arrangeSortKey = function (by, x) {
+  if (by === "year") { var y = Number(x.year) || 0; return y > 0 ? ("000" + y).slice(-4) : "" }
+  if (by === "title") return String(x.title || "").trim().toLowerCase()
+  if (by === "author") return String(x.creator || "").trim().toLowerCase()
+  return String((by === "added" ? x.dateAdded : x.dateModified) || "")
+}
+var bySortKeyOrder = function (order) {
+  return function (p, q) {
+    if (p.k !== q.k) {
+      if (!p.k || !q.k) return p.k ? -1 : 1
+      return (p.k < q.k ? -1 : 1) * (order === "asc" ? 1 : -1)
+    }
+    return p.i - q.i
+  }
+}
+var ARRANGE_RECENT_SECTIONS = ["Recently added", "Recently modified", "Recent"]
+// The top level's recent papers in its sort, under Papers; the pins and the open papers stay as they are.
+var arrangeTop = function (rows, a, response) {
+  if (a.sort === "recent") return rows
+  var raw = {}
+  ;(response.recent || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
+  var isRecent = function (r) { return r.kind === "item" && ARRANGE_RECENT_SECTIONS.indexOf(r.section) >= 0 }
+  var papers = rows.filter(isRecent).map(function (r, i) { return { r: r, i: i, k: arrangeSortKey(a.sort, raw[r.libraryID + ":" + r.key] || {}) } })
+  papers.sort(bySortKeyOrder(a.order))
+  var n = 0
+  return rows.map(function (r) { return isRecent(r) ? Object.assign({}, papers[n++].r, { section: "Papers" }) : r })
+}
+var isArrangeGroup = function (id) { return id === "status" || id === "task" || id === "taskgroup" || /^tax:./.test(String(id)) }
+var arrangement = function (values) {
+  var v = values && typeof values === "object" ? values : {}
+  var a = { group: isArrangeGroup(v.group) ? v.group : "", sort: "relevance", order: v.order === "asc" ? "asc" : "desc" }
+  for (var i = 0; i < ARRANGE_SORTS.length; i++) if (ARRANGE_SORTS[i][0] === v.sort) a.sort = v.sort
+  if (!("group" in v) && !("sort" in v) && !("order" in v) && typeof v.grouping === "string") { // (before 0.4.10: one key for both)
+    var g = v.grouping.replace(/:asc$/, "")
+    if (g === "added" || g === "modified" || g === "year") { a.sort = g; a.order = /:asc$/.test(v.grouping) ? "asc" : "desc" }
+    else if (isArrangeGroup(g)) a.group = g
+  }
+  return a
+}
+// The papers sorted (none last, either way; relevance within a tie), then grouped: the rest stay where they were.
+// Manual: your order for this list (info.manual: ["libraryID:key"], view.json's paperOrder), the papers you haven't
+// placed after it, as they came.
+var arrange = function (rows, a, info) {
+  if (a.sort === "manual") {
+    var place = {}
+    ;(info.manual || []).forEach(function (id, i) { if (!(id in place)) place[id] = i })
+    var isListed = function (r) { return r.kind === "item" && r.section !== "Pinned" }
+    var listed = rows.filter(isListed).map(function (r, i) {
+      var at = place[r.libraryID + ":" + r.key]
+      return { r: r, i: i, at: at === undefined ? Infinity : at }
+    })
+    listed.sort(function (p, q) { return p.at !== q.at ? (p.at < q.at ? -1 : 1) : p.i - q.i })
+    var m = 0
+    rows = rows.map(function (r) { return isListed(r) ? listed[m++].r : r })
+  } else if (a.sort !== "relevance") {
+    var raw = {}
+    ;(info.results || []).forEach(function (x) { raw[(Number(x.libraryID) || 1) + ":" + x.key] = x })
+    var isPaper = function (r) { return r.kind === "item" && r.section !== "Pinned" }
+    var papers = rows.filter(isPaper).map(function (r, i) { return { r: r, i: i, k: arrangeSortKey(a.sort, raw[r.libraryID + ":" + r.key] || {}) } })
+    papers.sort(bySortKeyOrder(a.order))
+    var n = 0
+    rows = rows.map(function (r) { return isPaper(r) ? papers[n++].r : r })
+  }
+  return a.group ? groupRows(rows, a.group, info) : rows
+}
+
+// What the Group and Sort menus offer: [[id, name]] each.
+var arrangeOptions = function (taxonomies) {
+  return { groups: [["", "None"]].concat(groupings(taxonomies || []).filter(function (g) { return isArrangeGroup(g[0]) }).map(function (g) {
+    var n = String(g[1]).replace(/^by /, "")
+    return [g[0], n.charAt(0).toUpperCase() + n.slice(1)]
+  })), sorts: ARRANGE_SORTS.map(function (s) { return s.slice() }) }
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
-    safeMarkdown: safeMarkdown, groupings: groupings, contextLabel: contextLabel, typeHint: typeHint, scopeCount: scopeCount, GROUPINGS: GROUPINGS, groupingName: groupingName, groupingDirection: groupingDirection, nextGrouping: nextGrouping, groupRows: groupRows, monthOf: monthOf, syncDetail: syncDetail, syncFooter: syncFooter, pinnedFirst: pinnedFirst, withNoteRows: withNoteRows, KEYBINDINGS: KEYBINDINGS, VIEW_KEYS: VIEW_KEYS, keysContext: keysContext, altKeys: altKeys, buildKeyRows: buildKeyRows, rowIdentity: rowIdentity, orderRows: orderRows, pinRows: pinRows, moveIdentity: moveIdentity, toggleIdentity: toggleIdentity, SECTION_MENU_PINNED: SECTION_MENU_PINNED, SECTION_MENU_OTHER: SECTION_MENU_OTHER, otherRows: otherRows, pillPalette: pillPalette, hintParts: hintParts, fitHints: fitHints, colorDistance: colorDistance, contrast: contrast, paperTaxonomies: paperTaxonomies, uniqueLabelClash: uniqueLabelClash, taxonomyStrip: taxonomyStrip, classifyRow: classifyRow, buildTaxonomyAudit: buildTaxonomyAudit, buildPaperTaxonomies: buildPaperTaxonomies, paperFooter: paperFooter, COMMANDS: COMMANDS,
+    ARRANGE_SORTS: ARRANGE_SORTS, TOP_SORTS: TOP_SORTS, BRIDGE_SORTS: BRIDGE_SORTS, arrangement: arrangement, topArrangement: topArrangement, arrange: arrange, arrangeTop: arrangeTop, arrangeOptions: arrangeOptions, isArrangeGroup: isArrangeGroup,
+    safeMarkdown: safeMarkdown, groupings: groupings, contextLabel: contextLabel, typeHint: typeHint, scopeCount: scopeCount, GROUPINGS: GROUPINGS, groupingName: groupingName, groupingDirection: groupingDirection, nextGrouping: nextGrouping, groupRows: groupRows, monthOf: monthOf, syncDetail: syncDetail, syncFooter: syncFooter, pinnedFirst: pinnedFirst, withNoteRows: withNoteRows, KEYBINDINGS: KEYBINDINGS, VIEW_KEYS: VIEW_KEYS, keysContext: keysContext, altKeys: altKeys, buildKeyRows: buildKeyRows, rowIdentity: rowIdentity, orderRows: orderRows, pinRows: pinRows, moveIdentity: moveIdentity, toggleIdentity: toggleIdentity, SECTION_MENU_PINNED: SECTION_MENU_PINNED, SECTION_MENU_OTHER: SECTION_MENU_OTHER, otherRows: otherRows, pillPalette: pillPalette, SAFE_PILLS: SAFE_PILLS, readableOn: readableOn, PILL_SYMBOLS: PILL_SYMBOLS, pillSymbol: pillSymbol, hintParts: hintParts, fitHints: fitHints, colorDistance: colorDistance, contrast: contrast, paperTaxonomies: paperTaxonomies, uniqueLabelClash: uniqueLabelClash, taxonomyStrip: taxonomyStrip, classifyRow: classifyRow, buildTaxonomyAudit: buildTaxonomyAudit, buildPaperTaxonomies: buildPaperTaxonomies, paperFooter: paperFooter, COMMANDS: COMMANDS,
     ICONS: ICONS, iconFor: iconFor, escapeHtml: escapeHtml, highlight: highlight, subtitle: subtitle, openState: openState,
     thousands: thousands, toRow: toRow, rankLabels: rankLabels, rankShort: rankShort, statusFromTags: statusFromTags, noteHtml: noteHtml, splitNoteTitle: splitNoteTitle, paperCite: paperCite, chatTitle: chatTitle, rankIsTop: rankIsTop, buildRows: buildRows, countText: countText, selectionAfter: selectionAfter, namedPlaceRow: namedPlaceRow,
     SECTION_PINNED: SECTION_PINNED, SECTION_COLLECTIONS: SECTION_COLLECTIONS, SECTION_PAPERS: SECTION_PAPERS, SECTION_OPEN: SECTION_OPEN, SECTION_RECENT: SECTION_RECENT, SECTION_RECENT_MODIFIED: SECTION_RECENT_MODIFIED, SECTION_RECENT_LATEST: SECTION_RECENT_LATEST, tagsText: tagsText,

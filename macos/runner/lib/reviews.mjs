@@ -1,5 +1,5 @@
-// A review table's AI columns, filled paper by paper (phase 11b,
-// macos/docs/superpowers/specs/2026-10-28-phase-11b-ai-columns-design.md): `review-run` reads a job on stdin (the
+// A review table's AI columns, filled paper by paper (phase 11b, the spec
+// 2026-10-28-phase-11b-ai-columns-design.md): `review-run` reads a job on stdin (the
 // review, its AI columns as the app resolved them, the cells to fill), asks each paper once per kind of request, and
 // writes each paper's cells as soon as they're made (reviews/cells/<column id>.cells.json, the format ReviewCore.js
 // reads), so a run that is stopped keeps what it made. A Jev column reads what tagging reads and writes no tags: its

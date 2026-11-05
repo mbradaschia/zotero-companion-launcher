@@ -39,8 +39,13 @@
 //                                       in Processes), large PDFs and scans skipped; JSON: { results }
 //                                       the PDF's text as a page-numbered note (pdftotext)
 //   oma-zotero-prompt chat --key <item-key> [--library <id>] [--session <id>] [--model M] [--effort E]
-//                          [--source auto|note|pdf]  one chat turn: the question on stdin, JSON lines out
-//                                       (--source: ground a new chat in the extracted-text note or the PDF)
+//                          [--source auto|note|pdf|meta]  one chat turn: the question on stdin, JSON lines out
+//                                       (--source: ground a new chat in the extracted-text note or the PDF; meta:
+//                                       the paper's metadata only, stdin JSON { question, cells: [{ label, value }] })
+//   oma-zotero-prompt chat --review <review id> [--session <id>] [--model M] [--effort E]
+//                                       a list chat's turn (a review table's docked chat): stdin JSON { question,
+//                                       display, list: { name, papers } } (lib/listchat.mjs); chats, chat-show,
+//                                       chat-rename and chat-delete take --review too
 //   oma-zotero-prompt chat-rename --key <item-key> [--library <id>] --session <id> --title T
 //   oma-zotero-prompt chats --key <item-key> [--library <id>]            the paper's chats (JSON)
 //   oma-zotero-prompt chat-show --key <item-key> [--library <id>] --session <id>   one chat (JSON)
@@ -54,6 +59,10 @@
 //   oma-zotero-prompt artifact-undo|artifact-delete --key K [--library L] --id A
 //   oma-zotero-prompt artifact-rename --key K [--library L] --id A --title T
 //   oma-zotero-prompt artifact-libs     fetch the diagram and mind map libraries (once), redraw the views
+//   oma-zotero-prompt review-run        stdin { review, name, columns, jobs: [{ column, paper }] }: a review table's AI
+//                                       columns filled paper by paper (one task; each paper's cells written as made)
+//   oma-zotero-prompt review-draft      stdin { kind, request, current }: an AI column written by your prompts model
+//                                       from what you describe (Write it with AI), nothing saved
 //   oma-zotero-prompt tasks [--clear]   the task queue: prompt runs and extractions (JSON)
 //
 // The model comes from a provider (lib/providers/: a Claude or ChatGPT subscription, an API key,
@@ -82,7 +91,7 @@ import { loadRules, loadInstructions, instructionsPath, ensureInstructionsFile, 
 import { FULLTEXT_TAG, OCR_MAX_PAGES, OCR_PAGE_SECONDS, OCR_PAPER_SECONDS, MIN_PAGE_CHARS, pdftotext, rawPages, pagesToOcr, ocrLanguages, ocrPage, tesseractHint, splitPages, pageLabels, buildNote, groundingText, skipReason, isScan, scanReason } from "../lib/extract.mjs";
 import { startTask, updateTask, finishTask, failTask, writeIndex, clearTasks } from "../lib/tasks.mjs";
 import { windowFor, needsCompaction, splitHistory, compactionPrompt, COMPACT_SYSTEM, fitContext, PAPER_SHARE, loadWindows, saveWindow, threadOf, threadMessages } from "../lib/context.mjs";
-import { CHAT_SYSTEM, chatsDir, newSessionId, validSessionId, titleFor, loadSession, saveSession, listSessions, deleteSession } from "../lib/chat.mjs";
+import { CHAT_SYSTEM, chatsDir, newSessionId, validSessionId, titleFor, loadSession, saveSession, listSessions, deleteSession, parseMetaInput } from "../lib/chat.mjs";
 import { loadSettings } from "../lib/settings.mjs";
 import { makeCtx, resolveModel, providerById, findModelInfo, listAll, describeAll, configFor, SUGGESTED } from "../lib/providers/index.mjs";
 import { generate, costOf } from "../lib/generate.mjs";
@@ -96,6 +105,8 @@ import { versionsFor, promptNotes, promptRuns, stalePromptJobs, staleTaxonomyJob
 import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
 import { checkQuotes, quoteCheckLine, groundingText as quoteSources } from "../lib/quotes.mjs";
+import { LIST_CHAT_SYSTEM, LIST_SHARE, listChatsDir, parseListInput, fitList, listContext } from "../lib/listchat.mjs";
+import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell, DRAFT_SYSTEM as COLUMN_DRAFT_SYSTEM, draftMessage as columnDraftMessage, parseColumnDraft } from "../lib/reviews.mjs";
 
 // On macOS an app that starts the runner hands it a PATH without Homebrew or ~/.local/bin, where
 // pdftotext, ollama and the claude / codex CLIs live; every lookup and spawn below uses this one.
@@ -187,7 +198,12 @@ async function gather(bridge, key, libraryID, source = "auto", extractFirst = fa
       log("note failed", { key: n.key, error: e.message });
     }
   }
-  Object.assign(ctx, await paperText(bridge, details, source, extractFirst));
+  if (source === "meta") {
+    // its metadata only (the review table's docked chat, Paper › Metadata): no full text
+    const p = details.paper || {};
+    ctx.meta = { publication: p.publication || "", year: p.year || "", abstract: p.abstract || "" };
+    Object.assign(ctx, { text: "", grounding: { source: "meta", label: "the paper's metadata: its abstract, and the review table's columns (not its full text)" } });
+  } else Object.assign(ctx, await paperText(bridge, details, source, extractFirst));
   ctx.details = details;
   return ctx;
 }
@@ -419,6 +435,84 @@ async function run(id, flags) {
     quotes: { checked: quotes.checked, missing: quotes.missing.length }, ...(answer.fellBack ? { fellBack: answer.fellBack.from } : {}) });
   notify(`Saved “${prompt.title}”`, `${label}: a new note in Zotero` + (quotes.missing.length ? ` (${quotes.missing.length} quote${quotes.missing.length === 1 ? "" : "s"} not found in the text: check the note)` : ""));
   process.stdout.write(`saved note ${note.key} on ${ctx.key}\n`);
+}
+
+// ---------------------------------------------------------------- review tables
+
+// A review table's AI columns, filled (lib/reviews.mjs): the job on stdin, each paper read once, Jev's cells in one
+// request per paper (no tags written), the prompt columns in one request per model and what they read. One task in
+// Processes for the run, its count updated per paper. → { papers, cells, failed, stopped, costUsd }
+async function reviewRun() {
+  let raw;
+  try { raw = JSON.parse(readFileSync(0, "utf8")); } catch (e) { throw new Error("not JSON: " + e.message); }
+  const job = parseReviewJob(raw);
+  const dir = paths().reviews;
+  if (!dir) throw new Error("no review tables folder");
+  const b = bridgeClient();
+  const settings = loadSettings();
+  const taxonomies = loadTaxonomies().taxonomies;
+  const nCells = job.papers.reduce((n, p) => n + p.columns.length, 0);
+  const nCols = new Set(job.papers.flatMap((p) => p.columns)).size;
+  const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
+  currentTask = startTask({ kind: "review", title: `Review “${job.name}”`, review: job.review, paper: plural(nCols, "column", "columns") + ", " + plural(nCells, "cell", "cells"), stage: "0 of " + plural(job.papers.length, "paper", "papers") });
+  const deps = {
+    taxonomies,
+    paper: async (id) => {
+      const [lib, key] = id.split(":");
+      const details = await b.post("/item", { key, libraryID: Number(lib) });
+      if (!details.paper) throw new Error("not a paper");
+      const p = details.paper;
+      let extracted = "";
+      const saved = (details.notes || []).find((n) => n.fulltext);
+      if (saved) {
+        try { extracted = (await b.post("/note", { key: saved.key, libraryID: saved.libraryID, format: "export" })).markdown || ""; } catch (e) { log("review-run: text failed", { key, error: e.message }); }
+      }
+      return { title: p.title, abstract: p.abstract, extracted, full: async () => { const t = await paperText(b, details); return { text: t.text, source: t.grounding.source }; } };
+    },
+    classify: (ts, text) => classifyText(ts, text, settings),
+    ask: async ({ model, system, message, cache }) => {
+      const target = resolveModel(model, settings, "prompts");
+      const answer = await generate({ settings, ctx: providerCtx(), target, effort: "low", system, messages: [{ role: "user", content: message }], cache,
+        onFallback: (t) => log("fallback", { reviewRun: true, note: t }) });
+      return { text: answer.text, spec: answer.spec, costUsd: costOf(answer) };
+    },
+    previous: (col, paper) => readCell(cellsPath(dir, col), paper),
+    write: (col, paper, record) => writeCell(cellsPath(dir, col), paper, record),
+    progress: (s) => { last = s; updateTask(currentTask, { stage: s.done + " of " + plural(s.papers, "paper", "papers") + (s.failed ? ", " + s.failed + " failed" : ""), done: s.done, model: s.models.join(", ") }); },
+  };
+  // Stopped (the table's ■, Processes' Stop all): what's written stays, the task says how far it got, the paper being
+  // asked is left as it was.
+  let last = null;
+  for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => {
+    const n = last ? last.cells : 0;
+    try { if (currentTask) finishTask(currentTask, { stage: "", detail: "Stopped: " + plural(n, "cell", "cells") + " filled, the rest left as they were", model: last ? last.models.join(", ") : "", costUsd: last ? Math.round(last.costUsd * 1e6) / 1e6 : 0 }); } catch { /* exiting anyway */ }
+    process.exit(130);
+  });
+  const r = await runReview(job, deps);
+  const detail = plural(r.cells, "cell", "cells") + " filled" + (r.failed ? ", " + r.failed + " failed" : "") + (r.stopped ? "; stopped: " + r.stopped : "");
+  if (!r.cells && r.failed) failTask(currentTask, r.stopped || r.error || "failed");
+  else finishTask(currentTask, { stage: "", detail, model: r.models.join(", "), costUsd: r.costUsd });
+  currentTask = null;
+  log("review-run", { review: job.review, papers: r.papers, cells: r.cells, failed: r.failed, costUsd: r.costUsd });
+  notify(`Review “${job.name}”`, detail, r.failed ? "normal" : "low");
+  return { papers: r.papers, done: r.done, cells: r.cells, failed: r.failed, stopped: r.stopped, error: r.error, costUsd: r.costUsd };
+}
+
+// + Column › An AI column › Write it with AI: stdin { kind, request, current } → { column, notes, by } or { error },
+// on your prompts model.
+async function reviewDraft() {
+  let input;
+  try { input = JSON.parse(readFileSync(0, "utf8")); } catch (e) { throw new Error("not JSON: " + e.message); }
+  const request = String(input.request || "").trim();
+  if (!request) throw new Error("say what you want the column to tell you");
+  const kind = input.kind === "jev-relevance" ? "jev-relevance" : "prompt";
+  const settings = loadSettings();
+  const target = resolveModel("default", settings, "prompts");
+  const answer = await generate({ settings, ctx: providerCtx(), target, effort: "low", system: COLUMN_DRAFT_SYSTEM, messages: [{ role: "user", content: columnDraftMessage(kind, request, input.current) }],
+    onFallback: (t) => log("fallback", { reviewDraft: true, note: t }) });
+  const r = parseColumnDraft(answer.text, kind);
+  log("review-draft", { kind, ok: !r.error, by: answer.spec });
+  return Object.assign(r, { by: answer.spec });
 }
 
 // ---------------------------------------------------------------- extract
@@ -858,6 +952,13 @@ async function extractToNote(bridge, details, again, existing, opts) {
   }
 }
 
+// A chat command's folder: a list's (--review) or a paper's (--key).
+function chatDirOf(flags) {
+  if (flags.review != null) return listChatsDir(String(flags.review));
+  const { key, libraryID } = itemFlags(flags);
+  return chatsDir(key, libraryID);
+}
+
 function itemFlags(flags) {
   const key = String(flags.key || "");
   if (!/^[A-Z0-9]{8}$/.test(key)) throw new Error("--key <item key> is required");
@@ -875,18 +976,24 @@ function emit(o) {
 const tooLong = (e) => /prompt is too long|too long for the model|context (window|length)|maximum context|too many tokens/i.test(String(e && e.message));
 
 async function chat(flags) {
+  if (flags.review != null) return listChat(flags);
   const { key, libraryID } = itemFlags(flags);
-  const question = readFileSync(0, "utf8").trim();
-  if (!question) throw new Error("the question comes on stdin");
   const dir = chatsDir(key, libraryID);
   const now = new Date().toISOString();
   let session = flags.session ? loadSession(dir, String(flags.session)) : null;
+  const sources = ["note", "pdf", "meta"];
+  const source = sources.includes(flags.source) ? flags.source : session && session.grounding && sources.includes(session.grounding.source) ? session.grounding.source : "auto";
+  // a metadata chat's question comes as JSON, with the table's columns for the paper: { question, cells: [{ label, value }] }
+  const raw = readFileSync(0, "utf8");
+  const input = source === "meta" ? parseMetaInput(raw) : { question: raw.trim(), cells: [] };
+  const question = input.question;
+  if (!question) throw new Error("the question comes on stdin");
   const settings = loadSettings();
   const pctx = providerCtx();
   const target = resolveModel(String(flags.model || (session && session.model) || "default"), settings, "chat");
   const bridge = bridgeClient();
-  const source = ["note", "pdf"].includes(flags.source) ? flags.source : session && session.grounding && ["note", "pdf"].includes(session.grounding.source) ? session.grounding.source : "auto";
   const ctx = await gather(bridge, key, libraryID, source);
+  if (source === "meta") ctx.cells = input.cells;
   const effort = flags.effort != null ? (flags.effort === "default" ? "" : String(flags.effort)) : session ? session.effort : settings.defaults.chat.effort;
   if (!session) {
     session = { id: newSessionId(), key, libraryID, title: titleFor(question), paper: ctx.citation || ctx.title, created: now, updated: now, model: target.spec, effort, grounding: ctx.grounding,
@@ -967,6 +1074,137 @@ async function chat(flags) {
   finishTask(currentTask, { detail: madeText ? "answered; " + madeText : "answered", model: answer.spec, usage: answer.usage, costUsd: cost, subscription: !!answer.subscription });
 }
 
+// The papers a list chat reads, from the bridge: each one's details (its abstract) and Zotero's APA 7 citation and
+// reference (50 keys a request). A paper the bridge can't give keeps what the table sent. → { by id: info }
+async function listInfos(bridge, papers) {
+  const infos = {};
+  const queue = papers.slice();
+  const worker = async () => {
+    for (let p = queue.shift(); p; p = queue.shift()) {
+      const [lib, key] = p.id.split(":");
+      try {
+        const d = await bridge.post("/item", { key, libraryID: Number(lib) });
+        const x = d.paper || {};
+        infos[p.id] = { title: x.title || p.title, year: x.year || "", publication: x.publication || "", abstract: x.abstract || "" };
+      } catch (e) {
+        log("list chat: paper failed", { id: p.id, error: e.message });
+        infos[p.id] = { title: p.title };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, papers.length) }, worker));
+  const byLib = new Map();
+  for (const p of papers) {
+    const [lib, key] = p.id.split(":");
+    if (!byLib.has(lib)) byLib.set(lib, []);
+    byLib.get(lib).push(key);
+  }
+  for (const [lib, keys] of byLib) {
+    for (let i = 0; i < keys.length; i += 50) {
+      const chunk = keys.slice(i, i + 50);
+      for (const mode of ["citation", "bibliography"]) {
+        try {
+          const r = await bridge.post("/cite", { keys: chunk, libraryID: Number(lib), style: APA, mode, format: "text" });
+          for (const e of r.entries || []) {
+            const info = infos[`${lib}:${e.key}`];
+            if (info && e.text) info[mode === "citation" ? "citation" : "reference"] = e.text;
+          }
+        } catch (e) {
+          log("list chat: cite failed", { lib, mode, keys: chunk.length, error: e.message }); // (the table's own citation stays)
+        }
+      }
+    }
+  }
+  return infos;
+}
+
+// A turn of a list chat (the review table's docked chat, List): stdin { question, display, list } (lib/listchat.mjs);
+// the same JSON lines out as a paper's chat. The list is read at the first question and kept in the chat's file.
+async function listChat(flags) {
+  const review = String(flags.review || "");
+  const dir = listChatsDir(review);
+  let input;
+  try { input = parseListInput(JSON.parse(readFileSync(0, "utf8"))); } catch (e) { throw new Error(e instanceof SyntaxError ? "the question and the list come on stdin, as JSON" : e.message); }
+  const question = input.question;
+  const now = new Date().toISOString();
+  let session = flags.session ? loadSession(dir, String(flags.session)) : null;
+  if (session && !session.list) throw new Error("that chat isn't a list's");
+  const settings = loadSettings();
+  const pctx = providerCtx();
+  const target = resolveModel(String(flags.model || (session && session.model) || "default"), settings, "chat");
+  const effort = flags.effort != null ? (flags.effort === "default" ? "" : String(flags.effort)) : session ? session.effort : settings.defaults.chat.effort;
+  const info = await findModelInfo(settings, pctx, target.provider, target.model);
+  const window = session && session.model && sameModel(session.model, target.spec) && session.context && session.context.window ? session.context.window : windowFor(target.spec, loadWindows(WINDOWS), info && info.context);
+  if (!session) {
+    if (!input.list.papers.length) throw new Error("the list has no papers");
+    emit({ type: "status", text: `Reading the list: ${input.list.papers.length} papers…` });
+    const infos = await listInfos(bridgeClient(), input.list.papers);
+    const fit = fitList(input.list, infos, window, LIST_SHARE);
+    session = { id: newSessionId(), review, title: titleFor(input.display || question), paper: input.list.name, created: now, updated: now, model: target.spec, effort,
+      grounding: { source: "list", label: fit.label }, list: { name: input.list.name, papers: input.list.papers.length, label: fit.label, text: fit.text, read: now },
+      thread: { provider: target.provider, id: null, start: 0, summarized: false }, messages: [] };
+  }
+  if (session.context) session.context.window = window;
+  session.model = target.spec;
+  session.effort = effort;
+  const ctx = listContext(session.list);
+  emit({ type: "session", id: session.id, title: session.title, grounding: ctx.grounding, model: target.spec });
+  currentTask = startTask({ kind: "chat", title: "Chat: " + titleFor(input.display || question, 60), review, paper: session.list.name, chatSession: session.id, model: target.spec });
+  if (target.note) {
+    session.messages.push({ role: "note", text: target.note, at: now });
+    emit({ type: "note", text: target.note });
+  }
+  if (session.context) emit({ type: "context", used: session.context.used, window });
+  const provider = providerById(target.provider, settings);
+  const system = composeSystem(LIST_CHAT_SYSTEM, settings, "chat");
+  const asked = session.messages.some((m) => m.role === "user");
+  let compacted = false;
+  if (asked && needsCompaction(session.context, question)) {
+    await compact(session, settings, pctx, target, effort);
+    compacted = true;
+  }
+  const turn = () => {
+    const t = threadOf(session);
+    const resume = provider.stateful && t.id && t.provider === target.provider ? t.id : null;
+    return generate({ settings, ctx: pctx, target, effort, system, resume, persist: true,
+      messages: resume ? [{ role: "user", content: question }] : threadMessages(session, ctx, question),
+      onDelta: (d) => emit({ type: "delta", text: d }),
+      onStatus: (text) => emit({ type: "status", text }),
+      onFallback: (text) => {
+        session.messages.push({ role: "note", text, at: new Date().toISOString() });
+        emit({ type: "note", text });
+      } });
+  };
+  let answer;
+  try {
+    answer = await turn();
+  } catch (e) {
+    const t = threadOf(session);
+    const resumed = provider.stateful && t.id && t.provider === target.provider;
+    if (!asked || !(tooLong(e) || resumed)) throw e;
+    log(tooLong(e) ? "list chat over the context window, compacting" : "list chat resume failed, continuing from a summary", { session: session.id, error: e.message });
+    await compact(session, settings, pctx, target, effort);
+    compacted = true;
+    answer = await turn();
+  }
+  const t = threadOf(session);
+  session.thread = { provider: answer.provider, id: answer.stateful ? answer.session || null : null, start: t.start, summarized: t.summarized };
+  const quotes = checkQuotes(answer.text, ctx.text);
+  const cost = costOf(answer);
+  session.messages.push({ role: "user", text: question, at: now, ...(input.display ? { display: input.display } : {}) },
+    { role: "assistant", text: answer.text, at: new Date().toISOString(), model: answer.spec, ...(quotes.checked ? { quotes } : {}), ...(cost != null && !answer.subscription ? { costUsd: cost } : {}) });
+  if (answer.window) saveWindow(WINDOWS, answer.spec, answer.window);
+  session.context = { used: answer.usage.input + answer.usage.output || (session.context && session.context.used) || 0, window: answer.window || window, updated: new Date().toISOString() };
+  if (cost != null && !answer.subscription) session.costUsd = (session.costUsd || 0) + cost;
+  session.updated = new Date().toISOString();
+  saveSession(dir, session);
+  log("list chat", { review, session: session.id, papers: session.list.papers, model: answer.spec, turns: session.messages.filter((x) => x.role === "user").length, context: session.context, compacted, costUsd: cost });
+  emit({ type: "context", used: session.context.used, window: session.context.window, compacted });
+  if (quotes.checked) emit({ type: "quotes", checked: quotes.checked, missing: quotes.missing });
+  emit({ type: "done", id: session.id, text: answer.text, model: answer.spec, ...(cost != null && !answer.subscription ? { costUsd: cost, sessionCostUsd: session.costUsd } : {}) });
+  finishTask(currentTask, { detail: "answered", model: answer.spec, usage: answer.usage, costUsd: cost, subscription: !!answer.subscription });
+}
+
 // Summarize the exchanges before the last few (adding to an earlier summary), note it in the
 // chat, and start a new thread from it: the paper, the summary, the last exchanges verbatim.
 async function compact(session, settings, pctx, target, effort) {
@@ -982,7 +1220,8 @@ async function compact(session, settings, pctx, target, effort) {
   session.summary = summary;
   session.summarizedTurns = older.length;
   session.compactions = (session.compactions || []).concat([{ at: new Date().toISOString(), questions, before: session.context ? session.context.used : null }]);
-  const note = { role: "note", text: `The first ${questions} question${questions === 1 ? " was" : "s were"} summarized to fit the model's context; the paper is still read in full.`, at: new Date().toISOString() };
+  const what = session.list ? "the list" : "the paper";
+  const note = { role: "note", text: `The first ${questions} question${questions === 1 ? " was" : "s were"} summarized to fit the model's context; ${what} is still read in full.`, at: new Date().toISOString() };
   session.messages.push(note);
   emit({ type: "note", text: note.text });
   session.thread = { provider: target.provider, id: null, start: session.messages.length, summarized: true };
@@ -1315,6 +1554,10 @@ async function main() {
       return process.stdout.write(JSON.stringify(taxonomyRemove(rest[0], flags)) + "\n");
     case "classify":
       return classify(flags);
+    case "review-draft":
+      return process.stdout.write(JSON.stringify(await reviewDraft()) + "\n");
+    case "review-run":
+      return process.stdout.write(JSON.stringify(await reviewRun()) + "\n");
     case "classify-show": {
       // one paper's result, label by label (its menu › Audit the taxonomies)
       const id = String(flags.item || "");
@@ -1343,8 +1586,7 @@ async function main() {
         process.stdout.write(JSON.stringify({ chats: allChats() }) + "\n");
         return;
       }
-      const { key, libraryID } = itemFlags(flags);
-      process.stdout.write(JSON.stringify({ chats: listSessions(chatsDir(key, libraryID)) }) + "\n");
+      process.stdout.write(JSON.stringify({ chats: listSessions(chatDirOf(flags)) }) + "\n");
       return;
     }
     case "artifacts": {
@@ -1387,11 +1629,10 @@ async function main() {
       process.stdout.write(JSON.stringify({ tasks: flags.clear ? clearTasks() : writeIndex() }) + "\n");
       return;
     case "chat-rename": {
-      const { key, libraryID } = itemFlags(flags);
+      const dir = chatDirOf(flags);
       if (!validSessionId(flags.session)) throw new Error("--session <id> is required");
       const title = String(flags.title || "").replace(/\s+/g, " ").trim().slice(0, 120);
       if (!title) throw new Error("--title can't be empty");
-      const dir = chatsDir(key, libraryID);
       const session = loadSession(dir, String(flags.session));
       session.title = title;
       saveSession(dir, session);
@@ -1399,16 +1640,16 @@ async function main() {
       return;
     }
     case "chat-delete": {
-      const { key, libraryID } = itemFlags(flags);
+      const dir = chatDirOf(flags);
       if (!validSessionId(flags.session)) throw new Error("--session <id> is required");
-      deleteSession(chatsDir(key, libraryID), String(flags.session));
+      deleteSession(dir, String(flags.session));
       process.stdout.write(JSON.stringify({ id: String(flags.session), deleted: true }) + "\n");
       return;
     }
     case "chat-show": {
-      const { key, libraryID } = itemFlags(flags);
+      const dir = chatDirOf(flags);
       if (!validSessionId(flags.session)) throw new Error("--session <id> is required");
-      process.stdout.write(JSON.stringify(loadSession(chatsDir(key, libraryID), String(flags.session))) + "\n");
+      process.stdout.write(JSON.stringify(loadSession(dir, String(flags.session))) + "\n");
       return;
     }
     case "note":

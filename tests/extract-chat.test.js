@@ -274,3 +274,21 @@ test("OCR: tesseract stopping early kills pdftoppm (never left blocked on a full
   await assert.rejects(ocrPage("/x.pdf", 2, "eng", (cmd) => proc(cmd, () => {}), 0.05), /OCR took over 0.05 s on page 2/);
   assert.ok(made.every((p) => p.killed));
 });
+
+test("a paper's chat on its metadata: its abstract and the table's columns, no full text", async () => {
+  const { groundingMessage, parseMetaInput } = await C();
+  const input = parseMetaInput(JSON.stringify({ question: " Which method? ", cells: [{ label: "Gap", value: "Orchestration" }, { label: "Findings", value: "• Firms adapt\n• Managers sense" }, { label: "", value: "dropped" }, { label: "Empty", value: "  " }] }));
+  assert.equal(input.question, "Which method?");
+  assert.deepEqual(input.cells.map((c) => c.label), ["Gap", "Findings"]);
+  assert.throws(() => parseMetaInput("Which method?"), /as JSON/);
+  const ctx = { title: "A paper", citation: "(Sirmon et al., 2011)", annotations: [], notes: [], text: "", meta: { publication: "Journal of Management", year: "2011", abstract: "We study  orchestration." }, cells: input.cells,
+    grounding: { source: "meta", label: "the paper's metadata" } };
+  const m = groundingMessage(ctx, "Which method?");
+  assert.match(m, /# The paper's metadata/);
+  assert.match(m, /- Published: Journal of Management, 2011/);
+  assert.match(m, /- Abstract: We study orchestration\./);
+  assert.match(m, /- Gap: Orchestration/);
+  assert.match(m, /- Findings:\n  • Firms adapt\n  • Managers sense/);
+  assert.match(m, /don't have the paper's full text/);
+  assert.doesNotMatch(m, /<paper>|# The paper's text/);
+});

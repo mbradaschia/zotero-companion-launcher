@@ -7,6 +7,25 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Omarchy launcher (next)
+
+Bringing the Mac app's features to Omarchy, phase 1 of [the plan](docs/omarchy-port/PLAN.md).
+
+- **The runner has the Mac's AI features.** `daemon/` now has what the Mac's copy gained since 0.2.6: `review-run`
+  (a review table's AI columns, paper by paper, stopped by SIGTERM with what it wrote kept), `review-draft` (Write it
+  with AI), `chat --review` (a list's chat: the papers' citations, abstracts and columns) with `chats`,
+  `chat-show`, `chat-rename` and `chat-delete --review`, `chat --source meta` (a paper's chat on its metadata), and
+  requests that put the paper first, alone, so a provider's cache can keep it. The two runners differ again only in
+  where they find `contracts/`.
+- **Colour is never the only sign.** Each pill kind has its symbol before its text: a status's flag, a task's
+  checklist, a taxonomy's tag, a priority's !, and a star on a top journal grade (the others stay faint). The pills are
+  drawn in colour-blind safe hues (status amber, task teal, rank blue, taxonomy sky blue, priority magenta, as the Mac
+  app's default), each made to read on the Omarchy theme's background; a light theme darkens two that would look alike.
+- **Shared, for what comes next:** the results' Group, Sort and Order, the top level's sort and a list's manual order
+  (`Views.arrangement`, `arrange`, `arrangeTop`), and the check for a problem every paper would meet
+  (`Client.fatalProblem`) move from the Mac app into `lib/`, where the Omarchy launcher can use them; the Mac app calls
+  the same code. A test keeps every row the shared builders make one the Omarchy launcher handles.
+
 ### The Mac app (`macos-v0.4.32`)
 
 - **The docked chat fits its pane.** It was at least 320 points wide, so a narrower right pane cut it off at both

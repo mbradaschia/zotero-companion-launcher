@@ -124,8 +124,9 @@ Item {
     quote: root.themeColors.green || String(root.foreground),
     neg: root.themeColors.red || String(Color.urgent)
   })
-  // Every pill's colour, by kind (Views.pillPalette: status, task, rank, taxonomy, scope, priority, neutral).
-  readonly property var pillColors: Views.pillPalette(root.themeColors, { accent: root.hex6(root.selectedText), foreground: root.hex6(root.foreground), background: root.hex6(root.background) })
+  // Every pill's colour, by kind (Views.pillPalette: status, task, rank, taxonomy, scope, priority, neutral), in the
+  // colour-blind safe hues (Views.SAFE_PILLS, as the Mac's default), each made to read on the theme's background.
+  readonly property var pillColors: Views.pillPalette(root.themeColors, { accent: root.hex6(root.selectedText), foreground: root.hex6(root.foreground), background: root.hex6(root.background) }, { safe: true })
   // The typed text is a search (coloured) in the results and when editing a saved search.
   readonly property bool queryTyped: root.inSearch || (root.view === "search-edit" && root.searchEditMode === "query") || root.view === "todo-new"
   // Where the caret is in a search, counted from the end (0: at the end, where typing adds, and where
