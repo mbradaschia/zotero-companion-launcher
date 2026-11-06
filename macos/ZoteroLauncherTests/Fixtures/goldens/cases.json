@@ -100976,7 +100976,8 @@
   "expect": {
    "group": "results",
    "title": "the results",
-   "alt": false
+   "alt": false,
+   "lists": false
   }
  },
  {
@@ -100995,7 +100996,8 @@
   "expect": {
    "group": "settings",
    "title": "Settings",
-   "alt": true
+   "alt": true,
+   "lists": false
   }
  },
  {
@@ -101006,7 +101008,8 @@
    {
     "group": "results",
     "title": "the results",
-    "alt": false
+    "alt": false,
+    "lists": false
    }
   ],
   "expect": [
@@ -105016,7 +105019,8 @@
    {
     "group": "results",
     "title": "the results",
-    "alt": false
+    "alt": false,
+    "lists": false
    }
   ],
   "expect": [
@@ -105141,7 +105145,8 @@
    {
     "group": "settings",
     "title": "Settings",
-    "alt": true
+    "alt": true,
+    "lists": false
    }
   ],
   "expect": [
@@ -109751,5 +109756,4184 @@
    "2026-10-28T12:00:00Z"
   ],
   "expect": null
+ },
+ {
+  "name": "listsPanel/full",
+  "wrapper": "listsPanel",
+  "args": [
+   {
+    "status": [
+     {
+      "value": "none",
+      "label": "No status",
+      "count": 4,
+      "token": "status:none"
+     },
+     {
+      "value": "reading",
+      "label": "reading",
+      "count": 2,
+      "token": "status:\"reading\""
+     }
+    ],
+    "task": [
+     {
+      "value": "Waiting",
+      "label": "Waiting",
+      "count": 1,
+      "token": "task:\"Waiting\"",
+      "detail": "waiting"
+     }
+    ],
+    "tag": [
+     {
+      "value": "theory/resource-based view",
+      "label": "theory/resource-based view",
+      "count": 3
+     },
+     {
+      "value": "SCM",
+      "label": "SCM",
+      "count": 5
+     }
+    ],
+    "collection": [
+     {
+      "value": "Topics",
+      "label": "Topics",
+      "count": 6,
+      "key": "AAAAAAAA",
+      "parentKey": null,
+      "libraryID": 1
+     },
+     {
+      "value": "Topics / SCM",
+      "label": "Topics / SCM",
+      "count": 2,
+      "key": "BBBBBBBB",
+      "parentKey": "AAAAAAAA",
+      "libraryID": 1
+     }
+    ],
+    "has": [
+     {
+      "value": "!collection",
+      "label": "In no collection",
+      "count": 7
+     },
+     {
+      "value": "!pdf",
+      "label": "No PDF",
+      "count": 1
+     }
+    ]
+   },
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities",
+     "pinned": true
+    },
+    {
+     "id": "s2",
+     "name": "Theses",
+     "query": "type:thesis"
+    }
+   ],
+   [
+    {
+     "id": "r-abc",
+     "name": "SCM table",
+     "updated": "x"
+    }
+   ],
+   [
+    {
+     "id": "theory",
+     "name": "Theories",
+     "prefix": "theory/",
+     "labels": [
+      "resource-based view"
+     ]
+    }
+   ],
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": false,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "favorites": [
+     "status:reading"
+    ]
+   }
+  ],
+  "expect": {
+   "rows": [
+    {
+     "row": "section",
+     "key": "section:favorites",
+     "section": {
+      "id": "favorites",
+      "title": "Favorites",
+      "icon": "pin",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "search:s1",
+      "section": "favorites",
+      "kind": "search",
+      "label": "Capabilities",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "search",
+        "key": "s1",
+        "libraryID": 0,
+        "title": "Capabilities",
+        "query": "dynamic capabilities"
+       }
+      },
+      "drop": null,
+      "path": "",
+      "of": "search:s1"
+     },
+     "key": "favorites:search:s1"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:reading",
+      "section": "favorites",
+      "kind": "status",
+      "label": "reading",
+      "count": 2,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"reading\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "reading"
+      },
+      "path": "",
+      "of": "status:reading"
+     },
+     "key": "favorites:status:reading"
+    },
+    {
+     "row": "section",
+     "key": "section:searches",
+     "section": {
+      "id": "searches",
+      "title": "Saved searches",
+      "icon": "search",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "search:s1",
+      "section": "searches",
+      "kind": "search",
+      "label": "Capabilities",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "search",
+        "key": "s1",
+        "libraryID": 0,
+        "title": "Capabilities",
+        "query": "dynamic capabilities"
+       }
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "searches:search:s1"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "search:s2",
+      "section": "searches",
+      "kind": "search",
+      "label": "Theses",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "search",
+        "key": "s2",
+        "libraryID": 0,
+        "title": "Theses",
+        "query": "type:thesis"
+       }
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "searches:search:s2"
+    },
+    {
+     "row": "section",
+     "key": "section:library",
+     "section": {
+      "id": "library",
+      "title": "Quick lists",
+      "icon": "bolt",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:recent",
+      "section": "library",
+      "kind": "library",
+      "label": "Recent",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "recent"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:recent"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:open",
+      "section": "library",
+      "kind": "library",
+      "label": "Open in Zotero",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "open"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:open"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:pinned",
+      "section": "library",
+      "kind": "library",
+      "label": "Pinned papers",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "pinned"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:pinned"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:unfiled",
+      "section": "library",
+      "kind": "library",
+      "label": "Unfiled",
+      "count": 7,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "!has:collection"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:unfiled"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:nopdf",
+      "section": "library",
+      "kind": "library",
+      "label": "No PDF",
+      "count": 1,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "!has:pdf"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:nopdf"
+    },
+    {
+     "row": "section",
+     "key": "section:status",
+     "section": {
+      "id": "status",
+      "title": "Reading status",
+      "icon": "status",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:none",
+      "section": "status",
+      "kind": "status",
+      "label": "No status",
+      "count": 4,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:none"
+      },
+      "drop": {
+       "kind": "status",
+       "value": ""
+      },
+      "path": ""
+     },
+     "key": "status:status:none"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:to read",
+      "section": "status",
+      "kind": "status",
+      "label": "to read",
+      "count": 0,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"to read\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "to read"
+      },
+      "path": ""
+     },
+     "key": "status:status:to read"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:reading",
+      "section": "status",
+      "kind": "status",
+      "label": "reading",
+      "count": 2,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"reading\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "reading"
+      },
+      "path": ""
+     },
+     "key": "status:status:reading"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:read",
+      "section": "status",
+      "kind": "status",
+      "label": "read",
+      "count": 0,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"read\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "read"
+      },
+      "path": ""
+     },
+     "key": "status:status:read"
+    },
+    {
+     "row": "section",
+     "key": "section:tasks",
+     "section": {
+      "id": "tasks",
+      "title": "Tasks",
+      "icon": "task",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:backlog",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Backlog",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:backlog"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:backlog"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:to_read",
+      "section": "tasks",
+      "kind": "task",
+      "label": "To read",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:backlog",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"To read\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "to_read"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:to_read"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:idea",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Idea",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:backlog",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Idea\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "idea"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:idea"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:next",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Next",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:next"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:next"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:next",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Next",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:next",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Next\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "next"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:next"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:active",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Active",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:active"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:active"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:reading",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Reading",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:active",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Reading\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "reading"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:reading"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:writing",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Writing",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:active",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Writing\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "writing"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:writing"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:waiting",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Waiting",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:waiting"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:waiting"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:waiting",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Waiting",
+      "count": 1,
+      "depth": 1,
+      "parent": "taskgroup:waiting",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Waiting\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "waiting"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:waiting"
+    },
+    {
+     "row": "section",
+     "key": "section:taxonomies",
+     "section": {
+      "id": "taxonomies",
+      "title": "Taxonomies",
+      "icon": "tax",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "tax:theory",
+      "section": "taxonomies",
+      "kind": "taxonomy",
+      "label": "Theories",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": null,
+      "drop": null,
+      "path": ""
+     },
+     "key": "taxonomies:tax:theory"
+    },
+    {
+     "row": "section",
+     "key": "section:collections",
+     "section": {
+      "id": "collections",
+      "title": "Collections",
+      "icon": "collection",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "col:1:AAAAAAAA",
+      "section": "collections",
+      "kind": "collection",
+      "label": "Topics",
+      "count": 6,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "collection",
+        "key": "AAAAAAAA",
+        "libraryID": 1,
+        "title": "Topics"
+       }
+      },
+      "drop": {
+       "kind": "collection",
+       "key": "AAAAAAAA",
+       "libraryID": 1
+      },
+      "path": "Topics"
+     },
+     "key": "collections:col:1:AAAAAAAA"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "col:1:BBBBBBBB",
+      "section": "collections",
+      "kind": "collection",
+      "label": "SCM",
+      "count": 2,
+      "depth": 1,
+      "parent": "col:1:AAAAAAAA",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "collection",
+        "key": "BBBBBBBB",
+        "libraryID": 1,
+        "title": "Topics / SCM"
+       }
+      },
+      "drop": {
+       "kind": "collection",
+       "key": "BBBBBBBB",
+       "libraryID": 1
+      },
+      "path": "Topics / SCM"
+     },
+     "key": "collections:col:1:BBBBBBBB"
+    },
+    {
+     "row": "section",
+     "key": "section:tags",
+     "section": {
+      "id": "tags",
+      "title": "Tags",
+      "icon": "tag",
+      "folded": true
+     }
+    },
+    {
+     "row": "section",
+     "key": "section:reviews",
+     "section": {
+      "id": "reviews",
+      "title": "Review tables",
+      "icon": "review",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "review:r-abc",
+      "section": "reviews",
+      "kind": "review",
+      "label": "SCM table",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "review",
+       "id": "r-abc"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "reviews:review:r-abc"
+    }
+   ],
+   "favorites": [
+    {
+     "id": "search:s1",
+     "section": "favorites",
+     "kind": "search",
+     "label": "Capabilities",
+     "count": null,
+     "depth": 0,
+     "parent": "",
+     "group": "",
+     "folder": false,
+     "target": {
+      "type": "scope",
+      "scope": {
+       "type": "search",
+       "key": "s1",
+       "libraryID": 0,
+       "title": "Capabilities",
+       "query": "dynamic capabilities"
+      }
+     },
+     "drop": null,
+     "path": "",
+     "of": "search:s1"
+    },
+    {
+     "id": "status:reading",
+     "section": "favorites",
+     "kind": "status",
+     "label": "reading",
+     "count": 2,
+     "depth": 0,
+     "parent": "",
+     "group": "",
+     "folder": false,
+     "target": {
+      "type": "query",
+      "query": "status:\"reading\""
+     },
+     "drop": {
+      "kind": "status",
+      "value": "reading"
+     },
+     "path": "",
+     "of": "status:reading"
+    }
+   ],
+   "sections": [
+    {
+     "id": "favorites",
+     "title": "Favorites",
+     "icon": "pin",
+     "folded": false,
+     "items": [
+      {
+       "id": "search:s1",
+       "section": "favorites",
+       "kind": "search",
+       "label": "Capabilities",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "search",
+         "key": "s1",
+         "libraryID": 0,
+         "title": "Capabilities",
+         "query": "dynamic capabilities"
+        }
+       },
+       "drop": null,
+       "path": "",
+       "of": "search:s1"
+      },
+      {
+       "id": "status:reading",
+       "section": "favorites",
+       "kind": "status",
+       "label": "reading",
+       "count": 2,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"reading\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "reading"
+       },
+       "path": "",
+       "of": "status:reading"
+      }
+     ]
+    },
+    {
+     "id": "searches",
+     "title": "Saved searches",
+     "icon": "search",
+     "folded": false,
+     "items": [
+      {
+       "id": "search:s1",
+       "section": "searches",
+       "kind": "search",
+       "label": "Capabilities",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "search",
+         "key": "s1",
+         "libraryID": 0,
+         "title": "Capabilities",
+         "query": "dynamic capabilities"
+        }
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "search:s2",
+       "section": "searches",
+       "kind": "search",
+       "label": "Theses",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "search",
+         "key": "s2",
+         "libraryID": 0,
+         "title": "Theses",
+         "query": "type:thesis"
+        }
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "library",
+     "title": "Quick lists",
+     "icon": "bolt",
+     "folded": false,
+     "items": [
+      {
+       "id": "lib:recent",
+       "section": "library",
+       "kind": "library",
+       "label": "Recent",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "recent"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:open",
+       "section": "library",
+       "kind": "library",
+       "label": "Open in Zotero",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "open"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:pinned",
+       "section": "library",
+       "kind": "library",
+       "label": "Pinned papers",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "pinned"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:unfiled",
+       "section": "library",
+       "kind": "library",
+       "label": "Unfiled",
+       "count": 7,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "!has:collection"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:nopdf",
+       "section": "library",
+       "kind": "library",
+       "label": "No PDF",
+       "count": 1,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "!has:pdf"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "status",
+     "title": "Reading status",
+     "icon": "status",
+     "folded": false,
+     "items": [
+      {
+       "id": "status:none",
+       "section": "status",
+       "kind": "status",
+       "label": "No status",
+       "count": 4,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:none"
+       },
+       "drop": {
+        "kind": "status",
+        "value": ""
+       },
+       "path": ""
+      },
+      {
+       "id": "status:to read",
+       "section": "status",
+       "kind": "status",
+       "label": "to read",
+       "count": 0,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"to read\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "to read"
+       },
+       "path": ""
+      },
+      {
+       "id": "status:reading",
+       "section": "status",
+       "kind": "status",
+       "label": "reading",
+       "count": 2,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"reading\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "reading"
+       },
+       "path": ""
+      },
+      {
+       "id": "status:read",
+       "section": "status",
+       "kind": "status",
+       "label": "read",
+       "count": 0,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"read\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "read"
+       },
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "tasks",
+     "title": "Tasks",
+     "icon": "task",
+     "folded": false,
+     "items": [
+      {
+       "id": "taskgroup:backlog",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Backlog",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:backlog"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:to_read",
+       "section": "tasks",
+       "kind": "task",
+       "label": "To read",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:backlog",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"To read\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "to_read"
+       },
+       "path": ""
+      },
+      {
+       "id": "task:idea",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Idea",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:backlog",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Idea\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "idea"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:next",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Next",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:next"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:next",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Next",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:next",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Next\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "next"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:active",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Active",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:active"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:reading",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Reading",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:active",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Reading\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "reading"
+       },
+       "path": ""
+      },
+      {
+       "id": "task:writing",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Writing",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:active",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Writing\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "writing"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:waiting",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Waiting",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:waiting"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:waiting",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Waiting",
+       "count": 1,
+       "depth": 1,
+       "parent": "taskgroup:waiting",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Waiting\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "waiting"
+       },
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "taxonomies",
+     "title": "Taxonomies",
+     "icon": "tax",
+     "folded": false,
+     "items": [
+      {
+       "id": "tax:theory",
+       "section": "taxonomies",
+       "kind": "taxonomy",
+       "label": "Theories",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": null,
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "tax:theory:resource-based view",
+       "section": "taxonomies",
+       "kind": "label",
+       "label": "resource-based view",
+       "count": 3,
+       "depth": 1,
+       "parent": "tax:theory",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "#\"theory/resource-based view\""
+       },
+       "drop": {
+        "kind": "tag",
+        "tag": "theory/resource-based view"
+       },
+       "path": "Theories › resource-based view"
+      }
+     ]
+    },
+    {
+     "id": "collections",
+     "title": "Collections",
+     "icon": "collection",
+     "folded": false,
+     "items": [
+      {
+       "id": "col:1:AAAAAAAA",
+       "section": "collections",
+       "kind": "collection",
+       "label": "Topics",
+       "count": 6,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "collection",
+         "key": "AAAAAAAA",
+         "libraryID": 1,
+         "title": "Topics"
+        }
+       },
+       "drop": {
+        "kind": "collection",
+        "key": "AAAAAAAA",
+        "libraryID": 1
+       },
+       "path": "Topics"
+      },
+      {
+       "id": "col:1:BBBBBBBB",
+       "section": "collections",
+       "kind": "collection",
+       "label": "SCM",
+       "count": 2,
+       "depth": 1,
+       "parent": "col:1:AAAAAAAA",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "collection",
+         "key": "BBBBBBBB",
+         "libraryID": 1,
+         "title": "Topics / SCM"
+        }
+       },
+       "drop": {
+        "kind": "collection",
+        "key": "BBBBBBBB",
+        "libraryID": 1
+       },
+       "path": "Topics / SCM"
+      }
+     ]
+    },
+    {
+     "id": "tags",
+     "title": "Tags",
+     "icon": "tag",
+     "folded": true,
+     "items": [
+      {
+       "id": "tag:scm",
+       "section": "tags",
+       "kind": "tag",
+       "label": "SCM",
+       "count": 5,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "tag",
+         "key": "SCM",
+         "libraryID": 1,
+         "title": "#SCM"
+        }
+       },
+       "drop": {
+        "kind": "tag",
+        "tag": "SCM"
+       },
+       "path": ""
+      },
+      {
+       "id": "tags:all",
+       "section": "tags",
+       "kind": "more",
+       "label": "All tags…",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "view",
+        "view": "tags"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "reviews",
+     "title": "Review tables",
+     "icon": "review",
+     "folded": false,
+     "items": [
+      {
+       "id": "review:r-abc",
+       "section": "reviews",
+       "kind": "review",
+       "label": "SCM table",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "review",
+        "id": "r-abc"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "listsPanel/empty",
+  "wrapper": "listsPanel",
+  "args": [
+   {},
+   [],
+   [],
+   [],
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": false,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   null
+  ],
+  "expect": {
+   "rows": [
+    {
+     "row": "section",
+     "key": "section:searches",
+     "section": {
+      "id": "searches",
+      "title": "Saved searches",
+      "icon": "search",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "searches:none",
+      "section": "searches",
+      "kind": "hint",
+      "label": "None yet: ⌘S saves what you typed",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": null,
+      "drop": null,
+      "path": ""
+     },
+     "key": "searches:searches:none"
+    },
+    {
+     "row": "section",
+     "key": "section:library",
+     "section": {
+      "id": "library",
+      "title": "Quick lists",
+      "icon": "bolt",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:recent",
+      "section": "library",
+      "kind": "library",
+      "label": "Recent",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "recent"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:recent"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:open",
+      "section": "library",
+      "kind": "library",
+      "label": "Open in Zotero",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "open"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:open"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:pinned",
+      "section": "library",
+      "kind": "library",
+      "label": "Pinned papers",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "pinned"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:pinned"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:unfiled",
+      "section": "library",
+      "kind": "library",
+      "label": "Unfiled",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "!has:collection"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:unfiled"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:nopdf",
+      "section": "library",
+      "kind": "library",
+      "label": "No PDF",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "!has:pdf"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:nopdf"
+    },
+    {
+     "row": "section",
+     "key": "section:status",
+     "section": {
+      "id": "status",
+      "title": "Reading status",
+      "icon": "status",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:none",
+      "section": "status",
+      "kind": "status",
+      "label": "No status",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:none"
+      },
+      "drop": {
+       "kind": "status",
+       "value": ""
+      },
+      "path": ""
+     },
+     "key": "status:status:none"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:to read",
+      "section": "status",
+      "kind": "status",
+      "label": "to read",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"to read\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "to read"
+      },
+      "path": ""
+     },
+     "key": "status:status:to read"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:reading",
+      "section": "status",
+      "kind": "status",
+      "label": "reading",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"reading\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "reading"
+      },
+      "path": ""
+     },
+     "key": "status:status:reading"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "status:read",
+      "section": "status",
+      "kind": "status",
+      "label": "read",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "status:\"read\""
+      },
+      "drop": {
+       "kind": "status",
+       "value": "read"
+      },
+      "path": ""
+     },
+     "key": "status:status:read"
+    },
+    {
+     "row": "section",
+     "key": "section:tasks",
+     "section": {
+      "id": "tasks",
+      "title": "Tasks",
+      "icon": "task",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:backlog",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Backlog",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:backlog"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:backlog"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:to_read",
+      "section": "tasks",
+      "kind": "task",
+      "label": "To read",
+      "count": null,
+      "depth": 1,
+      "parent": "taskgroup:backlog",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"To read\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "to_read"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:to_read"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:idea",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Idea",
+      "count": null,
+      "depth": 1,
+      "parent": "taskgroup:backlog",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Idea\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "idea"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:idea"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:next",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Next",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:next"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:next"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:next",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Next",
+      "count": null,
+      "depth": 1,
+      "parent": "taskgroup:next",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Next\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "next"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:next"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:active",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Active",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:active"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:active"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:reading",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Reading",
+      "count": null,
+      "depth": 1,
+      "parent": "taskgroup:active",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Reading\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "reading"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:reading"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:writing",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Writing",
+      "count": null,
+      "depth": 1,
+      "parent": "taskgroup:active",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Writing\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "writing"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:writing"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:waiting",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Waiting",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:waiting"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:waiting"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:waiting",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Waiting",
+      "count": null,
+      "depth": 1,
+      "parent": "taskgroup:waiting",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Waiting\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "waiting"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:waiting"
+    },
+    {
+     "row": "section",
+     "key": "section:tags",
+     "section": {
+      "id": "tags",
+      "title": "Tags",
+      "icon": "tag",
+      "folded": true
+     }
+    },
+    {
+     "row": "section",
+     "key": "section:reviews",
+     "section": {
+      "id": "reviews",
+      "title": "Review tables",
+      "icon": "review",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "reviews:none",
+      "section": "reviews",
+      "kind": "hint",
+      "label": "None yet: ⌘T opens a list as one",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": null,
+      "drop": null,
+      "path": ""
+     },
+     "key": "reviews:reviews:none"
+    }
+   ],
+   "favorites": [],
+   "sections": [
+    {
+     "id": "searches",
+     "title": "Saved searches",
+     "icon": "search",
+     "folded": false,
+     "items": [
+      {
+       "id": "searches:none",
+       "section": "searches",
+       "kind": "hint",
+       "label": "None yet: ⌘S saves what you typed",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": null,
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "library",
+     "title": "Quick lists",
+     "icon": "bolt",
+     "folded": false,
+     "items": [
+      {
+       "id": "lib:recent",
+       "section": "library",
+       "kind": "library",
+       "label": "Recent",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "recent"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:open",
+       "section": "library",
+       "kind": "library",
+       "label": "Open in Zotero",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "open"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:pinned",
+       "section": "library",
+       "kind": "library",
+       "label": "Pinned papers",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "pinned"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:unfiled",
+       "section": "library",
+       "kind": "library",
+       "label": "Unfiled",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "!has:collection"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:nopdf",
+       "section": "library",
+       "kind": "library",
+       "label": "No PDF",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "!has:pdf"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "status",
+     "title": "Reading status",
+     "icon": "status",
+     "folded": false,
+     "items": [
+      {
+       "id": "status:none",
+       "section": "status",
+       "kind": "status",
+       "label": "No status",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:none"
+       },
+       "drop": {
+        "kind": "status",
+        "value": ""
+       },
+       "path": ""
+      },
+      {
+       "id": "status:to read",
+       "section": "status",
+       "kind": "status",
+       "label": "to read",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"to read\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "to read"
+       },
+       "path": ""
+      },
+      {
+       "id": "status:reading",
+       "section": "status",
+       "kind": "status",
+       "label": "reading",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"reading\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "reading"
+       },
+       "path": ""
+      },
+      {
+       "id": "status:read",
+       "section": "status",
+       "kind": "status",
+       "label": "read",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"read\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "read"
+       },
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "tasks",
+     "title": "Tasks",
+     "icon": "task",
+     "folded": false,
+     "items": [
+      {
+       "id": "taskgroup:backlog",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Backlog",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:backlog"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:to_read",
+       "section": "tasks",
+       "kind": "task",
+       "label": "To read",
+       "count": null,
+       "depth": 1,
+       "parent": "taskgroup:backlog",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"To read\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "to_read"
+       },
+       "path": ""
+      },
+      {
+       "id": "task:idea",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Idea",
+       "count": null,
+       "depth": 1,
+       "parent": "taskgroup:backlog",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Idea\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "idea"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:next",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Next",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:next"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:next",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Next",
+       "count": null,
+       "depth": 1,
+       "parent": "taskgroup:next",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Next\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "next"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:active",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Active",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:active"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:reading",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Reading",
+       "count": null,
+       "depth": 1,
+       "parent": "taskgroup:active",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Reading\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "reading"
+       },
+       "path": ""
+      },
+      {
+       "id": "task:writing",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Writing",
+       "count": null,
+       "depth": 1,
+       "parent": "taskgroup:active",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Writing\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "writing"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:waiting",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Waiting",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:waiting"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:waiting",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Waiting",
+       "count": null,
+       "depth": 1,
+       "parent": "taskgroup:waiting",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Waiting\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "waiting"
+       },
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "tags",
+     "title": "Tags",
+     "icon": "tag",
+     "folded": true,
+     "items": [
+      {
+       "id": "tags:all",
+       "section": "tags",
+       "kind": "more",
+       "label": "All tags…",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "view",
+        "view": "tags"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "reviews",
+     "title": "Review tables",
+     "icon": "review",
+     "folded": false,
+     "items": [
+      {
+       "id": "reviews:none",
+       "section": "reviews",
+       "kind": "hint",
+       "label": "None yet: ⌘T opens a list as one",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": null,
+       "drop": null,
+       "path": ""
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "listsPanel/folded-and-ordered",
+  "wrapper": "listsPanel",
+  "args": [
+   {
+    "status": [
+     {
+      "value": "none",
+      "label": "No status",
+      "count": 4,
+      "token": "status:none"
+     },
+     {
+      "value": "reading",
+      "label": "reading",
+      "count": 2,
+      "token": "status:\"reading\""
+     }
+    ],
+    "task": [
+     {
+      "value": "Waiting",
+      "label": "Waiting",
+      "count": 1,
+      "token": "task:\"Waiting\"",
+      "detail": "waiting"
+     }
+    ],
+    "tag": [
+     {
+      "value": "theory/resource-based view",
+      "label": "theory/resource-based view",
+      "count": 3
+     },
+     {
+      "value": "SCM",
+      "label": "SCM",
+      "count": 5
+     }
+    ],
+    "collection": [
+     {
+      "value": "Topics",
+      "label": "Topics",
+      "count": 6,
+      "key": "AAAAAAAA",
+      "parentKey": null,
+      "libraryID": 1
+     },
+     {
+      "value": "Topics / SCM",
+      "label": "Topics / SCM",
+      "count": 2,
+      "key": "BBBBBBBB",
+      "parentKey": "AAAAAAAA",
+      "libraryID": 1
+     }
+    ],
+    "has": [
+     {
+      "value": "!collection",
+      "label": "In no collection",
+      "count": 7
+     },
+     {
+      "value": "!pdf",
+      "label": "No PDF",
+      "count": 1
+     }
+    ]
+   },
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities",
+     "pinned": true
+    },
+    {
+     "id": "s2",
+     "name": "Theses",
+     "query": "type:thesis"
+    }
+   ],
+   [],
+   [
+    {
+     "id": "theory",
+     "name": "Theories",
+     "prefix": "theory/",
+     "labels": [
+      "resource-based view"
+     ]
+    }
+   ],
+   {
+    "artifactsDir": null,
+    "syncDir": null,
+    "machineName": null,
+    "automationHost": null,
+    "enterAction": "reader",
+    "maxResults": 60,
+    "port": 23119,
+    "externalPdfCommand": null,
+    "accelerators": true,
+    "emptyQuery": null,
+    "promptCommand": null,
+    "zoteroCommand": null,
+    "keys": "single",
+    "keysStart": "list",
+    "keyDelay": 300,
+    "citationStyle": null,
+    "providers": {
+     "claude": {
+      "enabled": true
+     },
+     "chatgpt": {
+      "enabled": false
+     },
+     "openai": {
+      "enabled": false
+     },
+     "anthropic": {
+      "enabled": false
+     },
+     "google": {
+      "enabled": false
+     },
+     "openrouter": {
+      "enabled": false
+     },
+     "ollama": {
+      "enabled": false
+     }
+    },
+    "endpoints": [],
+    "defaults": {
+     "prompts": {
+      "model": "",
+      "effort": "high"
+     },
+     "chat": {
+      "model": "",
+      "effort": "high"
+     },
+     "fallback": "",
+     "autoExtract": false,
+     "autoExtractNew": false,
+     "extractMaxMB": 40,
+     "autoTagNew": false,
+     "extractOnOpen": false,
+     "tagOnOpen": false,
+     "autoPrompts": [],
+     "catchUpDays": 30,
+     "processesAtOnce": 1,
+     "catchUpPrompts": "missing",
+     "catchUpTaxonomies": "missing",
+     "launchCatchUp": true,
+     "launchCatchUpWhat": {}
+    },
+    "rules": {},
+    "tasks": null,
+    "paperStatuses": [
+     "to read",
+     "reading",
+     "read"
+    ],
+    "configured": false
+   },
+   {
+    "folded": {
+     "tax:theory": false,
+     "status": true
+    },
+    "order": [
+     "status"
+    ]
+   }
+  ],
+  "expect": {
+   "rows": [
+    {
+     "row": "section",
+     "key": "section:status",
+     "section": {
+      "id": "status",
+      "title": "Reading status",
+      "icon": "status",
+      "folded": true
+     }
+    },
+    {
+     "row": "section",
+     "key": "section:favorites",
+     "section": {
+      "id": "favorites",
+      "title": "Favorites",
+      "icon": "pin",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "search:s1",
+      "section": "favorites",
+      "kind": "search",
+      "label": "Capabilities",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "search",
+        "key": "s1",
+        "libraryID": 0,
+        "title": "Capabilities",
+        "query": "dynamic capabilities"
+       }
+      },
+      "drop": null,
+      "path": "",
+      "of": "search:s1"
+     },
+     "key": "favorites:search:s1"
+    },
+    {
+     "row": "section",
+     "key": "section:searches",
+     "section": {
+      "id": "searches",
+      "title": "Saved searches",
+      "icon": "search",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "search:s1",
+      "section": "searches",
+      "kind": "search",
+      "label": "Capabilities",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "search",
+        "key": "s1",
+        "libraryID": 0,
+        "title": "Capabilities",
+        "query": "dynamic capabilities"
+       }
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "searches:search:s1"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "search:s2",
+      "section": "searches",
+      "kind": "search",
+      "label": "Theses",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "search",
+        "key": "s2",
+        "libraryID": 0,
+        "title": "Theses",
+        "query": "type:thesis"
+       }
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "searches:search:s2"
+    },
+    {
+     "row": "section",
+     "key": "section:library",
+     "section": {
+      "id": "library",
+      "title": "Quick lists",
+      "icon": "bolt",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:recent",
+      "section": "library",
+      "kind": "library",
+      "label": "Recent",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "recent"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:recent"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:open",
+      "section": "library",
+      "kind": "library",
+      "label": "Open in Zotero",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "open"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:open"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:pinned",
+      "section": "library",
+      "kind": "library",
+      "label": "Pinned papers",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "top",
+       "which": "pinned"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:pinned"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:unfiled",
+      "section": "library",
+      "kind": "library",
+      "label": "Unfiled",
+      "count": 7,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "!has:collection"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:unfiled"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "lib:nopdf",
+      "section": "library",
+      "kind": "library",
+      "label": "No PDF",
+      "count": 1,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "!has:pdf"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "library:lib:nopdf"
+    },
+    {
+     "row": "section",
+     "key": "section:tasks",
+     "section": {
+      "id": "tasks",
+      "title": "Tasks",
+      "icon": "task",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:backlog",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Backlog",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:backlog"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:backlog"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:to_read",
+      "section": "tasks",
+      "kind": "task",
+      "label": "To read",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:backlog",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"To read\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "to_read"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:to_read"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:idea",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Idea",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:backlog",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Idea\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "idea"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:idea"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:next",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Next",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:next"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:next"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:next",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Next",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:next",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Next\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "next"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:next"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:active",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Active",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:active"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:active"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:reading",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Reading",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:active",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Reading\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "reading"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:reading"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:writing",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Writing",
+      "count": 0,
+      "depth": 1,
+      "parent": "taskgroup:active",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Writing\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "writing"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:writing"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "taskgroup:waiting",
+      "section": "tasks",
+      "kind": "taskgroup",
+      "label": "Waiting",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "query",
+       "query": "task:waiting"
+      },
+      "drop": null,
+      "path": ""
+     },
+     "key": "tasks:taskgroup:waiting"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "task:waiting",
+      "section": "tasks",
+      "kind": "task",
+      "label": "Waiting",
+      "count": 1,
+      "depth": 1,
+      "parent": "taskgroup:waiting",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "task:\"Waiting\""
+      },
+      "drop": {
+       "kind": "task",
+       "status": "waiting"
+      },
+      "path": ""
+     },
+     "key": "tasks:task:waiting"
+    },
+    {
+     "row": "section",
+     "key": "section:taxonomies",
+     "section": {
+      "id": "taxonomies",
+      "title": "Taxonomies",
+      "icon": "tax",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "tax:theory",
+      "section": "taxonomies",
+      "kind": "taxonomy",
+      "label": "Theories",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": null,
+      "drop": null,
+      "path": ""
+     },
+     "key": "taxonomies:tax:theory"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "tax:theory:resource-based view",
+      "section": "taxonomies",
+      "kind": "label",
+      "label": "resource-based view",
+      "count": 3,
+      "depth": 1,
+      "parent": "tax:theory",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "query",
+       "query": "#\"theory/resource-based view\""
+      },
+      "drop": {
+       "kind": "tag",
+       "tag": "theory/resource-based view"
+      },
+      "path": "Theories › resource-based view"
+     },
+     "key": "taxonomies:tax:theory:resource-based view"
+    },
+    {
+     "row": "section",
+     "key": "section:collections",
+     "section": {
+      "id": "collections",
+      "title": "Collections",
+      "icon": "collection",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "col:1:AAAAAAAA",
+      "section": "collections",
+      "kind": "collection",
+      "label": "Topics",
+      "count": 6,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": true,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "collection",
+        "key": "AAAAAAAA",
+        "libraryID": 1,
+        "title": "Topics"
+       }
+      },
+      "drop": {
+       "kind": "collection",
+       "key": "AAAAAAAA",
+       "libraryID": 1
+      },
+      "path": "Topics"
+     },
+     "key": "collections:col:1:AAAAAAAA"
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "col:1:BBBBBBBB",
+      "section": "collections",
+      "kind": "collection",
+      "label": "SCM",
+      "count": 2,
+      "depth": 1,
+      "parent": "col:1:AAAAAAAA",
+      "group": "",
+      "folder": false,
+      "target": {
+       "type": "scope",
+       "scope": {
+        "type": "collection",
+        "key": "BBBBBBBB",
+        "libraryID": 1,
+        "title": "Topics / SCM"
+       }
+      },
+      "drop": {
+       "kind": "collection",
+       "key": "BBBBBBBB",
+       "libraryID": 1
+      },
+      "path": "Topics / SCM"
+     },
+     "key": "collections:col:1:BBBBBBBB"
+    },
+    {
+     "row": "section",
+     "key": "section:tags",
+     "section": {
+      "id": "tags",
+      "title": "Tags",
+      "icon": "tag",
+      "folded": true
+     }
+    },
+    {
+     "row": "section",
+     "key": "section:reviews",
+     "section": {
+      "id": "reviews",
+      "title": "Review tables",
+      "icon": "review",
+      "folded": false
+     }
+    },
+    {
+     "row": "item",
+     "item": {
+      "id": "reviews:none",
+      "section": "reviews",
+      "kind": "hint",
+      "label": "None yet: ⌘T opens a list as one",
+      "count": null,
+      "depth": 0,
+      "parent": "",
+      "group": "",
+      "folder": false,
+      "target": null,
+      "drop": null,
+      "path": ""
+     },
+     "key": "reviews:reviews:none"
+    }
+   ],
+   "favorites": [
+    {
+     "id": "search:s1",
+     "section": "favorites",
+     "kind": "search",
+     "label": "Capabilities",
+     "count": null,
+     "depth": 0,
+     "parent": "",
+     "group": "",
+     "folder": false,
+     "target": {
+      "type": "scope",
+      "scope": {
+       "type": "search",
+       "key": "s1",
+       "libraryID": 0,
+       "title": "Capabilities",
+       "query": "dynamic capabilities"
+      }
+     },
+     "drop": null,
+     "path": "",
+     "of": "search:s1"
+    }
+   ],
+   "sections": [
+    {
+     "id": "status",
+     "title": "Reading status",
+     "icon": "status",
+     "folded": true,
+     "items": [
+      {
+       "id": "status:none",
+       "section": "status",
+       "kind": "status",
+       "label": "No status",
+       "count": 4,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:none"
+       },
+       "drop": {
+        "kind": "status",
+        "value": ""
+       },
+       "path": ""
+      },
+      {
+       "id": "status:to read",
+       "section": "status",
+       "kind": "status",
+       "label": "to read",
+       "count": 0,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"to read\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "to read"
+       },
+       "path": ""
+      },
+      {
+       "id": "status:reading",
+       "section": "status",
+       "kind": "status",
+       "label": "reading",
+       "count": 2,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"reading\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "reading"
+       },
+       "path": ""
+      },
+      {
+       "id": "status:read",
+       "section": "status",
+       "kind": "status",
+       "label": "read",
+       "count": 0,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "status:\"read\""
+       },
+       "drop": {
+        "kind": "status",
+        "value": "read"
+       },
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "favorites",
+     "title": "Favorites",
+     "icon": "pin",
+     "folded": false,
+     "items": [
+      {
+       "id": "search:s1",
+       "section": "favorites",
+       "kind": "search",
+       "label": "Capabilities",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "search",
+         "key": "s1",
+         "libraryID": 0,
+         "title": "Capabilities",
+         "query": "dynamic capabilities"
+        }
+       },
+       "drop": null,
+       "path": "",
+       "of": "search:s1"
+      }
+     ]
+    },
+    {
+     "id": "searches",
+     "title": "Saved searches",
+     "icon": "search",
+     "folded": false,
+     "items": [
+      {
+       "id": "search:s1",
+       "section": "searches",
+       "kind": "search",
+       "label": "Capabilities",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "search",
+         "key": "s1",
+         "libraryID": 0,
+         "title": "Capabilities",
+         "query": "dynamic capabilities"
+        }
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "search:s2",
+       "section": "searches",
+       "kind": "search",
+       "label": "Theses",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "search",
+         "key": "s2",
+         "libraryID": 0,
+         "title": "Theses",
+         "query": "type:thesis"
+        }
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "library",
+     "title": "Quick lists",
+     "icon": "bolt",
+     "folded": false,
+     "items": [
+      {
+       "id": "lib:recent",
+       "section": "library",
+       "kind": "library",
+       "label": "Recent",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "recent"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:open",
+       "section": "library",
+       "kind": "library",
+       "label": "Open in Zotero",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "open"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:pinned",
+       "section": "library",
+       "kind": "library",
+       "label": "Pinned papers",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "top",
+        "which": "pinned"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:unfiled",
+       "section": "library",
+       "kind": "library",
+       "label": "Unfiled",
+       "count": 7,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "!has:collection"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "lib:nopdf",
+       "section": "library",
+       "kind": "library",
+       "label": "No PDF",
+       "count": 1,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "!has:pdf"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "tasks",
+     "title": "Tasks",
+     "icon": "task",
+     "folded": false,
+     "items": [
+      {
+       "id": "taskgroup:backlog",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Backlog",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:backlog"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:to_read",
+       "section": "tasks",
+       "kind": "task",
+       "label": "To read",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:backlog",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"To read\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "to_read"
+       },
+       "path": ""
+      },
+      {
+       "id": "task:idea",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Idea",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:backlog",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Idea\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "idea"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:next",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Next",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:next"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:next",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Next",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:next",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Next\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "next"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:active",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Active",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:active"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:reading",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Reading",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:active",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Reading\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "reading"
+       },
+       "path": ""
+      },
+      {
+       "id": "task:writing",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Writing",
+       "count": 0,
+       "depth": 1,
+       "parent": "taskgroup:active",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Writing\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "writing"
+       },
+       "path": ""
+      },
+      {
+       "id": "taskgroup:waiting",
+       "section": "tasks",
+       "kind": "taskgroup",
+       "label": "Waiting",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "query",
+        "query": "task:waiting"
+       },
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "task:waiting",
+       "section": "tasks",
+       "kind": "task",
+       "label": "Waiting",
+       "count": 1,
+       "depth": 1,
+       "parent": "taskgroup:waiting",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "task:\"Waiting\""
+       },
+       "drop": {
+        "kind": "task",
+        "status": "waiting"
+       },
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "taxonomies",
+     "title": "Taxonomies",
+     "icon": "tax",
+     "folded": false,
+     "items": [
+      {
+       "id": "tax:theory",
+       "section": "taxonomies",
+       "kind": "taxonomy",
+       "label": "Theories",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": null,
+       "drop": null,
+       "path": ""
+      },
+      {
+       "id": "tax:theory:resource-based view",
+       "section": "taxonomies",
+       "kind": "label",
+       "label": "resource-based view",
+       "count": 3,
+       "depth": 1,
+       "parent": "tax:theory",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "query",
+        "query": "#\"theory/resource-based view\""
+       },
+       "drop": {
+        "kind": "tag",
+        "tag": "theory/resource-based view"
+       },
+       "path": "Theories › resource-based view"
+      }
+     ]
+    },
+    {
+     "id": "collections",
+     "title": "Collections",
+     "icon": "collection",
+     "folded": false,
+     "items": [
+      {
+       "id": "col:1:AAAAAAAA",
+       "section": "collections",
+       "kind": "collection",
+       "label": "Topics",
+       "count": 6,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": true,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "collection",
+         "key": "AAAAAAAA",
+         "libraryID": 1,
+         "title": "Topics"
+        }
+       },
+       "drop": {
+        "kind": "collection",
+        "key": "AAAAAAAA",
+        "libraryID": 1
+       },
+       "path": "Topics"
+      },
+      {
+       "id": "col:1:BBBBBBBB",
+       "section": "collections",
+       "kind": "collection",
+       "label": "SCM",
+       "count": 2,
+       "depth": 1,
+       "parent": "col:1:AAAAAAAA",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "collection",
+         "key": "BBBBBBBB",
+         "libraryID": 1,
+         "title": "Topics / SCM"
+        }
+       },
+       "drop": {
+        "kind": "collection",
+        "key": "BBBBBBBB",
+        "libraryID": 1
+       },
+       "path": "Topics / SCM"
+      }
+     ]
+    },
+    {
+     "id": "tags",
+     "title": "Tags",
+     "icon": "tag",
+     "folded": true,
+     "items": [
+      {
+       "id": "tag:scm",
+       "section": "tags",
+       "kind": "tag",
+       "label": "SCM",
+       "count": 5,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "scope",
+        "scope": {
+         "type": "tag",
+         "key": "SCM",
+         "libraryID": 1,
+         "title": "#SCM"
+        }
+       },
+       "drop": {
+        "kind": "tag",
+        "tag": "SCM"
+       },
+       "path": ""
+      },
+      {
+       "id": "tags:all",
+       "section": "tags",
+       "kind": "more",
+       "label": "All tags…",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": {
+        "type": "view",
+        "view": "tags"
+       },
+       "drop": null,
+       "path": ""
+      }
+     ]
+    },
+    {
+     "id": "reviews",
+     "title": "Review tables",
+     "icon": "review",
+     "folded": false,
+     "items": [
+      {
+       "id": "reviews:none",
+       "section": "reviews",
+       "kind": "hint",
+       "label": "None yet: ⌘T opens a list as one",
+       "count": null,
+       "depth": 0,
+       "parent": "",
+       "group": "",
+       "folder": false,
+       "target": null,
+       "drop": null,
+       "path": ""
+      }
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "name": "listsMoveSection/down",
+  "wrapper": "listsMoveSection",
+  "args": [
+   {},
+   "searches",
+   1
+  ],
+  "expect": [
+   "favorites",
+   "library",
+   "searches",
+   "status",
+   "tasks",
+   "taxonomies",
+   "collections",
+   "tags",
+   "reviews",
+   "more"
+  ]
  }
 ]

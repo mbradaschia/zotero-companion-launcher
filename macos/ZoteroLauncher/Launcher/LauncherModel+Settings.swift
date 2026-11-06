@@ -46,6 +46,7 @@ extension LauncherModel {
         extra["home"] = NSHomeDirectory()
         extra["openAsWindow"] = openAsWindow
         extra["dock"] = showInDock
+        extra["lists"] = listsEnabled
         extra["theme"] = themeSettings
         if let review = tax.review { extra["review"] = review }
         return try core.glue("settingsPage", [settingsPageName, settingsJSON, settingsContext, extra], as: [ListRow].self)
@@ -120,6 +121,11 @@ extension LauncherModel {
         if path == "mac.openAsWindow" {
             openAsWindow.toggle()
             flashMessage(openAsWindow ? "On: the hotkey opens a window from now on (\(keyName("W")) switches to the overlay)" : "Off: the hotkey opens the overlay from now on")
+            return
+        }
+        if path == "mac.listsPanel" {
+            listsEnabled.toggle()
+            flashMessage(listsEnabled ? "On: the lists beside the results; ⌃⌘S folds them to the rail" : "Off: the badges above the results instead")
             return
         }
         if path == "mac.safeColours" {

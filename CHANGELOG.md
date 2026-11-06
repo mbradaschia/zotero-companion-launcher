@@ -7,6 +7,25 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The Lists panel.** A column on the left of the launcher lists every kind of list it knows, each with its papers'
+  count: *Favorites*, *Saved searches*, *Quick lists* (Recent, Open in Zotero, Pinned papers, Unfiled, No PDF),
+  *Reading status*, *Tasks* (under Backlog, Next, Active, Waiting), *Taxonomies* (each folding open to its labels),
+  *Collections* (the tree), *Tags* (folded) and *Review tables*. A click shows a list's papers one level in, as Enter
+  on a collection does (esc goes back; clicking it again too): a status or a label is a search of its own terms,
+  named for where it is ("Reading status › reading"), so typing searches inside it and ⌘T opens it as a table.
+- **Favorites in place of the badges.** Your pinned saved searches are the first Favorites, so the badge row above
+  the results goes (Group, Sort and Order stay). p on a list (⌘L first) or its right-click menu pins it; Tab and ⇧Tab
+  go through the Favorites, ⌘1 to ⌘9 open one.
+- **Folded to icons.** The button at the panel's top, or ⌃⌘S, folds it to a 46-point rail of the sections' icons
+  (each opens its lists as a pop-over) and opens it again; the window starts open, the overlay as the rail (opened,
+  the overlay grows to the left, so the results keep their size). Under 760 points wide, the rail. Drag the panel's
+  edge for its width (180 to 320).
+- **Its keys.** ⌘L gives the panel the keys: ↑↓ move, →← open or fold, ↵ show the list, p a favorite, ⌃⇧↑↓ move a
+  section, esc back to the results. Folded sections, favorites and the order are in `view.json` (both Macs alike).
+  Settings › General › *Lists panel* turns it off (and the badges back on).
+
 ### The Zotero bridge (next)
 
 - **Collections come with their place in the tree.** `/facets` for `collection` returns each collection's `key`,

@@ -44,6 +44,10 @@ extension LauncherModel {
         if let s = searchScope {
             source = ["type": s.type, "key": s.key, "libraryID": s.libraryID == 0 ? 1 : s.libraryID, "title": s.type == "tag" && s.title.hasPrefix("#") ? String(s.title.dropFirst()) : s.title]
             if s.type == "search" { source["query"] = s.query }
+            // a list from the Lists panel (a status, a task status, a label…): a search of its terms, with what's typed
+            if s.type == "search" && s.key.hasPrefix(Self.listKeyPrefix) {
+                source = ["type": "query", "query": (try? core.glue("combinedQuery", [scopeJSON, query], as: String.self)) ?? s.query]
+            }
         } else if !query.isEmpty {
             source = ["type": "query", "query": query]
         } else {
@@ -71,6 +75,7 @@ extension LauncherModel {
     // the open review tables search their sources again in a moment, so a list by task, status or tag takes the papers
     // that match now and lets go of those that don't. One search for a burst of changes.
     func reviewsPapersChanged() {
+        listsChanged() // (the Lists panel's counts too)
         reviewsSearchTimer?.invalidate()
         reviewsSearchTimer = Timer.scheduledTimer(withTimeInterval: 0.4, repeats: false) { [weak self] _ in MainActor.assumeIsolated { self?.reviewsSearch() } }
     }

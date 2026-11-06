@@ -14,7 +14,9 @@ struct KeyState: Equatable {
     var selectedRowId = "" // the highlighted row's (a list's)
     var selectedKind = "" // the highlighted result's
     var tabTodo = false // the highlighted row is a task (or this is a task's page)
-    var pinnedSearches = false
+    var pinnedSearches = false // (the Lists panel on: its favorites)
+    var lists = false // the Lists panel is on
+    var inFavorite = false // the results are one of its favorites (Tab goes on to the next, as at the top)
     var taskTarget = false // a paper whose default task ⌥⇧→ changes
     var statusTarget = false // a paper whose status ⌥→ changes
 

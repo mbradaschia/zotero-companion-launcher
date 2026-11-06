@@ -16,7 +16,10 @@ extension LauncherModel {
         s.selectedRowId = selectedListRow?.rowId ?? ""
         s.selectedKind = selectedSearchRow?.kind ?? ""
         s.tabTodo = !tabTodoId.isEmpty
-        s.pinnedSearches = !pinnedSearches.isEmpty
+        s.lists = listsEnabled
+        // (the panel on: Tab goes through its favorites, not while picking a paper; off: the badges)
+        s.pinnedSearches = listsEnabled ? !lists.favorites.isEmpty && store.pickFor.isEmpty : !pinnedSearches.isEmpty
+        s.inFavorite = listsEnabled && store.pickFor.isEmpty && store.inSearch && store.filterText.isEmpty && inFavorite
         s.pickingAtTop = store.inSearch && store.scope == nil && !store.pickFor.isEmpty
         s.searchEditQuery = store.view == "search-edit" && searchState.editMode == "query"
         s.statusTarget = statusTarget() != nil
@@ -29,6 +32,9 @@ extension LauncherModel {
         // Single keys with the search box holding them: Option types (⌥u u is ü, ⌥⌫ a word,
         // ⌥←/→ jump words), as in any Mac text field (decision 9). Esc still leaves the box.
         if singleKeys && store.searchFocus && event.option && event.key != .escape { return false }
+        // ⌘L gave the Lists panel the keys: its own first (↑↓, →←, ↵, p, esc); what it doesn't take goes on
+        if lists.focus && listsFull, let taken = listsKey(event) { return taken }
+        if lists.focus && !listsFull { lists.focus = false }
         let commands = store.keys.handle(event, keyState, at: now)
         scheduleKeyTick()
         // a waiting key that acts first doesn't decide what happens to this one
@@ -134,7 +140,10 @@ extension LauncherModel {
         case .saveSearch: saveSearchPrompt()
         case .openReview: openReviewHere()
         case .openPicker: openPicker()
-        case .cycleSearch(let d): cycleSearch(d)
+        case .cycleSearch(let d): if listsEnabled { cycleFavorite(d) } else { cycleSearch(d) }
+        case .toggleLists: toggleLists()
+        case .focusLists: focusLists()
+        case .favorite(let n): openFavorite(n)
         case .rejectSuggestion: // Delete on a suggestion (Settings › Taxonomies › Review): dismissed
             if let row = selectedListRow, row.rowId == "tax-suggestion" { decideSuggestion(row, accept: false) }
         }
@@ -244,6 +253,9 @@ extension LauncherModel {
         case .deleteNote: return "deleteNote"
         case .rejectSuggestion: return "rejectSuggestion"
         case .hideNotes: return "hideNotes"
+        case .toggleLists: return "toggleLists"
+        case .focusLists: return "focusLists"
+        case .favorite: return "favorite"
         case .leaveSearch, .clearFilter, .note, .calendarDays, .calendarMonths, .calendarToday, .clearDue, .pickDue,
              .keyAction, .keyActionOrTyping, .queue, .typing, .editSearch, .editFilter, .append, .focusSearch, .move, .page,
              .enterActions, .activate, .ignore, .pass:
@@ -363,7 +375,7 @@ extension LauncherModel {
     // ? or F1 (ZoteroSearch.qml's openKeys): the keybindings, the ones for where you are first.
     func openKeys() {
         guard store.view != "keys", let core else { return }
-        let ctx: [String: Any] = ["scope": store.scope != nil, "pickFor": store.pickFor, "inSettings": store.inSettings, "textEntry": store.textEntry]
+        let ctx: [String: Any] = ["scope": store.scope != nil, "pickFor": store.pickFor, "inSettings": store.inSettings, "textEntry": store.textEntry, "lists": listsEnabled]
         keysHere = (try? core.glueJSON("keysContext", [store.view, ctx, !singleKeys])).flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]
         store.push("keys")
         rebuildList()

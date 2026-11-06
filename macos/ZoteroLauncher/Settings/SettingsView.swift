@@ -13,6 +13,7 @@ struct SettingsView: View {
             Section("Keys") {
                 KeyboardShortcuts.Recorder("Open the launcher:", name: .toggleLauncher)
                 Toggle("Open as a window", isOn: $model.openAsWindow)
+                Toggle("Lists panel beside the results (⌃⌘S folds it)", isOn: $model.listsEnabled)
             }
             Section("This Mac") {
                 Toggle("In the Dock and ⌘Tab", isOn: $model.showInDock)

@@ -9,6 +9,7 @@ var Glue = (function () {
   var F = typeof Fuzzy !== "undefined" ? Fuzzy : require("../../js/lib/Fuzzy.js")
   var S = typeof Settings !== "undefined" ? Settings : require("../../js/lib/Settings.js")
   var M = typeof Merge !== "undefined" ? Merge : require("../../../contracts/Merge.js")
+  var SB = typeof Sidebar !== "undefined" ? Sidebar : require("../../js/lib/Sidebar.js")
   var lists = (typeof GlueLists !== "undefined" ? GlueLists : require("./GlueLists.js"))(V, C, T, P, F, S)
   var todos = (typeof GlueTodos !== "undefined" ? GlueTodos : require("./GlueTodos.js"))(V, C, T, M, F)
   var search = (typeof GlueSearch !== "undefined" ? GlueSearch : require("./GlueSearch.js"))(V, C, T, F)
@@ -240,6 +241,31 @@ var Glue = (function () {
       return open + " open · " + all.length + (all.length === 1 ? " task" : " tasks")
     }
   }
+  // ---- the Lists panel (lib/Sidebar.js): its rows from the bridge's counts (facets: /facets' values by field), your
+  // saved searches, review tables and taxonomies, and the settings' statuses; prefs: view.json's lists ({ favorites,
+  // folded, hidden, order }). → { rows: [{ row: "section" | "group" | "item", key, section?, label?, item? }],
+  // favorites: [item] (each with `of`, the item it stands for), sections: [{ id, title, icon, folded, items }] }
+  core.listsPanel = function (facets, searches, reviews, taxonomies, settings, prefs) {
+    var p = prefs && typeof prefs === "object" && !Array.isArray(prefs) ? prefs : {}
+    var input = {
+      facets: facets && typeof facets === "object" ? facets : {},
+      searches: (searches || []).map(function (x) { return { id: x.id, name: x.name, query: x.query, pinned: !!x.pinned } }),
+      reviews: (reviews || []).map(function (r) { return { id: r.id, name: r.name } }),
+      taxonomies: taxonomies || [], statusTags: C.statusTags(settings.paperStatuses), statusPrefix: C.PAPER_TAG_PREFIX,
+      taskStatuses: T.statusesOf(settings).map(function (x) { return { id: x.id, name: x.name, group: x.group } }), groups: T.GROUPS
+    }
+    var sb = SB.buildSidebar(input, p)
+    var fav = sb.sections.filter(function (x) { return x.id === "favorites" })[0]
+    var head = function (x) { return { id: x.id, title: x.title, icon: x.icon, folded: x.folded } }
+    return {
+      rows: SB.sidebarRows(sb, p).map(function (r) { return r.row === "section" ? { row: "section", key: r.key, section: head(r.section) } : r }),
+      favorites: fav ? fav.items : [],
+      sections: sb.sections.map(function (x) { var h = head(x); h.items = x.items; return h })
+    }
+  }
+  // A section moved (⌃⇧↑↓ in the panel): the sections' new order.
+  core.listsMoveSection = function (prefs, id, delta) { return SB.sidebarMoveSection(prefs || {}, id, delta) }
+
   for (var k in lists) core[k] = lists[k]
   for (var t in todos) core[t] = todos[t]
   for (var s in search) core[s] = search[s]
@@ -323,7 +349,7 @@ var Glue = (function () {
     return macKeys(t).replace(/\bEnter\b/g, "↵").replace(/\bSpace\b/g, "space") // (a line's keys, in the column's notation)
   }
   // Where you are, for the keys' first section (Views.keysContext).
-  core.keysContext = function (view, ctx, alt) { return Object.assign(V.keysContext(view, ctx || {}), { alt: !!alt }) }
+  core.keysContext = function (view, ctx, alt) { return Object.assign(V.keysContext(view, ctx || {}), { alt: !!alt, lists: !!(ctx && ctx.lists) }) }
   // The ⌥-key mode's keys as the hints write them (keyName): ⌥t, a capital ⌥⇧W, so g and G stay apart.
   var macAlt = function (keys) {
     return String(keys).split("  ").map(function (part) {
@@ -336,6 +362,10 @@ var Glue = (function () {
   // The keys view (? or F1): Here first, then every section, in the Mac's notation; typing finds a key by the words
   // shown (and the symbols' names), never by Omarchy's.
   var REVIEW_KEY = "Open the results as a review table, in its own window"
+  // the Lists panel's (when it's on), after ⌘T
+  var LISTS_KEYS = [["⌃⌘S", "Open the Lists panel, or fold it to its icons"],
+    ["⌘L", "The Lists panel takes the keys: ↑↓ move, →← open or fold, ↵ show the list, p a favorite or not, ⌃⇧↑↓ move a section, esc back"],
+    ["⌘1…⌘9", "Show a favorite (Tab and ⇧Tab go through them)"]]
   core.keyRows = function (query, here) {
     var alt = !!(here && here.alt)
     var rows = V.buildKeyRows("", here ? Object.assign({}, here, { alt: false }) : null).map(function (r) {
@@ -346,7 +376,10 @@ var Glue = (function () {
     // the Mac's own: ⌘T, after ⌘S, wherever ⌘S is (phase 11a's review tables)
     rows = rows.reduce(function (out, r) {
       out.push(r)
-      if (r.trailing === "⌘S") out.push(Object.assign({}, r, { trailing: "⌘T", label: REVIEW_KEY, labelHtml: V.escapeHtml(REVIEW_KEY) }))
+      if (r.trailing === "⌘S") {
+        out.push(Object.assign({}, r, { trailing: "⌘T", label: REVIEW_KEY, labelHtml: V.escapeHtml(REVIEW_KEY) }))
+        if (here && here.lists) LISTS_KEYS.forEach(function (k) { out.push(Object.assign({}, r, { trailing: k[0], label: k[1], labelHtml: V.escapeHtml(k[1]) })) })
+      }
       return out
     }, [])
     var words = String(query || "").toLowerCase().split(/\s+/).filter(function (w) { return w })

@@ -44,6 +44,9 @@ enum KeyCommand: Equatable {
     case createTag
     case saveSearch
     case openReview // ⌘T: the results as a review table (phase 11a)
+    case toggleLists // ⌃⌘S: the Lists panel open, or folded to its rail
+    case focusLists // ⌘L: the Lists panel takes the keys (again: the results)
+    case favorite(Int) // ⌘1…⌘9: the Lists panel's favorite numbered so
     case openPicker
     case openTaskTags
     case queue(String) // a single key: it waits to be told from typing (KeyBuffer)

@@ -153,7 +153,8 @@ extension LauncherModel {
         if store.inSearch && store.pickFor == "todo" { return ("Pick the paper this task is about", [], "") }
         if store.inSearch && store.pickFor == "chat" { return ("New chat · pick a paper" + (store.scope.map { " in " + $0.title } ?? ""), [], "") }
         if store.inSearch, let scope = store.scope {
-            let kind = ["tag": "Tag  ", "search": "Saved search  "][scope.type] ?? "Collection  "
+            // (a list from the Lists panel names itself: "Reading status › reading")
+            let kind = scope.key.hasPrefix(Self.listKeyPrefix) ? "" : ["tag": "Tag  ", "search": "Saved search  "][scope.type] ?? "Collection  "
             return (kind + scope.title, [], store.filterText.isEmpty ? "" : scopeTotal)
         }
         let label = (try? core?.glue("contextLabel", [placeholder()], as: String.self)) ?? ""

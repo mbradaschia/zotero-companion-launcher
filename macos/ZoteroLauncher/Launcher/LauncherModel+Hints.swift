@@ -13,6 +13,12 @@ extension LauncherModel {
         return help + h
     }
 
+    // Tab at the top (or in a favorite, with the Lists panel): the next pinned search, or favorite.
+    var tabHint: [String] {
+        if listsEnabled { return !lists.favorites.isEmpty && (store.atRoot || inFavorite) ? ["tab next favorite"] : [] }
+        return store.atRoot && !pinnedSearches.isEmpty ? ["tab next search"] : []
+    }
+
     func hintsFor() -> [String] {
         let K = { (l: String) in self.keyName(l) }
         let back: [String] = store.atRoot ? [pinnedOpen || windowed ? "⌘W close" : "esc close"] : ["⌫ esc back", "⇧esc home"]
@@ -22,7 +28,7 @@ extension LauncherModel {
         let row = (singleKeys ? "1…9" : "⌥1…9") + " row"
         if store.view == "keys" { return ["type to find a key", "↑↓ move", "esc clear, then back"] } // (letters type there)
         if singleKeys && store.searchFocus && !store.textEntry {
-            let badges: [String] = store.atRoot && !pinnedSearches.isEmpty ? ["tab next search"] : []
+            let badges: [String] = tabHint
             let filters: [String] = store.inSearch && store.pickFor.isEmpty ? ["@ filters"] + badges + ["⌘S save", "⌘T table"] : []
             let what = store.view == "todos" ? "type to add or find" : !store.pickFor.isEmpty ? "type to find the paper" : "type to search"
             let enter = !store.inSearch ? (selectedListRow?.rowId == "setting-go" ? Self.settingKeyVerb(selectedListRow?.value ?? "") : "choose") : !store.pickFor.isEmpty ? (store.pickFor == "chat" ? "chat about it" : "pick it")
@@ -154,7 +160,7 @@ extension LauncherModel {
         if cur?.kind == "note-child" { return ["↵ read", "space ← hide the notes", "⇧↵ " + K("z") + " zotero"] + slash + back }
         if cur?.kind == "setting" { return ["↵ " + settingHitVerb, row] + places + slash + back }
         if let k = cur?.kind, Self.goToPlaces.contains(k) { return ["↵ open", row] + places + slash + back }
-        let badges: [String] = store.atRoot && !pinnedSearches.isEmpty ? ["tab next search"] : []
+        let badges: [String] = tabHint
         let searchKeys: [String] = ["@ filters"] + badges + [K("s") + " save search"]
         // ⌘T: what the results list, as a review table (early, so a narrow footer keeps it)
         let table = "⌘T table"

@@ -63,6 +63,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     let reviewShelf = ReviewShelf() // (the menu bar's Review Tables)
     private var monitor: Any?
     private var windowedSink: AnyCancellable?
+    private var listsSink: AnyCancellable?
     private var visible = false // shown, in the panel or the window
     private var moving = false // between the panel and the window: losing the keys then isn't closing
 
@@ -122,6 +123,11 @@ final class LauncherController: NSObject, NSWindowDelegate {
         windowedSink = model.$windowed.dropFirst().removeDuplicates().sink { [weak self] windowed in
             self?.place(windowed: windowed)
         }
+        // the overlay's Lists panel opened or folded: the overlay grows to the left by it (or shrinks back), so the results
+        // keep their size (the window is yours to size)
+        listsSink = model.$listsOpenOverlay.dropFirst().removeDuplicates().sink { [weak self] open in
+            self?.growOverlay(open)
+        }
     }
 
     private var current: NSWindow { model.windowed ? window : panel }
@@ -151,7 +157,8 @@ final class LauncherController: NSObject, NSWindowDelegate {
         let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
         if let frame = screen?.visibleFrame, !model.windowed {
             // at the size last given it, never past the screen
-            let kept = LauncherPanel.lastSize
+            var kept = LauncherPanel.lastSize
+            kept.width += model.listsGrowth // (the Lists panel open in the overlay: wider by it)
             let size = NSSize(width: max(LauncherPanel.minSize.width, min(kept.width, frame.width)), height: max(LauncherPanel.minSize.height, min(kept.height, frame.height)))
             let y = min(frame.midY - size.height / 2 + frame.height * 0.08, frame.maxY - size.height) // (a tall one never under the menu bar)
             panel.setFrame(NSRect(origin: NSPoint(x: frame.midX - size.width / 2, y: max(frame.minY, y)), size: size), display: false)
@@ -190,6 +197,19 @@ final class LauncherController: NSObject, NSWindowDelegate {
         window.orderOut(nil)
         stopMonitor()
         model.didHide()
+    }
+
+    private func growOverlay(_ open: Bool) {
+        guard visible, !model.windowed, model.listsEnabled else { return }
+        let by = (model.listsWidth - LauncherModel.listsRailWidth) * (open ? 1 : -1)
+        var frame = panel.frame
+        frame.origin.x -= by
+        frame.size.width = max(LauncherPanel.minSize.width, frame.size.width + by)
+        if let screen = panel.screen?.visibleFrame {
+            if frame.minX < screen.minX { frame.origin.x = screen.minX }
+            frame.size.width = min(frame.size.width, screen.width)
+        }
+        panel.setFrame(frame, display: true)
     }
 
     // W: the same view, moved between the panel and a regular window.
@@ -248,7 +268,9 @@ final class LauncherController: NSObject, NSWindowDelegate {
     // Resized from an edge (the panel or the window): the size kept for the next opening.
     func windowDidEndLiveResize(_ notification: Notification) {
         guard let w = notification.object as? NSWindow, w === panel || w === window else { return }
-        LauncherPanel.lastSize = w.contentRect(forFrameRect: w.frame).size
+        var size = w.contentRect(forFrameRect: w.frame).size
+        if w === panel { size.width = max(LauncherPanel.minSize.width, size.width - model.listsGrowth) } // (kept without the open Lists panel's width)
+        LauncherPanel.lastSize = size
     }
 
     // Back on the launcher (from Zotero, a chat or a note window): the paper's menu lists the notes made meanwhile.
