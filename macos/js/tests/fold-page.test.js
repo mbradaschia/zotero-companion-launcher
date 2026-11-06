@@ -46,7 +46,7 @@ test("46: FoldView's shared icons use ReviewGrid.js's ICONS paths", () => {
   const view = vm.runInNewContext(fs.readFileSync(path.join(DIR, "Reader", "FoldView.js"), "utf8") + "\n;FoldView", { FoldCore: C })
   const grid = fs.readFileSync(path.join(DIR, "Review", "ReviewGrid.js"), "utf8")
   const icons = /var ICONS = \{([\s\S]*?)\n  \}/.exec(grid)[1]
-  const names = ["status", "task", "tax", "note", "chat", "ai", "panel"]
+  const names = ["status", "task", "tax", "note", "chat", "ai", "stop", "panel"]
   assert.deepEqual(Object.keys(view.SHARED).sort(), names.slice().sort())
   for (const n of names) {
     const m = new RegExp("\\n\\s*" + n + ': "([^"]+)"').exec(icons)
@@ -55,13 +55,36 @@ test("46: FoldView's shared icons use ReviewGrid.js's ICONS paths", () => {
   }
 })
 
-test("the page's copy: every state of section 9 has its title; no em dash and no emoji in the page's files", () => {
+test("the page's copy: every state of R5-SPEC 6.1 has its title, the old ones are gone; no em dash and no emoji in the page's files", () => {
   const view = vm.runInNewContext(fs.readFileSync(path.join(DIR, "Reader", "FoldView.js"), "utf8") + "\n;FoldView", { FoldCore: C })
-  for (const k of ["loading", "no-textfold", "zotero-off", "not-folded", "folding", "needs-engine", "no-model", "no-file", "fold-failed", "group-library", "bad-format"]) assert.ok(view.STATES[k], k)
-  assert.equal(view.stateCopy({ kind: "folding", stage: "levels", done: 2, total: 9 }).sentence, "Levels: 2 of 9. You can read the PDF meanwhile.")
+  for (const k of ["loading", "reading", "no-pdf", "missing", "unreadable", "scan", "too-long", "group-library"]) assert.ok(view.STATES[k], k)
+  for (const k of ["no-textfold", "zotero-off", "not-folded", "folding", "needs-engine", "no-model", "no-file", "fold-failed"]) assert.equal(view.STATES[k], undefined, k)
+  assert.equal(view.stateCopy({ kind: "reading", done: 2, pages: 9 }).sentence, "2 of 9 pages.")
+  assert.equal(view.stateCopy({ kind: "too-long", n: 5001 }).sentence, "It has 5001 paragraphs; the reader takes up to 5000.")
   for (const f of ["FoldCore.js", "FoldView.js", "FoldBridge.js", "FoldReader.css"]) {
     const s = fs.readFileSync(path.join(DIR, "Reader", f), "utf8")
     assert.ok(!s.includes(String.fromCharCode(0x2014)), f + " has an em dash")
     assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]️/u.test(s) && !/[\u{1F300}-\u{1FAFF}]/u.test(s), f + " has an emoji")
+  }
+})
+
+test("R5-28: foldCopy gives each fold kind its banner; the page's files never say TextFold", () => {
+  const view = vm.runInNewContext(fs.readFileSync(path.join(DIR, "Reader", "FoldView.js"), "utf8") + "\n;FoldView", { FoldCore: C })
+  const f = (o) => Object.assign({ kind: "unfolded", done: 0, total: 5, failed: [], error: "", model: "lab:m1", name: "Lab model", calls: 3, cached: 0, cost: "", disabled: "" }, o)
+  assert.equal(view.foldCopy(f({ kind: "folded" }), []), null)
+  assert.equal(view.foldCopy(f({}), ["S1"]).sentence, "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 3 requests.")
+  assert.deepEqual(JSON.parse(JSON.stringify(view.foldCopy(f({ kind: "stopped", done: 2 }), ["S2", "A1"]).action)), ["Finish folding", "fold", { only: ["S2", "A1"] }])
+  assert.equal(view.foldCopy(f({ kind: "ai-limit", error: "slow down..." }), []).sentence, "slow down. Wait a minute, or check your plan.")
+  for (const k of ["unfolded", "folding", "stopped", "partial", "pdf-changed", "no-ai", "no-runner", "old-runner", "ai-key", "ai-signin", "ai-limit", "ai-busy", "ai-offline"]) {
+    const c = view.foldCopy(f({ kind: k, failed: k === "partial" ? ["S2"] : [] }), [])
+    assert.ok(c && c.title && c.sentence, k)
+    assert.ok(!/textfold/i.test(c.title + c.sentence + (c.action ? c.action[0] : "")), k)
+  }
+  for (const n of ["FoldView.js", "FoldBridge.js", "FoldReader.css"]) assert.ok(!/textfold/i.test(fs.readFileSync(path.join(DIR, "Reader", n), "utf8")), n)
+})
+
+test("the disabled Fold button's words (--faint) meet 4.5:1 on the toolbar, light and dark", () => {
+  for (const [name, t] of [["light", light], ["dark", dark]]) {
+    for (const bg of ["chrome", "win"]) assert.ok(contrast(t.faint, t[bg]) >= 4.5, `${name}: --faint on --${bg} is ${contrast(t.faint, t[bg]).toFixed(2)}:1`)
   }
 })

@@ -84,6 +84,10 @@ button:disabled { cursor: default; opacity: .5; }
 .tb .num { font-size: 11px; color: var(--muted); }
 .tb.role { font-size: 12px; padding: 0 8px; }
 .tb.role .shape { margin-right: 3px; }
+/* the Fold button: its icon and its words; disabled it keeps readable words and a dashed edge (not a colour) */
+.tb.fold { padding: 0 9px 0 6px; gap: 5px; color: var(--ink); border-color: var(--line); font-size: 12.5px; }
+.tb.fold:disabled { opacity: 1; color: var(--faint); border-style: dashed; }
+.tb.fold .lbl { line-height: 1; }
 .vsep { width: 1px; height: 26px; background: var(--line); }
 .group { display: flex; gap: 2px; flex-wrap: wrap; align-items: center; }
 .roles { margin-left: auto; }
@@ -169,6 +173,10 @@ aside.mg { flex-shrink: 0; font-size: 11.5px; line-height: 1.45; color: var(--mu
 .banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 28px 0; padding: 8px 12px; border: 1px solid var(--line); border-left: 3px solid var(--ink);
   border-radius: 8px; background: var(--head); color: var(--ink); font-size: 12.5px; }
 .banner .act { margin-left: auto; padding: 3px 10px; }
+.banner .act + .act { margin-left: 0; }
+.act.quiet { border-color: var(--line); font-weight: 400; }
+/* a section not folded: its line in place of the takeaway, muted and in italics (words, not colour, say what it is) */
+.stake.fs, .tcard .take.fs { font-style: italic; }
 
 /* the selection bar */
 .selbar { position: absolute; z-index: 40; display: flex; gap: 2px; padding: 3px; border-radius: 9px; background: var(--ink); color: var(--win); box-shadow: var(--shadow); }

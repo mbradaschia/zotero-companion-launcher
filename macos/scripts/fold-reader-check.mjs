@@ -1,4 +1,4 @@
-// The fold reader's page, driven headless (docs/fold-reader/SPEC.md criteria 24 to 44 and the page budgets of section 11):
+// The fold reader's page, driven headless (docs/fold-reader/SPEC.md criteria 24 to 44, R5-SPEC.md R5-27 to R5-34, and the page budgets of section 11):
 // the page as FoldWebView builds it (the CSS, then FoldCore.js, FoldView.js and FoldBridge.js as one script allowed by
 // its hash), loaded with the synthetic fixture (FIXTURE.md), then clicked, typed and scrolled at.
 // A developer's check where Playwright is installed (not CI's):
@@ -402,25 +402,25 @@ const lm = C.linkMap(C.model(doc), fw.pages, fw.sizes);
 await load(payload(doc, fw, { links: C.linksFile(C.model(doc), lm, { bytes: 12345, modified: "2026-11-01T10:00:00Z", pages: 2 }) }));
 ok((await pg.locator(".bx").count()) > 0 && (await pg.textContent(".pbar .cover")) === "6 of 8 linked", "a valid cached link map draws the boxes at once");
 
-// 40: every state
+// R5-27: every state of R5-SPEC 6.1, sent by FR.load (no doc yet); its buttons post retry
+const MADE = require("../js/tests/fixtures/fold-reader/made.json");
+const FM = require("../ZoteroLauncher/Reader/FoldMake.js");
 const STATES = [
   ["loading", "Opening the paper…", "", null],
-  ["no-textfold", "TextFold isn't running", "The reader shows the levels TextFold writes. Start TextFold on this Mac, then try again.", ["Try again", "retry"]],
-  ["zotero-off", "TextFold can't reach Zotero", "Start Zotero, and in Zotero turn on Settings › Advanced › Allow other applications on this computer to communicate with Zotero.", ["Try again", "retry"]],
-  ["not-folded", "TextFold hasn't folded this paper yet", "Folding reads the paper and asks TextFold's model to write its levels. It uses TextFold's model and can take a few minutes.", ["Fold it with TextFold", "fold"]],
-  [{ kind: "folding", stage: "levels", done: 3, total: 12 }, "TextFold is folding this paper", "Levels: 3 of 12. You can read the PDF meanwhile.", null],
-  [{ kind: "folding", status: "queued" }, "TextFold is folding this paper", "Waiting for TextFold's other work.", null],
-  ["needs-engine", "This PDF is a scan", "TextFold needs its PDF engine to read it: install the engine in TextFold's Settings, then fold again.", ["Fold it with TextFold", "fold"]],
-  ["no-model", "TextFold has no model", "Choose a model in TextFold's Settings, then fold again.", ["Fold it with TextFold", "fold"]],
-  ["no-file", "TextFold found nothing to read", "This paper has no PDF TextFold can read and no text online.", null],
-  [{ kind: "fold-failed", error: "x".repeat(400) }, "TextFold couldn't fold this paper", "x".repeat(300), ["Try again", "fold"]],
-  ["group-library", "Your own library's papers only, for now", "Papers in group libraries come in a later version.", null],
-  [{ kind: "bad-format", format: "textfold/doc", version: 1 }, "This TextFold is newer than the reader", "It writes format textfold/doc version 1: update the Zotero Launcher to read it.", null]
+  [{ kind: "reading", done: 3, pages: 12 }, "Reading the PDF…", "3 of 12 pages.", null],
+  ["no-pdf", "This paper has no PDF", "The reader folds a paper from its PDF: attach one in Zotero, then press ⌘R.", ["Try again", "retry"]],
+  ["missing", "The PDF file is missing from disk", "Zotero lists it, but the file isn't there: sync or relink it in Zotero, then press ⌘R.", ["Try again", "retry"]],
+  [{ kind: "unreadable", why: "It is encrypted with a password" }, "Couldn't open the PDF", "It is encrypted with a password", ["Try again", "retry"]],
+  ["scan", "This PDF is a scan", "It has no text layer, so there are no words to fold. The PDF still shows.", null],
+  [{ kind: "too-long", n: 6200 }, "This PDF is too long to fold", "It has 6200 paragraphs; the reader takes up to 5000.", null],
+  ["group-library", "Your own library's papers only, for now", "Papers in group libraries come in a later version.", null]
 ];
-await load(payload(null, fw, { state: { kind: "loading" } }));
+const allText = [];
+const SHARED_ICONS = await pg.evaluate(() => FoldView.SHARED);
+const pageText = () => pg.evaluate(() => document.body.innerText + " " + [...document.querySelectorAll("[title],[aria-label]")].map((e) => (e.getAttribute("title") || "") + " " + (e.getAttribute("aria-label") || "")).join(" "));
 for (const [s, title, sentence, button] of STATES) {
   const st = typeof s === "string" ? { kind: s } : s;
-  await pg.evaluate((x) => FR.state(x), st);
+  await load(payload(null, fw, { state: st }));
   const got = await pg.evaluate(() => { const p = document.querySelector(".state"); return { hidden: p.hidden, h: p.querySelector("h2") && p.querySelector("h2").textContent, p: p.querySelector("p") ? p.querySelector("p").textContent : "", b: [...p.querySelectorAll("button")].map((x) => x.textContent + "/" + x.getAttribute("data-act")) }; });
   let pressed = true;
   if (button) {
@@ -428,17 +428,187 @@ for (const [s, title, sentence, button] of STATES) {
     await pg.click(".state button.act");
     pressed = (await sent()).some((x) => x.type === button[1]);
   }
-  ok(!got.hidden && got.h === title && got.p === sentence && got.b.join() === (button ? button.join("/") : "") && pressed, `40 ${st.kind}${st.status ? " (queued)" : ""}: its title, sentence${button ? ", and " + button[0] + " posting " + button[1] : ""}`);
+  allText.push(await pageText());
+  ok(!got.hidden && got.h === title && got.p === sentence && got.b.join() === (button ? button.join("/") : "") && pressed, `R5-27 ${st.kind}: its title, sentence${button ? ", and " + button[0] + " posting " + button[1] : ""}`);
 }
-ok(await pg.isVisible("#pdf"), "40 the PDF pane shows the PDF meanwhile");
-// the banners: a cached doc while TextFold is away, and local levels
-await load(payload(doc, fw, { state: { kind: "no-textfold" }, saved: "2026-11-01T09:30:00Z" }));
-ok((await pg.textContent('.banner[data-state="no-textfold"] span')) === "TextFold isn't running: these are the levels saved on 1 November 2026." && (await attr('.banner[data-state="no-textfold"] button', "data-act")) === "retry", "40 no TextFold with a cached doc: the banner and Try again");
-const local = F.doc();
-local.provenance.local = true;
-await load(payload(local, fw));
-ok((await pg.textContent('.banner[data-state="local-only"] span')) === "No model has written these levels yet: Key, Takeaway and Topic show the paper's first sentences." && (await attr('.banner[data-state="local-only"] button', "data-act")) === "fold", "40 local levels: the banner and Fold it with TextFold");
-ok((await attr(".cap.ai", "title")) === "Not written by a model yet: the paper's first sentences", "the AI caption says it's local");
+await load(payload(null, fw, { state: { kind: "scan" } }));
+ok((await pg.isVisible("#bFold")) && (await pg.isDisabled("#bFold")) && (await attr("#bFold", "title")) === STATES[5][2], "R5-28 a scan: the Fold button disabled, its tooltip the state's sentence");
+await load(payload(null, fw, { state: { kind: "reading", done: 1, pages: 2 } }));
+ok(await pg.isVisible("#pdf"), "R5-27 the PDF pane shows the PDF meanwhile");
+
+// R5-28: every fold kind of 6.2, sent by FR.fold, on the doc read from the synthetic paper (nothing folded)
+const base = { kind: "unfolded", done: 0, total: 5, failed: [], error: "", model: "lab:m1", name: "Lab model", calls: 5, cached: 0, cost: "$0.12", disabled: "" };
+const fk = (o) => Object.assign({}, base, o);
+const left = JSON.stringify({ only: ["abstract", "S1", "S2", "S2.SS1", "A1"] });
+const NAMED = "Fold with AI: Lab model writes Key, Takeaway and Topic (Settings › Defaults changes the model)";
+const FOLDS = [
+  [fk({ calls: null }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({}), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests about $0.12 at its list price.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ calls: 1, cached: 1, cost: "< $0.01" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 1 request under $0.01 at its list price. 1 of them were answered before and cost nothing.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ cost: "" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "folding", done: 2 }), "Folding with AI", "2 of 5 sections, with Lab model. Each section shows its levels as it comes back.", ["Stop", "stop", "{}"], ["stop", "Stop folding", "Stop folding: what's done stays", false]],
+  [fk({ kind: "stopped", done: 2 }), "Folding stopped", "2 of 5 sections are folded; the rest show first sentences. Finishing asks only for what's left.", ["Finish folding", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "partial", done: 3, failed: ["S2", "A1"], error: "the reply has no JSON." }), "2 sections weren't folded", "the reply has no JSON. They show first sentences.", ["Try them again", "fold", JSON.stringify({ only: ["S2", "A1"] })], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "partial", done: 4, failed: ["S2"], error: "it has no units" }), "1 section wasn't folded", "it has no units. It shows first sentences.", ["Try it again", "fold", JSON.stringify({ only: ["S2"] })], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "pdf-changed" }), "The PDF changed", "It was read again, so Key, Takeaway and Topic show first sentences until it's folded again.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "no-ai", disabled: "no-ai", calls: null }), "No AI model is set up", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", null, ["ai", "Fold with AI", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", true]],
+  [fk({ kind: "no-runner", disabled: "no-runner" }), "The AI features aren't installed", "Folding needs the AI features: Settings › Setup installs them.", null, ["ai", "Fold with AI", "Folding needs the AI features: Settings › Setup installs them.", true]],
+  [fk({ kind: "old-runner", disabled: "old-runner" }), "The AI features are older than the app", "Settings › Setup › Install the AI features updates them.", null, ["ai", "Fold with AI", "Settings › Setup › Install the AI features updates them.", true]],
+  [fk({ kind: "unfolded", disabled: "cjk" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence.", null, ["ai", "Fold with AI", "Folding a paper in Chinese or Japanese comes in a later version", true]],
+  [fk({ kind: "ai-key", error: "x".repeat(300) }), "The model's key was refused", "x".repeat(200) + ". Settings › Models & providers takes a new key.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-key", done: 1, error: "the key was refused" }), "The model's key was refused", "the key was refused. Settings › Models & providers takes a new key.", ["Finish folding", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-signin", error: "signed out" }), "Signed out of the model", "signed out. Sign in again in Settings › Models & providers.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-limit", error: "rate limited" }), "Rate limited or out of credit", "rate limited. Wait a minute, or check your plan.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-busy", error: "overloaded" }), "The model is overloaded", "overloaded. Try again in a minute.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-offline", error: "couldn't connect" }), "Couldn't reach the model", "couldn't connect. Check the connection.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "folded", done: 5 }), null, null, null, ["ai", "Fold again…", "Fold again: Lab model writes every section anew", false]]
+];
+const unf = MADE.doc;
+await load(payload(unf, null, { fold: FOLDS[0][0] }));
+for (const [f, title, sentence, btn, tool] of FOLDS) {
+  if (!f.kind) f.kind = "unfolded";
+  await pg.evaluate((x) => FR.fold(x), f);
+  const got = await pg.evaluate(() => {
+    const b = document.querySelector(".banners .banner");
+    const a = b && b.querySelector("button");
+    const fb = document.getElementById("bFold");
+    return { state: b && b.getAttribute("data-state"), role: b && b.getAttribute("role"), t: b && b.querySelector("strong").textContent, s: b && b.querySelector("span").textContent,
+      a: a ? [a.textContent, a.getAttribute("data-act"), a.getAttribute("data-payload")] : null, buttons: b ? b.querySelectorAll("button").length : 0,
+      icon: fb.querySelector("svg path").getAttribute("d"), text: fb.querySelector(".lbl").textContent, tip: fb.title, dis: fb.disabled };
+  });
+  allText.push(await pageText());
+  const label = f.kind + (f.disabled === "cjk" ? " (Chinese)" : "") + (f.calls === null ? " (before the plan)" : "") + (f.done && f.kind === "ai-key" ? " (some folded)" : "") + (f.failed.length === 1 ? " (one)" : "");
+  const bannerOk = title === null ? got.state === null : got.state === f.kind && got.role === "note" && got.t === title && got.s === sentence && JSON.stringify(got.a) === JSON.stringify(btn) && got.buttons === (btn ? 1 : 0);
+  const toolOk = got.icon === SHARED_ICONS[tool[0]] && got.text === tool[1] && got.tip === tool[2] && got.dis === tool[3];
+  ok(bannerOk && toolOk, `R5-28 ${label}: the banner ${title ? "'" + title + "'" : "none"}, the Fold button '${tool[1]}'${tool[3] ? " disabled" : ""}`);
+  if (!bannerOk || !toolOk) console.error(JSON.stringify(got));
+}
+// a banner's button posts its act and payload; the toolbar's button posts the same
+await pg.evaluate((x) => FR.fold(x), fk({ kind: "partial", done: 3, failed: ["S2", "A1"], error: "no JSON" }));
+await sent(); await pg.click(".banner button.act");
+let got = await sent();
+ok(got.length === 1 && got[0].type === "fold" && JSON.stringify(got[0].only) === '["S2","A1"]', "R5-28 Try them again posts fold with only the failed sections");
+await pg.evaluate((x) => FR.fold(x), fk({ kind: "folding", done: 1 }));
+await pg.click("#bFold");
+got = await sent();
+ok(got.length === 1 && got[0].type === "stop", "R5-28 Stop folding posts stop");
+await pg.evaluate((x) => FR.fold(x), fk({}));
+await pg.click("#bFold");
+got = await sent();
+ok(got.length === 1 && got[0].type === "fold" && !got[0].force && !got[0].only, "R5-28 Fold with AI on a paper with nothing folded posts fold");
+// one from FoldMake.foldView itself, the app's object
+await pg.evaluate((x) => FR.fold(x), FM.foldView(unf, null, { model: "lab:m1", name: "Lab model", calls: 5, cached: 0, costUsd: 0.12 }, { runner: "ok" }));
+ok((await pg.textContent(".banner span")) === FOLDS[1][2], "R5-28 FoldMake.foldView's object reads as the unfolded banner");
+
+// R5-29: Fold again asks first
+const allMade = ["abstract", "S1", "S2", "S2.SS1", "A1"].reduce((d, id) => FM.foldMerge(d, { type: "section", id, model: "lab:m1", section: { takeaway: "Section " + id + " folded", topic: "Section" },
+  units: d.sections.find((s) => s.id === id).units.filter((u) => !FM.APPARATUS[u.kind]).map((u) => ({ id: u.id, role: "claim", evidence: [0], key: "A short claim. Its reason.", takeaway: "A short claim", topic: "claim" })) }, "2026-11-06T10:00:00Z"), unf);
+const doneFold = fk({ kind: "folded", done: 5 });
+await load(payload(allMade, null, { fold: doneFold }));
+await sent();
+await pg.click("#bFold");
+got = await pg.evaluate(() => { const b = document.querySelector('.banner[data-state="fold-again"]'); return b && { t: b.querySelector("strong").textContent, s: b.querySelector("span").textContent, b: [...b.querySelectorAll("button")].map((x) => x.textContent), focus: document.activeElement && document.activeElement.textContent }; });
+ok(!!got && got.t === "Fold the whole paper again?" && got.s === "Lab model writes every section anew in 5 requests about $0.12 at its list price; your highlights and notes stay on the paper's words." && got.b.join() === "Fold again,Keep these" && got.focus === "Keep these", "R5-29 Fold again: the confirm's title, sentence, buttons; Keep these has the focus");
+allText.push(await pageText());
+await pg.keyboard.press("Escape");
+ok(!(await has('.banner[data-state="fold-again"]')) && (await sent()).length === 0, "R5-29 esc closes it, posting nothing");
+await pg.click("#bFold");
+await pg.click("#bKeep");
+ok(!(await has('.banner[data-state="fold-again"]')) && (await sent()).length === 0, "R5-29 Keep these closes it, posting nothing");
+await pg.click("#bFold");
+await pg.click('.banner[data-state="fold-again"] button[data-act="fold"]');
+got = await sent();
+ok(got.length === 1 && got[0].type === "fold" && got[0].force === true && !(await has('.banner[data-state="fold-again"]')), "R5-29 Fold again posts fold with force: true");
+
+// R5-30: the section lines and the fonts
+const partFold = fk({ kind: "partial", done: 3, failed: ["S2"], error: "no JSON" });
+const s1Only = FM.foldMerge(unf, { type: "section", id: "S1", model: "lab:m1", section: { takeaway: "Section S1 folded", topic: "Section" },
+  units: ["S1.p1", "S1.p2"].map((id) => ({ id, role: "claim", evidence: [0], key: "A short claim. Its reason.", takeaway: "A short claim", topic: "claim" })) }, "2026-11-06T10:00:00Z");
+await load(payload(unf, null, { fold: partFold }));
+await pg.focus("#text");
+await levelKey("3");
+const lineOf = (id) => pg.evaluate((i) => { const t = document.querySelector('.sec[data-s="' + i + '"] + .stake'); return t ? { text: t.textContent, fs: t.classList.contains("fs"), shown: !t.hidden && t.offsetParent !== null, italic: getComputedStyle(t).fontStyle } : null; }, id);
+const fontOf = (u) => pg.evaluate((i) => { const b = document.querySelector('.u[data-u="' + i + '"] .body'); return b ? [...b.classList].filter((c) => c === "paper" || c === "ui").join() + "/" + getComputedStyle(b).fontFamily : ""; }, u);
+const serif = (await fontOf("S1.p1"));
+let l1 = await lineOf("S1"), l2 = await lineOf("S2");
+ok(l1.text === "First sentences: not folded yet" && l1.fs && l1.shown && l1.italic === "italic" && l2.text === "First sentences: this section wasn't folded" && l2.shown, "R5-30 at Key: an unfolded section's line, a failed one's line, muted in italics");
+ok(serif.startsWith("paper/"), "R5-30 an unfolded section's words are in the serif");
+for (const k of ["4", "5"]) {
+  await levelKey(k);
+  if (k === "4") { l1 = await lineOf("S1"); ok(l1.text === "First sentences: not folded yet" && l1.shown, "R5-30 at Takeaway too"); }
+  else ok((await pg.textContent('.tcard[data-s="S1"] .take')) === "First sentences: not folded yet" && (await pg.textContent('.tcard[data-s="S2"] .take')) === "First sentences: this section wasn't folded", "R5-30 a Topic card shows the line in place of its takeaway");
+}
+await levelKey("1");
+ok(!(await lineOf("S1")).shown, "R5-30 at Full no section line");
+await levelKey("3");
+await load(payload(s1Only, null, { fold: fk({ kind: "stopped", done: 1 }) }));
+await wait(50);
+l1 = await lineOf("S1");
+ok(l1.text === "Section S1 folded" && !l1.fs && (await fontOf("S1.p1")).startsWith("ui/") && (await fontOf("S2.p1")).startsWith("paper/"), "R5-30 after FR.load with S1 folded: its line gone, its words in the sans, the others still serif");
+ok((await attr(".cap.ai", "title")) === "Written by AI (Lab model, 6 November 2026) for 1 of 5 sections; the others show first sentences", "R5-30 the AI caption: partly folded");
+await load(payload(unf, null, { fold: fk({}) }));
+ok((await attr(".cap.ai", "title")) === "Not written by AI yet: each paragraph's first sentence", "R5-30 the AI caption: nothing folded");
+await load(payload(allMade, null, { fold: doneFold }));
+ok((await attr(".cap.ai", "title")) === "Written by AI (Lab model, 6 November 2026)", "R5-30 the AI caption: all folded");
+
+// R5-31: FR.fold changes the count without drawing the text again
+await load(payload(s1Only, null, { fold: fk({ kind: "folding", done: 1 }) }));
+await pg.focus("#text");
+await levelKey("1");
+await pg.click('.u[data-u="S2.p1"] .body', { position: { x: 20, y: 8 } });
+await pg.evaluate(() => { const t = document.getElementById("text"); t.scrollTop = 60; document.querySelector('.u[data-u="S2.p1"]').__probe = 1; });
+const before = await pg.evaluate(() => ({ top: document.getElementById("text").scrollTop, sel: [...document.querySelectorAll(".u.sel")].map((e) => e.getAttribute("data-u")).join() }));
+await pg.evaluate((x) => FR.fold(x), fk({ kind: "folding", done: 2 }));
+const after = await pg.evaluate(() => ({ top: document.getElementById("text").scrollTop, sel: [...document.querySelectorAll(".u.sel")].map((e) => e.getAttribute("data-u")).join(), probe: document.querySelector('.u[data-u="S2.p1"]').__probe, s: document.querySelector(".banner span").textContent }));
+ok(after.probe === 1 && after.top === before.top && after.sel === before.sel && before.sel === "S2.p1" && after.s.startsWith("2 of 5 sections"), "R5-31 FR.fold: the count changes, the text isn't drawn again, the scroll and the selection stay");
+
+// R5-32: apparatus at Full only; the bib section's heading at Full only
+await load(payload(unf, null, { fold: fk({}) }));
+await pg.focus("#text");
+const vis = (sel) => pg.evaluate((q) => { const e = document.querySelector(q); return !!e && !e.hidden && e.offsetParent !== null; }, sel);
+await levelKey("1");
+ok((await vis('.u[data-u="bib.r1"]')) && (await vis('.u[data-u="Sx.n1"]')) && (await vis('.sec[data-s="bib"]')), "R5-32 at Full: references, the footnote and the bib heading show");
+for (const k of ["2", "3", "4"]) {
+  await levelKey(k);
+  ok(!(await vis('.u[data-u="bib.r1"]')) && !(await vis('.u[data-u="Sx.n1"]')) && !(await vis('.sec[data-s="bib"]')) && (await vis('.u[data-u="S1.p1"]')), `R5-32 at ${["", "", "Brief", "Key", "Takeaway"][k]}: no apparatus and no bib heading`);
+}
+await levelKey("1");
+
+// R5-33: no TextFold in any state, banner, tooltip or the keys panel; ⌘R's row
+await pg.keyboard.press("?");
+const keyRow = await pg.$$eval(".keys tr", (l) => l.map((r) => r.textContent).find((t) => t.startsWith("⌘R")));
+allText.push(await pageText());
+await pg.keyboard.press("Escape");
+ok(keyRow === "⌘RRead the paper and its PDF again", "R5-33 the keys panel's ⌘R row");
+ok(allText.length >= 30 && !allText.some((t) => /textfold/i.test(t)), `R5-33 no TextFold in ${allText.length} states, banners, tooltips and the keys panel`);
+
+// R5-34: the Fold button and every banner button reachable by Tab and named; Stop's text beside its square
+const tabReach = async (sel) => {
+  await pg.evaluate(() => document.activeElement && document.activeElement.blur());
+  for (let i = 0; i < 80; i++) {
+    await pg.keyboard.press("Tab");
+    if (await pg.evaluate((q) => document.activeElement === document.querySelector(q), sel)) return true;
+  }
+  return false;
+};
+const named = (sel) => pg.evaluate((q) => { const e = document.querySelector(q); return !!e && ((e.getAttribute("aria-label") || e.textContent || "").trim().length > 2); }, sel);
+let reach = true;
+for (const f of [fk({}), fk({ kind: "folding", done: 1 }), fk({ kind: "stopped", done: 2 }), fk({ kind: "partial", done: 3, failed: ["S2"], error: "x" }), fk({ kind: "ai-busy", error: "x" }), fk({ kind: "pdf-changed" })]) {
+  await pg.evaluate((x) => FR.fold(x), f);
+  const r = [await tabReach("#bFold"), await named("#bFold"), await tabReach(".banner button.act"), await named(".banner button.act")];
+  if (r.some((x) => !x)) console.error("R5-34 " + f.kind + " " + r.join());
+  reach = reach && r.every(Boolean);
+}
+await load(payload(allMade, null, { fold: doneFold }));
+await pg.click("#bFold");
+const r2 = [await tabReach('.banner[data-state="fold-again"] button[data-act="fold"]'), await tabReach("#bKeep")];
+if (r2.some((x) => !x)) console.error("R5-34 confirm " + r2.join());
+reach = reach && r2.every(Boolean);
+await pg.keyboard.press("Escape");
+ok(reach, "R5-34 the Fold button and every banner button are reached by Tab and named");
+await pg.evaluate((x) => FR.fold(x), fk({ kind: "folding", done: 1 }));
+const stopBox = await pg.evaluate(() => { const b = document.getElementById("bFold"), i = b.querySelector("svg").getBoundingClientRect(), t = b.querySelector(".lbl").getBoundingClientRect(); return { beside: t.left >= i.right - 1 && Math.abs((t.top + t.bottom) / 2 - (i.top + i.bottom) / 2) < 6, text: b.querySelector(".lbl").textContent, shown: t.width > 20 }; });
+ok(stopBox.beside && stopBox.shown && stopBox.text === "Stop folding", "R5-34 the stop button has its text beside the square");
 await load(full);
 await words(fw);
 ok((await attr(".cap.ai", "title")) === "Written by AI (fixture/model, 1 November 2026)", "the AI caption names the model and the date");
@@ -458,7 +628,7 @@ await pg.keyboard.press("Enter");
 ok((await cls('.u[data-u="S1.p1.1"]')).includes(" opened ") || (await cls('.u[data-u="S1.p2.1"]')).includes(" opened "), "↵ opens the selected paragraph in place");
 await levelKey("1");
 
-// The app's next FR.load of the same paper (the PDF opened, TextFold's answer, ⌘R): what the reader did stays, a mark
+// The app's next FR.load of the same paper (the PDF opened, a fold's progress, ⌘R): what the reader did stays, a mark
 // made in the 400 ms before it included
 await load(full);
 await words(fw);
