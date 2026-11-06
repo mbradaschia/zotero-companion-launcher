@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.36`)
 
 - **The reader folds a paper itself, from its PDF, with your AI model.** *Read with folds* reads the paper's PDF on
   this Mac (two columns, headings, the abstract, footnotes and references found from the page itself) and shows it at
