@@ -97,32 +97,42 @@ final class FoldPDF: @unchecked Sendable {
         let rot = rotation(page)
         let spaces = CharacterSet.whitespacesAndNewlines
         var out: [[Any]] = []
-        var start = -1
-        var rect = CGRect.null
-        func flush(_ end: Int) {
-            defer { start = -1; rect = .null }
-            guard start >= 0, !rect.isNull, out.count < maxWords else { return }
-            let word = s.substring(with: NSRange(location: start, length: end - start))
-            var row: [Any] = [word]
-            for v in normalize(rect, in: box, rotation: rot) { row.append(v) }
-            out.append(row)
-        }
-        var last = CGRect.null // the word's last drawn character
-        for i in 0..<s.length {
-            let c = s.character(at: i)
-            let space = UnicodeScalar(c).map { spaces.contains($0) } ?? false // (half a surrogate pair: part of a word)
-            if space { flush(i); last = .null; continue }
-            let r = page.characterBounds(at: i)
-            let drawn = r.width > 0 || r.height > 0
-            // PDFKit's text can run one line's last word into the next line's first with no space between: a
-            // character that goes back to the left or onto another line starts a word of its own
-            if start >= 0, drawn, !last.isNull, r.minX < last.minX - 0.5 || abs(r.midY - last.midY) > max(last.height, r.height) * 0.6 {
-                flush(i); last = .null
+        // Line by line, as PDFKit lays the page out: its page text can run one line's last word into the next line's
+        // first with no space between (and a character's box then belongs to the other line), so a word never
+        // crosses a line, and only the boxes on the word's own line count.
+        func scan(_ range: NSRange, line: CGRect?) {
+            var start = -1
+            var rect = CGRect.null
+            func flush(_ end: Int) {
+                defer { start = -1; rect = .null }
+                guard start >= 0, !rect.isNull, out.count < maxWords else { return }
+                let word = s.substring(with: NSRange(location: start, length: end - start))
+                var row: [Any] = [word]
+                for v in normalize(rect, in: box, rotation: rot) { row.append(v) }
+                out.append(row)
             }
-            if start < 0 { start = i }
-            if drawn { rect = rect.union(r); last = r }
+            for i in range.location..<NSMaxRange(range) {
+                let c = s.character(at: i)
+                let space = UnicodeScalar(c).map { spaces.contains($0) } ?? false // (half a surrogate pair: part of a word)
+                if space { flush(i); continue }
+                if start < 0 { start = i }
+                let r = page.characterBounds(at: i)
+                guard r.width > 0 || r.height > 0 else { continue }
+                if let line = line, r.midY < line.minY - 1 || r.midY > line.maxY + 1 { continue }
+                rect = rect.union(r)
+            }
+            flush(NSMaxRange(range))
         }
-        flush(s.length)
+        let lines = page.selection(for: page.bounds(for: .mediaBox))?.selectionsByLine() ?? []
+        for line in lines {
+            let bounds = line.bounds(for: page)
+            for k in 0..<line.numberOfTextRanges(on: page) {
+                let r = line.range(at: k, on: page)
+                guard r.location != NSNotFound, r.length > 0, NSMaxRange(r) <= s.length else { continue }
+                scan(r, line: bounds)
+            }
+        }
+        if lines.isEmpty { scan(NSRange(location: 0, length: s.length), line: nil) }
         return out
     }
 
