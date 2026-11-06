@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Zotero bridge (next)
+
+- **Collections come with their place in the tree.** `/facets` for `collection` returns each collection's `key`,
+  `parentKey` and `libraryID`, so the Lists panel builds the tree from data instead of splitting names on " / ".
+- **`POST /collection/add`** puts a paper into a collection (the Lists panel's drop): `{ key, libraryID, item: { key,
+  libraryID } }` → `{ added, collection }`. Only into a collection of the paper's own library; a read-only library
+  refuses with its name; a paper already there answers `added: false`.
+
 ### The Mac app (`macos-v0.4.32`)
 
 - **The docked chat fits its pane.** It was at least 320 points wide, so a narrower right pane cut it off at both

@@ -168,9 +168,12 @@ var OmaFacets = {
       ].concat(statuses.map((s) => ({ value: s.status, label: s.status, count: per(mine.filter((t) => t.status === s.status)), token: "task:" + q(s.status), detail: s.group })));
     } else if (field === "collection") {
       const counts = env.collectionCounts || new Map();
+      const keyOf = new Map((env.collections || []).map((c) => [c.id, c.key]));
+      // key, parentKey and libraryID: the Lists panel builds the tree from them, and adds a paper to one
       out = (env.collections || []).map((c) => ({
         value: c.title, label: c.title, count: counts.has(c.id) ? counts.get(c.id) : 0, token: "c:" + q(c.title),
         detail: c.library && c.library !== "My Library" ? c.library : "",
+        key: c.key || "", parentKey: (c.parentID && keyOf.get(c.parentID)) || null, libraryID: c.libraryID == null ? 1 : c.libraryID,
       }));
     } else out = [];
     return out.slice(0, OmaFacets.MAX).map((v) => {

@@ -15,6 +15,7 @@ var OmaCollections = {
 
   register(bridge) {
     bridge.route("POST", "/collection/reveal", OmaCollections.reveal);
+    bridge.route("POST", "/collection/add", OmaCollections.add);
   },
 
   startObserving() {
@@ -171,6 +172,29 @@ var OmaCollections = {
     return OmaCollections.entries()
       .filter((e) => e.parentID === scope.id)
       .map((e) => OmaCollections.row(e));
+  },
+
+  // POST /collection/add: a paper into a collection (the Lists panel's drop): { key, libraryID } the collection's, item: { key,
+  // libraryID } the paper's. → { added (false: it was there), collection }. Same library only; read-only refused.
+  async add({ key, libraryID, item }) {
+    const entry = OmaCollections.find(key, libraryID);
+    if (!entry) throw omaHttpError(404, "not-found", "no such collection");
+    const lib = Zotero.Libraries.get(entry.libraryID);
+    if (!lib || !lib.editable) throw omaHttpError(409, "read-only", `“${lib ? lib.name : "This library"}” is read-only`);
+    const paper = item && item.key ? Zotero.Items.getByLibraryAndKey(item.libraryID == null ? entry.libraryID : Number(item.libraryID), String(item.key)) : null;
+    if (!paper || paper.deleted) throw omaHttpError(404, "no-such-item", "no such paper");
+    if (!paper.isTopLevelItem()) throw omaHttpError(400, "not-a-paper", "only a paper goes into a collection, not its note or file");
+    const why = OmaCollections.addRefusal(entry, paper.libraryID);
+    if (why) throw omaHttpError(409, "other-library", why);
+    if (paper.inCollection(entry.id)) return { added: false, collection: OmaCollections.row(entry) };
+    paper.addToCollection(entry.id);
+    await paper.saveTx();
+    return { added: true, collection: OmaCollections.row(entry) };
+  },
+
+  // Why a paper of `libraryID` can't go into `entry`, or "" (pure, node-tested).
+  addRefusal(entry, libraryID) {
+    return Number(libraryID) === Number(entry.libraryID) ? "" : `a paper goes into a collection of its own library (“${entry.title}” is in ${entry.library || "another library"})`;
   },
 
   // POST /collection/reveal { key, libraryID? }: the collection selected in the library tab.
