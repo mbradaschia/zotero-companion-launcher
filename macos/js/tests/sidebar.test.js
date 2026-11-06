@@ -61,6 +61,7 @@ test("the default sections, in order (your saved searches right under Favorites)
   assert.equal(sec(sb, "tags").folded, true);
   assert.equal(sec(sb, "status").folded, false);
   assert.equal(sec(sb, "status").icon, "status"); // the kind's symbol (Icons.concept), never a colour
+  assert.equal(sec(sb, "library").title, "Quick lists"); // not "Library": Zotero's My Library is another thing
 });
 
 test("reading status: No status first, then yours, with the bridge's counts and tokens; a drop sets it", () => {

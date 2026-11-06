@@ -16,7 +16,7 @@ Every item is either an existing scope (collection, tag, saved search) or a quer
 |---|---|---|---|---|
 | Favorites | Any item you pin (p). Starts with your pinned saved searches | `pin` | `searches.json` pinned + new `view.json` `favorites` | That item's own search |
 | Saved searches | All your saved searches (your saved queries), in your order | `magnifyingglass` | `searches.json` | the saved search's scope |
-| Library | Recent, Open in Zotero, Pinned papers, Unfiled, No PDF | `books.vertical` | bridge `/search` empty query (recent, open, pinned); `/facets` `has` | top level; `!has:collection`; `!has:pdf` |
+| Quick lists | Recent, Open in Zotero, Pinned papers, Unfiled, No PDF | `bolt` | bridge `/search` empty query (recent, open, pinned); `/facets` `has` | top level; `!has:collection`; `!has:pdf` |
 | Reading status | No status, To read, Reading, Read (your Settings › Paper status list, in order) | `flag` | `/facets` field `status` with `statusTags` | `status:reading`, `status:none` |
 | Tasks | Task statuses under their groups: Backlog, Next, Active, Waiting (Completed folded) | `checklist` | `/facets` field `task` with marks; `lib/Todos.js` GROUPS | `task:reading`, `task:waiting` |
 | Taxonomies | Paper type, Method, Theories, Epistemology, Ontology (your taxonomies), each folding open to its labels | `tag` | taxonomies in settings + `/facets` `tag` filtered by each prefix | `#"theory/resource-based view"` |
@@ -86,7 +86,7 @@ Measure it. L2 logs `lists:open`, `lists:combine`, `lists:drop`, `lists:pin` in 
 
 1. **Where first** (decision card in the thread). Recommended: the launcher first (L2, L3), the review window after (L4). Alternative: the review window only, which keeps the launcher a pure keyboard overlay.
 2. **The badge bar** hides while the panel is shown, its badges becoming Favorites. Recommended yes; the other way shows the same pinned searches twice.
-3. **Default sections**: Favorites, Library, Reading status, Tasks, Taxonomies, Collections, Review tables open; Tags folded; More hidden. Going with this unless you say otherwise.
+3. **Default sections**: Favorites, Saved searches, Quick lists, Reading status, Tasks, Taxonomies, Collections, Review tables open; Tags folded; More hidden. Going with this unless you say otherwise.
 
 ## 9. Risks
 
