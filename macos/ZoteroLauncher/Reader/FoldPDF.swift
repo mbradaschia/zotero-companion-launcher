@@ -107,13 +107,20 @@ final class FoldPDF: @unchecked Sendable {
             for v in normalize(rect, in: box, rotation: rot) { row.append(v) }
             out.append(row)
         }
+        var last = CGRect.null // the word's last drawn character
         for i in 0..<s.length {
             let c = s.character(at: i)
             let space = UnicodeScalar(c).map { spaces.contains($0) } ?? false // (half a surrogate pair: part of a word)
-            if space { flush(i); continue }
-            if start < 0 { start = i }
+            if space { flush(i); last = .null; continue }
             let r = page.characterBounds(at: i)
-            if r.width > 0 || r.height > 0 { rect = rect.union(r) }
+            let drawn = r.width > 0 || r.height > 0
+            // PDFKit's text can run one line's last word into the next line's first with no space between: a
+            // character that goes back to the left or onto another line starts a word of its own
+            if start >= 0, drawn, !last.isNull, r.minX < last.minX - 0.5 || abs(r.midY - last.midY) > max(last.height, r.height) * 0.6 {
+                flush(i); last = .null
+            }
+            if start < 0 { start = i }
+            if drawn { rect = rect.union(r); last = r }
         }
         flush(s.length)
         return out
