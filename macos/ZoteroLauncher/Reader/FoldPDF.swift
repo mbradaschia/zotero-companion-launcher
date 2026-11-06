@@ -139,6 +139,9 @@ final class FoldPDF: @unchecked Sendable {
         guard let text else { return nil }
         let t = text as NSString
         if t.length == length { return (t, fonts) }
+        // (CI: a line's range is its text and one more index, the break PDFKit counts after the line; the text is the
+        // range's first characters)
+        if t.length > 0, t.length < length, length - t.length <= 2 { return (t, fonts) }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines) as NSString
         guard trimmed.length == length, length > 0 else { return nil }
         let at = t.range(of: trimmed as String)
@@ -157,13 +160,13 @@ final class FoldPDF: @unchecked Sendable {
             guard range.location != NSNotFound, range.length > 0 else { how.append("empty"); continue }
             let owner = Array(range.location..<(range.location + range.length))
             if n == 1, let f = fit(line.string, styled ? line.attributedString : nil, to: range.length) {
-                out.append(Piece(text: f.text, owner: owner, fonts: f.fonts))
+                out.append(Piece(text: f.text, owner: Array(owner.prefix(f.text.length)), fonts: f.fonts))
                 how.append("line")
                 continue
             }
             let sub = page.selection(for: range)
             if let f = fit(sub?.string, styled ? sub?.attributedString : nil, to: range.length) {
-                out.append(Piece(text: f.text, owner: owner, fonts: f.fonts))
+                out.append(Piece(text: f.text, owner: Array(owner.prefix(f.text.length)), fonts: f.fonts))
                 how.append("range")
                 continue
             }
@@ -173,6 +176,9 @@ final class FoldPDF: @unchecked Sendable {
                 guard let one = page.selection(for: NSRange(location: at, length: 1)) else { continue }
                 let c = (one.string ?? "").trimmingCharacters(in: .newlines) as NSString
                 guard c.length > 0 else { continue }
+                // (the break after a line reads as its last character again, CI showed: not a character of its own)
+                if at == owner.last, at > owner[0], units.last == at - 1, built.length >= c.length,
+                   built.substring(from: built.length - c.length) == c as String { continue }
                 built.append(c as String)
                 units += Array(repeating: at, count: c.length)
                 guard styled else { continue }
@@ -240,12 +246,13 @@ final class FoldPDF: @unchecked Sendable {
         for part in parts {
             let fonts = styled ? charStyles(part.fonts, length: part.text.length) : []
             for w in runs(part.text) {
+                // (the word's own selection: its box is in the ranges' index, which counts a break after each line;
+                // characterBounds(at:) doesn't, so on CI its boxes ran one character later each line down the page)
                 var rect = CGRect.null
-                var last = -1
-                for c in w.location..<(w.location + w.length) where part.owner[c] != last {
-                    last = part.owner[c]
-                    let b = page.characterBounds(at: last)
-                    if b.width > 0 || b.height > 0, b.midY >= r.minY - 1, b.midY <= r.maxY + 1 { rect = rect.union(b) } // (only a box on this line)
+                let from = part.owner[w.location], to = part.owner[w.location + w.length - 1]
+                if to >= from, let sel = page.selection(for: NSRange(location: from, length: to - from + 1)) {
+                    let b = sel.bounds(for: page)
+                    if !b.isNull, b.width > 0 || b.height > 0, b.midY >= r.minY - 1, b.midY <= r.maxY + 1 { rect = b } // (only a box on this line)
                 }
                 let spread = rect.isNull
                 if spread { rect = along(r, CGFloat(offset + w.location) / total, CGFloat(offset + w.location + w.length) / total, rotation: rot) }
@@ -276,7 +283,8 @@ final class FoldPDF: @unchecked Sendable {
             let read = pieces(line, on: page, styled: false)
             let words = lineWords(line, on: page)
             let texts = read.pieces.map { "\"\($0.text)\" (\($0.text.length))" }
-            return "\"\(line.string ?? "")\" (\((line.string ?? "") as NSString).length) at \(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))x\(Int(r.height)): " +
+            let length = ((line.string ?? "") as NSString).length
+            return "\"\(line.string ?? "")\" (\(length)) at \(Int(r.minX)),\(Int(r.minY)) \(Int(r.width))x\(Int(r.height)): " +
                 "ranges \(ranges.joined(separator: " ")) read \(read.how.joined(separator: " ")) as \(texts.joined(separator: " | ")); " +
                 "\(words.filter(\.spread).count) of \(words.count) words spread"
         }
@@ -348,8 +356,10 @@ final class FoldPDF: @unchecked Sendable {
                 count += 1
             }
             guard let first = words.first else { continue }
-            let all = union(words.map { $0.box })
-            let lineHigh = (all[3] - all[1]) * shownH
+            // (the words' median height, not the line's: two columns' lines a little apart in height make a taller union,
+            // and a narrow gutter then stays under the cut)
+            let heights = words.map { ($0.box[3] - $0.box[1]) * shownH }.sorted()
+            let lineHigh = heights[heights.count / 2]
             let across = !down(words.map { $0.box }, letters: first.word.text.count, shownW, shownH)
             // (cut where the next word starts more than 1.5 heights after the last one ends, on a line across the page)
             var runs: [[(word: Word, box: [Double])]] = [[]]
@@ -357,6 +367,7 @@ final class FoldPDF: @unchecked Sendable {
                 if let prev = runs[runs.count - 1].last, across, (w.box[0] - prev.box[2]) * shownW > 1.5 * lineHigh { runs.append([]) }
                 runs[runs.count - 1].append(w)
             }
+            if across { runs = runs.flatMap { Self.cutAtMiddle($0, shownW: shownW, high: lineHigh) } }
             for run in runs where !run.isEmpty {
                 let boxes = run.map { $0.box }
                 let b = union(boxes)
@@ -369,6 +380,23 @@ final class FoldPDF: @unchecked Sendable {
             }
         }
         return out
+    }
+
+    // Two columns' lines on one line a narrow gutter apart (under the 1.5 heights cut): cut at the widest gap over the
+    // page's middle when it is half a height or wider and twice the line's other gaps, as FoldMake cuts again (a
+    // justified line across the page has its spaces alike, so it stays whole). Each side then has its own fonts.
+    static func cutAtMiddle(_ run: [(word: Word, box: [Double])], shownW: Double, high: Double) -> [[(word: Word, box: [Double])]] {
+        guard run.count >= 4, let first = run.first, let last = run.last else { return [run] }
+        let mid = shownW / 2
+        guard first.box[0] * shownW < mid - high, last.box[2] * shownW > mid + high else { return [run] }
+        var gaps: [(i: Int, a: Double, b: Double)] = []
+        for i in 1..<run.count { gaps.append((i: i, a: run[i - 1].box[2] * shownW, b: run[i].box[0] * shownW)) }
+        guard let at = gaps.filter({ $0.a <= mid + high && $0.b >= mid - high }).max(by: { ($0.b - $0.a) < ($1.b - $1.a) }),
+              at.b - at.a >= 0.5 * high else { return [run] }
+        let others = gaps.filter { $0.i != at.i }.map { $0.b - $0.a }.sorted()
+        let typical = others.isEmpty ? 0 : others[others.count / 2]
+        guard at.b - at.a >= 2 * typical else { return [run] }
+        return [Array(run[..<at.i]), Array(run[at.i...])]
     }
 
     static func union(_ boxes: [[Double]]) -> [Double] {
