@@ -23,6 +23,8 @@ function GlueFold(FC, V, FM) {
     // links.json kept with a doc written again
     foldRelink: function (links, doc) { return FM.relink(links, doc) },
     foldCost: function (usd) { return FM.costText(usd) },
+    // a doc.json's problem for FoldCore ("" when it reads): one that doesn't is kept aside and the PDF read again
+    foldDocProblem: function (doc) { var p = FC.check(doc); return p ? String(p.detail || "not a fold doc") : "" },
     // The paper menu's row (This paper, after the window row): on a paper only (not a note or a file); a group
     // library's paper has it unavailable. null when there's no row.
     foldMenuRow: function (details) {

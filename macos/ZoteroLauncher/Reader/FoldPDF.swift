@@ -1,11 +1,13 @@
 import AppKit
+import CryptoKit
 import Foundation
 import PDFKit
 import WebKit
 
-// The fold reader's PDF (docs/fold-reader/SPEC.md 5.4, 6.2): PDFKit on its own serial queue, never the main thread.
-// It gives the pages' sizes, their words with their boxes (0 to 1 of the crop box, in display orientation, origin top
-// left) and each page drawn as a PNG at one of five widths, the last 12 kept.
+// The fold reader's PDF (docs/fold-reader/SPEC.md 5.4, 6.2; R5-SPEC.md 3.1): PDFKit on its own serial queue, never the
+// main thread. It gives the pages' sizes, their words with their boxes (0 to 1 of the crop box, in display orientation,
+// origin top left), their lines (the words, the font size, bold and italic: what FoldMake.js reads the doc from), the
+// file's SHA-256, and each page drawn as a PNG at one of five widths, the last 12 kept.
 final class FoldPDF: @unchecked Sendable {
     let url: URL
     let token: String // this window's: a page URL without it is refused
@@ -94,55 +96,275 @@ final class FoldPDF: @unchecked Sendable {
         let box = page.bounds(for: .cropBox)
         let rot = rotation(page)
         var out: [[Any]] = []
-        func add(_ word: String, _ rect: CGRect) {
-            guard out.count < maxWords, !rect.isNull, !word.isEmpty else { return }
-            var row: [Any] = [word]
-            for v in normalize(rect, in: box, rotation: rot) { row.append(v) }
-            out.append(row)
-        }
-        // Line by line, as PDFKit lays the page out: CI showed page.string running one line's last word into the
-        // next line's first, and its indices then disagreeing with characterBounds(at:). Each line's own text, its
-        // range and its box agree with each other.
-        let lines = page.selection(for: page.bounds(for: .mediaBox))?.selectionsByLine() ?? []
-        for line in lines {
-            guard let text = line.string, !text.isEmpty else { continue }
-            let r = line.bounds(for: page)
-            guard r.width > 0, r.height > 0 else { continue }
-            let t = text as NSString
-            let spaces = CharacterSet.whitespacesAndNewlines
-            func space(_ k: Int) -> Bool { UnicodeScalar(t.character(at: k)).map { spaces.contains($0) } ?? false }
-            // the line's own place in the page's characters: when its text is exactly that range, each character's
-            // box is PDFKit's own (only boxes on this line count); otherwise words are spread along the line
-            let range = line.numberOfTextRanges(on: page) == 1 ? line.range(at: 0, on: page) : NSRange(location: NSNotFound, length: 0)
-            let exact = range.location != NSNotFound && range.length == t.length
-            var k = 0
-            while k < t.length {
-                if space(k) { k += 1; continue }
-                var j = k
-                while j < t.length, !space(j) { j += 1 }
-                var rect = CGRect.null
-                if exact {
-                    for c in k..<j {
-                        let b = page.characterBounds(at: range.location + c)
-                        if (b.width > 0 || b.height > 0), b.midY >= r.minY - 1, b.midY <= r.maxY + 1 { rect = rect.union(b) }
-                    }
-                }
-                if rect.isNull {
-                    let n = CGFloat(max(t.length, 1))
-                    let x0 = r.minX + r.width * CGFloat(k) / n, x1 = r.minX + r.width * CGFloat(j) / n
-                    rect = CGRect(x: x0, y: r.minY, width: x1 - x0, height: r.height)
-                }
-                add(t.substring(with: NSRange(location: k, length: j - k)), rect)
-                k = j
+        for line in pageLines(page) {
+            for word in lineWords(line, on: page) {
+                guard out.count < maxWords, !word.rect.isNull, !word.text.isEmpty else { continue }
+                var row: [Any] = [word.text]
+                for v in normalize(word.rect, in: box, rotation: rot) { row.append(v) }
+                out.append(row)
             }
         }
         return out
     }
 
-    // How many lines PDFKit finds on a page (the tests' diagnostics)
-    static func lineCount(of page: PDFPage) -> Int {
-        page.selection(for: page.bounds(for: .mediaBox))?.selectionsByLine().count ?? 0
+    // Line by line, as PDFKit lays the page out: CI showed page.string running one line's last word into the next
+    // line's first, and its indices then disagreeing with characterBounds(at:). Each line's own text, its ranges and
+    // its box agree with each other.
+    static func pageLines(_ page: PDFPage) -> [PDFSelection] {
+        page.selection(for: page.bounds(for: .mediaBox))?.selectionsByLine() ?? []
     }
+
+    struct Word {
+        let text: String
+        let rect: CGRect // page points
+        var chars: [CharStyle] = [] // its characters' fonts, when they are known (styled)
+    }
+
+    // One line's words, in page points (styled: with their characters' fonts). Each of the line's ranges of the page's
+    // characters whose own text is exactly that range gives PDFKit's own box for each character (only boxes on this
+    // line count); a line whose text doesn't match its ranges has its words spread along it.
+    static func lineWords(_ line: PDFSelection, on page: PDFPage, styled: Bool = false) -> [Word] {
+        guard let text = line.string, !text.isEmpty else { return [] }
+        let r = line.bounds(for: page)
+        guard r.width > 0, r.height > 0 else { return [] }
+        var parts: [(text: NSString, at: Int, fonts: NSAttributedString?)] = []
+        let n = line.numberOfTextRanges(on: page)
+        if n == 1 {
+            let range = line.range(at: 0, on: page)
+            if range.location != NSNotFound && range.length == (text as NSString).length { parts = [(text as NSString, range.location, styled ? line.attributedString : nil)] }
+        } else if n > 1 {
+            for i in 0..<n {
+                let range = line.range(at: i, on: page)
+                guard range.location != NSNotFound, range.length > 0, let sub = page.selection(for: range), let st = sub.string,
+                      (st as NSString).length == range.length else { parts = []; break }
+                parts.append((st as NSString, range.location, styled ? sub.attributedString : nil))
+            }
+        }
+        let spaces = CharacterSet.whitespacesAndNewlines
+        func runs(_ t: NSString) -> [NSRange] {
+            func space(_ k: Int) -> Bool { UnicodeScalar(t.character(at: k)).map { spaces.contains($0) } ?? false }
+            var out: [NSRange] = []
+            var k = 0
+            while k < t.length {
+                if space(k) { k += 1; continue }
+                var j = k
+                while j < t.length, !space(j) { j += 1 }
+                out.append(NSRange(location: k, length: j - k))
+                k = j
+            }
+            return out
+        }
+        // (no exact ranges: the line's text, its words spread along its box)
+        guard !parts.isEmpty else {
+            let t = text as NSString
+            let whole = styled ? charStyles(line.attributedString, length: t.length) : []
+            let count = CGFloat(max(t.length, 1))
+            return runs(t).map { (w: NSRange) -> Word in
+                let x0 = r.minX + r.width * CGFloat(w.location) / count, x1 = r.minX + r.width * CGFloat(w.location + w.length) / count
+                return Word(text: t.substring(with: w), rect: CGRect(x: x0, y: r.minY, width: x1 - x0, height: r.height),
+                            chars: whole.isEmpty ? [] : Array(whole[w.location..<(w.location + w.length)]))
+            }
+        }
+        var words: [Word] = []
+        // (a word with no box of its own on this line: spread along it, at its place in the line's characters)
+        let total = CGFloat(max(1, parts.reduce(-1) { $0 + $1.text.length + 1 }))
+        var offset = 0
+        for part in parts {
+            let fonts = styled ? charStyles(part.fonts, length: part.text.length) : []
+            for w in runs(part.text) {
+                var rect = CGRect.null
+                for c in w.location..<(w.location + w.length) {
+                    let b = page.characterBounds(at: part.at + c)
+                    if (b.width > 0 || b.height > 0), b.midY >= r.minY - 1, b.midY <= r.maxY + 1 { rect = rect.union(b) }
+                }
+                if rect.isNull {
+                    let x0 = r.minX + r.width * CGFloat(offset + w.location) / total, x1 = r.minX + r.width * CGFloat(offset + w.location + w.length) / total
+                    rect = CGRect(x: x0, y: r.minY, width: x1 - x0, height: r.height)
+                }
+                words.append(Word(text: part.text.substring(with: w), rect: rect, chars: fonts.isEmpty ? [] : Array(fonts[w.location..<(w.location + w.length)])))
+            }
+            offset += part.text.length + 1
+        }
+        return words
+    }
+
+    // ---- lines (R5-SPEC 3.1)
+
+    // Every page's lines, in batches of 8 pages, first pages first; each batch on the main queue, the last with done.
+    func lines(_ each: @escaping (_ pages: [[String: Any]], _ done: Bool) -> Void) {
+        queue.async {
+            if self.document == nil { _ = self.openNow() }
+            guard let doc = self.document, doc.pageCount > 0 else { DispatchQueue.main.async { each([], true) }; return }
+            var batch: [[String: Any]] = []
+            for i in 0..<doc.pageCount {
+                batch.append(Self.page(doc.page(at: i), n: i + 1))
+                let last = i == doc.pageCount - 1
+                if batch.count == Self.batch || last {
+                    let send = batch
+                    batch = []
+                    DispatchQueue.main.async { each(send, last) }
+                }
+            }
+        }
+    }
+
+    // Every page's lines at once (on the queue, or a test's thread); progress(pages done, pages) after each page.
+    func linesNow(progress: ((Int, Int) -> Void)? = nil) -> [[String: Any]] {
+        if document == nil { _ = openNow() }
+        guard let doc = document else { return [] }
+        var out: [[String: Any]] = []
+        for i in 0..<doc.pageCount {
+            out.append(Self.page(doc.page(at: i), n: i + 1))
+            progress?(i + 1, doc.pageCount)
+        }
+        return out
+    }
+
+    // Work on the PDF's own queue (FoldMaker's extraction: its JSContext lives there).
+    func onQueue(_ work: @escaping (FoldPDF) -> Void) {
+        queue.async { work(self) }
+    }
+
+    // A page's entry of the lines payload: {n, size: [w, h] (points, as it shows), lines}.
+    static func page(_ page: PDFPage?, n: Int) -> [String: Any] {
+        guard let page else { return ["n": n, "size": [612.0, 792.0], "lines": [[String: Any]]()] }
+        let box = page.bounds(for: .cropBox)
+        let turned = rotation(page) % 180 != 0
+        return ["n": n, "size": [Double(turned ? box.height : box.width), Double(turned ? box.width : box.height)], "lines": lines(of: page)]
+    }
+
+    // A page's lines, in PDFKit's order: [{t, b, s, f, lb, w}] (R5-SPEC 3.1). w: the line's words as words(of:) gives
+    // them; t: the words joined by one space; b: their boxes' union; s: the font size in points; f: 1 bold, 2 italic,
+    // for most of its characters; lb: how many words at its start are bold (a run-in heading). A line with no words is
+    // left out; at most 20000 words a page. A PDFKit line that runs across a gap wider than 1.5 times its height (two
+    // columns' lines on one baseline) is given as one line a side, each with its own fonts.
+    static func lines(of page: PDFPage) -> [[String: Any]] {
+        let box = page.bounds(for: .cropBox)
+        let rot = rotation(page)
+        let turned = rot % 180 != 0
+        let shownW = Double(turned ? box.height : box.width), shownH = Double(turned ? box.width : box.height)
+        var out: [[String: Any]] = []
+        var count = 0
+        for line in pageLines(page) {
+            guard count < maxWords else { break }
+            var words: [(word: Word, box: [Double])] = []
+            for word in lineWords(line, on: page, styled: true) {
+                guard count < maxWords, !word.rect.isNull, !word.text.isEmpty else { continue }
+                words.append((word, normalize(word.rect, in: box, rotation: rot)))
+                count += 1
+            }
+            guard let first = words.first else { continue }
+            let all = union(words.map { $0.box })
+            let lineHigh = (all[3] - all[1]) * shownH
+            let across = !down(words.map { $0.box }, letters: first.word.text.count, shownW, shownH)
+            // (cut where the next word starts more than 1.5 heights after the last one ends, on a line across the page)
+            var runs: [[(word: Word, box: [Double])]] = [[]]
+            for w in words {
+                if let prev = runs[runs.count - 1].last, across, (w.box[0] - prev.box[2]) * shownW > 1.5 * lineHigh { runs.append([]) }
+                runs[runs.count - 1].append(w)
+            }
+            for run in runs where !run.isEmpty {
+                let boxes = run.map { $0.box }
+                let b = union(boxes)
+                let height = down(boxes, letters: run[0].word.text.count, shownW, shownH) ? (b[2] - b[0]) * shownW : (b[3] - b[1]) * shownH
+                let style = Self.style(run.map { $0.word.chars })
+                var size = 0.8 * height
+                if let pt = style.size, height > 0, pt >= 0.5 * height, pt <= 1.6 * height { size = pt }
+                let rows: [[Any]] = run.map { w in [w.word.text as Any] + w.box.map { $0 as Any } }
+                out.append(["t": run.map { $0.word.text }.joined(separator: " "), "b": b, "s": (size * 2).rounded() / 2, "f": style.flags, "lb": style.leadBold, "w": rows])
+            }
+        }
+        return out
+    }
+
+    static func union(_ boxes: [[Double]]) -> [Double] {
+        [boxes.map { $0[0] }.min() ?? 0, boxes.map { $0[1] }.min() ?? 0, boxes.map { $0[2] }.max() ?? 0, boxes.map { $0[3] }.max() ?? 0]
+    }
+
+    // Whether words run down the page as it shows (a stamp set up its edge): their centres move more down than across;
+    // one word of 3 letters or more: 3 times taller than wide.
+    static func down(_ boxes: [[Double]], letters: Int, _ shownW: Double, _ shownH: Double) -> Bool {
+        guard let first = boxes.first, let last = boxes.last else { return false }
+        if boxes.count > 1 {
+            return abs((last[1] + last[3]) - (first[1] + first[3])) * shownH > abs((last[0] + last[2]) - (first[0] + first[2])) * shownW
+        }
+        return letters >= 3 && (first[3] - first[1]) * shownH > 3 * (first[2] - first[0]) * shownW
+    }
+
+    struct CharStyle: Equatable {
+        var size: Double? // its font's point size, nil with no font
+        var bold = false
+        var italic = false
+    }
+
+    struct LineStyle: Equatable {
+        var size: Double? // the character-weighted mean point size of its fonts, nil with none
+        var flags = 0 // 1 bold, 2 italic: most of its characters'
+        var leadBold = 0 // the words at its start bold in 80% of their characters
+    }
+
+    static func traits(_ font: NSFont) -> (bold: Bool, italic: Bool) {
+        let t = font.fontDescriptor.symbolicTraits
+        let name = font.fontName
+        let bold = t.contains(.bold) || name.range(of: "bold|black|heavy|semibold|demi", options: [.regularExpression, .caseInsensitive]) != nil
+        let italic = t.contains(.italic) || name.range(of: "italic|oblique", options: [.regularExpression, .caseInsensitive]) != nil
+        return (bold, italic)
+    }
+
+    // Each character's font (an attributed string's .font runs); [] when there is none, or its length isn't the text's
+    // (its characters couldn't be matched to the words).
+    static func charStyles(_ attributed: NSAttributedString?, length: Int) -> [CharStyle] {
+        guard let a = attributed, a.length > 0, a.length == length else { return [] }
+        var chars = [CharStyle](repeating: CharStyle(), count: a.length)
+        a.enumerateAttribute(.font, in: NSRange(location: 0, length: a.length), options: []) { value, range, _ in
+            guard let font = value as? NSFont, range.length > 0 else { return }
+            let t = traits(font)
+            for k in range.location..<(range.location + range.length) {
+                chars[k].size = Double(font.pointSize)
+                chars[k].bold = t.bold
+                chars[k].italic = t.italic
+            }
+        }
+        return chars
+    }
+
+    // A run of words' fonts (each word's characters'): the mean size, bold and italic for most of the characters, and
+    // the words at its start bold in 80% of theirs.
+    static func style(_ words: [[CharStyle]]) -> LineStyle {
+        let all = words.flatMap { $0 }
+        var style = LineStyle()
+        let sized = all.compactMap { $0.size }
+        if !sized.isEmpty { style.size = sized.reduce(0, +) / Double(sized.count) }
+        if !all.isEmpty {
+            if all.filter({ $0.bold }).count * 2 > all.count { style.flags |= 1 }
+            if all.filter({ $0.italic }).count * 2 > all.count { style.flags |= 2 }
+        }
+        for w in words {
+            guard !w.isEmpty, Double(w.filter { $0.bold }.count) >= 0.8 * Double(w.count) else { break }
+            style.leadBold += 1
+        }
+        return style
+    }
+
+    // ---- the file's identity (R5-SPEC 3.5)
+
+    // The file's SHA-256 as hex, read 1 MB at a time; nil when it can't be read. Any thread (the file, not PDFKit).
+    func sha256() -> String? { Self.sha256(of: url) }
+
+    static func sha256(of url: URL) -> String? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        do {
+            while let data = try handle.read(upToCount: 1 << 20), !data.isEmpty { hasher.update(data: data) }
+        } catch {
+            return nil
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    // How many lines PDFKit finds on a page (the tests' diagnostics)
+    static func lineCount(of page: PDFPage) -> Int { pageLines(page).count }
 
     // A box in page space (PDF points, origin bottom left) as 0 to 1 of the crop box, origin top left, turned as the
     // page displays: 0: (u, v); 90: (1 - v, u); 180: (1 - u, 1 - v); 270: (v, 1 - u); min and max taken again.

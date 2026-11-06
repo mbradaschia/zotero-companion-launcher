@@ -629,6 +629,9 @@ function cases() {
   add("foldRelink/S1", "foldRelink", foldLinks, Object.assign({}, madeDoc, { id: "pdf-fixture0001", provenance: Object.assign({}, madeDoc.provenance, { levels_made: "2026-11-06T10:00:00" }) }));
   add("foldCost/under-a-cent", "foldCost", 0.004);
   add("foldCost/twelve-cents", "foldCost", 0.123);
+  add("foldDocProblem/good", "foldDocProblem", madeDoc);
+  add("foldDocProblem/other", "foldDocProblem", { format: "other", version: 3 });
+  add("foldDocProblem/not-a-doc", "foldDocProblem", [1, 2]);
   return list;
 }
 
