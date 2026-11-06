@@ -89,7 +89,7 @@ button:disabled { cursor: default; opacity: .5; }
 .sec.d2, .sec.d3 { font-size: 15px; }
 .sec .n { color: var(--faint); margin-right: 8px; font-weight: 500; }
 .stake { color: var(--muted); font-size: 14px; line-height: 1.5; margin: -4px 0 12px 28px; font-family: var(--f-ui); }
-.u { display: flex; gap: 24px; margin-bottom: 12px; content-visibility: auto; contain-intrinsic-size: auto 90px; }
+.u { display: flex; gap: 24px; margin-bottom: 12px; }
 .u.nomargin { gap: 10px; }
 .u.lv-full { margin-bottom: 16px; } .u.lv-takeaway { margin-bottom: 7px; }
 .ubody { flex: 1; min-width: 0; }

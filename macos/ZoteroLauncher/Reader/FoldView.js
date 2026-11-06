@@ -121,7 +121,10 @@ var FoldView = (function () {
     var rows = {} // a unit's row: { row, ubox, line, shape, body, aside, ncount, drawn }
     var queue = [] // units still to draw at the level shown (drawn in idle chunks)
     var anchorKeep = null // the paragraph kept at the reading line while the queue draws
-    var offsets = null // the rows' tops and bottoms (follow's binary search), made again after a draw
+    var hold = null // { a: anchor, until }: the paragraph kept in its place while rows above it change size (no input since)
+    var order = null // the rows shown, in order (follow's binary search reads their places live)
+    var fitW = { pdf: 470, margin: true, marginW: 220 } // what the window's width allows of the widths kept (fit())
+    var rove = null // the one paragraph whose controls are Tab stops
     var quietUntil = 0, followTimer = null, followAt = 0, marksTimer = null, flashTimer = null, wheelAcc = 0, chunkTimer = null
     var boxEls = {} // a unit's boxes on the pages: [button]
     function post(type, payload) { host.post(type, payload || {}) }
@@ -319,7 +322,7 @@ var FoldView = (function () {
       bSwap = button("tb", "Move the PDF to the left", [icon("swap")], { id: "bSwap" })
       bSwap.addEventListener("click", function () { S.pdfLeft = !S.pdfLeft; prefs({ pdfLeft: S.pdfLeft }); drawPanes() })
       bMargin = button("tb", "Margin: links and notes · ⌥⌘M", [icon("panel")], { "aria-pressed": "false", "aria-keyshortcuts": "Alt+Meta+M", id: "bMargin" })
-      bMargin.addEventListener("click", function () { setMargin(!S.marginOn) })
+      bMargin.addEventListener("click", function () { setMargin(!fitW.margin) })
       pg.appendChild(bPdf); pg.appendChild(bSwap); pg.appendChild(bMargin)
       tools.appendChild(pg)
       var rg = el("div", { class: "group roles", role: "group", "aria-label": "Paragraph roles" })
@@ -347,7 +350,8 @@ var FoldView = (function () {
         bPdf.setAttribute("aria-pressed", pdfShown() ? "true" : "false")
         bSwap.disabled = !pdfShown()
         name(bSwap, S.pdfLeft ? "Move the PDF to the right" : "Move the PDF to the left")
-        bMargin.setAttribute("aria-pressed", S.marginOn ? "true" : "false")
+        bMargin.setAttribute("aria-pressed", fitW.margin ? "true" : "false")
+        name(bMargin, S.marginOn && !fitW.margin ? "Margin: hidden while the window is narrow; press to show it · ⌥⌘M" : "Margin: links and notes · ⌥⌘M")
       }
       Object.keys(roleBtns).forEach(function (r) { roleBtns[r].setAttribute("aria-pressed", S.role === r ? "true" : "false") })
     }
@@ -399,7 +403,7 @@ var FoldView = (function () {
       rows = {}
       boxEls = {}
       var mg = el("button", { type: "button", class: "mgrip", title: "Resize the margin. ← → resize, double-click resets.", "aria-label": "Resize the margin. ← → resize, double-click resets." }, [el("span", { "aria-hidden": "true" })])
-      dragger(mg, function () { return S.marginW }, function (start, dx) { setMarginW(start - dx) }, function (d) { setMarginW(S.marginW + d) }, function () { setMarginW(220) }, "marginWidth")
+      dragger(mg, function () { return fitW.marginW }, function (start, dx) { setMarginW(start - dx) }, function (d) { setMarginW(S.marginW + d) }, function () { setMarginW(220) }, "marginWidth")
       column.appendChild(mg)
       column.appendChild(el("div", { class: "lostgroup", hidden: true }))
       S.m.sections.forEach(function (s) {
@@ -419,8 +423,8 @@ var FoldView = (function () {
           r.shape = el("span")
           r.ubox.appendChild(r.shape); r.ubox.appendChild(r.words)
           r.body.appendChild(r.line); r.body.appendChild(r.ubox)
-          r.ncount = button("ncount", "Show the margin to see the notes on this paragraph", [icon("note", true), el("span")], { hidden: true })
-          r.ncount.addEventListener("click", function () { setMargin(true) })
+          r.ncount = button("ncount", "Notes", [icon("note", true), el("span")], { hidden: true })
+          r.ncount.addEventListener("click", function () { if (!fitW.margin) setMargin(true); if (unitLevel(uid) === "takeaway") openUnit(uid) })
           r.aside = el("aside", { class: "mg", "aria-label": "Margin" })
           r.row.appendChild(r.body); r.row.appendChild(r.ncount); r.row.appendChild(r.aside)
           r.ubox.addEventListener("click", function (e) { if (e.target.closest("button")) return; var ws = window.getSelection(); if (ws && !ws.isCollapsed) return; select(uid, false) })
@@ -449,14 +453,16 @@ var FoldView = (function () {
           list.appendChild(el("div", { class: "stub", "data-stub": run.ids.join(" ") }, [el("span", { class: "shapes", "aria-hidden": "true", text: run.roles.map(function (r) { return C.SHAPES[r] }).join("") }), el("span", { text: run.label }), b]))
         })
       })
-      offsets = null
+      order = null
     }
     function cssId(s) { return String(s).replace(/["\\]/g, "\\$&") }
     function columnLayout() {
-      column.style.maxWidth = (696 + (S.marginOn ? S.marginW + 24 : 0) + 56) + "px"
+      column.style.maxWidth = (696 + (fitW.margin ? fitW.marginW + 24 : 0) + 56 + 14) + "px"
+      // (the headings and the sections' takeaways end where the margin starts)
+      column.style.setProperty("--mgw", (fitW.margin ? fitW.marginW + 24 : 0) + "px")
       var mg = column.querySelector(".mgrip")
-      mg.hidden = !S.marginOn || ["takeaway"].indexOf(S.level) >= 0
-      mg.style.right = (28 + S.marginW + 12 - 5.5) + "px"
+      mg.hidden = !fitW.margin || ["takeaway"].indexOf(S.level) >= 0
+      mg.style.right = (28 + fitW.marginW + 12 - 5.5) + "px"
       S.m.sections.forEach(function (s) {
         var t = column.querySelector('.sec[data-s="' + cssId(s.id) + '"] + .stake')
         if (t) t.hidden = !(s.takeaway && (S.level === "key" || S.level === "takeaway"))
@@ -470,7 +476,7 @@ var FoldView = (function () {
       if (!r) return
       var L = unitLevel(uid), opened = !!S.opened[uid] && S.level !== "full"
       r.drawn = L + (opened ? "!" : "")
-      r.row.className = "u lv-" + S.level + (S.sel === uid ? " sel" : "") + (S.follow === uid && pdfShown() ? " fol" : "") + (opened ? " opened" : "") + (S.marginOn ? "" : " nomargin")
+      r.row.className = "u lv-" + S.level + (S.sel === uid ? " sel" : "") + (S.follow === uid && pdfShown() ? " fol" : "") + (opened ? " opened" : "") + (fitW.margin ? "" : " nomargin")
       r.line.hidden = !opened
       var sh
       if (L === "full") sh = el("span", { class: "shape", role: "img", "aria-label": u.role, title: u.role, text: C.SHAPES[u.role] })
@@ -501,12 +507,14 @@ var FoldView = (function () {
     function drawMargin(uid) {
       var r = rows[uid], L = unitLevel(uid)
       clear(r.aside)
-      var cards = unitMarks(uid)
-      r.ncount.hidden = S.marginOn || !cards.length
+      var cards = unitMarks(uid), inMargin = fitW.margin && ["full", "brief", "key"].indexOf(L) >= 0
+      // (where the margin doesn't show them, at Takeaway or with no margin, a count stands for the notes)
+      r.ncount.hidden = inMargin || !cards.length
       r.ncount.lastChild.textContent = String(cards.length)
-      r.aside.hidden = !S.marginOn
-      r.aside.style.width = S.marginW + "px"
-      if (!S.marginOn || ["full", "brief", "key"].indexOf(L) < 0) return
+      name(r.ncount, cards.length + (cards.length === 1 ? " note" : " notes") + (fitW.margin ? ": open the paragraph to see them" : S.marginOn ? ": the window is too narrow for the margin" : ": show the margin to see them"))
+      r.aside.hidden = !fitW.margin
+      r.aside.style.width = fitW.marginW + "px"
+      if (!inMargin) return
       C.linksOf(S.m, uid).forEach(function (l) {
         var b = el("button", { type: "button", class: "mlink", title: "Go to " + (l.where || "it") + (l.topic ? ": " + l.topic : "") }, ["→ ", el("span", { class: "rel", text: l.rel }), " " + l.where + (l.topic ? " · " + l.topic : "")])
         b.setAttribute("aria-label", l.label.replace(/^→ /, ""))
@@ -552,7 +560,7 @@ var FoldView = (function () {
       var lost = S.store.marks.filter(function (k) { return k.lost })
       clear(g)
       g.hidden = !lost.length
-      g.style.width = S.marginW + "px"
+      g.style.width = fitW.marginW + "px"
       if (!lost.length) return
       g.appendChild(el("h3", { text: "Lost their place (" + lost.length + ")" }))
       lost.forEach(function (k) { g.appendChild(markCard(k)) })
@@ -686,13 +694,12 @@ var FoldView = (function () {
       drainSoon()
     }
     function settled() {
-      offsets = null
       var a = anchorKeep
       anchorKeep = null
       mark("fr:settled")
       // rows that come into view are laid out for real only when painted: the reading line's paragraph is put back
       // after the next two frames
-      if (a) requestAnimationFrame(function () { keepAnchor(a); requestAnimationFrame(function () { keepAnchor(a); offsets = null }) })
+      if (a) { holdAt(a, 1500); requestAnimationFrame(function () { keepAnchor(a); requestAnimationFrame(function () { keepAnchor(a) }) }) }
     }
 
     function setLevel(id, aim) {
@@ -746,7 +753,6 @@ var FoldView = (function () {
       keepAnchor(snap.anchor)
       animate(snap)
       refreshMarks()
-      offsets = null
     }
     function foldBack(uid) {
       var ids = uid ? [uid] : Object.keys(S.opened)
@@ -755,7 +761,6 @@ var FoldView = (function () {
       ids.forEach(function (id) { delete S.opened[id]; drawUnit(id) })
       keepAnchor(snap.anchor)
       animate(snap)
-      offsets = null
       return true
     }
     function rowClass(uid) {
@@ -775,6 +780,7 @@ var FoldView = (function () {
       setSel(uid)
       if (S.level === "topic") return
       if (rows[uid] && !rows[uid].row.parentNode) setRole(null)
+      quietUntil = Date.now() + 900 // (the PDF's scroll, or the text's, never moves follow off what was picked)
       if (fromPdf) scrollTextTo(uid)
       else scrollPdfTo(uid, true)
       pageLabel()
@@ -784,9 +790,26 @@ var FoldView = (function () {
       if (!r) return
       if (!r.drawn) drawUnit(uid)
       quietUntil = Date.now() + 900
-      var cr = text.getBoundingClientRect(), top = text.scrollTop + r.row.getBoundingClientRect().top - cr.top - 110
-      text.scrollTo({ top: top, behavior: reduced() ? "auto" : "smooth" })
+      var cr = text.getBoundingClientRect(), d = r.row.getBoundingClientRect().top - cr.top - 110
+      // near: a smooth scroll; far: a jump, the paragraph then kept at 110 px while the rows it passed draw
+      if (Math.abs(d) <= text.clientHeight && !reduced()) return text.scrollTo({ top: text.scrollTop + d, behavior: "smooth" })
+      text.scrollTop += d
+      holdAt({ uid: uid, off: 110 }, 1200)
     }
+    // A paragraph kept at its place in the pane while what is above it changes size (rows drawn, the window
+    // resized), until the reader scrolls, types or clicks, or `ms` pass.
+    function holdAt(a, ms) {
+      hold = a ? { a: a, until: Date.now() + ms } : null
+      if (a) keepAnchor(a)
+    }
+    function held() {
+      if (!hold) return
+      if (Date.now() > hold.until || column.hidden) { hold = null; return }
+      quietUntil = Math.max(quietUntil, Date.now() + 150)
+      keepAnchor(hold.a)
+    }
+    try { new ResizeObserver(held).observe(column) } catch (e) { /* (an old engine: the frames after settled() only) */ }
+    ;["wheel", "pointerdown", "keydown", "touchstart"].forEach(function (t) { text.addEventListener(t, function () { hold = null }, { passive: true }) })
     function stepSelect(d) {
       var ids = rowsInOrder()
       if (!ids.length || S.level === "topic") return
@@ -801,9 +824,15 @@ var FoldView = (function () {
       for (var i = 0; i < ids.length; i++) if (rows[ids[i]].row.getBoundingClientRect().bottom > cr.top) return i
       return 0
     }
-    function measure() {
-      var ids = rowsInOrder(), base = column.offsetTop
-      offsets = ids.map(function (id) { var row = rows[id].row; return { uid: id, top: base + row.offsetTop, bottom: base + row.offsetTop + row.offsetHeight } })
+    // The paragraph at a line of the pane, from the rows' places as they are now (never kept: rows change size as they
+    // draw, and a line height or a width changes them all); a binary search, a dozen rectangles read.
+    function rowAt(y) {
+      var ids = order || (order = rowsInOrder()), lo = 0, hi = ids.length - 1, at = -1
+      while (lo <= hi) {
+        var mid = (lo + hi) >> 1, r = rows[ids[mid]] && rows[ids[mid]].row.getBoundingClientRect()
+        if (r && r.bottom > y) { at = mid; hi = mid - 1 } else lo = mid + 1
+      }
+      return at < 0 ? null : ids[at]
     }
     function onTextScroll() {
       hideBarIfGone()
@@ -813,12 +842,8 @@ var FoldView = (function () {
     }
     function readingOn() {
       if (Date.now() < quietUntil || !pdfShown() || S.level === "topic" || !S.m || column.hidden) return
-      if (!offsets) measure()
-      var y = text.scrollTop + text.clientHeight * 0.3, lo = 0, hi = offsets.length - 1, at = -1
-      while (lo <= hi) { var mid = (lo + hi) >> 1; if (offsets[mid].bottom > y) { at = mid; hi = mid - 1 } else lo = mid + 1 }
-      if (at < 0) return
-      var uid = offsets[at].uid
-      if (uid === S.follow) return
+      var uid = rowAt(text.getBoundingClientRect().top + text.clientHeight * 0.3)
+      if (!uid || uid === S.follow) return
       var was = S.follow
       S.follow = uid
       ;[was, uid].forEach(function (id) { if (id) { rowClass(id); boxClass(id) } })
@@ -882,7 +907,7 @@ var FoldView = (function () {
       var r = C.addMark(S.store, p, kind, now())
       S.store = r.store
       clearSelection(); hideBar()
-      if (!S.marginOn) setMargin(true)
+      if (!fitW.margin) setMargin(true)
       if (unitLevel(p.unit) !== "full" && unitLevel(p.unit) !== "brief" && unitLevel(p.unit) !== "key") openUnit(p.unit)
       refreshMarks(p.unit)
       saveMarks()
@@ -909,27 +934,49 @@ var FoldView = (function () {
         drawMargin(id)
       })
       drawLost()
-      offsets = null
     }
+    // (a change waiting to be posted posts the store as it is then: a reload in between keeps it, see load)
     function saveMarks() {
       clearTimeout(marksTimer)
       marksTimer = setTimeout(function () { post("marks", { marks: S.store }) }, 400)
     }
 
     // ---- panes
+    // (asked for in so many words: shown even in a narrow window, the PDF and the margin narrower for it)
     function setMargin(on) {
       S.marginOn = !!on
+      S.marginAsked = S.marginOn
       prefs({ margin: S.marginOn })
-      updateTools()
-      columnLayout()
-      Object.keys(rows).forEach(function (id) { var r = rows[id]; r.row.classList.toggle("nomargin", !S.marginOn); if (r.drawn) drawMargin(id) })
-      offsets = null
+      fit(true)
     }
     function setMarginW(w) {
       S.marginW = clamp(Math.round(w), 160, 420)
+      fit(true)
+    }
+    // What the window's width allows of the widths kept: the text keeps 420 px; first the margin folds away (unless it
+    // was asked for), then the PDF narrows (to 240), then the margin (to 160). The kept widths come back as it widens.
+    var NEED = 420
+    function fit(force) {
+      var paneW = panes.clientWidth || window.innerWidth || 1360, pdfOn = pdfShown()
+      var body = function (pw, on, mw) { return Math.min(696, paneW - (pdfOn ? pw + 7 : 0) - 56 - 14 - (on ? mw + 24 : 0)) }
+      var pw = S.pdfW, on = S.marginOn && !!S.m, mw = S.marginW
+      if (body(pw, true, mw) >= NEED) S.marginAsked = false
+      if (on && !S.marginAsked && body(pw, on, mw) < NEED) on = false
+      if (pdfOn && body(pw, on, mw) < NEED) pw = Math.max(240, Math.min(pw, pw - (NEED - body(pw, on, mw))))
+      if (on && body(pw, on, mw) < NEED) mw = Math.max(160, mw - (NEED - body(pw, on, mw)))
+      var was = fitW
+      if (!force && was.pdf === pw && was.margin === on && was.marginW === mw) return
+      fitW = { pdf: pw, margin: on, marginW: mw }
+      pdf.style.width = pw + "px"
+      updateTools()
+      if (!S.m || !column.firstChild) return
       columnLayout()
-      Object.keys(rows).forEach(function (id) { rows[id].aside.style.width = S.marginW + "px" })
-      offsets = null
+      Object.keys(rows).forEach(function (id) {
+        var r = rows[id]
+        r.row.classList.toggle("nomargin", !on)
+        r.aside.style.width = mw + "px"
+        if (r.drawn && (force || was.margin !== on)) drawMargin(id)
+      })
     }
     function togglePdf() {
       if (bPdf && bPdf.disabled) return
@@ -939,7 +986,7 @@ var FoldView = (function () {
       updateTools()
       if (S.follow) rowClass(S.follow)
     }
-    function setPdfW(w) { S.pdfW = clamp(Math.round(w), 300, 760); pdf.style.width = S.pdfW + "px"; pageSrcs() }
+    function setPdfW(w) { S.pdfW = clamp(Math.round(w), 300, 760); fit(); pageSrcs() }
     function drawPanes() {
       var shown = pdfShown()
       pdf.hidden = !shown
@@ -947,7 +994,7 @@ var FoldView = (function () {
       text.style.order = S.pdfLeft ? 3 : 1
       grip.style.order = 2
       pdf.style.order = S.pdfLeft ? 1 : 3
-      pdf.style.width = S.pdfW + "px"
+      fit()
       updateTools()
     }
     // a divider: drag, ← → (⇧ farther), double-click resets
@@ -967,7 +1014,7 @@ var FoldView = (function () {
       })
       b.addEventListener("dblclick", function () { reset(); var o = {}; o[key] = get(); prefs(o) })
     }
-    dragger(grip, function () { return S.pdfW }, function (start, dx) { setPdfW(start + (S.pdfLeft ? 1 : -1) * dx) },
+    dragger(grip, function () { return fitW.pdf }, function (start, dx) { setPdfW(start + (S.pdfLeft ? 1 : -1) * dx) },
       function (d) { setPdfW(S.pdfW + (S.pdfLeft ? -d : d)) }, function () { setPdfW(470) }, "pdfWidth")
 
     // ---- the PDF pane
@@ -1126,7 +1173,7 @@ var FoldView = (function () {
         return
       }
       if (typing(t)) return
-      if (e.altKey && e.metaKey && !e.ctrlKey && (e.code === "KeyP" || e.code === "KeyM")) { e.preventDefault(); if (e.code === "KeyP") togglePdf(); else setMargin(!S.marginOn); return }
+      if (e.altKey && e.metaKey && !e.ctrlKey && (e.code === "KeyP" || e.code === "KeyM")) { e.preventDefault(); if (e.code === "KeyP") togglePdf(); else setMargin(!fitW.margin); return }
       if (e.altKey && !e.metaKey && !e.ctrlKey && (e.key === "ArrowRight" || e.key === "ArrowLeft") && S.d) {
         if (t && (t.id === "grip" || (t.classList && t.classList.contains("mgrip")))) return
         e.preventDefault()
@@ -1170,7 +1217,7 @@ var FoldView = (function () {
       if (S.menu && menuEl && !menuEl.contains(e.target) && !(e.target.closest && e.target.closest(".pill"))) closeMenu(false)
       if (!selbar.contains(e.target) && !selbar.hidden) hideBar()
     })
-    window.addEventListener("resize", function () { offsets = null; pageSrcs() })
+    window.addEventListener("resize", function () { fit(); pageSrcs() })
 
     function setRole(r) {
       S.role = r
@@ -1194,29 +1241,47 @@ var FoldView = (function () {
     }
     function docIdentity() { return S.m ? { id: S.m.id, lang: S.m.lang, levels_made: S.m.provenance.levelsMade } : null }
     function pdfIdentity() { var p = S.d && S.d.pdf; return p && !p.problem ? { bytes: p.bytes || 0, modified: p.modified || "", pages: p.pages } : null }
+    // FR.load: the app sends the whole window again whenever something of it changes (the PDF opened, TextFold's answer,
+    // ⌘R, a fold done). The same paper keeps what the reader did: the marks held here (the file can be behind them, a
+    // change is posted 400 ms later), the level, and with the same doc the paragraphs opened, the selection and the
+    // place in the text; a new doc of it keeps the place where its paragraph is still there.
     function load(o) {
       mark("fr:loaded")
-      S.d = o || {}
-      S.state = S.d.state || { kind: S.d.doc ? "ready" : "loading" }
-      S.m = null
-      if (S.d.doc) {
-        var m = C.model(S.d.doc)
-        if (m.problem) S.state = m.problem
-        else S.m = m
+      var d = o || {}, paper = d.paper || {}, pid = (paper.libraryID || 1) + ":" + (paper.key || "")
+      var same = !!S.d && S.paperId === pid
+      var m = null, st = d.state || { kind: d.doc ? "ready" : "loading" }
+      if (d.doc) { var mm = C.model(d.doc); if (mm.problem) st = mm.problem; else m = mm }
+      var prevM = S.m, sameDoc = same && !!prevM && !!m && prevM.id === m.id && prevM.lang === m.lang && prevM.provenance.levelsMade === m.provenance.levelsMade
+      var pdfSame = same && JSON.stringify((S.d && S.d.pdf) || null) === JSON.stringify(d.pdf || null)
+      var keep = same && !!prevM && !column.hidden ? readingAnchor(text.getBoundingClientRect()) : null
+      var mine = same && S.storeOwn ? S.store : null
+      S.d = d; S.state = st; S.paperId = pid
+      if (!same) applyPrefs(d.prefs) // (a reload keeps the page's own: it sent them)
+      if (sameDoc) S.m = prevM
+      else {
+        S.m = m
+        S.opened = {}
+        if (!(m && S.sel && m.units[S.sel])) { S.sel = null; S.follow = null }
       }
-      applyPrefs(S.d.prefs)
-      S.opened = {}; S.sel = null; S.follow = null; S.pick = null; S.pages = []; S.wordsDone = false; S.links = null
-      var paper = S.d.paper || {}
-      S.store = C.emptyStore({ paper: (paper.libraryID || 1) + ":" + (paper.key || ""), doc: S.m ? { id: S.m.id, lang: S.m.lang } : {} })
-      if (S.m && S.d.marks) {
-        var re = C.reanchor(S.m, S.d.marks)
-        S.store = re.store
-        S.store.paper = S.store.paper || (paper.libraryID || 1) + ":" + (paper.key || "")
-        S.store.doc = { id: S.m.id, lang: S.m.lang }
-        if (re.moved) saveMarks()
-      }
-      if (S.m && S.d.links && C.linksValid(S.d.links, docIdentity(), pdfIdentity())) {
-        var l = S.d.links
+      if (!same) { S.opened = {}; S.sel = null; S.follow = null; S.role = null }
+      S.pick = null; S.pages = []
+      if (!(sameDoc && pdfSame)) { S.wordsDone = false; S.links = null }
+      var empty = function () { return C.emptyStore({ paper: pid, doc: S.m ? { id: S.m.id, lang: S.m.lang } : {} }) }
+      if (S.m) {
+        if (!(sameDoc && mine)) {
+          var from = mine && mine.marks.length ? mine : d.marks
+          if (from) {
+            var re = C.reanchor(S.m, from)
+            S.store = re.store
+            S.store.paper = S.store.paper || pid
+            S.store.doc = { id: S.m.id, lang: S.m.lang }
+            if (re.moved || from === mine) saveMarks()
+          } else S.store = empty()
+        }
+        S.storeOwn = true
+      } else if (!mine) S.store = empty()
+      if (S.m && !S.links && d.links && C.linksValid(d.links, docIdentity(), pdfIdentity())) {
+        var l = d.links
         S.links = { map: l.map, crops: l.crops, coverage: l.coverage, warn: l.coverage.total > 0 && l.coverage.linked / l.coverage.total < 0.3 }
         S.wordsDone = true
       }
@@ -1224,15 +1289,25 @@ var FoldView = (function () {
       drawTools()
       drawFoot()
       drawState()
-      text.scrollTop = 0
-      if (S.m) {
+      if (!same) text.scrollTop = 0
+      if (S.m && !sameDoc) {
+        rows = {}
+        fit()
         buildColumn()
-        if (S.level === "topic") { column.hidden = true; grid.hidden = false; drawGrid(); settled() } else { grid.hidden = true; column.hidden = false; drawNear(null); drainSoon() }
+        if (S.level === "topic") { column.hidden = true; grid.hidden = false; drawGrid(); settled() } else {
+          grid.hidden = true; column.hidden = false
+          if (!keep || !rows[keep.uid]) { text.scrollTop = 0; keep = null }
+          drawNear(keep); drainSoon()
+        }
+        if (S.sel) setSel(S.sel)
+      } else if (S.m && sameDoc) {
+        if (S.level === "topic") { column.hidden = true; grid.hidden = false } else { grid.hidden = true; column.hidden = false }
       }
       drawPanes()
-      drawPdf()
+      if (!pdfSame || !pageEls.length) drawPdf()
+      else { layoutPages(); drawBoxes(); updateZoom() }
       try { requestAnimationFrame(function () { mark("fr:painted") }) } catch (e) { mark("fr:painted") }
-      if (!text.contains(document.activeElement)) text.focus({ preventScroll: true })
+      if (!same && !text.contains(document.activeElement)) text.focus({ preventScroll: true })
     }
     function state(s) {
       S.state = s || { kind: "loading" }
