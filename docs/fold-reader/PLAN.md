@@ -325,4 +325,32 @@ Found while building R5; each keeps its criterion's intent.
   before still reads, and the PDF pane says why.
 - **The CHANGELOG's entry says no separate folding app is needed** rather than naming TextFold, as R5-43 asks the
   next entry to name none; the entry below it (0.4.35) is the one that named it.
+- **FoldPDF takes each word's box from its own PDFSelection** (`page.selection(for:)` over the word's range), not
+  `characterBounds(at:)`: on macOS CI a line's range is its text plus one break index, and `characterBounds` counts
+  without those breaks, so its boxes drift one character a line. A range one or two longer than its text is read as
+  the text; a word with no selection is spread along its line by CoreText's advances.
+- **The 1.5 heights cut uses the line's median word height**, and a line across the page is then cut at its middle
+  (`cutAtMiddle`) at the widest gap over the page's centre when that gap is 0.5 × the height or more and twice the
+  line's other gaps; FoldMake's `recut` does the same at the frame's middle for lines given as one, kept only when the
+  frame then reads as two columns. Both are for two columns a narrow gutter apart (14.45 pt at 10 pt type).
+- **A short line that is numbered, or centred in its column, ends its block** (`headLine`: under 0.7 of the column,
+  at most 10 words, no sentence end), so IEEE's centred `I. INTRODUCTION` at the body's size and weight heads S1.
+- **A run-in heading is the shortest bold start naming an abstract or the references** when the whole bold start
+  names none (IEEE's bold-italic `Abstract` and its dash before an abstract set in bold), and `A B S T R A C T` (Elsevier's
+  letterspaced label) names an abstract. The read's meta carries Zotero's abstract (`readMeta`), which finds an
+  abstract with no heading.
+- **Running heads that alternate** (one on odd pages, one on even) are dropped when on at least half of their pages'
+  parity, at least 2, as each is under half the paper.
+- **A sentence longer than 3000 tokens is cut at a word's start** (a paragraph with no end punctuation), so a unit
+  stays within FoldCore's 5000 tokens.
+- **`fold.json`'s run carries `force`**, and `foldView` gives `again` (a Fold again run) and `left` (the sections
+  still to fold), so a Stop, a refused key or failed sections after Fold again read as that run's end (`stopped`,
+  the stop's kind or `partial`), not `folded`; the flash says how many were folded again and that the others keep
+  their earlier levels.
+- **The AI levels' footer says what is written by AI**: `first sentences until folded` with nothing folded, and
+  `written by AI for d of t sections, the others first sentences` part way.
+- **The runner's message starts with a capital** in a banner, the unfolded banner names why Chinese or Japanese can't
+  fold yet, its Fold with AI posts `{}`, and focus goes to the toolbar's Fold button when a banner's buttons redraw.
+- **The layout tests' papers** (`js/tests/fixtures/fold-reader/layouts/`) are drawn by `make/gen.py` from a short
+  made-up vocabulary and read by `make/extract.py`, the lines FoldPDF gives, rounded to 5 decimals.
 - **Swift is still not compiled here**: R5-35 to R5-40 (`FoldReaderTests.swift`) first run on macOS CI.

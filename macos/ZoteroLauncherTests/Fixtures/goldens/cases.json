@@ -116409,6 +116409,10 @@
    "total": 1,
    "failed": [],
    "error": "",
+   "again": false,
+   "left": [
+    "S1"
+   ],
    "model": "lab:m1",
    "name": "Lab model",
    "calls": 1,
@@ -116529,6 +116533,10 @@
    "total": 1,
    "failed": [],
    "error": "",
+   "again": false,
+   "left": [
+    "S1"
+   ],
    "model": "lab:m1",
    "name": "Lab model",
    "calls": 1,
@@ -116635,6 +116643,10 @@
    "total": 1,
    "failed": [],
    "error": "",
+   "again": false,
+   "left": [
+    "S1"
+   ],
    "model": "",
    "name": "",
    "calls": null,
@@ -116757,6 +116769,10 @@
    "total": 1,
    "failed": [],
    "error": "the key was refused",
+   "again": false,
+   "left": [
+    "S1"
+   ],
    "model": "lab:m1",
    "name": "Lab model",
    "calls": 1,

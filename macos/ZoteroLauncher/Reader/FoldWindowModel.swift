@@ -250,14 +250,8 @@ final class FoldWindowModel: ObservableObject {
         doc = nil
         state = ["kind": "reading", "done": 0, "pages": info["pages"] ?? 0]
         send()
-        let p = paperInfo ?? [:]
-        let authors = (p["authors"] as? String).map { $0.isEmpty ? [String]() : [$0] } ?? []
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-        let meta: [String: Any] = [
-            "title": (p["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? paper.title, "authors": authors, "date": p["year"] as? String ?? "", "cite": cite,
-            "pdf": ["bytes": info["bytes"] ?? 0, "modified": info["modified"] ?? "", "pages": info["pages"] ?? 0, "sizes": info["sizes"] ?? [Any]()] as [String: Any],
-            "made_with": ("Zotero Launcher " + version).trimmingCharacters(in: .whitespaces), "exported": Self.iso(Date()),
-        ]
+        let meta = Self.readMeta(paperInfo ?? [:], title: paper.title, cite: cite, pdf: info, version: version, now: Date())
         FoldMaker.make(pdf, meta: meta, progress: { [weak self] done, pages in
             guard let self, !self.closed, at == self.opening, self.doc == nil else { return }
             self.state = ["kind": "reading", "done": done, "pages": pages]
@@ -283,12 +277,25 @@ final class FoldWindowModel: ObservableObject {
                 } else {
                     self.askPlan()
                 }
-            case .failure(let e):
+            case .failure:
+                // (FoldMaker's own error names its internals: the state says it plainly)
                 self.foldAfterReading = false
-                self.state = ["kind": "unreadable", "why": Self.sentence("\(e)")]
+                self.state = ["kind": "unreadable", "why": "Its text couldn't be read into the reader. The PDF still shows."]
                 self.send()
             }
         })
+    }
+
+    // FoldMake.read's meta (R5-SPEC 3.2) from the bridge's paper: its title, authors, date, Zotero's abstract (what
+    // finds an abstract the page sets without a heading, or as front matter), the cite and the PDF's identity.
+    static func readMeta(_ p: [String: Any], title: String, cite: String, pdf info: [String: Any], version: String, now: Date) -> [String: Any] {
+        let authors = (p["authors"] as? String).map { $0.isEmpty ? [String]() : [$0] } ?? []
+        return [
+            "title": (p["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? title, "authors": authors, "date": p["year"] as? String ?? "",
+            "abstract": p["abstract"] as? String ?? "", "cite": cite,
+            "pdf": ["bytes": info["bytes"] ?? 0, "modified": info["modified"] ?? "", "pages": info["pages"] ?? 0, "sizes": info["sizes"] ?? [Any]()] as [String: Any],
+            "made_with": ("Zotero Launcher " + version).trimmingCharacters(in: .whitespaces), "exported": iso(now),
+        ]
     }
 
     // ---- the fold (R5-SPEC 5.1)
@@ -374,7 +381,8 @@ final class FoldWindowModel: ObservableObject {
         guard let text = try? JSCore.jsonText(input) else { return }
         UsageLog.shared.count("fold:run")
         runBefore = run
-        run = ["doc": doc["id"] ?? "", "model": use, "started": Self.iso(Date()), "status": "folding", "sections": [String: Any](), "errors": [String: Any]()]
+        // (force: a Fold again, so an end before every section came back counts this run's, not the doc's earlier ones)
+        run = ["doc": doc["id"] ?? "", "model": use, "started": Self.iso(Date()), "status": "folding", "force": force, "sections": [String: Any](), "errors": [String: Any]()]
         saveRun()
         stopEvent = nil
         pdfChanged = false
@@ -469,8 +477,9 @@ final class FoldWindowModel: ObservableObject {
                 saveRun()
             }
             if r.status == 130 || r.status == 143 || (!unfinished && run?["status"] as? String == "stopped") {
-                let f = foldObject
-                page?.flash("Stopped: \(f?["done"] as? Int ?? 0) of \(f?["total"] as? Int ?? 0) sections folded, the rest show first sentences")
+                let f = foldObject // (FoldMake's count: this run's when it was a Fold again)
+                let again = f?["again"] as? Bool == true
+                page?.flash("Stopped: \(f?["done"] as? Int ?? 0) of \(f?["total"] as? Int ?? 0) sections folded" + (again ? " again, the others keep their earlier levels" : ", the rest show first sentences"))
             } else if unfinished {
                 page?.flash("Folding stopped: " + r.problem)
             }

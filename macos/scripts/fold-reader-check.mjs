@@ -442,25 +442,30 @@ const fk = (o) => Object.assign({}, base, o);
 const left = JSON.stringify({ only: ["abstract", "S1", "S2", "S2.SS1", "A1"] });
 const NAMED = "Fold with AI: Lab model writes Key, Takeaway and Topic (Settings › Defaults changes the model)";
 const FOLDS = [
-  [fk({ calls: null }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
-  [fk({}), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests about $0.12 at its list price.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ calls: 1, cached: 1, cost: "< $0.01" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 1 request under $0.01 at its list price. 1 of them were answered before and cost nothing.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ cost: "" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests.", ["Fold with AI", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ calls: null }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({}), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests about $0.12 at its list price.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ calls: 1, cached: 1, cost: "< $0.01" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 1 request under $0.01 at its list price. 1 of them was answered before and costs nothing.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ cost: "" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
   [fk({ kind: "folding", done: 2 }), "Folding with AI", "2 of 5 sections, with Lab model. Each section shows its levels as it comes back.", ["Stop", "stop", "{}"], ["stop", "Stop folding", "Stop folding: what's done stays", false]],
   [fk({ kind: "stopped", done: 2 }), "Folding stopped", "2 of 5 sections are folded; the rest show first sentences. Finishing asks only for what's left.", ["Finish folding", "fold", left], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "partial", done: 3, failed: ["S2", "A1"], error: "the reply has no JSON." }), "2 sections weren't folded", "the reply has no JSON. They show first sentences.", ["Try them again", "fold", JSON.stringify({ only: ["S2", "A1"] })], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "partial", done: 4, failed: ["S2"], error: "it has no units" }), "1 section wasn't folded", "it has no units. It shows first sentences.", ["Try it again", "fold", JSON.stringify({ only: ["S2"] })], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "partial", done: 3, failed: ["S2", "A1"], error: "the reply has no JSON." }), "2 sections weren't folded", "The reply has no JSON. They show first sentences.", ["Try them again", "fold", JSON.stringify({ only: ["S2", "A1"] })], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "partial", done: 4, failed: ["S2"], error: "it has no units" }), "1 section wasn't folded", "It has no units. It shows first sentences.", ["Try it again", "fold", JSON.stringify({ only: ["S2"] })], ["ai", "Fold with AI", NAMED, false]],
   [fk({ kind: "pdf-changed" }), "The PDF changed", "It was read again, so Key, Takeaway and Topic show first sentences until it's folded again.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
   [fk({ kind: "no-ai", disabled: "no-ai", calls: null }), "No AI model is set up", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", null, ["ai", "Fold with AI", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", true]],
   [fk({ kind: "no-runner", disabled: "no-runner" }), "The AI features aren't installed", "Folding needs the AI features: Settings › Setup installs them.", null, ["ai", "Fold with AI", "Folding needs the AI features: Settings › Setup installs them.", true]],
   [fk({ kind: "old-runner", disabled: "old-runner" }), "The AI features are older than the app", "Settings › Setup › Install the AI features updates them.", null, ["ai", "Fold with AI", "Settings › Setup › Install the AI features updates them.", true]],
-  [fk({ kind: "unfolded", disabled: "cjk" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence.", null, ["ai", "Fold with AI", "Folding a paper in Chinese or Japanese comes in a later version", true]],
-  [fk({ kind: "ai-key", error: "x".repeat(300) }), "The model's key was refused", "x".repeat(200) + ". Settings › Models & providers takes a new key.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "ai-key", done: 1, error: "the key was refused" }), "The model's key was refused", "the key was refused. Settings › Models & providers takes a new key.", ["Finish folding", "fold", left], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "ai-signin", error: "signed out" }), "Signed out of the model", "signed out. Sign in again in Settings › Models & providers.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "ai-limit", error: "rate limited" }), "Rate limited or out of credit", "rate limited. Wait a minute, or check your plan.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "ai-busy", error: "overloaded" }), "The model is overloaded", "overloaded. Try again in a minute.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "ai-offline", error: "couldn't connect" }), "Couldn't reach the model", "couldn't connect. Check the connection.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "unfolded", disabled: "cjk" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Folding a paper in Chinese or Japanese comes in a later version.", null, ["ai", "Fold with AI", "Folding a paper in Chinese or Japanese comes in a later version", true]],
+  [fk({ kind: "ai-key", error: "x".repeat(300) }), "The model's key was refused", "X" + "x".repeat(199) + ". Settings › Models & providers takes a new key.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-key", done: 1, error: "the key was refused" }), "The model's key was refused", "The key was refused. Settings › Models & providers takes a new key.", ["Finish folding", "fold", left], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-signin", error: "signed out" }), "Signed out of the model", "Signed out. Sign in again in Settings › Models & providers.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-limit", error: "rate limited" }), "Rate limited or out of credit", "Rate limited. Wait a minute, or check your plan.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-busy", error: "overloaded" }), "The model is overloaded", "Overloaded. Try again in a minute.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "ai-offline", error: "couldn't connect" }), "Couldn't reach the model", "Couldn't connect. Check the connection.", ["Try again", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
+  // (a Fold again that didn't finish: what it folded again, the others keep their levels, finishing folds again)
+  [fk({ kind: "stopped", done: 1, again: true, left: ["S1", "S2", "S2.SS1", "A1"] }), "Folding stopped", "1 of 5 sections are folded again; the others keep their earlier levels. Finishing asks only for what's left.",
+    ["Finish folding", "fold", JSON.stringify({ only: ["S1", "S2", "S2.SS1", "A1"], force: true })], ["ai", "Fold with AI", NAMED, false]],
+  [fk({ kind: "partial", done: 4, again: true, failed: ["S2"], error: "the reply has no JSON" }), "1 section wasn't folded", "The reply has no JSON. It keeps its earlier levels.",
+    ["Try it again", "fold", JSON.stringify({ only: ["S2"], force: true })], ["ai", "Fold with AI", NAMED, false]],
   [fk({ kind: "folded", done: 5 }), null, null, null, ["ai", "Fold again…", "Fold again: Lab model writes every section anew", false]]
 ];
 const unf = MADE.doc;
@@ -488,6 +493,8 @@ await pg.evaluate((x) => FR.fold(x), fk({ kind: "partial", done: 3, failed: ["S2
 await sent(); await pg.click(".banner button.act");
 let got = await sent();
 ok(got.length === 1 && got[0].type === "fold" && JSON.stringify(got[0].only) === '["S2","A1"]', "R5-28 Try them again posts fold with only the failed sections");
+await pg.evaluate((x) => FR.fold(x), fk({ kind: "folding", done: 3 }));
+ok((await pg.evaluate(() => document.activeElement && document.activeElement.id)) === "bFold", "R5-34 a banner's button drawn again as the fold goes: the focus on the Fold button");
 await pg.evaluate((x) => FR.fold(x), fk({ kind: "folding", done: 1 }));
 await pg.click("#bFold");
 got = await sent();
@@ -546,10 +553,14 @@ await wait(50);
 l1 = await lineOf("S1");
 ok(l1.text === "Section S1 folded" && !l1.fs && (await fontOf("S1.p1")).startsWith("ui/") && (await fontOf("S2.p1")).startsWith("paper/"), "R5-30 after FR.load with S1 folded: its line gone, its words in the sans, the others still serif");
 ok((await attr(".cap.ai", "title")) === "Written by AI (Lab model, 6 November 2026) for 1 of 5 sections; the others show first sentences", "R5-30 the AI caption: partly folded");
+const foot = () => pg.textContent(".ft .lv");
+ok((await foot()) === "Key · written by AI for 1 of 5 sections, the others first sentences", "R5-30 the footer at Key: partly folded");
 await load(payload(unf, null, { fold: fk({}) }));
 ok((await attr(".cap.ai", "title")) === "Not written by AI yet: each paragraph's first sentence", "R5-30 the AI caption: nothing folded");
+ok((await foot()) === "Key · first sentences until folded", "R5-30 the footer at Key: nothing folded, never written by AI");
 await load(payload(allMade, null, { fold: doneFold }));
 ok((await attr(".cap.ai", "title")) === "Written by AI (Lab model, 6 November 2026)", "R5-30 the AI caption: all folded");
+ok((await foot()) === "Key · written by AI, each line opens to the paper", "R5-30 the footer at Key: all folded");
 
 // R5-31: FR.fold changes the count without drawing the text again
 await load(payload(s1Only, null, { fold: fk({ kind: "folding", done: 1 }) }));

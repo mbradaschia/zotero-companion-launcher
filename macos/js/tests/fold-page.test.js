@@ -74,7 +74,16 @@ test("R5-28: foldCopy gives each fold kind its banner; the page's files never sa
   assert.equal(view.foldCopy(f({ kind: "folded" }), []), null)
   assert.equal(view.foldCopy(f({}), ["S1"]).sentence, "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 3 requests.")
   assert.deepEqual(JSON.parse(JSON.stringify(view.foldCopy(f({ kind: "stopped", done: 2 }), ["S2", "A1"]).action)), ["Finish folding", "fold", { only: ["S2", "A1"] }])
-  assert.equal(view.foldCopy(f({ kind: "ai-limit", error: "slow down..." }), []).sentence, "slow down. Wait a minute, or check your plan.")
+  assert.equal(view.foldCopy(f({ kind: "ai-limit", error: "slow down..." }), []).sentence, "Slow down. Wait a minute, or check your plan.", "the runner's message capitalized")
+  // the banner's Fold with AI posts what the toolbar's does: {} (a first fold, its unused replies pruned)
+  assert.deepEqual(JSON.parse(JSON.stringify(view.foldCopy(f({}), ["abstract", "S1"]).action)), ["Fold with AI", "fold", {}])
+  assert.equal(view.foldCopy(f({ cached: 1 }), []).sentence.split(". ").pop(), "1 of them was answered before and costs nothing.")
+  assert.equal(view.foldCopy(f({ cached: 2 }), []).sentence.split(". ").pop(), "2 of them were answered before and cost nothing.")
+  assert.equal(view.foldCopy(f({ disabled: "cjk" }), []).sentence, "Key, Takeaway and Topic show each paragraph's first sentence. Folding a paper in Chinese or Japanese comes in a later version.")
+  // a Fold again that stopped: its own count, the others keep their levels, finishing folds again what's left
+  const again = view.foldCopy(f({ kind: "stopped", done: 1, again: true, left: ["S2", "A1"] }), ["ignored"])
+  assert.equal(again.sentence, "1 of 5 sections are folded again; the others keep their earlier levels. Finishing asks only for what's left.")
+  assert.deepEqual(JSON.parse(JSON.stringify(again.action)), ["Finish folding", "fold", { only: ["S2", "A1"], force: true }])
   for (const k of ["unfolded", "folding", "stopped", "partial", "pdf-changed", "no-ai", "no-runner", "old-runner", "ai-key", "ai-signin", "ai-limit", "ai-busy", "ai-offline"]) {
     const c = view.foldCopy(f({ kind: k, failed: k === "partial" ? ["S2"] : [] }), [])
     assert.ok(c && c.title && c.sentence, k)

@@ -296,7 +296,8 @@ test("R5-26: foldView gives every kind of 6.2 from its situation", () => {
   let all = made.doc
   for (const id of ["abstract", "S1", "S2", "S2.SS1", "A1"]) all = Glue.foldMerge(all, event(id, []), "2026-11-06T10:00:00Z")
   const u = v(made.doc, null, plan, { runner: "ok" })
-  assert.deepEqual(u, { kind: "unfolded", done: 0, total: 5, failed: [], error: "", model: "lab:m1", name: "Lab model", calls: 5, cached: 1, cost: "$0.12", disabled: "" })
+  assert.deepEqual(u, { kind: "unfolded", done: 0, total: 5, failed: [], error: "", again: false, left: ["abstract", "S1", "S2", "S2.SS1", "A1"], model: "lab:m1", name: "Lab model",
+    calls: 5, cached: 1, cost: "$0.12", disabled: "" })
   assert.equal(v(made.doc, null, null, {}).calls, null, "before the plan")
   assert.equal(v(partly, { status: "folding" }, plan, { folding: true, runner: "ok" }).kind, "folding")
   assert.deepEqual(["kind", "done"].map((k) => v(partly, { status: "stopped", sections: { S1: "done" } }, plan, { runner: "ok" })[k]), ["stopped", 1])
@@ -325,6 +326,30 @@ test("R5-26: foldView gives every kind of 6.2 from its situation", () => {
   assert.equal(v(Object.assign({}, made.doc, { lang: "ja" }), null, plan, { runner: "ok" }).disabled, "cjk")
   assert.equal(v(made.doc, null, plan, { runner: "ok", scan: true }).disabled, "scan")
   assert.equal(v(made.doc, null, Object.assign({}, plan, { costUsd: null }), { runner: "ok" }).cost, "")
+})
+
+test("R5-26: after Fold again, a Stop, a refused key and failed sections show how that run ended, not folded", () => {
+  const plan = { model: "lab:m1", name: "Lab model", provider: "Lab", sections: 5, calls: 5, cached: 0, inputTokens: 4000, outputTokens: 900, costUsd: 0.123 }
+  const v = (doc, run, live) => Glue.foldView(doc, run, plan, Object.assign({ runner: "ok" }, live || {}))
+  let all = made.doc
+  for (const id of ["abstract", "S1", "S2", "S2.SS1", "A1"]) all = Glue.foldMerge(all, event(id, []), "2026-11-06T10:00:00Z")
+  assert.equal(v(all, null).kind, "folded")
+  // Fold again, stopped after one section: stopped, 1 of 5, the four others left to finish
+  const stopped = v(all, { force: true, status: "stopped", sections: { abstract: "done" } })
+  assert.deepEqual([stopped.kind, stopped.done, stopped.total, stopped.again, stopped.left], ["stopped", 1, 5, true, ["S1", "S2", "S2.SS1", "A1"]])
+  // Fold again, the key refused midway (live, and as fold.json kept it)
+  for (const run of [{ force: true, status: "stopped", sections: { abstract: "done" }, stop: { kind: "key", error: "the key was refused" } }]) {
+    const k = v(all, run)
+    assert.deepEqual([k.kind, k.error, k.done], ["ai-key", "the key was refused", 1])
+    assert.equal(v(all, { force: true, status: "folding", sections: {} }, { stop: { kind: "key", error: "now" } }).kind, "ai-key", "live")
+  }
+  // Fold again, two sections failed: partial, those two
+  const part = v(all, { force: true, status: "partial", sections: { abstract: "done", S1: "done", S2: "failed", "S2.SS1": "done", A1: "failed" }, errors: { S2: "the reply has no JSON" } })
+  assert.deepEqual([part.kind, part.failed, part.error, part.done], ["partial", ["S2", "A1"], "the reply has no JSON", 3])
+  // Fold again that finished: folded; a first fold that stopped counts the doc's sections as before
+  assert.equal(v(all, { force: true, status: "done", sections: { abstract: "done", S1: "done", S2: "done", "S2.SS1": "done", A1: "done" } }).kind, "folded")
+  const first = v(Glue.foldMerge(made.doc, event("S1", ["S1.p1", "S1.p2"]), "2026-11-06T10:00:00Z"), { status: "stopped", sections: { S1: "done" } })
+  assert.deepEqual([first.kind, first.done, first.again, first.left], ["stopped", 1, false, ["abstract", "S2", "S2.SS1", "A1"]])
 })
 
 test("R5-26: costText is Settings' money: under a cent, two decimals, nothing when unknown", () => {

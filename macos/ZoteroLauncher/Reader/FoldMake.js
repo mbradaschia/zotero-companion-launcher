@@ -25,7 +25,7 @@ var FoldMake = (function () {
   var CAPTION_AT = /^\s*(?:fig(?:ure)?\.?|scheme|chart|abb(?:ildung)?\.?|图)\s*[A-Z]?\d+[a-z]?\s*(?:[:.|]|$)/i
   var TABLE_AT = /^\s*(?:table|tab\.|tabelle|表)\s*[A-Z]?\d+[a-z]?\s*(?:[:.|]|$)/i
   var REFS = /^\s*(?:\d+\.?\s*)?(?:references|bibliography|literature|works cited|literatur|参考文献)\s*$/i
-  var ABSTRACT = /^\s*(?:abstract|summary|zusammenfassung|摘要)\s*$/i
+  var ABSTRACT = /^\s*(?:abstract|a b s t r a c t|summary|zusammenfassung|摘要)\s*$/i
   var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[IVX]+)\.?\s+[A-Z][^.!?]{1,80}$/
   var BOILER = /^\W*\d?\s*(?:check for updates|open access|research article|article|original article|review)\W*$/i
   var FRONT = /^(?:<sup>|\d+\s*[A-Z][a-z]+ (?:of|for)\b|(?:received|accepted|published|revised|correspondence|e-?mail|keywords?)\b)|@/i
@@ -124,11 +124,22 @@ var FoldMake = (function () {
       ;(pagesOf[k] = pagesOf[k] || {})[s.page] = true
     })
     var need = Math.max(2, Math.ceil(pageCount / 2))
+    // (heads that alternate, one on odd pages and one on even: each counted against its pages' half)
+    var odd = Math.ceil(pageCount / 2), even = Math.floor(pageCount / 2)
+    var running = function (k) {
+      var ps = Object.keys(pagesOf[k] || {}).map(Number)
+      if (ps.length >= need) return true
+      var odds = ps.filter(function (n) { return n % 2 === 1 }).length
+      if (ps.length < 2) return false
+      if (odds === ps.length) return ps.length >= Math.max(2, Math.ceil(odd / 2))
+      if (odds === 0) return ps.length >= Math.max(2, Math.ceil(even / 2))
+      return false
+    }
     return segs.filter(function (s) {
       if (inBand(s)) {
         if (PAGE_NO.test(s.text)) return false
         var k = headKey(s.text)
-        if (k !== null && size(pagesOf[k]) >= need) return false
+        if (k !== null && running(k)) return false
       }
       if (STAMP.test(s.text)) return false
       if (s.y1 - s.y0 > 3 * (s.x1 - s.x0) && s.chars >= 10) return false
@@ -155,6 +166,28 @@ var FoldMake = (function () {
     var n = prose.length
     var left = pct(lefts, Math.floor(n / 20)), right = pct(rights, n - 1 - Math.floor(n / 20)), col = pct(widths, Math.floor(n * 0.9))
     return { left: left, right: right, col: col, two: col < 0.7 * (right - left), mid: (left + right) / 2 }
+  }
+
+  // Two columns' lines PDFKit gave as one (on one baseline, a narrow gutter under the 1.5 × size cut): cut again at
+  // the gap over the frame's middle when it is 0.5 × size or wider and twice the line's other gaps (a justified line
+  // across the page has its spaces alike).
+  function recut(segs, fr) {
+    if (!fr.two) return segs
+    var out = []
+    segs.forEach(function (s) {
+      if (!(s.x0 < fr.mid - s.size && s.x1 > fr.mid + s.size) || s.words.length < 4) { out.push(s); return }
+      var gaps = []
+      for (var i = 1; i < s.words.length; i++) gaps.push({ i: i, a: s.words[i - 1].x1, b: s.words[i].x0 })
+      var at = null
+      gaps.forEach(function (g) { if (g.a <= fr.mid + s.size && g.b >= fr.mid - s.size && (!at || g.b - g.a > at.b - at.a)) at = g })
+      if (!at || at.b - at.a < 0.5 * s.size) { out.push(s); return }
+      var others = gaps.filter(function (g) { return g !== at }).map(function (g) { return g.b - g.a }).sort(function (a, b) { return a - b })
+      var typical = others.length ? others[Math.floor(others.length / 2)] : 0
+      if (at.b - at.a < 2 * typical) { out.push(s); return }
+      out.push(segment(s.words.slice(0, at.i), s.page, s.W, s.H, s.size, s.f, Math.min(s.lb, at.i)))
+      out.push(segment(s.words.slice(at.i), s.page, s.W, s.H, s.size, s.f, 0))
+    })
+    return out
   }
 
   // ---- 4. reading order: bands cut by what spans both columns, the left column then the right
@@ -264,7 +297,8 @@ var FoldMake = (function () {
               boldAll(s) !== boldAll(p) ||
               LIST.test(s.text) || CAPTION_AT.test(s.text) || TABLE_AT.test(s.text) ||
               (!cur.list && indent(s) && !indent(p)) ||
-              (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text))
+              (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text)) ||
+              headLine(p, e) || headLine(s, e)
           }
         }
         if (brk) {
@@ -282,6 +316,14 @@ var FoldMake = (function () {
       b.lines = rowsOf(b.segs)
     })
     return blocks
+  }
+  // A line that stands as a heading at the body's size and weight (IEEE's centred "I. INTRODUCTION"): a short
+  // numbered line, or a short line centred in its column; the paragraph after it starts a block of its own.
+  function headLine(s, e) {
+    var w = e[1] - e[0]
+    if (s.x1 - s.x0 > 0.7 * w || s.words.length > 10) return false
+    if (NUMBERED.test(s.text) && !SENTENCE_END.test(s.text)) return true
+    return s.x0 - e[0] > 2 * s.size && Math.abs((s.x0 + s.x1) / 2 - (e[0] + e[1]) / 2) <= 0.05 * w && !SENTENCE_END.test(s.text)
   }
   function rowsOf(segs) {
     var n = 0
@@ -330,14 +372,23 @@ var FoldMake = (function () {
     var l = (t.match(/\p{L}/gu) || []).length
     return t.length ? l / t.length : 1
   }
+  // A heading run into its paragraph's first line, bold: every bold word at its start when they name a numbered
+  // heading, an abstract or the references; else the shortest bold start that names an abstract or the references
+  // (IEEE's bold-italic "Abstract" and its dash before an abstract set in bold).
   function runIn(b) {
     var first = b.segs[0]
-    if (!first.lb || first.lb >= first.words.length && b.segs.length === 1) return null
-    var lead = first.words.slice(0, first.lb).map(function (w) { return w.t }).join(" ").replace(/[.:—–-]+$/, "")
-    if (!(NUMBERED.test(lead) || ABSTRACT.test(lead) || REFS.test(lead))) return null
-    var rest = joinWords(b.segs, first.lb)
+    if (!first.lb) return null
+    var lead = function (k) { return first.words.slice(0, k).map(function (w) { return w.t }).join(" ").replace(/[.:—–-]+$/, "") }
+    var k = 0
+    if (!(first.lb >= first.words.length && b.segs.length === 1)) {
+      var all = lead(first.lb)
+      if (NUMBERED.test(all) || ABSTRACT.test(all) || REFS.test(all)) k = first.lb
+    }
+    for (var i = 1; !k && i < first.lb && i <= 8; i++) { var t = lead(i); if (ABSTRACT.test(t) || REFS.test(t)) k = i }
+    if (!k) return null
+    var rest = joinWords(b.segs, k)
     if (!rest.length) return null
-    return { title: lead, rest: rest }
+    return { title: lead(k), rest: rest }
   }
   function headingOf(b, body) {
     var words = b.words.length, t = b.text
@@ -555,9 +606,23 @@ var FoldMake = (function () {
   // ---- 12. units: sentences, ids, the link map's boxes
 
   var LETTER = { paragraph: "p", abstract: "p", "list item": "i", equation: "e", reference: "r", footnote: "n" }
+  // A text's sentences; one longer than 3000 tokens (no end punctuation for pages) cut there, at a word's start, so a
+  // unit stays within FoldCore's 5000 tokens.
+  var LONG_SENTENCE = 3000
   function sentencesOf(text) {
-    var toks = C.tokenize(text)
-    return C.splitSentences(toks).map(function (r) { return { a: toks[r[0]].a, b: toks[r[1] - 1].b, n: r[1] - r[0] } })
+    var toks = C.tokenize(text), out = []
+    C.splitSentences(toks).forEach(function (r) {
+      var i = r[0]
+      while (r[1] - i > LONG_SENTENCE) {
+        var j = i + LONG_SENTENCE
+        while (j > i + 1 && !(toks[j].a > toks[j - 1].b)) j--
+        if (j <= i + 1) j = i + LONG_SENTENCE
+        out.push({ a: toks[i].a, b: toks[j - 1].b, n: j - i })
+        i = j
+      }
+      out.push({ a: toks[i].a, b: toks[r[1] - 1].b, n: r[1] - i })
+    })
+    return out
   }
   function chunks(text, words) {
     var ss = sentencesOf(text)
@@ -609,6 +674,9 @@ var FoldMake = (function () {
     var segs = dropFurniture(got.segs, count)
     var body = bodySize(segs)
     var fr = frameOf(segs, body)
+    // (merged columns make the frame look like one: cut at its middle, kept when the frame is two columns then)
+    var cut = recut(segs, { two: true, mid: fr.mid })
+    if (cut.length !== segs.length) { var fr2 = frameOf(cut, body); if (fr2.two) { segs = cut; fr = fr2 } }
     var flows = flowsOf(segs, fr, body)
     var edges = edgesOf(segs, fr, body)
     flows.forEach(dropTables)
@@ -769,34 +837,41 @@ var FoldMake = (function () {
   function foreign(d) { var p = d && d.provenance || {}; return p.local !== true && p.ai_generated !== false }
 
   // The page's fold object (6.2) from the doc, fold.json (run), the plan and what the window knows now (live:
-  // { folding, runner: "ok" | "missing" | "old", pdfChanged, stop: { kind, error }, scan }).
+  // { folding, runner: "ok" | "missing" | "old", pdfChanged, stop: { kind, error }, scan }). A Fold again (run.force)
+  // that didn't finish counts what it folded again, not the doc's sections folded before; how a run ended (a stop, a
+  // failed section, stopped) comes before folded. again: that run is a Fold again; left: the sections it has still
+  // to fold (Finish folding).
   function foldView(doc, run, plan, live) {
     var d = doc || {}, r = run || {}, pl = plan || {}, lv = live || {}
     var sections = (Array.isArray(d.sections) ? d.sections : []).filter(function (s) { return foldable(s).length })
     var total = sections.length
     var old = foreign(d)
-    var done = old ? total : sections.filter(function (s) { return s.made === "ai" }).length
     var status = r.sections && typeof r.sections === "object" ? r.sections : {}
     var errors = r.errors && typeof r.errors === "object" ? r.errors : {}
-    var failed = old ? [] : sections.filter(function (s) { return s.made !== "ai" && status[s.id] === "failed" }).map(function (s) { return s.id })
     var stop = lv.stop || r.stop || null
+    var again = r.force === true && (lv.folding || r.status === "folding" || r.status === "stopped" || r.status === "partial" || !!(stop && stop.kind))
+    var doneIn = function (s) { return again ? status[s.id] === "done" : old || s.made === "ai" }
+    var done = sections.filter(doneIn).length
+    var failed = old && !again ? [] : sections.filter(function (s) { return !doneIn(s) && status[s.id] === "failed" }).map(function (s) { return s.id })
+    var left = sections.filter(function (s) { return !doneIn(s) }).map(function (s) { return s.id })
     var error = stop && stop.error ? String(stop.error) : failed.length ? String(errors[failed[0]] || "") : pl.error ? String(pl.error) : ""
     var lang = String(d.lang || "").toLowerCase().slice(0, 2)
     var disabled = lv.runner === "missing" ? "no-runner" : lv.runner === "old" ? "old-runner" : lv.scan ? "scan" : lang === "zh" || lang === "ja" ? "cjk" :
       pl.error ? (STOP_KINDS[pl.kind] === "no-ai" || !pl.kind ? "no-ai" : "") : ""
     var kind
     if (lv.folding) kind = "folding"
+    else if (stop && stop.kind && done < total) kind = STOP_KINDS[stop.kind] || "ai-offline"
+    else if (failed.length) kind = "partial"
+    else if ((r.status === "stopped" || r.status === "folding") && done < total && (again || done > 0)) kind = "stopped"
     else if (total > 0 && done === total) kind = "folded"
     else if (lv.runner === "missing") kind = "no-runner"
     else if (lv.runner === "old") kind = "old-runner"
-    else if (stop && stop.kind) kind = STOP_KINDS[stop.kind] || "ai-offline"
     else if (pl.error) kind = STOP_KINDS[pl.kind] || "no-ai"
     else if (lv.pdfChanged && !done) kind = "pdf-changed"
-    else if (failed.length) kind = "partial"
     else if (r.status === "stopped" || r.status === "folding" || done > 0) kind = "stopped"
     else kind = "unfolded"
     return {
-      kind: kind, done: done, total: total, failed: failed, error: error.slice(0, 200),
+      kind: kind, done: done, total: total, failed: failed, error: error.slice(0, 200), again: again, left: left,
       model: String(pl.model || r.model || ""), name: String(pl.name || (d.provenance && d.provenance.model) || r.model || ""),
       calls: typeof pl.calls === "number" ? pl.calls : null, cached: typeof pl.cached === "number" ? pl.cached : 0,
       cost: costText(pl.costUsd), disabled: disabled
@@ -806,7 +881,7 @@ var FoldMake = (function () {
   return {
     EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, relink: relink,
     foldInput: foldInput, foldMerge: foldMerge, foldView: foldView, costText: costText, STOP_KINDS: STOP_KINDS,
-    _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
+    _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, recut: recut, dropFurniture: dropFurniture, sentencesOf: sentencesOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
   }
 })()
 

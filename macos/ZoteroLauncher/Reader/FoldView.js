@@ -112,25 +112,37 @@ var FoldView = (function () {
     if (!c) return ""
     return c.charAt(0) === "<" ? " under $0.01 at its list price" : " about " + c + " at its list price"
   }
-  function errorText(f) { return String(f && f.error || "").slice(0, 200).replace(/[\s.]+$/, "") }
+  // The runner's message as the banner's first sentence: capitalized, its end left to the banner.
+  function errorText(f) {
+    var e = String(f && f.error || "").slice(0, 200).replace(/[\s.]+$/, "").replace(/^\s+/, "")
+    return e ? e.charAt(0).toUpperCase() + e.slice(1) : ""
+  }
   function foldCopy(f, left) {
     var k = f && f.kind
     var name = String(f && f.name || f && f.model || "the model")
-    var only = left && left.length ? { only: left } : {}
+    // (what's left to fold: the run's own when it was a Fold again, so finishing it folds again what it hadn't)
+    var rest = f && Array.isArray(f.left) ? f.left : left
+    var only = rest && rest.length ? { only: rest.slice() } : {}
+    if (f && f.again) only.force = true
+    var others = f && f.again ? "the others keep their earlier levels" : "the rest show first sentences"
     if (!k || k === "folded") return null
     if (k === "unfolded") {
       var first = "Key, Takeaway and Topic show each paragraph's first sentence."
+      if (f.disabled === "cjk") return { title: "Not folded yet", sentence: first + " Folding a paper in Chinese or Japanese comes in a later version.", action: null }
       if (f.disabled) return { title: "Not folded yet", sentence: first, action: null }
       var more = typeof f.calls === "number" ? " Fold with AI sends the paper's text to " + name + " in " + plural(f.calls, "request", "requests") + costPhrase(f) + "." +
-        (f.cached > 0 ? " " + f.cached + " of them were answered before and cost nothing." : "") : ""
-      return { title: "Not folded yet", sentence: first + more, action: ["Fold with AI", "fold", only] }
+        (f.cached === 1 ? " 1 of them was answered before and costs nothing." : f.cached > 1 ? " " + f.cached + " of them were answered before and cost nothing." : "") : ""
+      return { title: "Not folded yet", sentence: first + more, action: ["Fold with AI", "fold", {}] }
     }
     if (k === "folding") return { title: "Folding with AI", sentence: f.done + " of " + f.total + " sections, with " + name + ". Each section shows its levels as it comes back.", action: ["Stop", "stop", {}] }
-    if (k === "stopped") return { title: "Folding stopped", sentence: f.done + " of " + f.total + " sections are folded; the rest show first sentences. Finishing asks only for what's left.", action: ["Finish folding", "fold", only] }
+    if (k === "stopped") return { title: "Folding stopped", sentence: f.done + " of " + f.total + " sections are folded" + (f.again ? " again" : "") + "; " + others + ". Finishing asks only for what's left.", action: ["Finish folding", "fold", only] }
     if (k === "partial") {
       var n = (f.failed || []).length
-      return { title: n === 1 ? "1 section wasn't folded" : n + " sections weren't folded", sentence: (errorText(f) ? errorText(f) + ". " : "") + (n === 1 ? "It shows first sentences." : "They show first sentences."),
-        action: [n === 1 ? "Try it again" : "Try them again", "fold", { only: (f.failed || []).slice() }] }
+      var shows = f.again ? (n === 1 ? "It keeps its earlier levels." : "They keep their earlier levels.") : (n === 1 ? "It shows first sentences." : "They show first sentences.")
+      var retry = { only: (f.failed || []).slice() }
+      if (f.again) retry.force = true
+      return { title: n === 1 ? "1 section wasn't folded" : n + " sections weren't folded", sentence: (errorText(f) ? errorText(f) + ". " : "") + shows,
+        action: [n === 1 ? "Try it again" : "Try them again", "fold", retry] }
     }
     if (k === "pdf-changed") return { title: "The PDF changed", sentence: "It was read again, so Key, Takeaway and Topic show first sentences until it's folded again.", action: ["Fold with AI", "fold", {}] }
     if (k === "no-ai") return { title: "No AI model is set up", sentence: "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", action: null }
@@ -138,7 +150,7 @@ var FoldView = (function () {
     if (k === "old-runner") return { title: "The AI features are older than the app", sentence: "Settings › Setup › Install the AI features updates them.", action: null }
     if (FOLD_FATAL[k]) {
       var e = errorText(f)
-      return { title: FOLD_FATAL[k][0], sentence: (e ? e + ". " : "") + FOLD_FATAL[k][1], action: f.done ? ["Finish folding", "fold", only] : ["Try again", "fold", {}] }
+      return { title: FOLD_FATAL[k][0], sentence: (e ? e + ". " : "") + FOLD_FATAL[k][1], action: f.done ? ["Finish folding", "fold", only] : ["Try again", "fold", f.again ? { force: true } : {}] }
     }
     return null
   }
@@ -215,7 +227,16 @@ var FoldView = (function () {
     function drawFoot() {
       ftLeft.className = S.flash ? "flash" : ""
       ftLeft.textContent = S.flash || HINTS
-      ftLevel.textContent = C.level(S.level).foot
+      ftLevel.textContent = levelFoot()
+    }
+    // The level's footer: an AI level says whether AI wrote it yet (aiCaption's count), never "written by AI" for first sentences.
+    function levelFoot() {
+      var l = C.level(S.level)
+      if (!l.ai || !S.m) return l.foot
+      var all = foldableSections(), done = all.filter(sectionFolded).length
+      if (!done) return l.name + " · first sentences until folded"
+      if (done < all.length) return l.name + " · written by AI for " + done + " of " + all.length + " sections, the others first sentences"
+      return l.foot
     }
 
     // ---- the header
@@ -455,8 +476,10 @@ var FoldView = (function () {
       if (!f || f.disabled) return
       if (f.kind === "folding") { post("stop"); return }
       if (f.kind === "folded") { S.confirm = true; drawBanners(); var k = document.getElementById("bKeep"); if (k) k.focus(); return }
-      var left = notFolded(), all = foldableSections().length
-      post("fold", left.length && left.length < all ? { only: left } : {})
+      var left = Array.isArray(f.left) ? f.left : notFolded(), all = foldableSections().length
+      var payload = left.length && left.length < all ? { only: left.slice() } : {}
+      if (f.again) payload.force = true
+      post("fold", payload)
     }
     function closeConfirm(focusFold) {
       if (!S.confirm) return false
@@ -471,7 +494,7 @@ var FoldView = (function () {
         var name = String(f.name || f.model || "the model")
         var calls = typeof f.calls === "number" ? f.calls : 0
         var yes = el("button", { type: "button", class: "act", text: "Fold again", "data-act": "fold", "data-payload": JSON.stringify({ force: true }) })
-        yes.addEventListener("click", function () { S.confirm = false; post("fold", { force: true }); drawBanners() })
+        yes.addEventListener("click", function () { S.confirm = false; post("fold", { force: true }); drawBanners(); if (bFold) bFold.focus() })
         var no = el("button", { type: "button", class: "act quiet", text: "Keep these", id: "bKeep" })
         no.addEventListener("click", function () { closeConfirm(true) })
         return el("div", { class: "banner confirm", role: "note", "data-state": "fold-again" }, [el("strong", { text: "Fold the whole paper again?" }),
@@ -483,7 +506,8 @@ var FoldView = (function () {
       if (c.action) {
         var payload = c.action[2] || {}
         act = el("button", { type: "button", class: "act", text: c.action[0], "data-act": c.action[1], "data-payload": JSON.stringify(payload) })
-        act.addEventListener("click", function () { post(c.action[1], payload) })
+        // (the banner is drawn again as the fold goes: the focus goes to the Fold button, which stays)
+        act.addEventListener("click", function () { post(c.action[1], payload); if (bFold && !bFold.hidden && !bFold.disabled) bFold.focus() })
       }
       return el("div", { class: "banner", role: "note", "data-state": f.kind }, [el("strong", { text: c.title }), el("span", { text: c.sentence }), act])
     }
@@ -1538,6 +1562,7 @@ var FoldView = (function () {
       drawBanners()
       updateTools()
       drawSectionLines()
+      drawFoot()
     }
     function words(batch) {
       if (!batch || S.wordsDone) return

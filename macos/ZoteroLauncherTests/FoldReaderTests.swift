@@ -197,6 +197,22 @@ final class FoldReaderTests: XCTestCase {
                 "made_with": "Zotero Launcher test", "exported": "2026-11-06T10:00:00Z"]
     }
 
+    // R5-SPEC 3.2: Zotero's abstract goes to FoldMake with the rest of the paper's meta (what finds an abstract set
+    // without a heading, or one the front matter would take)
+    func testTheReadMetaCarriesZoterosAbstract() throws {
+        let paper = try XCTUnwrap(Fixture.bridge("item")["paper"] as? [String: Any])
+        let abstract = try XCTUnwrap(paper["abstract"] as? String)
+        XCTAssertFalse(abstract.isEmpty)
+        let info: [String: Any] = ["bytes": 1234, "modified": "2026-11-06T10:00:00Z", "pages": 2, "sizes": [[612.0, 792.0], [792.0, 612.0]]]
+        let meta = FoldWindowModel.readMeta(paper, title: "A paper", cite: "Doe (2016)", pdf: info, version: "0.4.35", now: Date(timeIntervalSince1970: 0))
+        XCTAssertEqual(meta["abstract"] as? String, abstract)
+        XCTAssertEqual(meta["title"] as? String, paper["title"] as? String)
+        XCTAssertEqual(meta["cite"] as? String, "Doe (2016)")
+        XCTAssertEqual((meta["pdf"] as? [String: Any])?["pages"] as? Int, 2)
+        XCTAssertEqual(meta["made_with"] as? String, "Zotero Launcher 0.4.35")
+        XCTAssertEqual(FoldWindowModel.readMeta([:], title: "A paper", cite: "", pdf: info, version: "", now: Date())["abstract"] as? String, "", "none: empty")
+    }
+
     // R5-36: FoldMaker on that PDF: FIXTURE 6.3's ids and kinds for the units it holds, each unit's boxes where its
     // words were drawn; an image-only PDF is a scan
     func testFoldMakerReadsThePaperIntoItsUnitsAndBoxesAndAScanIsAScan() throws {
