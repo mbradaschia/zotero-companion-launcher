@@ -145,8 +145,22 @@ enum FoldTheme {
             for _ in 0..<2 { for g in grounds { out = out.readable(on: g, ratio: 4.5) } }
             return out
         }
+        // Lifting a lighter line to 4.5:1 on the tints can, a twentieth at a time, carry it past the line above it: the
+        // ink then goes on until it reads stronger than the muted again, as the muted does over the faint.
+        func stronger(_ c: RGB, than weaker: RGB) -> RGB {
+            let toward = bg.luminance > 0.5 ? RGB.black : RGB.white
+            var out = c
+            var step = 0
+            while out.contrast(bg) <= weaker.contrast(bg) && step < 20 {
+                step += 1
+                out = c.mixed(toward, Double(step) / 20)
+            }
+            return out
+        }
         let grounds = [bg, sel, hl, head]
-        return ["ink": readable(t.text, on: grounds), "muted": readable(t.subtext, on: grounds), "faint": readable(t.subtext.mixed(bg, 0.3), on: grounds),
+        let faint = readable(t.subtext.mixed(bg, 0.3), on: grounds)
+        let muted = stronger(readable(t.subtext, on: grounds), than: faint)
+        return ["ink": stronger(readable(t.text, on: grounds), than: muted), "muted": muted, "faint": faint,
                 "cite": readable(t.accent, on: grounds), "tax": readable(t.teal, on: [bg, taxSoft, head]),
                 "hl": hl, "hl-line": t.yellow.readable(on: hl, ratio: 3), "sel": sel, "head": head, "tax-soft": taxSoft]
     }
