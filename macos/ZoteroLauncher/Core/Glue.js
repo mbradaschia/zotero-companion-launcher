@@ -21,7 +21,8 @@ var Glue = (function () {
   var RV = typeof ReviewCore !== "undefined" ? ReviewCore : require("../Review/ReviewCore.js")
   var reviewGlue = (typeof GlueReviews !== "undefined" ? GlueReviews : require("./GlueReviews.js"))(RV)
   var FC = typeof FoldCore !== "undefined" ? FoldCore : require("../Reader/FoldCore.js")
-  var foldGlue = (typeof GlueFold !== "undefined" ? GlueFold : require("./GlueFold.js"))(FC, V)
+  var FM = typeof FoldMake !== "undefined" ? FoldMake : require("../Reader/FoldMake.js")
+  var foldGlue = (typeof GlueFold !== "undefined" ? GlueFold : require("./GlueFold.js"))(FC, V, FM)
   // the fold reader's row (SPEC 7.1), after the window row, in its section, on a paper only
   var withFoldRow = function (rows, details) {
     var row = foldGlue.foldMenuRow(details)

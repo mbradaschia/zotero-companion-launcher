@@ -234,3 +234,104 @@ test("the read's edges: ligatures and soft hyphens cleaned; nothing given is no 
   assert.equal(M.read([], {}).problem, "scan")
   assert.equal(M.read(null, null).problem, "scan")
 })
+
+// ---- the app's glue (R5-SPEC 5.3, criterion R5-26)
+
+const Glue = require("../../ZoteroLauncher/Core/Glue.js")
+const INPUT = path.join(__dirname, "fixtures", "fold-reader", "fold-input.json")
+const event = (id, units, extra) => Object.assign({ type: "section", id, model: "lab:m1", cached: false, section: { takeaway: "Section " + id + " folded", topic: "Section" },
+  units: units.map((u) => ({ id: u, role: "claim", evidence: [0], key: "A short claim. Its reason.", takeaway: "A short claim", topic: "claim" })), warnings: [] }, extra || {})
+
+test("R5-26: foldInput: the foldable sections and units only, the paper and model; fold-input.json is its golden; over 4 MB is an error", () => {
+  const input = Glue.foldInput(made.doc, { paper: "1:ABCD1234", model: "default" })
+  assert.deepEqual(Object.keys(input), ["paper", "model", "force", "only", "doc"])
+  assert.deepEqual([input.paper, input.model, input.force, input.only], ["1:ABCD1234", "default", false, null])
+  assert.deepEqual(input.doc.sections.map((s) => s.id), ["abstract", "S1", "S2", "S2.SS1", "A1"], "bib and Sx hold only apparatus")
+  const s2 = input.doc.sections.find((s) => s.id === "S2")
+  assert.deepEqual(s2.units.map((u) => [u.id, u.kind, u.label]), [["S2.p1", "paragraph", undefined], ["S2.F1.cap", "caption", "Figure 1"], ["S2.T1.cap", "caption", "Table 1"]])
+  assert.deepEqual(Object.keys(s2.units[0]), ["id", "kind", "sentences"])
+  if (process.env.FOLD_WRITE_MADE) fs.writeFileSync(INPUT, JSON.stringify(input, null, 1) + "\n")
+  assert.deepEqual(JSON.parse(fs.readFileSync(INPUT, "utf8")), input)
+  assert.deepEqual(Glue.foldInput(made.doc, { paper: "1:ABCD1234", model: "lab:m1", force: true, only: ["S1"] }).only, ["S1"])
+  const huge = JSON.parse(JSON.stringify(made.doc))
+  huge.sections[1].units[0].sentences = [new Array(4.2e6).join("x")]
+  assert.match(Glue.foldInput(huge, { paper: "1:ABCD1234" }).error, /4 MB/)
+})
+
+test("R5-26: foldMerge sets a section's units and made, keeps local until the last foldable section, lists the models, sets levels_made", () => {
+  let d = Glue.foldMerge(made.doc, event("S1", ["S1.p1", "S1.p2", "nope"]), "2026-11-06T10:00:00.123Z")
+  const s1 = d.sections.find((s) => s.id === "S1")
+  assert.deepEqual([s1.made, s1.model, s1.takeaway, s1.topic], ["ai", "lab:m1", "Section S1 folded", "Section"])
+  assert.deepEqual(["role", "evidence", "key", "takeaway", "topic"].map((k) => s1.units[0][k]), ["claim", [0], "A short claim. Its reason.", "A short claim", "claim"])
+  assert.deepEqual([d.provenance.ai_generated, d.provenance.model, d.provenance.levels_made, d.provenance.local], [true, "lab:m1", "2026-11-06T10:00:00", true])
+  assert.equal(made.doc.sections[1].made, undefined, "the doc given is not changed")
+  assert.ok(!units(d).some((u) => u.id === "nope"))
+  d = Glue.foldMerge(d, event("abstract", ["abstract.p1"], { model: "other:m2" }), "2026-11-06T10:01:00Z")
+  d = Glue.foldMerge(d, event("S2", ["S2.p1", "S2.F1.cap", "S2.T1.cap"]), "2026-11-06T10:02:00Z")
+  d = Glue.foldMerge(d, event("S2.SS1", ["S2.SS1.p1", "S2.SS1.i1"]), "2026-11-06T10:03:00Z")
+  assert.equal(d.provenance.local, true, "A1 still to fold")
+  d = Glue.foldMerge(d, event("A1", ["A1.p1", "A1.p2"]), "2026-11-06T10:04:00Z")
+  assert.deepEqual([d.provenance.local, d.provenance.model, d.provenance.levels_made], [false, "other:m2, lab:m1", "2026-11-06T10:04:00"])
+  assert.equal(d.sections.find((s) => s.id === "bib").made, undefined, "bib holds only apparatus: never folded")
+  assert.deepEqual(Glue.foldMerge(made.doc, event("S9", ["S9.p1"]), "2026-11-06T10:00:00Z"), made.doc, "a section the doc doesn't have: nothing")
+  const m = C.model(d)
+  assert.ok(!m.problem)
+  assert.equal(C.font(m.units["S1.p1"], "key"), "ui", "folded words are in the sans")
+  // the marks made on the unfolded doc keep their place on the folded one
+  const m0 = C.model(made.doc)
+  let store = C.emptyStore({ paper: "1:ABCD1234", doc: { id: m0.id, lang: "en" } })
+  const anchors = [["S1.p1", 2, 4], ["S2.p1", 0, 3], ["A1.p2", 1, 2], ["bib.r1", 0, 1]]
+  anchors.forEach(([u, from, to], i) => {
+    const quote = C.plainText(C.pieces(m0.units[u], "full").slice(from, to + 1).map((p, k, all) => (k === all.length - 1 ? Object.assign({}, p, { sp: "" }) : p)))
+    store = C.addMark(store, { unit: u, from, to, quote, highlight: true }, "highlight", "2026-11-06T10:00:00.000Z", () => (i + 1) / 10).store
+  })
+  const re = C.reanchor(m, store)
+  assert.deepEqual([re.lost, re.moved], [0, 0])
+})
+
+test("R5-26: foldView gives every kind of 6.2 from its situation", () => {
+  const plan = { model: "lab:m1", name: "Lab model", provider: "Lab", sections: 5, calls: 5, cached: 1, inputTokens: 4000, outputTokens: 900, costUsd: 0.123 }
+  const v = (doc, run, pl, live) => Glue.foldView(doc, run, pl, live)
+  const partly = Glue.foldMerge(made.doc, event("S1", ["S1.p1", "S1.p2"]), "2026-11-06T10:00:00Z")
+  let all = made.doc
+  for (const id of ["abstract", "S1", "S2", "S2.SS1", "A1"]) all = Glue.foldMerge(all, event(id, []), "2026-11-06T10:00:00Z")
+  const u = v(made.doc, null, plan, { runner: "ok" })
+  assert.deepEqual(u, { kind: "unfolded", done: 0, total: 5, failed: [], error: "", model: "lab:m1", name: "Lab model", calls: 5, cached: 1, cost: "$0.12", disabled: "" })
+  assert.equal(v(made.doc, null, null, {}).calls, null, "before the plan")
+  assert.equal(v(partly, { status: "folding" }, plan, { folding: true, runner: "ok" }).kind, "folding")
+  assert.deepEqual(["kind", "done"].map((k) => v(partly, { status: "stopped", sections: { S1: "done" } }, plan, { runner: "ok" })[k]), ["stopped", 1])
+  assert.equal(v(partly, { status: "folding", sections: { S1: "done" } }, plan, { runner: "ok" }).kind, "stopped", "a run left folding reads as stopped")
+  const part = v(partly, { status: "partial", sections: { S1: "done", S2: "failed" }, errors: { S2: "the model refused" } }, plan, { runner: "ok" })
+  assert.deepEqual([part.kind, part.failed, part.error], ["partial", ["S2"], "the model refused"])
+  assert.equal(v(made.doc, null, plan, { runner: "ok", pdfChanged: true }).kind, "pdf-changed")
+  assert.equal(v(partly, null, plan, { runner: "ok", pdfChanged: true }).kind, "stopped", "pdf-changed only when nothing is folded")
+  const noAi = v(made.doc, null, { error: "no AI model is set up", kind: "setup" }, { runner: "ok" })
+  assert.deepEqual([noAi.kind, noAi.disabled], ["no-ai", "no-ai"])
+  assert.deepEqual(["kind", "disabled"].map((k) => v(made.doc, null, null, { runner: "missing" })[k]), ["no-runner", "no-runner"])
+  assert.deepEqual(["kind", "disabled"].map((k) => v(made.doc, null, null, { runner: "old" })[k]), ["old-runner", "old-runner"])
+  const kinds = { key: "ai-key", signin: "ai-signin", limit: "ai-limit", busy: "ai-busy", network: "ai-offline", setup: "no-ai" }
+  for (const k of Object.keys(kinds)) {
+    const x = v(partly, { status: "stopped", stop: { kind: k, error: "it said no" } }, plan, { runner: "ok" })
+    assert.deepEqual([x.kind, x.error], [kinds[k], "it said no"], k)
+    assert.equal(v(made.doc, null, plan, { runner: "ok", stop: { kind: k, error: "now" } }).kind, kinds[k], "live " + k)
+  }
+  assert.equal(v(made.doc, null, { error: "the key was refused", kind: "key" }, { runner: "ok" }).kind, "ai-key", "a plan's error")
+  const f = v(all, null, plan, { runner: "ok" })
+  assert.deepEqual([f.kind, f.done, f.total, f.disabled], ["folded", 5, 5, ""])
+  assert.equal(v(all, null, plan, { runner: "missing" }).kind, "folded", "a folded paper stays folded without the runner")
+  const d9 = Object.assign({}, F.doc(), { provenance: { made_with: "TextFold 0.9", ai_generated: true, model: "x", levels_made: "2026-11-01T09:00:00" } })
+  assert.equal(v(d9, null, plan, { runner: "ok" }).kind, "folded", "an earlier doc with AI levels counts as folded (D9)")
+  assert.equal(v(Object.assign({}, made.doc, { lang: "zh" }), null, plan, { runner: "ok" }).disabled, "cjk")
+  assert.equal(v(Object.assign({}, made.doc, { lang: "ja" }), null, plan, { runner: "ok" }).disabled, "cjk")
+  assert.equal(v(made.doc, null, plan, { runner: "ok", scan: true }).disabled, "scan")
+  assert.equal(v(made.doc, null, Object.assign({}, plan, { costUsd: null }), { runner: "ok" }).cost, "")
+})
+
+test("R5-26: costText is Settings' money: under a cent, two decimals, nothing when unknown", () => {
+  assert.equal(Glue.foldCost(0.004), "< $0.01")
+  assert.equal(Glue.foldCost(0.123), "$0.12")
+  assert.equal(Glue.foldCost(1.5), "$1.50")
+  assert.equal(Glue.foldCost(null), "")
+  assert.equal(M.costText(undefined), "")
+  assert.equal(M.costText(0), "< $0.01")
+})

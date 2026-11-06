@@ -680,8 +680,132 @@ var FoldMake = (function () {
     return out
   }
 
+  // ---- the fold's glue (R5-SPEC 5.3): the command's input, a section merged in, the page's fold object
+
+  var MAX_INPUT = 4 * 1024 * 1024
+  function utf8Length(s) {
+    var n = 0
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i)
+      if (c < 0x80) n += 1
+      else if (c < 0x800) n += 2
+      else if (c >= 0xd800 && c < 0xdc00) { n += 4; i++ }
+      else n += 3
+    }
+    return n
+  }
+  function foldable(s) { return (Array.isArray(s && s.units) ? s.units : []).filter(function (u) { return u && !APPARATUS[u.kind] }) }
+
+  // The fold command's stdin (4.1): the doc's foldable sections and units, the paper, the model and what to fold.
+  function foldInput(doc, o) {
+    var opts = o || {}
+    var d = doc || {}
+    var sections = []
+    ;(Array.isArray(d.sections) ? d.sections : []).forEach(function (s) {
+      var us = foldable(s)
+      if (!us.length) return
+      sections.push({ id: String(s.id), num: String(s.num == null ? "" : s.num), title: String(s.title == null ? "" : s.title), depth: s.depth === 2 || s.depth === 3 ? s.depth : 1,
+        units: us.map(function (u) {
+          var x = { id: String(u.id), kind: String(u.kind || "paragraph") }
+          if (u.label) x.label = String(u.label)
+          x.sentences = (Array.isArray(u.sentences) ? u.sentences : []).map(String)
+          return x
+        }) })
+    })
+    var input = {
+      paper: String(opts.paper || ""), model: String(opts.model || "default"), force: opts.force === true,
+      only: Array.isArray(opts.only) ? opts.only.map(String) : null,
+      doc: { title: String(d.title || ""), lang: String(d.lang || "en"), sections: sections }
+    }
+    var text = JSON.stringify(input)
+    if (utf8Length(text) > MAX_INPUT) return { error: "the paper's text is larger than 4 MB" }
+    return input
+  }
+
+  // The doc with a section's levels from a fold's section event (4.1), made: "ai"; the provenance follows.
+  function foldMerge(doc, event, now) {
+    var d = JSON.parse(JSON.stringify(doc || {}))
+    var e = event || {}
+    var sections = Array.isArray(d.sections) ? d.sections : []
+    var sec = null
+    for (var i = 0; i < sections.length; i++) if (sections[i].id === e.id) sec = sections[i]
+    if (!sec) return d
+    var byId = {}
+    ;(Array.isArray(e.units) ? e.units : []).forEach(function (u) { if (u && typeof u.id === "string") byId[u.id] = u })
+    ;(sec.units || []).forEach(function (u) {
+      var x = byId[u.id]
+      if (!x || APPARATUS[u.kind]) return
+      u.role = C.role(x.role)
+      u.evidence = Array.isArray(x.evidence) ? x.evidence.filter(function (n) { return typeof n === "number" && n % 1 === 0 && n >= 0 }) : [0]
+      if (!u.evidence.length) u.evidence = [0]
+      u.key = String(x.key == null ? "" : x.key)
+      u.takeaway = String(x.takeaway == null ? "" : x.takeaway)
+      u.topic = String(x.topic == null ? "" : x.topic)
+    })
+    var line = e.section || {}
+    sec.takeaway = String(line.takeaway == null ? "" : line.takeaway)
+    sec.topic = String(line.topic == null ? "" : line.topic)
+    sec.made = "ai"
+    sec.model = String(e.model || "")
+    var models = []
+    sections.forEach(function (s) { if (s.made === "ai" && s.model && models.indexOf(s.model) < 0) models.push(s.model) })
+    var p = d.provenance && typeof d.provenance === "object" ? d.provenance : (d.provenance = {})
+    p.ai_generated = true
+    p.model = models.join(", ")
+    p.levels_made = String(now || "").slice(0, 19)
+    p.local = sections.some(function (s) { return foldable(s).length && s.made !== "ai" })
+    return d
+  }
+
+  // A cost in dollars as Settings shows one: "< $0.01" under a cent, "$0.12" else; "" when not known.
+  function costText(usd) {
+    if (usd === null || usd === undefined || typeof usd !== "number" || !isFinite(usd)) return ""
+    return usd < 0.01 ? "< $0.01" : "$" + usd.toFixed(2)
+  }
+
+  var STOP_KINDS = { key: "ai-key", signin: "ai-signin", limit: "ai-limit", busy: "ai-busy", network: "ai-offline", setup: "no-ai" }
+
+  // Whether a doc's levels came from elsewhere (an earlier tool's AI levels, D9): it counts as folded.
+  function foreign(d) { var p = d && d.provenance || {}; return p.local !== true && p.ai_generated !== false }
+
+  // The page's fold object (6.2) from the doc, fold.json (run), the plan and what the window knows now (live:
+  // { folding, runner: "ok" | "missing" | "old", pdfChanged, stop: { kind, error }, scan }).
+  function foldView(doc, run, plan, live) {
+    var d = doc || {}, r = run || {}, pl = plan || {}, lv = live || {}
+    var sections = (Array.isArray(d.sections) ? d.sections : []).filter(function (s) { return foldable(s).length })
+    var total = sections.length
+    var old = foreign(d)
+    var done = old ? total : sections.filter(function (s) { return s.made === "ai" }).length
+    var status = r.sections && typeof r.sections === "object" ? r.sections : {}
+    var errors = r.errors && typeof r.errors === "object" ? r.errors : {}
+    var failed = old ? [] : sections.filter(function (s) { return s.made !== "ai" && status[s.id] === "failed" }).map(function (s) { return s.id })
+    var stop = lv.stop || r.stop || null
+    var error = stop && stop.error ? String(stop.error) : failed.length ? String(errors[failed[0]] || "") : pl.error ? String(pl.error) : ""
+    var lang = String(d.lang || "").toLowerCase().slice(0, 2)
+    var disabled = lv.runner === "missing" ? "no-runner" : lv.runner === "old" ? "old-runner" : lv.scan ? "scan" : lang === "zh" || lang === "ja" ? "cjk" :
+      pl.error ? (STOP_KINDS[pl.kind] === "no-ai" || !pl.kind ? "no-ai" : "") : ""
+    var kind
+    if (lv.folding) kind = "folding"
+    else if (total > 0 && done === total) kind = "folded"
+    else if (lv.runner === "missing") kind = "no-runner"
+    else if (lv.runner === "old") kind = "old-runner"
+    else if (stop && stop.kind) kind = STOP_KINDS[stop.kind] || "ai-offline"
+    else if (pl.error) kind = STOP_KINDS[pl.kind] || "no-ai"
+    else if (lv.pdfChanged && !done) kind = "pdf-changed"
+    else if (failed.length) kind = "partial"
+    else if (r.status === "stopped" || r.status === "folding" || done > 0) kind = "stopped"
+    else kind = "unfolded"
+    return {
+      kind: kind, done: done, total: total, failed: failed, error: error.slice(0, 200),
+      model: String(pl.model || r.model || ""), name: String(pl.name || (d.provenance && d.provenance.model) || r.model || ""),
+      calls: typeof pl.calls === "number" ? pl.calls : null, cached: typeof pl.cached === "number" ? pl.cached : 0,
+      cost: costText(pl.costUsd), disabled: disabled
+    }
+  }
+
   return {
     EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, relink: relink,
+    foldInput: foldInput, foldMerge: foldMerge, foldView: foldView, costText: costText, STOP_KINDS: STOP_KINDS,
     _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
   }
 })()
