@@ -55,9 +55,9 @@ const input = {
 const ids = (section) => section.items.map((it) => it.id);
 const sec = (sb, id) => sb.sections.find((s) => s.id === id);
 
-test("the default sections, in order: More hidden, Tags folded", () => {
+test("the default sections, in order (your saved searches right under Favorites): More hidden, Tags folded", () => {
   const sb = SB.buildSidebar(input, {});
-  assert.deepEqual(sb.sections.map((s) => s.id), ["favorites", "library", "status", "tasks", "taxonomies", "collections", "tags", "searches", "reviews"]);
+  assert.deepEqual(sb.sections.map((s) => s.id), ["favorites", "searches", "library", "status", "tasks", "taxonomies", "collections", "tags", "reviews"]);
   assert.equal(sec(sb, "tags").folded, true);
   assert.equal(sec(sb, "status").folded, false);
   assert.equal(sec(sb, "status").icon, "status"); // the kind's symbol (Icons.concept), never a colour
@@ -204,8 +204,8 @@ test("clicks: alone replaces (again: none); ⌘ joins and leaves; ⌥ excludes a
 });
 
 test("sections: your order first, the rest after in the default order; a move stops at the ends; hidden ones out", () => {
-  assert.deepEqual(SB.sidebarOrder({ order: ["tags", "nope", "status"] }).slice(0, 4), ["tags", "status", "favorites", "library"]);
-  assert.deepEqual(SB.sidebarMoveSection({}, "status", -1).slice(0, 3), ["favorites", "status", "library"]);
+  assert.deepEqual(SB.sidebarOrder({ order: ["tags", "nope", "status"] }).slice(0, 4), ["tags", "status", "favorites", "searches"]);
+  assert.deepEqual(SB.sidebarMoveSection({}, "status", -1).slice(0, 4), ["favorites", "searches", "status", "library"]);
   assert.deepEqual(SB.sidebarMoveSection({}, "favorites", -1), SB.sidebarOrder({}));
   const sb = SB.buildSidebar(input, { hidden: ["library", "tags"] });
   assert.ok(!sb.sections.some((s) => s.id === "library" || s.id === "tags"));
