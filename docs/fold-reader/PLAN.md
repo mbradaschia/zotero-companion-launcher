@@ -163,7 +163,15 @@ Found while building R1; each keeps its criterion's intent.
   row after `o  w  n  #  x` lists it.
 - **The folding state's stage is capitalized** (`Extracting: 3 of 12.`), as TextFold writes it lower case.
 - **The byline uses the doc's authors** when TextFold gives them, else the bridge's.
-- **The PDF pane is capped at `calc(100% - 320px)`** so the text keeps 320 px in a 760-wide window (the window's
-  smallest, with no horizontal scroll), whatever width was kept in `ZLFoldPrefs`.
+- **Narrow windows keep 420 px for the paper's words** (the validation's finding): the margin folds away first (unless
+  asked for), then the PDF narrows to 220 px (below its 300 px drag minimum), then the margin to 160; the widths kept
+  in `ZLFoldPrefs` come back as the window widens.
+- **The rows are not `content-visibility: auto`**: its paint containment hid the selection's bar and the follow tick, and
+  its size estimates made follow and the reading line drift on long papers. The rows draw in idle chunks instead; the
+  budgets hold on `bigDoc` (about 400 ms to every unit drawn).
+- **A same-paper `FR.load` keeps the page's state** (level, place, selection, opened paragraphs and the marks it holds),
+  since the app sends the whole window again on every change; a new doc of the paper keeps the marks, re-anchored.
+- **The reader's text colours in the app's themes** are nudged in Swift (`FoldTheme`) to 4.5:1 on the selection's tint
+  and a highlight, over `reviewCSS`, rather than taken as the review table's.
 - **Swift is not compiled here** (no `swift` or `xcodebuild` in the build container): `FoldReaderTests.swift` (the
   `[swift]` criteria 22, 49 to 53, 55, 56) first runs on macOS CI.
