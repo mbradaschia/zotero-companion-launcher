@@ -87,6 +87,26 @@ final class FoldReaderTests: XCTestCase {
         return out
     }
 
+    // 45 in the app's themes: the reader's text reads at 4.5:1 on the window, the selection's tint and a highlight
+    func testTheReadersTextReadsOnItsTintsInEveryTheme() {
+        for family in ThemeFamily.all {
+            for dark in [false, true] {
+                let t = Palette(family).rgb(dark: dark)
+                let c = FoldTheme.colours(t, dark: dark)
+                let name = "\(family.name) (\(dark ? "dark" : "light"))"
+                for text in ["ink", "muted", "faint", "cite"] {
+                    for (ground, g) in [("window", t.background), ("sel", c["sel"]!), ("hl", c["hl"]!), ("head", c["head"]!)] {
+                        XCTAssertGreaterThanOrEqual(c[text]!.contrast(g), 4.5, "\(name): --\(text) on \(ground)")
+                    }
+                }
+                XCTAssertGreaterThanOrEqual(c["hl-line"]!.contrast(c["hl"]!), 3, name + ": a highlight's underline")
+            }
+        }
+        let css = FoldTheme.pageCSS(Palette(ThemeFamily.named("nord")))
+        XCTAssertTrue(css.contains("--cite: #") && css.contains("--muted: #") && css.contains("@media (prefers-color-scheme: dark)"))
+        XCTAssertTrue(css.hasPrefix(Palette(ThemeFamily.named("nord")).reviewCSS), "over the review table's")
+    }
+
     // 49
     func testWordsInOrderWithTheirBoxesOnAPlainAndATurnedPage() throws {
         let pdf = FoldPDF(url: try makePDF())

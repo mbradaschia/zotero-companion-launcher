@@ -54,7 +54,7 @@ struct FoldWebView: NSViewRepresentable {
         view.pageZoom = CGFloat(FoldWindowModel.zoom)
         context.coordinator.watchTheme()
         model.page = context.coordinator
-        view.loadHTMLString(ThemeStyle.page(Self.shell, ThemeStore.shared.palette.reviewCSS), baseURL: nil)
+        view.loadHTMLString(ThemeStyle.page(Self.shell, FoldTheme.pageCSS(ThemeStore.shared.palette)), baseURL: nil)
         return view
     }
 
@@ -75,7 +75,7 @@ struct FoldWebView: NSViewRepresentable {
 
         func watchTheme() {
             theme = ThemeStore.shared.$palette.dropFirst().sink { [weak self] palette in
-                MainActor.assumeIsolated { self?.view?.evaluateJavaScript(ThemeStyle.script(palette.reviewCSS), in: nil, in: .defaultClient) { _ in } }
+                MainActor.assumeIsolated { self?.view?.evaluateJavaScript(ThemeStyle.script(FoldTheme.pageCSS(palette)), in: nil, in: .defaultClient) { _ in } }
             }
         }
 
@@ -99,7 +99,7 @@ struct FoldWebView: NSViewRepresentable {
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             loaded = false
-            webView.loadHTMLString(ThemeStyle.page(FoldWebView.shell, ThemeStore.shared.palette.reviewCSS), baseURL: nil)
+            webView.loadHTMLString(ThemeStyle.page(FoldWebView.shell, FoldTheme.pageCSS(ThemeStore.shared.palette)), baseURL: nil)
         }
 
         // Only the page itself loads; a link, a dropped file, anything else is cancelled.
@@ -128,4 +128,34 @@ protocol FoldPage: AnyObject {
     func paper(_ o: [String: Any])
     func flash(_ text: String)
     func zoom(_ z: Double)
+}
+
+// The reader's colours in the app's theme: the review table's (reviewCSS) and, over them, its text colours nudged until
+// each reads at 4.5:1 on every ground it is drawn on (the window, the selection's tint, a highlight, the header), a
+// highlight from the theme's yellow, its underline at 3:1. The page's own CSS keeps tested defaults for a browser.
+enum FoldTheme {
+    static func colours(_ t: Tokens<RGB>, dark: Bool) -> [String: RGB] {
+        let bg = t.background
+        let sel = t.accent.mixed(bg, dark ? 0.78 : 0.88) // (reviewCSS's --sel)
+        let hl = t.yellow.mixed(bg, dark ? 0.7 : 0.72)
+        let head = t.text.mixed(bg, 1 - 0.035) // (reviewCSS's --head)
+        let grounds = [bg, sel, hl, head]
+        func readable(_ c: RGB) -> RGB {
+            var out = c
+            for _ in 0..<2 { for g in grounds { out = out.readable(on: g, ratio: 4.5) } }
+            return out
+        }
+        return ["ink": readable(t.text), "muted": readable(t.subtext), "faint": readable(t.subtext.mixed(bg, 0.3)), "cite": readable(t.accent),
+                "hl": hl, "hl-line": t.yellow.readable(on: hl, ratio: 3), "sel": sel, "head": head]
+    }
+
+    static func css(_ palette: Palette) -> String {
+        func vars(_ dark: Bool) -> String {
+            colours(palette.rgb(dark: dark), dark: dark).filter { !["sel", "head"].contains($0.key) }.sorted { $0.key < $1.key }
+                .map { "--\($0.key): \($0.value.hex);" }.joined(separator: " ")
+        }
+        return ":root { \(vars(false)) } @media (prefers-color-scheme: dark) { :root { \(vars(true)) } }"
+    }
+
+    static func pageCSS(_ palette: Palette) -> String { palette.reviewCSS + " " + css(palette) }
 }
