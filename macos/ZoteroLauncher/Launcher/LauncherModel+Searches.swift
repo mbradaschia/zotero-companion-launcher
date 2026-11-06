@@ -130,7 +130,10 @@ extension LauncherModel {
         guard let s = savedSearch(id) else { return }
         let pinned = s["pinned"] as? Bool == true
         guard saveSearches("updateSearch", [id, ["pinned": !pinned]]) else { return }
-        if listsEnabled { return flashMessage(pinned ? "Out of Favorites" : "In Favorites: Tab goes through them") }
+        if listsEnabled {
+            buildLists()
+            return flashMessage(pinned ? "Out of Favorites" : favoriteFlash("search:" + id))
+        }
         flashMessage(pinned ? "Unpinned" : "Pinned: its badge is above the results; Tab switches to it")
     }
 
@@ -261,8 +264,8 @@ extension LauncherModel {
     func searchViewRows(_ core: JSCore) throws -> [ListRow] {
         switch store.view {
         case "searches": return try core.glue("savedSearchRows", [searchesJSON, store.filterText, Self.accentHex], as: [ListRow].self)
-        case "search-menu": return try core.glue("searchMenuRows", [searchState.menu ?? NSNull()], as: [ListRow].self)
-        case "search-edit": return try core.glue("searchEditRows", [searchState.editMode, store.filterText, searchState.toSave], as: [ListRow].self)
+        case "search-menu": return try core.glue("searchMenuRows", [searchState.menu ?? NSNull(), listsEnabled], as: [ListRow].self)
+        case "search-edit": return try core.glue("searchEditRows", [searchState.editMode, store.filterText, searchState.toSave, listsEnabled], as: [ListRow].self)
         case "picker": return try core.glue("pickerRows", [store.filterText, !savedSearches.isEmpty, tax.taxonomies], as: [ListRow].self)
         default: break
         }

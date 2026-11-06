@@ -194,7 +194,7 @@ function GlueSettings(V, C, T, P, S) {
       var lists = x.lists
       rows.push(L({ section: "The launcher", rowId: "set-toggle", value: "mac.listsPanel", icon: lists ? S.ICON.on : S.ICON.off, checked: lists, available: true,
         label: "Lists panel", badge: badge,
-        detail: lists ? "On · your lists beside the results (saved searches, reading status, tasks, taxonomies, collections, tags), with counts; ⌃⌘S folds it to a rail of icons, ⌘L gives it the keys"
+        detail: lists ? "On · your lists beside the results (saved searches, reading status, tasks, taxonomies, collections, tags), with counts; ⌃⌘S folds it to its icons, ⌘L gives it the keys"
           : "Off · no lists beside the results: your pinned searches are badges above them" }))
     }
     return rows

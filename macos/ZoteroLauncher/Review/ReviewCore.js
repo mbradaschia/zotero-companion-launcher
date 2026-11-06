@@ -461,11 +461,12 @@ var ReviewCore = (function () {
     return JSON.stringify(r, null, 2) + "\n"
   }
 
-  // A source's name, for a new review and the window's title: the saved search's, the collection's, #tag, “query”.
+  // A source's name, for a new review and the window's title: the saved search's, the collection's, #tag, the list's, “query”.
   function sourceName(s) {
     var o = normalizeSource(s)
     if (o.type === "tag") return "#" + (o.title || o.key)
-    if (o.type === "query") return o.query ? "“" + o.query.slice(0, 60) + "”" : "Review"
+    // (a list from the Lists panel names itself: "Reading status › reading"; else the query, quoted)
+    if (o.type === "query") return o.title ? o.title : o.query ? "“" + o.query.slice(0, 60) + "”" : "Review"
     return o.title || o.key || "Review"
   }
 

@@ -13,10 +13,12 @@ extension LauncherModel {
         return help + h
     }
 
-    // Tab at the top (or in a favorite, with the Lists panel): the next pinned search, or favorite.
+    // Tab at the top (or in a favorite, with the Lists panel): the next pinned search, or favorite. (Where the router
+    // takes Tab so: the same test.)
     var tabHint: [String] {
-        if listsEnabled { return !lists.favorites.isEmpty && (store.atRoot || inFavorite) ? ["tab next favorite"] : [] }
-        return store.atRoot && !pinnedSearches.isEmpty ? ["tab next search"] : []
+        let s = keyState
+        guard s.pinnedSearches && (s.atRoot || s.pickingAtTop || s.inFavorite) else { return [] }
+        return [listsEnabled ? "tab next favorite" : "tab next search"]
     }
 
     func hintsFor() -> [String] {
@@ -27,6 +29,8 @@ extension LauncherModel {
         let slash: [String] = singleKeys ? ["/ search"] : []
         let row = (singleKeys ? "1…9" : "⌥1…9") + " row"
         if store.view == "keys" { return ["type to find a key", "↑↓ move", "esc clear, then back"] } // (letters type there)
+        // ⌘L gave the Lists panel the keys
+        if lists.focus && listsFull { return ["↑↓ move", "↵ show", "→← open, fold", K("p") + " favorite", "esc the results"] }
         if singleKeys && store.searchFocus && !store.textEntry {
             let badges: [String] = tabHint
             let filters: [String] = store.inSearch && store.pickFor.isEmpty ? ["@ filters"] + badges + ["⌘S save", "⌘T table"] : []

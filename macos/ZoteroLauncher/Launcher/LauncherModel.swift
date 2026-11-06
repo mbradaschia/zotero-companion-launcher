@@ -283,6 +283,8 @@ final class LauncherModel: ObservableObject {
         keyTimer?.invalidate()
         store.keys.clear()
         quickAction = ""
+        lists.focus = false // (the keys are the results' when it opens again)
+        lists.popover = ""
     }
 
     func flashMessage(_ text: String) {

@@ -132,6 +132,7 @@ test("a new review: named after its source, the default columns and each taxonom
   assert.deepEqual(r.columns.map((c) => c.id), ["title", "authors", "year", "publication", "abs", "status", "task", "tax:method", "tax:theory"]);
   assert.equal(R.sourceName({ type: "tag", key: "resilience" }), "#resilience");
   assert.equal(R.sourceName({ type: "query", query: "y:2020.. resilience" }), "“y:2020.. resilience”");
+  assert.equal(R.sourceName({ type: "query", query: 'status:"reading"', title: "Reading status › reading" }), "Reading status › reading"); // (a list from the Lists panel)
 });
 
 test("searchScope: the launcher's scope for a source; a saved search by its current query", () => {

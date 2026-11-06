@@ -366,11 +366,18 @@ var Glue = (function () {
   var LISTS_KEYS = [["⌃⌘S", "Open the Lists panel, or fold it to its icons"],
     ["⌘L", "The Lists panel takes the keys: ↑↓ move, →← open or fold, ↵ show the list, p a favorite or not, ⌃⇧↑↓ move a section, esc back"],
     ["⌘1…⌘9", "Show a favorite (Tab and ⇧Tab go through them)"]]
+  // (the Lists panel on: the pinned searches are its Favorites, not badges)
+  var LISTS_LINES = [["Next / previous pinned search (the badges on top)", "Next / previous favorite (the Lists panel's)"],
+    ["Next / previous pinned search (the badges)", "Next / previous favorite (the Lists panel's)"],
+    ["Pin or unpin it (a badge above the results)", "Pin or unpin it (a favorite in the Lists panel)"]]
   core.keyRows = function (query, here) {
     var alt = !!(here && here.alt)
+    var lists = !!(here && here.lists)
     var rows = V.buildKeyRows("", here ? Object.assign({}, here, { alt: false }) : null).map(function (r) {
       var mine = alt && r.section.indexOf("Here · ") === 0
-      var label = macKeyLine(r.label) // (and the HTML the row draws, from it)
+      var own = r.label
+      if (lists) LISTS_LINES.forEach(function (w) { if (own === w[0]) own = w[1] })
+      var label = macKeyLine(own) // (and the HTML the row draws, from it)
       return Object.assign({}, r, { trailing: macKeyColumn(mine ? macAlt(r.trailing) : r.trailing), label: label, labelHtml: V.escapeHtml(label), section: macKeyLine(r.section) })
     })
     // the Mac's own: ⌘T, after ⌘S, wherever ⌘S is (phase 11a's review tables)

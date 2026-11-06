@@ -4,7 +4,8 @@ import SwiftUI
 // The Lists panel beside the results (LauncherModel+Lists): open, its sections and their lists with their papers'
 // counts; folded, the icon rail (the same in every window), each section's icon opening its lists as a pop-over. Every
 // heading and list leads with its kind's symbol; the list shown is filled and bold, the row the keys are on (⌘L) is
-// outlined, a favorite carries a pin: never told by colour alone.
+// outlined (in the text's colour on the filled one), a favorite carries a pin: never told by colour alone. On the rail, the
+// section holding the list shown is filled, the one whose pop-over is open outlined.
 struct ListsColumn: View {
     @ObservedObject var model: LauncherModel
 
@@ -20,7 +21,7 @@ enum ListsIcons {
         "task": Icons.concept["task"] ?? "checklist", "tax": Icons.concept["tax"] ?? "tag", "collection": "folder", "tag": "number",
         "review": "tablecells", "more": "ellipsis.circle",
     ]
-    static let library: [String: String] = ["lib:recent": "clock", "lib:open": "arrow.up.forward.app", "lib:pinned": "pin", "lib:unfiled": "tray", "lib:nopdf": "doc"]
+    static let library: [String: String] = ["lib:recent": "clock", "lib:open": "arrow.up.forward.app", "lib:pinned": "pin.circle", "lib:unfiled": "tray", "lib:nopdf": "doc"]
     static let kind: [String: String] = [
         "search": "magnifyingglass", "status": Icons.concept["status"] ?? "flag", "taskgroup": Icons.concept["task"] ?? "checklist",
         "task": Icons.concept["task"] ?? "checklist", "taxonomy": Icons.concept["tax"] ?? "tag", "label": Icons.concept["tax"] ?? "tag",
@@ -46,8 +47,8 @@ struct ListsToggleButton: View {
                 .frame(width: 28, height: 24).contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(open ? "Fold the lists to icons (⌃⌘S)" : "Open the lists (⌃⌘S)")
-        .accessibilityLabel(open ? "Fold the lists to icons" : "Open the lists")
+        .help(open ? "Fold the Lists panel to its icons (⌃⌘S)" : "Open the Lists panel (⌃⌘S)")
+        .accessibilityLabel(open ? "Fold the Lists panel to its icons" : "Open the Lists panel")
     }
 }
 
@@ -69,7 +70,10 @@ struct ListsPlaces: View {
     var body: some View {
         let shown: [Place] = Self.places.filter { all || $0.id == "chats" || $0.id == "settings" }
         ForEach(shown, id: \.id) { place in
-            ListsIconButton(symbol: place.symbol, help: place.name + " (" + model.keyName(place.key) + ")", label: place.name) { model.openPlace(place.id) }
+            ListsIconButton(symbol: place.symbol, help: place.name + " (" + model.keyName(place.key) + ")", label: place.name) {
+                model.lists.focus = false
+                model.openPlace(place.id)
+            }
         }
     }
 }
@@ -78,7 +82,8 @@ struct ListsIconButton: View {
     let symbol: String
     let help: String
     let label: String
-    var on = false
+    var on = false // filled: it holds what the results show
+    var outlined = false // outlined: its pop-over is open
     let tap: () -> Void
     @Environment(\.palette) private var palette
 
@@ -89,6 +94,7 @@ struct ListsIconButton: View {
                 .foregroundStyle(on ? palette.onAccent : palette.subtext)
                 .frame(width: 32, height: 28)
                 .background(RoundedRectangle(cornerRadius: 6).fill(on ? palette.accent : Color.clear))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(outlined ? (on ? palette.onAccent : palette.accent) : Color.clear, lineWidth: 2))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -121,6 +127,11 @@ struct ListsPanelView: View {
                         ForEach(model.lists.rows) { row in
                             ListsRowView(model: model, row: row, shown: shown, cursor: cursor, favorite: row.item.map { favorites.contains($0.base) } ?? false)
                                 .id(row.key)
+                        }
+                        if model.lists.countsFailed {
+                            // (the lists still show and open; only their counts wait for Zotero)
+                            Label("No counts: Zotero isn't answering", systemImage: "exclamationmark.triangle")
+                                .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 12).padding(.vertical, 4)
                         }
                         if !model.lists.problem.isEmpty {
                             Text("The lists couldn't be made: " + model.lists.problem).font(.caption).foregroundStyle(.secondary).padding(12)
@@ -212,7 +223,9 @@ struct ListsRowView: View {
         let count: String = item.count.map { $0.formatted() } ?? ""
         let papers: String = count.isEmpty ? "" : count + (item.count == 1 ? " paper" : " papers")
         let title: String = model.listTitle(item)
-        let tip: String = item.target == nil ? (open ? "Fold" : "Show its lists") : papers.isEmpty ? title : title + " · " + papers
+        let key: String = item.section == "favorites" ? model.favoriteKey(item) : ""
+        let shows: String = key.isEmpty ? title : title + " (" + key + ")"
+        let tip: String = item.target == nil ? (open ? "Fold" : "Show its lists") : papers.isEmpty ? shows : shows + " · " + papers
         let value: String = papers + (favorite ? (papers.isEmpty ? "a favorite" : ", a favorite") : "")
         let traits: AccessibilityTraits = on ? [.isButton, .isSelected] : .isButton
         return HStack(spacing: 6) {
@@ -237,7 +250,7 @@ struct ListsRowView: View {
         .foregroundStyle(ink)
         .padding(.leading, 8 + CGFloat(min(item.depth, 6)) * 12).padding(.trailing, 8).padding(.vertical, 3)
         .background(RoundedRectangle(cornerRadius: 6).fill(on ? palette.accent : Color.clear))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(here ? palette.accent : Color.clear, lineWidth: 2))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(here ? (on ? palette.onAccent : palette.accent) : Color.clear, lineWidth: 2))
         .padding(.horizontal, 4)
         .contentShape(Rectangle())
         .onTapGesture { model.openListItem(item) }
@@ -271,7 +284,7 @@ struct ListsRailView: View {
             Divider().frame(width: 24).padding(.vertical, 2)
             ForEach(model.lists.sections.filter { !($0.items ?? []).isEmpty }, id: \.id) { s in
                 let here = (s.items ?? []).contains { $0.base == shown }
-                ListsIconButton(symbol: ListsIcons.section[s.icon] ?? "list.bullet", help: s.title, label: s.title, on: here || model.lists.popover == s.id) {
+                ListsIconButton(symbol: ListsIcons.section[s.icon] ?? "list.bullet", help: s.title, label: s.title, on: here, outlined: model.lists.popover == s.id) {
                     model.lists.popover = model.lists.popover == s.id ? "" : s.id
                 }
                 .popover(isPresented: Binding(get: { model.lists.popover == s.id }, set: { if !$0 && model.lists.popover == s.id { model.lists.popover = "" } }),

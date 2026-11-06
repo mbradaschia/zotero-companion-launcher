@@ -46,7 +46,9 @@ extension LauncherModel {
             if s.type == "search" { source["query"] = s.query }
             // a list from the Lists panel (a status, a task status, a label…): a search of its terms, with what's typed
             if s.type == "search" && s.key.hasPrefix(Self.listKeyPrefix) {
-                source = ["type": "query", "query": (try? core.glue("combinedQuery", [scopeJSON, query], as: String.self)) ?? s.query]
+                // (named for the list, "Reading status › reading", and what's typed after it)
+                source = ["type": "query", "query": (try? core.glue("combinedQuery", [scopeJSON, query], as: String.self)) ?? s.query,
+                          "title": query.isEmpty ? s.title : s.title + " · " + query]
             }
         } else if !query.isEmpty {
             source = ["type": "query", "query": query]

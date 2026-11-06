@@ -34,11 +34,12 @@ enum KeyRouter {
         let sizeKey = s.inNote && [KeyEvent.Key.character("-"), .character("+"), .character("="), .character("0")].contains(k)
         let save = s.inSearch && (e.control || e.command) && !e.option && !e.shift && k == .character("s") // ⌘S as Ctrl+S
         let table = s.inSearch && e.command && !e.option && !e.shift && !e.control && k == .character("t") // ⌘T: a review table
-        // the Lists panel's: ⌃⌘S (the Mac's Show Sidebar) open or folded, ⌘L its keys, ⌘1…⌘9 a favorite (in the results)
-        if s.lists && e.command && !e.option && !e.shift {
+        // the Lists panel's: ⌃⌘S (the Mac's Show Sidebar) open or folded, ⌘L its keys (with the panel off: they say how to
+        // turn it on), ⌘1…⌘9 a favorite (in the results)
+        if e.command && !e.option && !e.shift {
             if e.control && k == .character("s") { return .toggleLists }
             if !e.control && k == .character("l") { return .focusLists }
-            if !e.control && s.inSearch, case .character(let c) = k, c.isASCII, let n = c.wholeNumberValue, (1...9).contains(n) { return .favorite(n) }
+            if s.lists && !e.control && s.inSearch, case .character(let c) = k, c.isASCII, let n = c.wholeNumberValue, (1...9).contains(n) { return .favorite(n) }
         }
         if e.command && !sizeKey && !save && !table && !(paste && (s.view == "settings-edit" || s.textEntry)) { return .pass }
         if s.inNote { return .note(e) }

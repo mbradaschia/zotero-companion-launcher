@@ -48,3 +48,17 @@ test("Settings › General: the Lists panel's switch, this Mac's, after the Dock
   assert.equal(Glue.settingsPage("general", s, {}, {}).find((r) => r.value === "mac.listsPanel"), undefined);
   assert.ok(Glue.settingsIndex(s, {}, [], { lists: true }).some((r) => r.value === "mac.listsPanel"));
 });
+
+test("with the panel on, a pinned search is a favorite in its words, not a badge (the keys, Shift+Enter's menu, saving)", () => {
+  const ctx = (lists) => Glue.keysContext("search", { lists }, false);
+  const line = (lists) => Glue.keyRows("", ctx(lists)).map((r) => r.label).join("\n");
+  assert.doesNotMatch(line(true), /the badges/);
+  assert.match(line(true), /Next \/ previous favorite \(the Lists panel's\)/);
+  assert.match(line(false), /the badges/);
+  const menu = Glue.searchMenuRows({ id: "s1", name: "Mine", query: "a:smith", pinned: false }, true);
+  assert.equal(menu.find((r) => r.rowId === "search-pin").label, "Pin to Favorites");
+  assert.match(menu.find((r) => r.rowId === "search-pin").detail, /^A favorite in the Lists panel/);
+  assert.equal(Glue.searchMenuRows({ id: "s1", name: "Mine", query: "a:smith" }).find((r) => r.rowId === "search-pin").label, "Pin above the results");
+  const save = Glue.searchEditRows("save", "", "a:smith", true);
+  assert.match(save.find((r) => r.rowId === "search-save-pin").detail, /^A favorite in the Lists panel/);
+});

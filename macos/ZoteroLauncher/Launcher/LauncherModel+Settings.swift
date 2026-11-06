@@ -125,7 +125,7 @@ extension LauncherModel {
         }
         if path == "mac.listsPanel" {
             listsEnabled.toggle()
-            flashMessage(listsEnabled ? "On: the lists beside the results; ⌃⌘S folds them to the rail" : "Off: the badges above the results instead")
+            flashMessage(listsEnabled ? "On: the Lists panel beside the results; ⌃⌘S folds it to its icons" : "Off: the badges above the results instead")
             return
         }
         if path == "mac.safeColours" {

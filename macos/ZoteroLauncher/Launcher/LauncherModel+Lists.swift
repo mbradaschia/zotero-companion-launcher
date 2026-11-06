@@ -76,6 +76,8 @@ struct ListsState {
     var favorites: [ListsItem] = []
     var sections: [ListsSection] = []
     var problem = "" // why the panel couldn't be made
+    var countsFailed = false // the bridge didn't answer for the counts (Zotero closed, or not answering)
+    var lastTop = "" // the favorite last shown that is the top level's own (Recent, Pinned papers): Tab goes on from it
     var focus = false // ⌘L: the panel has the keys
     var cursor = "" // the row the keys are on (its key)
     var narrow = false // the launcher under 760 points wide: the rail, whatever you chose…
@@ -137,6 +139,7 @@ extension LauncherModel {
         lists.timer?.invalidate()
         lists.reviews = reviewList().map { ["id": $0["id"] ?? "", "name": $0["name"] ?? ""] }
         lists.asked += 1
+        lists.countsFailed = false
         let round = lists.asked
         buildLists()
         let tasks: Any = todos?.json ?? RawJSON(text: "[]")
@@ -147,7 +150,7 @@ extension LauncherModel {
             bridge.post("/facets", body, timeout: 8) { [weak self] result in
                 MainActor.assumeIsolated {
                     guard let self, round == self.lists.asked else { return }
-                    if case .ok(let answer) = result, let values = answer["values"] as? [Any] { self.lists.facets[field] = values }
+                    if case .ok(let answer) = result, let values = answer["values"] as? [Any] { self.lists.facets[field] = values } else { self.lists.countsFailed = true }
                     self.buildLists()
                 }
             }
@@ -223,22 +226,26 @@ extension LauncherModel {
         guard store.pickFor.isEmpty else { return flashMessage("Pick the paper first (esc stops picking)") }
         UsageLog.shared.count("lists:open")
         lists.popover = ""
+        lists.lastTop = ""
         switch target.type {
         case "review":
             openReviewWindow(target.id ?? "")
         case "view":
+            lists.focus = false // (the tags to choose from take the keys)
             goHome()
             openPickerValues("tag")
         case "top":
             goHome()
             if !store.filterText.isEmpty { setFilter("") }
             let names = ["recent": ["Recently added", "Recently modified", "Recent", "Papers"], "open": ["Open in Zotero"], "pinned": ["Pinned"]][target.which ?? ""] ?? []
-            if let i = searchRows.firstIndex(where: { names.contains($0.section) }) {
-                store.followTop = false
-                store.selectedIndex = i
+            lists.lastTop = item.base
+            guard let i = searchRows.firstIndex(where: { names.contains($0.section) }) else {
+                return flashMessage("Nothing in “\(item.label)” now")
             }
+            store.followTop = false
+            store.selectedIndex = i
         case "scope", "query":
-            guard let scope = listScope(item) else { return flashMessage("“\(item.label)” is gone") }
+            guard let scope = listScope(item) else { return flashMessage("Couldn't show “\(item.label)”: it's gone") }
             if store.inSearch && store.scope == scope {
                 if again { goHome() } // (the one shown, clicked again: back to all)
                 return
@@ -259,7 +266,7 @@ extension LauncherModel {
     func openFavorite(_ n: Int) {
         guard listsEnabled else { return }
         guard lists.favorites.indices.contains(n - 1) else {
-            return flashMessage(lists.favorites.isEmpty ? "No favorites yet: ⌘L, then p on a list, pins it" : "Favorites go up to ⌘\(lists.favorites.count)")
+            return flashMessage(lists.favorites.isEmpty ? "No favorites yet: \(keyName("p")) on a list in the panel (⌘L) makes one" : "Favorites go up to ⌘\(lists.favorites.count)")
         }
         openListItem(lists.favorites[n - 1], again: false)
     }
@@ -267,9 +274,14 @@ extension LauncherModel {
     // Tab and ⇧Tab: the next favorite (and the top level, as the badges' All), round and round.
     func cycleFavorite(_ delta: Int) {
         let ids = [""] + lists.favorites.map(\.base)
-        let at = ids.firstIndex(of: listsSelected) ?? 0
+        // (at the top after Recent or Pinned papers: on from that one, not from the start)
+        let here = listsSelected.isEmpty && store.atRoot ? lists.lastTop : listsSelected
+        let at = ids.firstIndex(of: here) ?? 0
         let next = ids[((at + delta) % ids.count + ids.count) % ids.count]
-        if next.isEmpty { return goHome() }
+        if next.isEmpty {
+            lists.lastTop = ""
+            return goHome()
+        }
         if let fav = lists.favorites.first(where: { $0.base == next }) { openListItem(fav, again: false) }
     }
 
@@ -286,17 +298,26 @@ extension LauncherModel {
         let id = item.base
         guard item.kind != "hint" && item.kind != "more", item.target != nil else { return flashMessage("Only a list can be a favorite") }
         UsageLog.shared.count("lists:pin")
-        if id.hasPrefix("search:") {
-            toggleSearchPin(String(id.dropFirst("search:".count)))
-            return buildLists()
-        }
+        if id.hasPrefix("search:") { return toggleSearchPin(String(id.dropFirst("search:".count))) } // (its flash the same)
         var p = listsPrefs
         var fav = p["favorites"] as? [String] ?? []
         let was = fav.contains(id)
         if was { fav.removeAll { $0 == id } } else { fav.append(id) }
         p["favorites"] = fav
         writeListsPrefs(p)
-        flashMessage(was ? "Out of Favorites" : "In Favorites: Tab goes through them, ⌘\(min(9, lists.favorites.count)) opens it")
+        flashMessage(was ? "Out of Favorites" : favoriteFlash(id))
+    }
+
+    // "In Favorites: Tab goes through them, ⌘2 shows it" (no ⌘ after the ninth).
+    func favoriteFlash(_ id: String) -> String {
+        let n = (lists.favorites.firstIndex { $0.base == id } ?? -1) + 1
+        return "In Favorites: Tab goes through them" + ((1...9).contains(n) ? ", ⌘\(n) shows it" : "")
+    }
+
+    // A favorite's ⌘ key: "⌘2", or "" past the ninth (or not a favorite).
+    func favoriteKey(_ item: ListsItem) -> String {
+        let n = (lists.favorites.firstIndex { $0.base == item.base } ?? -1) + 1
+        return (1...9).contains(n) ? "⌘\(n)" : ""
     }
 
     // A section's heading, or a folder (a taxonomy, a task group, a collection with subcollections): open or folded.
@@ -360,8 +381,9 @@ extension LauncherModel {
 
     // A key while the panel has them. → nil: not the panel's (it leaves the panel and goes on).
     func listsKey(_ e: KeyEvent) -> Bool? {
-        let plain = !e.command && !e.control && !e.option
         if e.command { return nil } // (⌘T, ⌘L, ⌃⌘S, ⌘1…: the launcher's)
+        // p as the mode writes it (p, or ⌥p): a favorite, or not
+        let pinKey = e.key == .character("p") && !e.control && !e.shift && (singleKeys ? !e.option : e.option)
         let rows = listsKeyRows
         let at = rows.firstIndex { $0.key == lists.cursor }
         let row = at.map { rows[$0] }
@@ -389,12 +411,19 @@ extension LauncherModel {
         case .enter:
             if let s = row?.section { toggleListsSection(s) } else if let it = row?.item { openListItem(it) }
             return true
+        case .f1:
+            lists.focus = false
+            return nil // (the keys)
         default:
-            if e.key == .character("p") && plain && !e.shift { // p: a favorite, or not
+            if pinKey {
                 if let it = row?.item { toggleListFavorite(it) }
                 return true
             }
-            if e.printable { lists.focus = false; return nil } // (typing: into the search, as anywhere)
+            if e.option || e.control || !e.printable { return true } // (a paper's ⌥ keys: not from here, where none shows)
+            lists.focus = false
+            // / and ? as anywhere; a letter types into the search (never a paper's one-key action from here)
+            if !singleKeys || e.text == "/" || e.text == "?" { return nil }
+            if store.inSearch { startTyping(e.text) }
             return true
         }
     }

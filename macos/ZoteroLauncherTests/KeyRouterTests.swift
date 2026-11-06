@@ -329,7 +329,7 @@ final class KeyRouterTests: XCTestCase {
         XCTAssertTrue(buffer.pending)
     }
 
-    // ---- the Lists panel's keys (phase L2): only while it's on
+    // ---- the Lists panel's keys (phase L2): ⌃⌘S and ⌘L always (off, they say how to turn it on), ⌘1…⌘9 while it's on
 
     func testTheListsPanelsCommandKeys() {
         let on = state { $0.lists = true }
@@ -338,9 +338,9 @@ final class KeyRouterTests: XCTestCase {
         XCTAssertEqual(route(char("l", command: true), on), .focusLists)
         XCTAssertEqual(route(char("3", command: true), on), .favorite(3))
         XCTAssertEqual(route(char("3", command: true), state { $0.lists = true; $0.view = "actions" }), .pass) // (a favorite from the results only)
-        XCTAssertEqual(route(char("l", command: true)), .pass) // off: the Mac's
+        XCTAssertEqual(route(char("l", command: true)), .focusLists) // off: its flash says where to turn it on
+        XCTAssertEqual(route(char("s", control: true, command: true)), .toggleLists)
         XCTAssertEqual(route(char("3", command: true)), .pass)
-        XCTAssertEqual(route(char("s", control: true, command: true)), .saveSearch) // off: as before
     }
 
     func testTabGoesOnToTheNextFavoriteFromInsideOne() {

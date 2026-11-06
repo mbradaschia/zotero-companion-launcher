@@ -141,7 +141,7 @@ final class ListsPanelTests: XCTestCase {
         model.toggleListFavorite(try XCTUnwrap(item("status:reading")))
         XCTAssertEqual(model.lists.favorites.map(\.base), ["status:reading"])
         XCTAssertEqual((try viewJSON()["lists"] as? [String: Any])?["favorites"] as? [String], ["status:reading"])
-        XCTAssertTrue(model.flash.hasPrefix("In Favorites"))
+        XCTAssertEqual(model.flash, "In Favorites: Tab goes through them, ⌘1 shows it")
         model.execute(.favorite(1))
         XCTAssertEqual(model.store.scope?.key, "list:status:reading")
         model.execute(.favorite(1)) // (⌘1 again: it stays)
@@ -150,6 +150,8 @@ final class ListsPanelTests: XCTestCase {
         XCTAssertEqual(model.flash, "Favorites go up to ⌘1")
         model.toggleListFavorite(try XCTUnwrap(item("status:reading")))
         XCTAssertTrue(model.lists.favorites.isEmpty)
+        model.execute(.favorite(1))
+        XCTAssertEqual(model.flash, "No favorites yet: p on a list in the panel (⌘L) makes one")
     }
 
     func testASavedSearchsFavoriteIsItsPin() throws {
@@ -159,7 +161,7 @@ final class ListsPanelTests: XCTestCase {
         let saved = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: searchesFile)) as? [String: Any])
         XCTAssertEqual((saved["searches"] as? [[String: Any]])?.first?["pinned"] as? Bool, true)
         XCTAssertEqual(model.lists.favorites.map(\.base), ["search:s1"])
-        XCTAssertEqual(model.flash, "In Favorites: Tab goes through them")
+        XCTAssertEqual(model.flash, "In Favorites: Tab goes through them, ⌘1 shows it") // (as any list's)
     }
 
     func testAFoldedSectionHidesItsListsAndStaysFolded() throws {
@@ -184,9 +186,29 @@ final class ListsPanelTests: XCTestCase {
         XCTAssertTrue(model.lists.focus) // (still the panel's: ↑↓ to the next list)
         XCTAssertTrue(model.handle(KeyEvent(key: .down, text: "")))
         XCTAssertNotEqual(model.lists.cursor, "status:status:reading")
+        XCTAssertEqual(model.hintsFor().first, "↑↓ move") // (the footer: the panel's keys)
         XCTAssertTrue(model.handle(KeyEvent(key: .escape, text: "")))
         XCTAssertFalse(model.lists.focus)
         XCTAssertEqual(model.store.scope?.key, "list:status:reading") // (esc only gave the keys back)
+    }
+
+    func testALetterInThePanelTypesIntoTheSearchNeverAPapersKey() throws {
+        open()
+        model.execute(.focusLists)
+        XCTAssertTrue(model.handle(KeyEvent(key: .character("o"), text: "o"))) // (o would open a paper's PDF)
+        XCTAssertFalse(model.lists.focus)
+        XCTAssertTrue(model.store.searchFocus)
+        XCTAssertEqual(model.store.filterText, "o")
+        model.execute(.focusLists)
+        model.didHide()
+        XCTAssertFalse(model.lists.focus) // (hidden: the keys are the results' when it opens again)
+    }
+
+    func testNoCountsWhenZoteroIsntAnswering() throws {
+        bridge.answers["/facets"] = { _ in .zoteroDown }
+        open()
+        XCTAssertTrue(model.lists.countsFailed)
+        XCTAssertNil(item("status:reading")?.count)
     }
 
     func testTheToggleFoldsToTheRailAndTheSettingTurnsItOff() throws {
