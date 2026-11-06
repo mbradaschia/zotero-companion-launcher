@@ -173,5 +173,11 @@ Found while building R1; each keeps its criterion's intent.
   since the app sends the whole window again on every change; a new doc of the paper keeps the marks, re-anchored.
 - **The reader's text colours in the app's themes** are nudged in Swift (`FoldTheme`) to 4.5:1 on the selection's tint
   and a highlight, over `reviewCSS`, rather than taken as the review table's.
+- **One Tab stop per pane for paragraphs**: in the text, the selected paragraph's shape and margin links (j and k move);
+  in the PDF, one box (the selected or followed paragraph's), ↑ and ↓ to the next. SPEC 10 lists every box.
+- **The toolbar keeps one row** at any width (the role filter scrolls sideways), and under 900 px the header tightens,
+  so the text keeps most of a 760 × 480 window.
+- **The Default theme's translucent colours** (the second line) are laid over the window before the contrast nudge, so
+  the muted text stays lighter than the ink; taxonomy labels are nudged to 4.5:1 on their pill as well.
 - **Swift is not compiled here** (no `swift` or `xcodebuild` in the build container): `FoldReaderTests.swift` (the
   `[swift]` criteria 22, 49 to 53, 55, 56) first runs on macOS CI.
