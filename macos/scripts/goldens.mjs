@@ -610,6 +610,28 @@ function cases() {
   add("foldMenuRow/no-pdf", "foldMenuRow", foldPaper({ attachments: [] }));
   add("foldMenuRow/group", "foldMenuRow", foldPaper({ library: { libraryID: 4, type: "group" } }));
   add("foldMenuRow/note", "foldMenuRow", foldPaper({ item: { key: "ABCD1234", libraryID: 1, itemType: "note" } }));
+  // R5: the fold's input, a section merged in, the page's fold object, links.json kept, a cost
+  const foldUnit = (id, kind, o) => Object.assign({ id, kind, role: "context", sentences: ["Each level keeps the words that the next level needs."], evidence: [0], key: "", takeaway: "", topic: "" }, o || {});
+  const madeDoc = { format: "textfold/doc", version: 0, id: "pdf-0123456789abcdef", lang: "en", title: "A synthetic paper", authors: [], date: "",
+    provenance: { made_with: "Zotero Launcher", exported: "2026-11-01T09:00:00Z", ai_generated: false, model: "", levels_made: "", local: true }, links: [],
+    sections: [{ id: "S1", num: "1", title: "Introduction", depth: 1, takeaway: "", topic: "", units: [foldUnit("S1.p1", "paragraph"), foldUnit("S1.e1", "equation")] },
+      { id: "bib", num: "", title: "References", depth: 1, takeaway: "", topic: "", units: [foldUnit("bib.r1", "reference")] }] };
+  const foldEvent = { type: "section", id: "S1", model: "lab:m1", cached: false, section: { takeaway: "Levels keep words", topic: "Levels" },
+    units: [{ id: "S1.p1", role: "claim", evidence: [0], key: "Each level keeps words. The next needs them.", takeaway: "Each level keeps words", topic: "level" }], warnings: [] };
+  const foldPlan = { model: "lab:m1", name: "Lab model", provider: "Lab", sections: 1, calls: 1, cached: 0, inputTokens: 900, outputTokens: 110, costUsd: 0.004 };
+  add("foldInput/paper", "foldInput", madeDoc, { paper: "1:ABCD1234", model: "default" });
+  add("foldInput/again", "foldInput", madeDoc, { paper: "1:ABCD1234", model: "lab:m1", force: true, only: ["S1"] });
+  add("foldMerge/S1", "foldMerge", madeDoc, foldEvent, "2026-11-06T10:00:00Z");
+  add("foldView/unfolded", "foldView", madeDoc, null, foldPlan, { runner: "ok" });
+  add("foldView/folding", "foldView", madeDoc, { status: "folding", sections: {} }, foldPlan, { folding: true, runner: "ok" });
+  add("foldView/no-runner", "foldView", madeDoc, null, null, { runner: "missing" });
+  add("foldView/ai-key", "foldView", madeDoc, { status: "stopped", stop: { kind: "key", error: "the key was refused" } }, foldPlan, { runner: "ok" });
+  add("foldRelink/S1", "foldRelink", foldLinks, Object.assign({}, madeDoc, { id: "pdf-fixture0001", provenance: Object.assign({}, madeDoc.provenance, { levels_made: "2026-11-06T10:00:00" }) }));
+  add("foldCost/under-a-cent", "foldCost", 0.004);
+  add("foldCost/twelve-cents", "foldCost", 0.123);
+  add("foldDocProblem/good", "foldDocProblem", madeDoc);
+  add("foldDocProblem/other", "foldDocProblem", { format: "other", version: 3 });
+  add("foldDocProblem/not-a-doc", "foldDocProblem", [1, 2]);
   return list;
 }
 

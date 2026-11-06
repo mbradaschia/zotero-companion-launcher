@@ -1,0 +1,43 @@
+Paper: Folding a Paper: A Small Synthetic Study
+
+Paper abstract, for context:
+We study how readers move between a paper's own words and short summaries of it. Readers who could fold the text found the main claims faster than readers of the plain text. We describe the reader and its limits.
+
+Outline (▶ marks this section):
+Abstract
+▶ 1 Introduction
+2 Method
+  2.1 Results
+Appendix A: Materials
+
+This section: 1 Introduction
+
+Its units in reading order. A unit is a paragraph, a list item, or a figure or table caption; each unit's sentences are numbered from 0.
+
+[U0] paragraph
+  0: Researchers read many papers each week [1, 2].
+  1: Most of that reading is skimming for the main claim (Lee et al., 2021).
+  2: Skimming saves time but misses how a claim is argued.
+[U1] paragraph
+  0: Summaries written by language models are short.
+  1: They do not show which of the author's sentences they rest on.
+  2: No reader we know links each summary line back to the text.
+  3: Each level keeps the words that the next level needs.
+  4: A reader can open any paragraph in place to see all of it.
+  5: The folds are stored beside the paper on this computer.
+
+A reader zooms out of this paper level by level: full text, then key sentences, then brief, then takeaway, then topic. Write the short levels for every unit, and one takeaway for the whole section.
+
+For each unit:
+- role: the unit's job in the paper's argument, one of: context (background, prior work), gap (what prior work lacks or gets wrong), claim (a thesis or hypothesis the paper puts forward), method (what the authors built or how it works), setup (data, parameters, protocol), result (a measured finding), analysis (an interpretation, mechanism or theory), limitation (a caveat or future work).
+- takeaway: ONE English sentence of at most 14 words stating what this unit establishes: the claim, design choice, number or finding itself, conclusion first, packed like a headline. Name the thing itself, not the activity ("this paragraph describes", "the authors discuss", "details of"). Keep the paper's own terms. Someone reading only the takeaways of the whole paper in order should be able to follow its argument.
+- topic: the unit's subject as a bare noun phrase of at most 3 words, copied VERBATIM from inside the takeaway.
+- reason: ONE more English sentence of at most 22 words that reads on from the takeaway and gives its main reason, mechanism, condition or consequence; do not restate the takeaway. Use "" when the unit is a single short sentence.
+- evidence: the numbers of the 1 or 2 sentences (3 only when the unit has 7 or more) whose verbatim text best backs the takeaway, ascending; prefer sentences that state a result, a definition or a decision over sentences that only set up or list.
+- A unit that is not a passage of the text (a label, a heading read as a line of text, an author's note or address, a date), or that is already as short as its takeaway would be, stays as written: give its takeaway, topic and reason as "".
+
+For the section: takeaway, ONE sentence of at most 16 words stating what this section establishes in the paper; topic, at most 3 words copied verbatim from that takeaway.
+
+Style: no em or en dashes as punctuation, use commas or colons (hyphenated terms such as "zero-shot" are fine). Units show math as $...$; when a symbol is essential to a takeaway or reason, copy its $...$ exactly as it appears in the unit, otherwise avoid math. No citations; no figure or table numbers except in a caption's own lines.
+
+Return JSON: {"section": {"takeaway": "...", "topic": "..."}, "units": [{"id": "U0", "role": "...", "takeaway": "...", "topic": "...", "reason": "...", "evidence": [0]}, ...]} with exactly one entry per unit, in order.

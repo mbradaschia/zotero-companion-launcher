@@ -1,0 +1,701 @@
+{
+ "doc": {
+  "format": "textfold/doc",
+  "version": 0,
+  "id": "pdf-0123456789abcdef",
+  "lang": "en",
+  "title": "Folding a Paper: A Small Synthetic Study",
+  "authors": [
+   "Rivera, Ana",
+   "Okafor, Ben"
+  ],
+  "date": "2026-01-15",
+  "source": {
+   "kind": "pdf",
+   "url": "",
+   "label": "Zotero · Rivera and Okafor, 2026",
+   "snapshot": "",
+   "license": "",
+   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+   "bytes": 123456,
+   "pages": 3,
+   "extractor": 1
+  },
+  "levels": [
+   "topic",
+   "takeaway",
+   "key",
+   "brief",
+   "full"
+  ],
+  "written": [
+   "topic",
+   "takeaway",
+   "key"
+  ],
+  "provenance": {
+   "made_with": "Zotero Launcher test",
+   "exported": "2026-11-01T09:00:00Z",
+   "ai_generated": false,
+   "model": "",
+   "levels_made": "",
+   "local": true
+  },
+  "sections": [
+   {
+    "id": "abstract",
+    "num": "",
+    "title": "Abstract",
+    "depth": 1,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "abstract.p1",
+      "kind": "abstract",
+      "role": "context",
+      "sentences": [
+       "We study how readers move between a paper's own words and short summaries of it.",
+       "Readers who could fold the text found the main claims faster than readers of the plain text.",
+       "We describe the reader and its limits."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   },
+   {
+    "id": "S1",
+    "num": "1",
+    "title": "Introduction",
+    "depth": 1,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "S1.p1",
+      "kind": "paragraph",
+      "role": "context",
+      "sentences": [
+       "Researchers read many papers each week [1, 2].",
+       "Most of that reading is skimming for the main claim (Lee et al., 2021).",
+       "Skimming saves time but misses how a claim is argued."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "S1.p2",
+      "kind": "paragraph",
+      "role": "context",
+      "sentences": [
+       "Summaries written by language models are short.",
+       "They do not show which of the author's sentences they rest on.",
+       "No reader we know links each summary line back to the text.",
+       "Each level keeps the words that the next level needs.",
+       "A reader can open any paragraph in place to see all of it.",
+       "The folds are stored beside the paper on this computer."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   },
+   {
+    "id": "S2",
+    "num": "2",
+    "title": "Method",
+    "depth": 1,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "S2.p1",
+      "kind": "paragraph",
+      "role": "context",
+      "sentences": [
+       "Each paragraph is folded into five levels, from a topic to the full text.",
+       "A word keeps its place across levels when it appears in both, scored by s = n / N. The PDF beside the text is matched by runs of three words.",
+       "Each level keeps the words that the next level needs.",
+       "A reader can open any paragraph in place to see all of it.",
+       "The folds are stored beside the paper on this computer.",
+       "Nothing in the library changes when a paper is folded."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "S2.F1.cap",
+      "kind": "caption",
+      "label": "Figure 1",
+      "role": "context",
+      "sentences": [
+       "Figure 1: The five levels of one paragraph, from Topic to Full."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "S2.e1",
+      "kind": "equation",
+      "role": "context",
+      "sentences": [
+       "s = n / N (1)"
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "S2.T1.cap",
+      "kind": "caption",
+      "label": "Table 1",
+      "role": "context",
+      "sentences": [
+       "Table 1: Reading times by level."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   },
+   {
+    "id": "S2.SS1",
+    "num": "2.1",
+    "title": "Results",
+    "depth": 2,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "S2.SS1.p1",
+      "kind": "paragraph",
+      "role": "context",
+      "sentences": [
+       "Twelve readers found the main claim in 41 seconds with folds and 68 seconds without.",
+       "The gap held for long papers (Figure 1)."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "S2.SS1.i1",
+      "kind": "list item",
+      "role": "context",
+      "sentences": [
+       "The study had only twelve readers, all from one field."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   },
+   {
+    "id": "bib",
+    "num": "",
+    "title": "References",
+    "depth": 1,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "bib.r1",
+      "kind": "reference",
+      "role": "context",
+      "sentences": [
+       "[1] A. Author.",
+       "A made-up paper on reading.",
+       "Example Press, 2020."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "bib.r2",
+      "kind": "reference",
+      "role": "context",
+      "sentences": [
+       "[2] B. Writer.",
+       "Another made-up paper.",
+       "Sample Journal, 2021."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   },
+   {
+    "id": "A1",
+    "num": "",
+    "title": "Appendix A: Materials",
+    "depth": 1,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "A1.p1",
+      "kind": "paragraph",
+      "role": "context",
+      "sentences": [
+       "The readers read three papers on labour economics.",
+       "The OCR-free files were used as they were."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     },
+     {
+      "id": "A1.p2",
+      "kind": "paragraph",
+      "role": "context",
+      "sentences": [
+       "Each paper was between 20 and 40 pages.",
+       "Nothing in the library changes when a paper is folded."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   },
+   {
+    "id": "Sx",
+    "num": "",
+    "title": "Notes",
+    "depth": 1,
+    "takeaway": "",
+    "topic": "",
+    "units": [
+     {
+      "id": "Sx.n1",
+      "kind": "footnote",
+      "role": "context",
+      "sentences": [
+       "1 The readers were volunteers from one department."
+      ],
+      "evidence": [
+       0
+      ],
+      "key": "",
+      "takeaway": "",
+      "topic": ""
+     }
+    ]
+   }
+  ],
+  "links": []
+ },
+ "links": {
+  "format": "zl-fold-links",
+  "version": 1,
+  "doc": {
+   "id": "pdf-0123456789abcdef",
+   "lang": "en",
+   "levels_made": ""
+  },
+  "pdf": {
+   "bytes": 123456,
+   "modified": "2026-01-15T09:00:00Z",
+   "pages": 3
+  },
+  "coverage": {
+   "linked": 14,
+   "total": 14
+  },
+  "crops": [
+   [
+    0.01268,
+    0.08101,
+    0.93177,
+    0.99096
+   ],
+   [
+    0.06823,
+    0.01788,
+    0.93177,
+    0.99096
+   ],
+   [
+    0.06823,
+    0.01788,
+    0.62662,
+    0.99096
+   ]
+  ],
+  "map": {
+   "abstract.p1": {
+    "page": 1,
+    "boxes": [
+     [
+      0.166667,
+      0.189394,
+      0.911765,
+      0.20202
+     ],
+     [
+      0.088235,
+      0.204545,
+      0.911765,
+      0.217172
+     ],
+     [
+      0.088235,
+      0.219697,
+      0.145425,
+      0.232323
+     ]
+    ]
+   },
+   "S1.p1": {
+    "page": 1,
+    "boxes": [
+     [
+      0.088235,
+      0.331313,
+      0.485294,
+      0.343939
+     ],
+     [
+      0.088235,
+      0.346465,
+      0.267974,
+      0.359091
+     ],
+     [
+      0.088235,
+      0.361616,
+      0.485294,
+      0.374242
+     ],
+     [
+      0.088235,
+      0.376768,
+      0.415033,
+      0.389394
+     ]
+    ]
+   },
+   "S1.p2": {
+    "page": 1,
+    "boxes": [
+     [
+      0.104575,
+      0.391919,
+      0.485294,
+      0.404545
+     ],
+     [
+      0.088235,
+      0.407071,
+      0.485294,
+      0.419697
+     ],
+     [
+      0.088235,
+      0.422222,
+      0.485294,
+      0.434848
+     ],
+     [
+      0.088235,
+      0.437374,
+      0.485294,
+      0.45
+     ],
+     [
+      0.088235,
+      0.452525,
+      0.485294,
+      0.465152
+     ],
+     [
+      0.514706,
+      0.30303,
+      0.911765,
+      0.315657
+     ],
+     [
+      0.514706,
+      0.318182,
+      0.718954,
+      0.330808
+     ]
+    ]
+   },
+   "S2.p1": {
+    "page": 1,
+    "boxes": [
+     [
+      0.514706,
+      0.361616,
+      0.911765,
+      0.374242
+     ],
+     [
+      0.514706,
+      0.376768,
+      0.911765,
+      0.389394
+     ],
+     [
+      0.514706,
+      0.391919,
+      0.911765,
+      0.404545
+     ],
+     [
+      0.514706,
+      0.407071,
+      0.911765,
+      0.419697
+     ],
+     [
+      0.514706,
+      0.422222,
+      0.911765,
+      0.434848
+     ],
+     [
+      0.514706,
+      0.437374,
+      0.911765,
+      0.45
+     ],
+     [
+      0.514706,
+      0.452525,
+      0.911765,
+      0.465152
+     ],
+     [
+      0.088235,
+      0.075758,
+      0.485294,
+      0.088384,
+      2
+     ],
+     [
+      0.088235,
+      0.090909,
+      0.259804,
+      0.103535,
+      2
+     ]
+    ]
+   },
+   "S2.F1.cap": {
+    "page": 2,
+    "boxes": [
+     [
+      0.088235,
+      0.126768,
+      0.485294,
+      0.138131
+     ],
+     [
+      0.088235,
+      0.140404,
+      0.125,
+      0.151768
+     ]
+    ]
+   },
+   "S2.e1": {
+    "page": 2,
+    "boxes": [
+     [
+      0.23366,
+      0.161616,
+      0.319444,
+      0.174242
+     ]
+    ]
+   },
+   "S2.T1.cap": {
+    "page": 2,
+    "boxes": [
+     [
+      0.088235,
+      0.184343,
+      0.305147,
+      0.195707
+     ]
+    ]
+   },
+   "S2.SS1.p1": {
+    "page": 2,
+    "boxes": [
+     [
+      0.088235,
+      0.267172,
+      0.485294,
+      0.279798
+     ],
+     [
+      0.088235,
+      0.282323,
+      0.485294,
+      0.294949
+     ],
+     [
+      0.088235,
+      0.297475,
+      0.263889,
+      0.310101
+     ]
+    ]
+   },
+   "S2.SS1.i1": {
+    "page": 2,
+    "boxes": [
+     [
+      0.104212,
+      0.312626,
+      0.485294,
+      0.325253
+     ],
+     [
+      0.104575,
+      0.327778,
+      0.153595,
+      0.340404
+     ]
+    ]
+   },
+   "bib.r1": {
+    "page": 2,
+    "boxes": [
+     [
+      0.514706,
+      0.10404,
+      0.911765,
+      0.116667
+     ],
+     [
+      0.531046,
+      0.119192,
+      0.625,
+      0.131818
+     ]
+    ]
+   },
+   "bib.r2": {
+    "page": 2,
+    "boxes": [
+     [
+      0.514706,
+      0.139394,
+      0.911765,
+      0.15202
+     ],
+     [
+      0.531046,
+      0.154545,
+      0.64134,
+      0.167172
+     ]
+    ]
+   },
+   "A1.p1": {
+    "page": 2,
+    "boxes": [
+     [
+      0.514706,
+      0.20303,
+      0.911765,
+      0.215657
+     ],
+     [
+      0.514706,
+      0.218182,
+      0.57598,
+      0.230808
+     ],
+     [
+      0.514706,
+      0.233333,
+      0.767974,
+      0.24596
+     ]
+    ]
+   },
+   "A1.p2": {
+    "page": 3,
+    "boxes": [
+     [
+      0.104575,
+      0.075758,
+      0.485294,
+      0.088384
+     ],
+     [
+      0.088235,
+      0.090909,
+      0.410948,
+      0.103535
+     ]
+    ]
+   },
+   "Sx.n1": {
+    "page": 2,
+    "boxes": [
+     [
+      0.088235,
+      0.89899,
+      0.392157,
+      0.909091
+     ]
+    ]
+   }
+  }
+ }
+}

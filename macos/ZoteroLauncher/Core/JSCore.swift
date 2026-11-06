@@ -41,6 +41,7 @@ final class JSCore {
         files.append((name: "Marked", path: "vendor/marked.umd.js")) // (its UMD exports through module)
         files.append((name: "ReviewCore", path: "ReviewCore.js")) // the review tables' logic (the grid page runs it too)
         files.append((name: "FoldCore", path: "FoldCore.js")) // the fold reader's logic (its page runs it too)
+        files.append((name: "FoldMake", path: "FoldMake.js")) // the fold reader's extraction and fold glue (after FoldCore)
         for file in files {
             let value = try load(resources?.appendingPathComponent(file.path), as: file.path)
             modules[file.name] = value

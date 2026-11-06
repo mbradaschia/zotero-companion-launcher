@@ -1,16 +1,19 @@
 import Foundation
 
-// The fold reader's files for one paper (docs/fold-reader/SPEC.md 5.6): <runnerState>/fold-reader/<libraryID>-<KEY>/,
-// in the app's state folder (Paths.js's runnerState), never the sync folder: doc.json (the last doc TextFold gave, so
-// the reader opens without it), links.json (the link map for that doc and that PDF) and marks.json. Every write goes
-// to a temporary file in the same folder, then is renamed over the old one. A marks.json that doesn't parse is never
-// overwritten: it is renamed marks.json.damaged-<YYYYMMDD-HHMMSS> and the reader starts with no marks.
+// The fold reader's files for one paper (docs/fold-reader/SPEC.md 5.6, R5-SPEC.md 5.2): <runnerState>/fold-reader/
+// <libraryID>-<KEY>/, in the app's state folder (Paths.js's runnerState), never the sync folder: doc.json (the doc read
+// from the PDF, with the levels a fold wrote), links.json (the link map for that doc and that PDF), marks.json,
+// fold.json (the last fold: its model, status and sections, written by the app) and replies/ (the model's answers,
+// written by the runner). Every write goes to a temporary file in the same folder, then is renamed over the old one. A
+// marks.json or doc.json that can't be read is never overwritten: it is renamed <name>.damaged-<YYYYMMDD-HHMMSS>
+// (marks: the reader starts with none; the doc: the PDF is read again).
 struct FoldStore {
     let folder: URL
 
     static let doc = "doc.json"
     static let links = "links.json"
     static let marks = "marks.json"
+    static let run = "fold.json"
 
     // nil for a key that isn't a Zotero key, or no state folder.
     init?(runnerState: String, libraryID: Int, key: String) {
@@ -76,13 +79,46 @@ struct FoldStore {
         return Marks(store: parsed["store"] as? [String: Any], damaged: nil, dropped: parsed["dropped"] as? Int ?? 0)
     }
 
-    // The damaged marks.json renamed beside itself (another name if that one is taken): its new name, or nil.
-    func keepDamaged(now: Date = Date()) -> String? {
-        let base = Self.marks + ".damaged-" + Self.stamp(now)
+    // A damaged file (marks.json by default) renamed beside itself (another name if that one is taken): its new name,
+    // or nil.
+    func keepDamaged(_ file: String = FoldStore.marks, now: Date = Date()) -> String? {
+        let base = file + ".damaged-" + Self.stamp(now)
         var name = base
         var n = 2
         while FileManager.default.fileExists(atPath: url(name).path) { name = base + "-\(n)"; n += 1 }
-        return (try? FileManager.default.moveItem(at: url(Self.marks), to: url(name))) != nil ? name : nil
+        return (try? FileManager.default.moveItem(at: url(file), to: url(name))) != nil ? name : nil
+    }
+
+    // ---- the doc and the fold's record
+
+    struct Doc {
+        var doc: [String: Any]? // nil: none, or it was damaged
+        var damaged: String? // the name the damaged file was kept under
+    }
+
+    // doc.json, checked by FoldCore (Glue.foldDocProblem); one that doesn't parse or that FoldCore refuses is moved
+    // aside, and the PDF is read again.
+    func readDoc(_ core: JSCore, now: Date = Date()) -> Doc {
+        guard let text = read(Self.doc) else { return Doc() }
+        if let doc = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any],
+           let problem = try? core.glue("foldDocProblem", [doc], as: String.self), problem.isEmpty {
+            return Doc(doc: doc, damaged: nil)
+        }
+        return Doc(doc: nil, damaged: keepDamaged(Self.doc, now: now))
+    }
+
+    // fold.json (written by the app, R5-SPEC 5.1): {format: "zl-fold-run", version: 1, doc, model, started, status,
+    // sections, errors, stop}; nil when there's none or it isn't one.
+    func readRun() -> [String: Any]? {
+        guard let run = readJSON(Self.run), run["format"] as? String == "zl-fold-run", run["version"] as? Int == 1 else { return nil }
+        return run
+    }
+
+    func writeRun(_ run: [String: Any]) throws {
+        var r = run
+        r["format"] = "zl-fold-run"
+        r["version"] = 1
+        try writeJSON(Self.run, r)
     }
 
     // The page's marks store, checked and written (Glue.foldMarksText). A marks.json there that doesn't parse is kept

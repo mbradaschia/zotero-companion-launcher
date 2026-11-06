@@ -3,7 +3,8 @@ import Foundation
 
 // Fixture mode's runner: every subcommand the app sends answered with made-up data (Fixtures/synthetic), never the
 // user's runner, never a model. A little state, so flows can be followed: a run shows up in tasks, done, with its
-// note; an accepted taxonomy draft is listed; a classified paper is tagged; a chat streams chat-stream.jsonl.
+// note; an accepted taxonomy draft is listed; a classified paper is tagged; a chat streams chat-stream.jsonl; a fold
+// streams fold-stream.jsonl (the fixture paper's levels, from its first sentences) and its plan is fold-plan.json.
 // Installed as far as the app can tell (no run reports it missing). ZL_FIXTURES_NO_RUNNER: as if it weren't.
 @MainActor
 final class FixtureRunner: Runner {
@@ -112,6 +113,7 @@ final class FixtureRunner: Runner {
         case "classify-decide": return ["ok": true]
         case "extract":
             return ["ok": true, "noteKey": "FIXTEXT1"]
+        case "fold": return FixtureMode.json(dir, "fold-plan") ?? [:] // (fold --plan: a fold itself streams)
         case "catchup-plan": // one paper tagged by an older Methods, none from an older prompt, one recent paper to tag
             let job: [String: Any] = ["id": "1:P3NM4G92", "op": "classify", "title": "Doe (2016)"]
             return ["taxonomies": ["jobs": [job.merging(["only": ["methods"]]) { a, _ in a }], "papers": 1], "prompts": ["jobs": [], "papers": 0, "unknown": 0],
@@ -175,7 +177,8 @@ final class FixtureRunner: Runner {
     func stream(_ argv: [String], stdin: String?, onLine: @escaping @MainActor (String) -> Void, completion: @escaping @MainActor (RunnerResult) -> Void) -> RunnerStream? {
         calls.append(argv)
         if missing { completion(RunnerResult(status: 127, missing: true)); return nil }
-        let text = (try? String(contentsOf: dir.appendingPathComponent("chat-stream.jsonl"), encoding: .utf8)) ?? #"{"type":"done"}"#
+        let file = Self.subcommand(argv) == "fold" ? "fold-stream.jsonl" : "chat-stream.jsonl"
+        let text = (try? String(contentsOf: dir.appendingPathComponent(file), encoding: .utf8)) ?? #"{"type":"done"}"#
         return Turn(lines: text.split(separator: "\n").map(String.init), delay: streamDelay, onLine: onLine, completion: completion)
     }
 }

@@ -6,5 +6,5 @@ var FR = (function () {
     try { window.webkit.messageHandlers.fold.postMessage(m) } catch (e) { (window.FR_SENT = window.FR_SENT || []).push(m) }
   }
   var view = FoldView.mount(document.getElementById("app"), { post: post })
-  return { load: view.load, state: view.state, words: view.words, paper: view.paper, flash: view.flash }
+  return { load: view.load, state: view.state, fold: view.fold, words: view.words, paper: view.paper, flash: view.flash }
 })()

@@ -1,0 +1,113 @@
+Paper: A Long Synthetic Section
+
+Paper abstract, for context:
+
+
+Outline (▶ marks this section):
+▶ 1 A long section
+
+This section: 1 A long section
+
+The takeaways of its units, in reading order:
+
+- Takeaway 1
+- Takeaway 2
+- Takeaway 3
+- Takeaway 4
+- Takeaway 5
+- Takeaway 6
+- Takeaway 7
+- Takeaway 8
+- Takeaway 9
+- Takeaway 10
+- Takeaway 11
+- Takeaway 12
+- Takeaway 13
+- Takeaway 14
+- Takeaway 15
+- Takeaway 16
+- Takeaway 17
+- Takeaway 18
+- Takeaway 19
+- Takeaway 20
+- Takeaway 21
+- Takeaway 22
+- Takeaway 23
+- Takeaway 24
+- Takeaway 25
+- Takeaway 26
+- Takeaway 27
+- Takeaway 28
+- Takeaway 29
+- Takeaway 30
+- Takeaway 31
+- Takeaway 32
+- Takeaway 33
+- Takeaway 34
+- Takeaway 35
+- Takeaway 36
+- Takeaway 37
+- Takeaway 38
+- Takeaway 39
+- Takeaway 40
+- Takeaway 41
+- Takeaway 42
+- Takeaway 43
+- Takeaway 44
+- Takeaway 45
+- Takeaway 46
+- Takeaway 47
+- Takeaway 48
+- Takeaway 49
+- Takeaway 50
+- Takeaway 51
+- Takeaway 52
+- Takeaway 53
+- Takeaway 54
+- Takeaway 55
+- Takeaway 56
+- Takeaway 57
+- Takeaway 58
+- Takeaway 59
+- Takeaway 60
+- Takeaway 61
+- Takeaway 62
+- Takeaway 63
+- Takeaway 64
+- Takeaway 65
+- Takeaway 66
+- Takeaway 67
+- Takeaway 68
+- Takeaway 69
+- Takeaway 70
+- Takeaway 71
+- Takeaway 72
+- Takeaway 73
+- Takeaway 74
+- Takeaway 75
+- Takeaway 76
+- Takeaway 77
+- Takeaway 78
+- Takeaway 79
+- Takeaway 80
+- Takeaway 81
+- Takeaway 82
+- Takeaway 83
+- Takeaway 84
+- Takeaway 85
+- Takeaway 86
+- Takeaway 87
+- Takeaway 88
+- Takeaway 89
+- Takeaway 90
+- Takeaway 91
+- Takeaway 92
+- Takeaway 93
+- Takeaway 94
+- Takeaway 95
+
+For the section: takeaway, ONE sentence of at most 16 words stating what this section establishes in the paper; topic, at most 3 words copied verbatim from that takeaway.
+
+Style: no em or en dashes as punctuation, use commas or colons. No citations.
+
+Return JSON: {"section": {"takeaway": "...", "topic": "..."}}

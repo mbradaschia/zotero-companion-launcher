@@ -6,6 +6,10 @@ TextFold (github.com/chenxiachan/textfold, Apache 2.0) running on the same Mac. 
 is Marcelo's mockup v10 (the Design canvas `Main.dc.html`); where this spec and the mockup differ, this spec says so
 and why. The plan and its task list are in [PLAN.md](PLAN.md); the test fixture in [FIXTURE.md](FIXTURE.md).
 
+**R5 replaces TextFold** ([R5-SPEC.md](R5-SPEC.md)): the app reads the PDF and folds it with the user's AI model.
+Sections 4 and 9 below, and every TextFold state, button and word, are R1's history; R5-SPEC says what replaces
+them and which criteria of section 12 change.
+
 Words used here: a **unit** is a TextFold paragraph, list item, caption or abstract; a **piece** is one drawn token
 with a persistent id; a **level** is one of Full, Brief, Key, Takeaway, Topic; a **mark** is a highlight, a note or an
 Ask; the **link map** is each unit's place on the PDF pages.

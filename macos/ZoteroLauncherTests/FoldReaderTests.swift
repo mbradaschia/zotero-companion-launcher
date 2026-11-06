@@ -7,8 +7,9 @@ import XCTest
 @testable import ZoteroLauncher
 
 // The fold reader's native side (docs/fold-reader/SPEC.md; criteria 22, 49 to 53, 55, 56 and the word and image
-// budgets of section 11): PDFKit's words and page images, the zlfold scheme, the page's shell, TextFold's client on a
-// stubbed URLProtocol, the store, the window's messages, and the launcher's way in (the menu's row and v).
+// budgets of section 11; R5-SPEC.md R5-35 to R5-41): PDFKit's words, lines and page images, the zlfold scheme, the
+// page's shell, the extraction (FoldMaker) on a paper drawn here, the store, the window's messages and its fold, and
+// the launcher's way in (the menu's row and v).
 @MainActor
 final class FoldReaderTests: XCTestCase {
     private var home: URL!
@@ -22,7 +23,6 @@ final class FoldReaderTests: XCTestCase {
         bridge.answers["/search"] = { _ in .ok(typed) }
         bridge.answers["/item"] = { _ in .ok(item) }
         bridge.answers["/attachment"] = { _ in .error("the file is missing from disk") }
-        FoldStub.reset()
     }
 
     override func tearDown() async throws { try? FileManager.default.removeItem(at: home) }
@@ -31,12 +31,6 @@ final class FoldReaderTests: XCTestCase {
         let model = LauncherModel(bridge: bridge, desktop: FakeDesktop(), env: ["HOME": home.path, "hostname": "mac"], runner: FakeRunner(), fetcher: FakeFetcher())
         model.willShow(query: "")
         return model
-    }
-
-    private func stubClient(home: URL? = nil, env: [String: String] = [:]) -> TextFoldClient {
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [FoldStub.self]
-        return TextFoldClient(configuration: config, environment: env, home: home ?? self.home)
     }
 
     // ---- a PDF made here: known words at known places (CoreText), the second page turned 90°
@@ -138,6 +132,244 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldPDF.normalize(CGRect(x: 0, y: 692, width: 61.2, height: 100), in: box, rotation: 0), [0, 0, 0.1, 0.126263])
     }
 
+    // ---- R5: a two-column paper made here (FIXTURE.md 6.5), every word's place recorded as the page shows it
+
+    // R5-35: the lines payload: sizes, bold, the run-in heading, the words in order, their boxes
+    func testLinesGiveSizesBoldRunInHeadingsWordsAndBoxes() throws {
+        let paper = FixturePaper()
+        let url = try paper.write(in: home)
+        let doc = try XCTUnwrap(PDFDocument(url: url))
+        XCTAssertEqual(doc.pageCount, 2)
+        let payload = (0..<2).map { FoldPDF.page(doc.page(at: $0), n: $0 + 1) }
+        XCTAssertEqual(payload.map { $0["size"] as? [Double] ?? [] }, [[612, 792], [792, 612]], "the sizes as the pages show")
+        // (what PDFKit gave for each line: its text, box, ranges, how they were read and how many words had no box)
+        let reports = try (0..<2).map { FoldPDF.lineReport(of: try XCTUnwrap(doc.page(at: $0))) }
+        for drawn in paper.lines {
+            let lines = payload[drawn.page]["lines"] as? [[String: Any]] ?? []
+            let texts = drawn.words.map(\.text)
+            let seen = reports[drawn.page].filter { r in texts.prefix(2).allSatisfy { r.contains($0) } }.joined(separator: " // ")
+            let found = lines.filter { (($0["w"] as? [[Any]]) ?? []).compactMap { $0.first as? String } == texts }
+            XCTAssertEqual(found.count, 1, "page \(drawn.page + 1): the line \(texts.joined(separator: " ")) once, its words in order (\(lines.count) lines read); PDFKit: \(seen)")
+            guard let line = found.first else { continue }
+            XCTAssertEqual(line["t"] as? String, texts.joined(separator: " "))
+            XCTAssertEqual((line["s"] as? Double) ?? 0, Double(drawn.size), accuracy: 0.5, "its size: \(texts.joined(separator: " ")), its box \((line["b"] as? [Double]) ?? []); PDFKit: \(seen)")
+            let bold = drawn.words.filter(\.bold).count * 2 > drawn.words.count
+            XCTAssertEqual(((line["f"] as? Int) ?? 0) & 1, bold ? 1 : 0, "bold: \(texts.joined(separator: " "))")
+            XCTAssertEqual(line["lb"] as? Int, drawn.words.prefix(while: { $0.bold }).count, "the bold words at its start: \(texts.joined(separator: " "))")
+            let words = line["w"] as? [[Any]] ?? []
+            for (w, want) in zip(words, drawn.words) {
+                let got = w.dropFirst().compactMap { $0 as? Double }
+                XCTAssertEqual(got.count, 4)
+                for k in 0..<min(4, got.count) {
+                    XCTAssertEqual(got[k], want.box[k], accuracy: 0.01, "page \(drawn.page + 1) \(want.text) [\(k)]: got \(got), drawn \(want.box); PDFKit: \(seen)")
+                }
+            }
+            let b = line["b"] as? [Double] ?? []
+            XCTAssertEqual(b.count, 4)
+            if b.count == 4, let first = words.first, let last = words.last {
+                XCTAssertEqual(b[0], first[1] as? Double ?? -1, accuracy: 0.000001, "b is the words' union")
+                XCTAssertEqual(b[2], last[3] as? Double ?? -1, accuracy: 0.000001, "b is the words' union")
+            }
+        }
+        let runIn = try XCTUnwrap(paper.lines.first { $0.words.first?.text == "Abstract." })
+        XCTAssertEqual(runIn.words.prefix(while: { $0.bold }).count, 1, "the run-in Abstract. is the one bold word")
+        // the fonts of a run of words: the mean size, bold and italic for most characters, the bold words at its start
+        let bold = NSFont(name: "Helvetica-Bold", size: 12) ?? NSFont.boldSystemFont(ofSize: 12)
+        let plain = NSFont(name: "Helvetica", size: 10) ?? NSFont.systemFont(ofSize: 10)
+        let a = NSMutableAttributedString(string: "2 Method ", attributes: [.font: bold])
+        a.append(NSAttributedString(string: "body text", attributes: [.font: plain]))
+        let chars = FoldPDF.charStyles(a, length: a.length)
+        XCTAssertEqual(chars.count, 18)
+        let words = [0..<1, 2..<8, 9..<13, 14..<18].map { Array(chars[$0]) }
+        let style = FoldPDF.style(words)
+        XCTAssertEqual(style.leadBold, 2)
+        XCTAssertEqual(style.size ?? 0, (12.0 * 7 + 10.0 * 8) / 15, accuracy: 0.001)
+        XCTAssertEqual(style.flags, 0, "bold in 7 of 15 letters: not the line's")
+        XCTAssertEqual(FoldPDF.style(Array(words.prefix(2))).flags, 1)
+        XCTAssertEqual(FoldPDF.charStyles(a, length: 5), [], "another length: its fonts aren't matched to the words")
+        XCTAssertEqual(FoldPDF.style([[], []]), FoldPDF.LineStyle(), "no fonts: no size, nothing bold")
+    }
+
+    private func paperMeta(_ url: URL, pages: Int, sizes: [[Double]]) -> [String: Any] {
+        let bytes = ((try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? NSNumber)?.intValue ?? 0
+        return ["title": "Folding a Paper: A Small Synthetic Study", "authors": ["Rivera, Ana", "Okafor, Ben"], "date": "2026-01-15", "cite": "Rivera and Okafor, 2026",
+                "pdf": ["sha256": FoldPDF.sha256(of: url) ?? "", "bytes": bytes, "modified": "2026-11-06T10:00:00Z", "pages": pages, "sizes": sizes],
+                "made_with": "Zotero Launcher test", "exported": "2026-11-06T10:00:00Z"]
+    }
+
+    // R5-SPEC 3.2: Zotero's abstract goes to FoldMake with the rest of the paper's meta (what finds an abstract set
+    // without a heading, or one the front matter would take)
+    func testTheReadMetaCarriesZoterosAbstract() throws {
+        let paper = try XCTUnwrap(Fixture.bridge("item")["paper"] as? [String: Any])
+        let abstract = try XCTUnwrap(paper["abstract"] as? String)
+        XCTAssertFalse(abstract.isEmpty)
+        let info: [String: Any] = ["bytes": 1234, "modified": "2026-11-06T10:00:00Z", "pages": 2, "sizes": [[612.0, 792.0], [792.0, 612.0]]]
+        let meta = FoldWindowModel.readMeta(paper, title: "A paper", cite: "Doe (2016)", pdf: info, version: "0.4.35", now: Date(timeIntervalSince1970: 0))
+        XCTAssertEqual(meta["abstract"] as? String, abstract)
+        XCTAssertEqual(meta["title"] as? String, paper["title"] as? String)
+        XCTAssertEqual(meta["cite"] as? String, "Doe (2016)")
+        XCTAssertEqual((meta["pdf"] as? [String: Any])?["pages"] as? Int, 2)
+        XCTAssertEqual(meta["made_with"] as? String, "Zotero Launcher 0.4.35")
+        XCTAssertEqual(FoldWindowModel.readMeta([:], title: "A paper", cite: "", pdf: info, version: "", now: Date())["abstract"] as? String, "", "none: empty")
+    }
+
+    // R5-26: a Fold again's Finish or Try it again carries the sections that Fold again had folded, so a second Stop
+    // counts them and the next Finish doesn't ask for them again; anything else starts with none
+    func testAFoldAgainsFinishCarriesTheSectionsItHadFolded() {
+        let again: [String: Any] = ["doc": "pdf-1", "force": true, "status": "stopped", "sections": ["abstract": "done", "S1": "failed", "S2": "done"]]
+        let left = ["S1", "S2.SS1", "A1"]
+        XCTAssertEqual(FoldWindowModel.carried(again, doc: "pdf-1", force: true, only: left) as? [String: String], ["abstract": "done", "S2": "done"])
+        XCTAssertEqual(FoldWindowModel.carried(again, doc: "pdf-1", force: true, only: ["S2"]) as? [String: String], ["abstract": "done"], "what it asks for again isn't carried")
+        XCTAssertTrue(FoldWindowModel.carried(again, doc: "pdf-1", force: true, only: nil).isEmpty, "Fold again itself starts over")
+        XCTAssertTrue(FoldWindowModel.carried(again, doc: "pdf-1", force: false, only: left).isEmpty, "a first fold's Finish counts the doc's sections")
+        XCTAssertTrue(FoldWindowModel.carried(again, doc: "pdf-2", force: true, only: left).isEmpty, "another doc's run")
+        var first = again
+        first["force"] = false
+        XCTAssertTrue(FoldWindowModel.carried(first, doc: "pdf-1", force: true, only: left).isEmpty, "after a first fold")
+        XCTAssertTrue(FoldWindowModel.carried(nil, doc: "pdf-1", force: true, only: left).isEmpty)
+    }
+
+    // R5-35: two columns' lines PDFKit gave as one across a 14.45 pt gutter, their spaces 7 to 8 pt (under
+    // cutAtMiddle's twice): cut at the gutter the page's other lines show; a justified line across the page stays whole
+    func testALooselyJustifiedLineAcrossTheGutterIsCutThere() {
+        let W = 612.0, H = 792.0, size = 10.0
+        func run(_ xs: [(Double, Double)], y: Double) -> [(word: FoldPDF.Word, box: [Double])] {
+            xs.map { (word: FoldPDF.Word(text: "word", rect: .zero), box: [$0.0 / W, (y - size) / H, $0.1 / W, y / H]) }
+        }
+        // (words 28 pt wide from x0 to x1, spaced evenly: 7 to a column leave spaces of 8.1 pt)
+        func words(_ x0: Double, _ x1: Double, _ n: Int) -> [(Double, Double)] {
+            let space = (x1 - x0 - 28 * Double(n)) / Double(n - 1)
+            return (0..<n).map { i in let a = x0 + Double(i) * (28 + space); return (a, a + 28) }
+        }
+        let L1 = (W - 14.45) / 2, R0 = L1 + 14.45
+        var page: [[(word: FoldPDF.Word, box: [Double])]] = []
+        for i in 0..<6 { page.append(run(words(54, L1, 7), y: 100 + Double(i) * 12)); page.append(run(words(R0, 558, 7), y: 100 + Double(i) * 12)) }
+        let gutter = FoldPDF.gutter(page, shownW: W)
+        XCTAssertEqual(gutter?.a ?? 0, L1, accuracy: 0.01, "the left column's right edge: \(String(describing: gutter))")
+        XCTAssertEqual(gutter?.b ?? 0, R0, accuracy: 0.01, "the right column's left edge: \(String(describing: gutter))")
+        let merged = run(words(54, L1, 7) + words(R0, 558, 7), y: 200)
+        let spaces = (1..<merged.count).map { String(format: "%.1f", (merged[$0].box[0] - merged[$0 - 1].box[2]) * W) }.joined(separator: ",")
+        XCTAssertEqual(FoldPDF.cutAtMiddle(merged, shownW: W, high: size).count, 1, "cutAtMiddle keeps it (spaces \(spaces))")
+        if let g = gutter {
+            let parts = FoldPDF.cutAtGutter(merged, g, shownW: W, high: size)
+            XCTAssertEqual(parts.map { $0.count }, [7, 7], "cut at the gutter (spaces \(spaces))")
+            XCTAssertEqual(FoldPDF.cutAtGutter(run(words(54, 558, 14), y: 300), g, shownW: W, high: size).count, 1, "a justified line across the page")
+        }
+        XCTAssertNil(FoldPDF.gutter(Array(page.prefix(6)), shownW: W), "fewer than 5 lines a side: no gutter")
+    }
+
+    // R5-36: FoldMaker on that PDF: FIXTURE 6.3's ids and kinds for the units it holds, each unit's boxes where its
+    // words were drawn; an image-only PDF is a scan
+    func testFoldMakerReadsThePaperIntoItsUnitsAndBoxesAndAScanIsAScan() throws {
+        let paper = FixturePaper()
+        let url = try paper.write(in: home)
+        let pdf = FoldPDF(url: url)
+        guard case .success(let info) = pdf.openNow() else { return XCTFail("didn't open") }
+        let pages = pdf.linesNow()
+        XCTAssertEqual(FoldMaker.language(of: pages), "en")
+        let maker = try FoldMaker()
+        XCTAssertEqual(maker.extractor, 1)
+        let made = try maker.read(pages, meta: paperMeta(url, pages: info.pages, sizes: info.sizes).merging(["lang": "en"]) { $1 })
+        XCTAssertNil(made.problem)
+        let doc = try XCTUnwrap(made.doc)
+        let sections = doc["sections"] as? [[String: Any]] ?? []
+        let got = sections.map { s in (s["id"] as? String ?? "") + ": " + (s["units"] as? [[String: Any]] ?? []).map { ($0["id"] as? String ?? "") + " " + ($0["kind"] as? String ?? "") }.joined(separator: ", ") }
+        // (the lines FoldMake was given, each its size, flags, bold run-in and box, for a message that explains itself)
+        let given = pages.map { p in (p["lines"] as? [[String: Any]] ?? []).map { l in "p\((p["n"] as? Int) ?? 0) s\((l["s"] as? Double) ?? 0) f\((l["f"] as? Int) ?? 0) lb\((l["lb"] as? Int) ?? 0) \((l["b"] as? [Double]) ?? []) \((l["t"] as? String) ?? "")" } }
+            .flatMap { $0 }.joined(separator: " // ")
+        XCTAssertEqual(got, ["abstract: abstract.p1 abstract", "S1: S1.p1 paragraph, S1.p2 paragraph", "S2: S2.p1 paragraph", "Sx: Sx.n1 footnote"], "the lines: \(given)")
+        let map = try XCTUnwrap((made.links?["map"]) as? [String: Any])
+        for (unit, want) in paper.unitBoxes() {
+            guard let entry = map[unit] as? [String: Any] else { XCTFail("\(unit) isn't in the link map: \(map.keys.sorted())"); continue }
+            XCTAssertEqual(entry["page"] as? Int, want.page, unit)
+            let boxes = entry["boxes"] as? [[Double]] ?? []
+            XCTAssertEqual(boxes.count, want.boxes.count, "\(unit): one box a line")
+            for (b, w) in zip(boxes, want.boxes) {
+                XCTAssertEqual(b.count, w.count, "\(unit): a box on another page names it")
+                for k in 0..<min(b.count, w.count) { XCTAssertEqual(b[k], w[k], accuracy: 0.01, "\(unit) [\(k)]") }
+            }
+        }
+        XCTAssertEqual(((made.links?["coverage"]) as? [String: Any])?["linked"] as? Int, 5)
+
+        // two pages of a picture only: a scan
+        let scan = try FixturePaper.imageOnly(in: home)
+        let spdf = FoldPDF(url: scan)
+        guard case .success(let sinfo) = spdf.openNow() else { return XCTFail("the scan didn't open") }
+        let none = try maker.read(spdf.linesNow(), meta: paperMeta(scan, pages: sinfo.pages, sizes: sinfo.sizes))
+        XCTAssertEqual(none.problem, "scan")
+        XCTAssertEqual(none.state?["kind"] as? String, "scan")
+        XCTAssertNil(none.doc)
+        XCTAssertEqual(FoldMaker.Made(problem: "too-long", units: 5001).state?["n"] as? Int, 5001)
+
+        // the same through the PDF's queue, as the window runs it
+        let ran = expectation(description: "made")
+        var steps: [Int] = []
+        FoldMaker.make(pdf, meta: paperMeta(url, pages: info.pages, sizes: info.sizes), progress: { d, _ in steps.append(d) }) { result in
+            if case .success(let m) = result { XCTAssertEqual((m.doc?["lang"]) as? String, "en") } else { XCTFail("not made") }
+            ran.fulfill()
+        }
+        wait(for: [ran], timeout: 10)
+        XCTAssertEqual(steps.last, 2, "progress to the last page")
+    }
+
+    // R5-37: the doc's identity; a touched file keeps it, another file is read again; a damaged doc.json kept aside
+    func testTheDocsIdIsTheFilesHashAndATouchedFileKeepsItAndAnotherIsReadAgain() throws {
+        let paper = FixturePaper()
+        let url = try paper.write(in: home)
+        let data = try Data(contentsOf: url)
+        let hex = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        XCTAssertEqual(FoldPDF(url: url).sha256(), hex, "the file's SHA-256, read in 1 MB parts")
+        let pdf = FoldPDF(url: url)
+        guard case .success(let info) = pdf.openNow() else { return XCTFail("didn't open") }
+        let meta = paperMeta(url, pages: info.pages, sizes: info.sizes)
+        let made = try FoldMaker().read(pdf.linesNow(), meta: meta)
+        let doc = try XCTUnwrap(made.doc)
+        XCTAssertEqual(doc["id"] as? String, "pdf-" + String(hex.prefix(16)))
+        let bytes = data.count
+        let links: [String: Any] = ["pdf": ["bytes": bytes, "modified": "2026-11-06T10:00:00Z", "pages": 2]]
+        var asked = 0
+        let same = { () -> String? in asked += 1; return hex }
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 1, sha256: same), .use)
+        XCTAssertEqual(asked, 0, "the same size and date: not hashed")
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-07T08:00:00Z", extractor: 1, sha256: same), .touched, "touched: the same bytes")
+        XCTAssertEqual(asked, 1)
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes + 10, modified: "2026-11-07T08:00:00Z", extractor: 1) { String(repeating: "f", count: 64) }, .changed, "another file")
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 2, sha256: same), .stale, "an older reading, nothing folded")
+        var folded = doc
+        var sections = doc["sections"] as? [[String: Any]] ?? []
+        sections[1]["made"] = "ai"
+        folded["sections"] = sections
+        XCTAssertEqual(FoldMaker.cached(folded, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 2, sha256: same), .use, "an older reading with folds stays until Fold again")
+        XCTAssertEqual(FoldMaker.cached(nil, links: nil, bytes: bytes, modified: "", extractor: 1, sha256: same), .read)
+        // R1's docs (D9): kept with AI levels, read again with local ones
+        let r1: [String: Any] = ["format": "textfold/doc", "version": 0, "id": "pdf-abc", "provenance": ["made_with": "TextFold 0.9", "ai_generated": true, "local": false], "sections": [Any]()]
+        XCTAssertEqual(FoldMaker.cached(r1, links: nil, bytes: bytes, modified: "", extractor: 1, sha256: same), .kept)
+        var local = r1
+        local["provenance"] = ["made_with": "TextFold 0.9", "ai_generated": false, "local": true]
+        XCTAssertEqual(FoldMaker.cached(local, links: nil, bytes: bytes, modified: "", extractor: 1, sha256: same), .read)
+
+        // the store: fold.json, and a doc.json that can't be read kept aside
+        let model = launcher()
+        let core = try XCTUnwrap(model.core)
+        let store = try XCTUnwrap(FoldStore(runnerState: home.appendingPathComponent("state").path, libraryID: 1, key: "P3NM4G92"))
+        XCTAssertNil(store.readDoc(core).doc, "none yet")
+        try store.writeJSON(FoldStore.doc, doc)
+        XCTAssertEqual(store.readDoc(core).doc?["id"] as? String, doc["id"] as? String)
+        try store.writeRun(["doc": doc["id"] ?? "", "model": "lab:m1", "started": "2026-11-06T10:00:00Z", "status": "folding", "sections": ["S1": "done"]])
+        XCTAssertEqual(store.readRun()?["status"] as? String, "folding")
+        XCTAssertEqual(store.readRun()?["format"] as? String, "zl-fold-run")
+        let when = Date(timeIntervalSince1970: 1_800_000_000)
+        for bad in ["{ half a do", #"{"format": "other", "version": 7}"#] {
+            try store.write(FoldStore.doc, bad)
+            let read = store.readDoc(core, now: when)
+            XCTAssertNil(read.doc)
+            let kept = try XCTUnwrap(read.damaged, bad)
+            XCTAssertTrue(kept.hasPrefix("doc.json.damaged-" + FoldStore.stamp(when)), kept)
+            XCTAssertEqual(try String(contentsOf: store.url(kept), encoding: .utf8), bad)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: store.url(FoldStore.doc).path))
+        }
+    }
+
     // 50
     func testTheSchemeServesAPNGOfItsWidthAndRefusesTheRest() throws {
         let pdf = FoldPDF(url: try makePDF(), token: "abc123")
@@ -183,108 +415,6 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldWebView.handler, "fold")
     }
 
-    // 52: where TextFold is
-    func testServerJsonIsReadInOrderOnlyLoopbackAndFallsBackTo3017() throws {
-        let data = home.appendingPathComponent("tfdata"), app = home.appendingPathComponent("Library/Application Support/TextFold")
-        try FileManager.default.createDirectory(at: data, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: app, withIntermediateDirectories: true)
-        XCTAssertEqual(stubClient().base().absoluteString, "http://127.0.0.1:3017", "nothing written: the default port")
-        try Data(#"{"format": "textfold/server", "version": 1, "url": "http://127.0.0.1:4555/", "port": 4555}"#.utf8).write(to: app.appendingPathComponent("server.json"))
-        XCTAssertEqual(stubClient().base().absoluteString, "http://127.0.0.1:4555")
-        try Data(#"{"url": "http://localhost:4666"}"#.utf8).write(to: data.appendingPathComponent("server.json"))
-        XCTAssertEqual(stubClient(env: ["TEXTFOLD_DATA": data.path]).base().absoluteString, "http://localhost:4666", "$TEXTFOLD_DATA first")
-        try Data(#"{"url": "http://example.com:4666"}"#.utf8).write(to: data.appendingPathComponent("server.json"))
-        XCTAssertEqual(stubClient(env: ["TEXTFOLD_DATA": data.path]).base().absoluteString, "http://127.0.0.1:4555", "another host's URL is refused")
-        for bad in ["https://127.0.0.1:3017", "http://10.0.0.2:3017", "http://127.0.0.1.example.com", "file:///tmp/x"] { XCTAssertNil(TextFoldClient.loopback(bad), bad) }
-        XCTAssertNotNil(TextFoldClient.loopback("http://[::1]:3017"))
-    }
-
-    // 52: every reply mapped to its state
-    func testEveryReplyMapsToItsState() {
-        func kind(_ f: TextFoldClient.Folded) -> String {
-            switch f {
-            case .job(let id): return "job:" + id
-            case .state(let s): return (s["kind"] as? String ?? "") + ((s["generate"] as? String).map { ":" + $0 } ?? "")
-            }
-        }
-        XCTAssertEqual(kind(TextFoldClient.readReply(200, ["ref": "2201.11903", "title": "T"], nil)), "folding:2201.11903")
-        XCTAssertEqual(kind(TextFoldClient.readReply(200, ["job": ["id": "j1", "pid": "pdf-a"], "via": "file"], nil)), "job:j1")
-        XCTAssertEqual(kind(TextFoldClient.readReply(200, ["needs": "engine", "upload": "pdf-a"], nil)), "needs-engine")
-        XCTAssertEqual(kind(TextFoldClient.readReply(400, ["error": "no-file"], nil)), "no-file")
-        XCTAssertEqual(kind(TextFoldClient.readReply(400, ["error": "no-fulltext"], nil)), "no-file")
-        XCTAssertEqual(kind(TextFoldClient.readReply(400, ["error": "bad-item"], nil)), "fold-failed")
-        XCTAssertEqual(kind(TextFoldClient.readReply(503, ["error": "api-off"], nil)), "zotero-off")
-        XCTAssertEqual(kind(TextFoldClient.readReply(0, nil, "refused")), "no-textfold")
-        func polled(_ job: [String: Any]) -> String {
-            switch TextFoldClient.jobState([job], id: "j1") {
-            case .running(let s): return "folding:" + (s["status"] as? String ?? "")
-            case .moved(let next): return "moved:" + next
-            case .done(let pid): return "done:" + pid
-            case .state(let s): return s["kind"] as? String ?? ""
-            }
-        }
-        XCTAssertEqual(polled(["id": "j1", "status": "queued"]), "folding:queued")
-        XCTAssertEqual(polled(["id": "j1", "status": "running", "stage": "levels", "done": 3, "total": 12]), "folding:running")
-        XCTAssertEqual(polled(["id": "j1", "status": "done", "pid": "pdf-a"]), "done:pdf-a")
-        XCTAssertEqual(polled(["id": "j1", "status": "moved", "next": "j2"]), "moved:j2")
-        XCTAssertEqual(polled(["id": "j1", "status": "error", "error": "no-model"]), "no-model")
-        XCTAssertEqual(polled(["id": "j1", "status": "error", "error": "needs-engine"]), "needs-engine")
-        XCTAssertEqual(polled(["id": "j1", "status": "error", "error": "boom"]), "fold-failed")
-        XCTAssertEqual(polled(["id": "j1", "status": "stopped"]), "fold-failed")
-    }
-
-    // 52: over HTTP (stubbed): the lookup, the fold, a moved job followed, no Origin sent
-    func testLookupAndFoldOverHTTPFollowMovedJobsAndSendNoOrigin() throws {
-        let doc: [String: Any] = ["format": "textfold/doc", "version": 0, "id": "pdf-abc", "lang": "en", "sections": [Any]()]
-        FoldStub.answer("/api/zotero") { _ in (200, ["ok": true, "library": "users/0"]) }
-        FoldStub.answer("/api/zotero/items") { _ in (200, [["key": "OTHERKEY", "paper": "pdf-zzz"], ["key": "P3NM4G92", "paper": "pdf-abc"]]) }
-        FoldStub.answer("/api/doc/pdf-abc") { _ in (200, doc) }
-        FoldStub.answer("/api/zotero/read") { _ in (200, ["job": ["id": "j1"], "via": "file"]) }
-        FoldStub.answer("/api/jobs") { _ in (200, [["id": "j1", "status": "moved", "next": "j2"], ["id": "j2", "status": "done", "pid": "pdf-abc"]]) }
-        let client = stubClient()
-        let base = URL(string: "http://127.0.0.1:3017")!
-
-        let up = expectation(description: "ping")
-        client.ping(base) { XCTAssertTrue($0); up.fulfill() }
-        let found = expectation(description: "found")
-        client.find(base, key: "P3NM4G92", title: "A title & more", cachedId: nil) { f in
-            if case .doc(let id, let d) = f { XCTAssertEqual(id, "pdf-abc"); XCTAssertEqual(d["id"] as? String, "pdf-abc") } else { XCTFail("no doc") }
-            found.fulfill()
-        }
-        wait(for: [up, found], timeout: 5)
-        let search = try XCTUnwrap(FoldStub.requests().first { $0.url?.path == "/api/zotero/items" })
-        XCTAssertEqual(search.url?.query, "lib=users/0&q=A%20title%20%26%20more")
-
-        let folded = expectation(description: "folded")
-        client.fold(base, key: "P3NM4G92") { f in
-            guard case .job(let id) = f else { XCTFail("no job"); return folded.fulfill() }
-            client.poll(base, job: id, each: { _ in }, cancelled: { false }) { f in
-                if case .doc(let id, _) = f { XCTAssertEqual(id, "pdf-abc") } else { XCTFail("no doc after the moved job") }
-                folded.fulfill()
-            }
-        }
-        wait(for: [folded], timeout: 5)
-        let read = try XCTUnwrap(FoldStub.requests().first { $0.url?.path == "/api/zotero/read" })
-        XCTAssertEqual(read.httpMethod, "POST")
-        XCTAssertEqual(FoldStub.bodies["/api/zotero/read"]?["item"] as? String, "users/0/P3NM4G92")
-        for r in FoldStub.requests() {
-            XCTAssertNil(r.value(forHTTPHeaderField: "Origin"), r.url?.path ?? "")
-            XCTAssertNil(r.value(forHTTPHeaderField: "Cookie"), r.url?.path ?? "")
-        }
-
-        // nothing answers: TextFold isn't running; a 503: it can't reach Zotero
-        FoldStub.reset()
-        FoldStub.answer("/api/zotero/items") { _ in (503, ["error": "not-running"]) }
-        let off = expectation(description: "off")
-        client.search(base, key: "P3NM4G92", title: "x") { f in
-            if case .state(let s) = f { XCTAssertEqual(s["kind"] as? String, "zotero-off") } else { XCTFail() }
-            off.fulfill()
-        }
-        let none = expectation(description: "none")
-        client.ping(base) { XCTAssertFalse($0); none.fulfill() }
-        wait(for: [off, none], timeout: 5)
-    }
-
     // 22
     func testADamagedMarksFileIsKeptAsideNeverOverwrittenAndWritesAreAtomic() throws {
         let model = launcher()
@@ -327,10 +457,8 @@ final class FoldReaderTests: XCTestCase {
     // 53
     func testThePagesMarksAreWrittenAndItsStatusGoesThroughTheLauncher() throws {
         let model = launcher()
-        FoldStub.answer("/api/zotero") { _ in (200, ["ok": true]) }
-        FoldStub.answer("/api/zotero/items") { _ in (200, [Any]()) }
         let paper = PaperRef(key: "P3NM4G92", libraryID: 1, title: "A paper", itemType: "journalArticle")
-        let window = FoldWindowModel(paper: paper, launcher: model, client: stubClient())
+        let window = FoldWindowModel(paper: paper, launcher: model)
         let page = FakeFoldPage()
         window.page = page
         window.handle(["type": "ready"])
@@ -356,6 +484,201 @@ final class FoldReaderTests: XCTestCase {
         window.handle(["type": "prefs", "level": "nonsense"])
         XCTAssertEqual(FoldWindowModel.prefs["level"] as? String, "key")
         UserDefaults.standard.removeObject(forKey: "ZLFoldPrefs")
+        window.windowClosing()
+    }
+
+    // ---- R5: the window's fold
+
+    private static let paperRef = PaperRef(key: "P3NM4G92", libraryID: 1, title: "A paper", itemType: "journalArticle")
+
+    // The main run loop turned until `cond` holds, or `timeout` seconds went by; whether it held.
+    private func until(_ timeout: TimeInterval = 10, _ cond: () -> Bool) -> Bool {
+        let end = Date().addingTimeInterval(timeout)
+        while !cond() && Date() < end { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
+        return cond()
+    }
+
+    private func object(_ text: String?) -> [String: Any] {
+        (text.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]) ?? [:]
+    }
+
+    // R5-38: the plan and a fold with a fake runner: the stdin, the events into doc.json, links.json and fold.json,
+    // Stop and closing, 143, 127, an old runner, a fold.json left folding
+    func testThePlanAndAFoldStreamedFromAFakeRunnerAndEveryWayAFoldEnds() throws {
+        let model = launcher()
+        let runner = try XCTUnwrap(model.runner as? FakeRunner)
+        let pdfURL = try FixturePaper().write(in: home)
+        bridge.answers["/attachment"] = { _ in .ok(["path": pdfURL.path]) }
+        let plan: [String: Any] = ["model": "lab:m1", "name": "Lab model", "provider": "Lab", "sections": 3, "calls": 3, "cached": 0, "inputTokens": 900, "outputTokens": 300, "costUsd": 0.004]
+        runner.answers["fold"] = { _, _ in FakeRunner.json(plan) }
+        runner.holdStreams.insert("fold")
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until { page.folds.last?["calls"] as? Int == 3 }, "the plan on the page: \(page.folds.last ?? [:]), \(page.states.last ?? [:])")
+        let asked = try XCTUnwrap(runner.calls("fold").first)
+        XCTAssertEqual(Array(asked.argv.suffix(3)), ["fold", "--plan", "--quiet"])
+        let input = object(asked.stdin)
+        XCTAssertEqual(Set(input.keys), ["paper", "model", "force", "only", "doc"])
+        XCTAssertEqual(input["paper"] as? String, "1:P3NM4G92")
+        XCTAssertEqual(input["model"] as? String, "default")
+        XCTAssertEqual(((input["doc"] as? [String: Any])?["sections"] as? [[String: Any]])?.compactMap { $0["id"] as? String }, ["abstract", "S1", "S2"])
+        XCTAssertFalse((asked.stdin ?? "").contains("\"key\""), "no key in what the runner is sent")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "unfolded")
+        XCTAssertEqual(page.folds.last?["name"] as? String, "Lab model")
+        let store = try XCTUnwrap(window.store)
+        let docId = try XCTUnwrap(store.readJSON(FoldStore.doc)?["id"] as? String)
+        XCTAssertTrue(docId.hasPrefix("pdf-"))
+
+        // a fold, streamed: each section into doc.json, links.json and fold.json as it comes
+        window.handle(["type": "fold"])
+        let run = try XCTUnwrap(runner.streams.last)
+        let call = try XCTUnwrap(runner.calls("fold").last)
+        XCTAssertTrue(call.argv.contains("--quiet") && !call.argv.contains("--plan"), call.argv.joined(separator: " "))
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "folding")
+        XCTAssertEqual(store.readRun()?["status"] as? String, "folding")
+        run.emit(["type": "start", "model": "lab:m1", "name": "Lab model", "provider": "Lab", "sections": 3, "calls": 3, "cached": 0])
+        XCTAssertEqual(page.flashes.last, "Started: folding 3 sections with Lab model")
+        let unit: [String: Any] = ["id": "S1.p1", "role": "claim", "evidence": [0], "key": "Researchers read many papers each week.", "takeaway": "Researchers read many papers", "topic": "papers"]
+        run.emit(["type": "section", "id": "S1", "model": "lab:m1", "cached": false, "section": ["takeaway": "Readers skim many papers", "topic": "papers"], "units": [unit], "warnings": [Any]()])
+        let doc = try XCTUnwrap(store.readJSON(FoldStore.doc))
+        let s1 = (doc["sections"] as? [[String: Any]] ?? []).first { $0["id"] as? String == "S1" }
+        XCTAssertEqual(s1?["made"] as? String, "ai")
+        XCTAssertEqual((s1?["units"] as? [[String: Any]])?.first?["takeaway"] as? String, "Researchers read many papers")
+        let made = (doc["provenance"] as? [String: Any])?["levels_made"] as? String ?? ""
+        XCTAssertFalse(made.isEmpty)
+        XCTAssertEqual((store.readJSON(FoldStore.links)?["doc"] as? [String: Any])?["levels_made"] as? String, made, "links.json follows the doc")
+        XCTAssertEqual((store.readRun()?["sections"] as? [String: Any])?["S1"] as? String, "done")
+        XCTAssertEqual(page.folds.last?["done"] as? Int, 1)
+        run.emit(["type": "failed", "id": "S2", "error": "the reply has no JSON"])
+        run.emit(["type": "done", "folded": 1, "failed": 1, "stopped": "", "costUsd": 0.002, "models": ["lab:m1"]])
+        run.end()
+        XCTAssertEqual(store.readRun()?["status"] as? String, "partial")
+        XCTAssertEqual((store.readRun()?["errors"] as? [String: Any])?["S2"] as? String, "the reply has no JSON")
+        XCTAssertEqual(page.flashes.last, "Folding is done: 1 folded, 1 failed")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "partial")
+        XCTAssertEqual(page.folds.last?["failed"] as? [String], ["S2"])
+        XCTAssertEqual((page.loads.last?["fold"] as? [String: Any])?["kind"] as? String, "partial", "FR.load carries the fold")
+        XCTAssertEqual((page.loads.last?["doc"] as? [String: Any])?["id"] as? String, docId)
+
+        // Try it again: only the failed one, with fold.json's model; Stop: the stream stopped, 143, stopped
+        window.handle(["type": "fold", "only": ["S2"]])
+        let again = object(runner.calls("fold").last?.stdin)
+        XCTAssertEqual(again["only"] as? [String], ["S2"])
+        XCTAssertEqual(again["model"] as? String, "lab:m1", "one paper, one model")
+        let second = try XCTUnwrap(runner.streams.last)
+        window.handle(["type": "fold"]) // (ignored while a run goes)
+        XCTAssertTrue(runner.streams.last === second)
+        window.handle(["type": "stop"])
+        XCTAssertTrue(second.stopped)
+        XCTAssertEqual(store.readRun()?["status"] as? String, "stopped")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "stopped")
+        XCTAssertEqual(page.flashes.last, "Stopped: 1 of 3 sections folded, the rest show first sentences")
+
+        // Fold again: everything, with the default model; closing the window stops it
+        window.handle(["type": "fold", "force": true])
+        let forced = object(runner.calls("fold").last?.stdin)
+        XCTAssertEqual(forced["force"] as? Bool, true)
+        XCTAssertEqual(forced["model"] as? String, "default")
+        let third = try XCTUnwrap(runner.streams.last)
+        XCTAssertFalse(third === second)
+        window.windowClosing()
+        XCTAssertTrue(third.stopped, "closing the window stops the fold")
+        XCTAssertEqual(store.readRun()?["status"] as? String, "stopped")
+
+        // a fold.json left folding (the app quit meanwhile) opens as stopped
+        var left = try XCTUnwrap(store.readRun())
+        left["status"] = "folding"
+        try store.writeRun(left)
+        let reopened = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        XCTAssertEqual(reopened.run?["status"] as? String, "stopped")
+        XCTAssertEqual(store.readRun()?["status"] as? String, "stopped")
+        let page2 = FakeFoldPage()
+        reopened.page = page2
+        reopened.handle(["type": "ready"])
+        XCTAssertTrue(until { page2.folds.last?["kind"] as? String == "stopped" }, "\(page2.folds.last ?? [:])")
+        reopened.windowClosing()
+
+        // the runner not there (127): no-runner; older than the app (2, its usage): old-runner
+        for (result, kind) in [(RunnerResult(status: 127, missing: true), "no-runner"), (RunnerResult(status: 2, stderr: "usage: oma-zotero-prompt <command>"), "old-runner")] {
+            runner.answers["fold"] = { _, _ in result }
+            let w = FoldWindowModel(paper: Self.paperRef, launcher: model)
+            let p = FakeFoldPage()
+            w.page = p
+            w.handle(["type": "ready"])
+            // (one line, read when the check fails: an annotation shows only a message's first line, and a dictionary's
+            // arrays print over several)
+            let seen = { () -> String in
+                let f = p.folds.last ?? [:], kept = store.readRun() ?? [:]
+                let one = { (v: Any?) -> String in v.map { "\($0)" } ?? "none" }
+                return "kind \(one(f["kind"])) disabled \(one(f["disabled"])) again \(one(f["again"])) done \(one(f["done"])) of \(one(f["total"]))" +
+                    " left \((f["left"] as? [String] ?? []).joined(separator: ",")); fold.json status \(one(kept["status"])) force \(one(kept["force"]))"
+            }
+            XCTAssertTrue(until { p.folds.last?["kind"] as? String == kind }, "\(kind): \(seen())")
+            XCTAssertEqual(p.folds.last?["disabled"] as? String, kind, seen())
+            w.windowClosing()
+        }
+    }
+
+    // R5-39: fixture mode answers fold --plan from fold-plan.json and fold from fold-stream.jsonl: the fixture paper
+    // opens, folds and shows folded
+    func testFixtureModeOpensFoldsAndShowsTheFixturePaperFolded() throws {
+        let dir = try XCTUnwrap(Bundle(for: FakeBridge.self).resourceURL).appendingPathComponent("Fixtures")
+        let runner = FixtureRunner(dir: dir, streamDelay: 0.01)
+        let model = LauncherModel(bridge: FixtureBridge(dir: dir), desktop: FakeDesktop(), env: ["HOME": home.path, "hostname": "mac"], runner: runner, fetcher: FakeFetcher())
+        model.willShow(query: "")
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until { page.folds.last?["calls"] as? Int == 5 }, "fold-plan.json's plan: \(page.folds.last ?? [:]), \(page.states.last ?? [:])")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "unfolded")
+        XCTAssertEqual(page.folds.last?["name"] as? String, "Fixture model")
+        XCTAssertTrue(runner.calls.contains { $0.contains("fold") && $0.contains("--plan") })
+        window.handle(["type": "fold"])
+        XCTAssertTrue(until { page.folds.last?["kind"] as? String == "folded" }, "\(page.folds.last ?? [:])")
+        XCTAssertEqual(page.flashes.last, "Folding is done: 3 sections")
+        let doc = try XCTUnwrap(page.loads.last?["doc"] as? [String: Any])
+        XCTAssertEqual((doc["provenance"] as? [String: Any])?["model"] as? String, "fixture:model")
+        window.windowClosing()
+    }
+
+    // A PDF of `pages` pages of 45 lines of Helvetica 10, each its own sentence.
+    private func makeLongPDF(pages: Int) throws -> URL {
+        let made = home.appendingPathComponent("long-\(UUID().uuidString).pdf")
+        var box = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let ctx = try XCTUnwrap(CGContext(made as CFURL, mediaBox: &box, nil))
+        let font = CTFontCreateWithName("Helvetica" as CFString, 10, nil)
+        for p in 0..<pages {
+            ctx.beginPDFPage(nil)
+            for i in 0..<45 {
+                let text = "Page \(p + 1), part \(i + 1): each level keeps the words that the next level needs."
+                let attr = NSAttributedString(string: text, attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font])
+                ctx.textPosition = CGPoint(x: 72, y: 700 - CGFloat(i) * 13)
+                CTLineDraw(CTLineCreateWithAttributedString(attr), ctx)
+            }
+            ctx.endPDFPage()
+        }
+        ctx.closePDF()
+        return made
+    }
+
+    // R5-40: a 40-page PDF, nothing cached: the window open to its text within 5 s (the state reading meanwhile)
+    func testAWindowOpensA40PagePaperToItsTextWithinItsBudget() throws {
+        let url = try makeLongPDF(pages: 40)
+        bridge.answers["/attachment"] = { _ in .ok(["path": url.path]) }
+        let model = launcher()
+        let t0 = Date()
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until(10) { page.loads.contains { $0["doc"] is [String: Any] } }, "\(page.states.last ?? [:])")
+        let took = Date().timeIntervalSince(t0)
+        XCTAssertLessThan(took, 5, "open to text: \(took) s")
+        XCTAssertTrue(page.loads.contains { ($0["state"] as? [String: Any])?["kind"] as? String == "reading" } || page.states.contains { $0["kind"] as? String == "reading" },
+                      "the state reading meanwhile")
         window.windowClosing()
     }
 
@@ -427,6 +750,27 @@ final class FoldReaderTests: XCTestCase {
         for n in 1...14 { _ = pdf.pngNow(((n - 1) % 40) + 1, width: 900) }
         XCTAssertLessThanOrEqual(pdf.cachedImages, FoldPDF.keep, "at most 12 images kept")
     }
+
+    // R5-40: the lines of 40 generated pages within 3 s
+    func testLinesOf40PagesWithinTheirBudget() throws {
+        let words = (0..<12).map { ["fold", "paper", "level", "reader", "words", "page", "brief", "key"][$0 % 8] }.joined(separator: " ")
+        let url = try makePDF(pages: 40, lines: Array(repeating: words, count: 45), rotateSecond: false)
+        let pdf = FoldPDF(url: url)
+        guard case .success = pdf.openNow() else { return XCTFail("didn't open") }
+        let t0 = Date()
+        let pages = pdf.linesNow()
+        let took = Date().timeIntervalSince(t0)
+        XCTAssertEqual(pages.count, 40)
+        var count = 0
+        for page in pages {
+            for line in page["lines"] as? [[String: Any]] ?? [] {
+                count += (line["w"] as? [[Any]])?.count ?? 0
+                XCTAssertEqual((line["s"] as? Double) ?? 0, 12, accuracy: 0.5)
+            }
+        }
+        XCTAssertEqual(count, 40 * 45 * 12)
+        XCTAssertLessThan(took, 3, "lines of 40 pages: \(took) s")
+    }
 }
 
 // What the window's model calls on its page, recorded.
@@ -434,11 +778,13 @@ final class FoldReaderTests: XCTestCase {
 final class FakeFoldPage: FoldPage {
     var loads: [[String: Any]] = []
     var states: [[String: Any]] = []
+    var folds: [[String: Any]] = []
     var batches: [[String: Any]] = []
     var papers: [[String: Any]] = []
     var flashes: [String] = []
     func load(_ data: [String: Any]) { loads.append(data) }
     func state(_ s: [String: Any]) { states.append(s) }
+    func fold(_ f: [String: Any]) { folds.append(f) }
     func words(_ batch: [String: Any]) { batches.append(batch) }
     func paper(_ o: [String: Any]) { papers.append(o) }
     func flash(_ text: String) { flashes.append(text) }
@@ -457,56 +803,4 @@ final class FakeSchemeTask: NSObject, WKURLSchemeTask {
     func didReceive(_ data: Data) { self.data.append(data) }
     func didFinish() { finished = true }
     func didFailWithError(_ error: Error) { finished = true }
-}
-
-// TextFold, stubbed: answers by path, every request kept (with its body).
-final class FoldStub: URLProtocol {
-    private static let lock = NSLock()
-    private static var answers: [String: (URLRequest) -> (Int, Any)] = [:]
-    private static var seen: [URLRequest] = []
-    static var bodies: [String: [String: Any]] {
-        lock.lock(); defer { lock.unlock() }
-        var out: [String: [String: Any]] = [:]
-        for r in seen { if let path = r.url?.path, let b = body(r) { out[path] = b } }
-        return out
-    }
-
-    static func reset() { lock.lock(); answers = [:]; seen = []; lock.unlock() }
-    static func answer(_ path: String, _ f: @escaping (URLRequest) -> (Int, Any)) { lock.lock(); answers[path] = f; lock.unlock() }
-    static func requests() -> [URLRequest] { lock.lock(); defer { lock.unlock() }; return seen }
-
-    private static func body(_ r: URLRequest) -> [String: Any]? {
-        var data = r.httpBody
-        if data == nil, let stream = r.httpBodyStream {
-            stream.open()
-            var d = Data()
-            var buf = [UInt8](repeating: 0, count: 4096)
-            while stream.hasBytesAvailable { let n = stream.read(&buf, maxLength: buf.count); if n <= 0 { break }; d.append(buf, count: n) }
-            stream.close()
-            data = d
-        }
-        return data.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
-    }
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        Self.lock.lock()
-        Self.seen.append(request)
-        let f = request.url.flatMap { Self.answers[$0.path] }
-        Self.lock.unlock()
-        guard let f, let url = request.url else {
-            client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))
-            return
-        }
-        let (status, json) = f(request)
-        let data = (try? JSONSerialization.data(withJSONObject: json, options: [.fragmentsAllowed])) ?? Data()
-        let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: data)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
 }

@@ -1,0 +1,141 @@
+{
+ "paper": "1:ABCD1234",
+ "model": "default",
+ "force": false,
+ "only": null,
+ "doc": {
+  "title": "Folding a Paper: A Small Synthetic Study",
+  "lang": "en",
+  "sections": [
+   {
+    "id": "abstract",
+    "num": "",
+    "title": "Abstract",
+    "depth": 1,
+    "units": [
+     {
+      "id": "abstract.p1",
+      "kind": "abstract",
+      "sentences": [
+       "We study how readers move between a paper's own words and short summaries of it.",
+       "Readers who could fold the text found the main claims faster than readers of the plain text.",
+       "We describe the reader and its limits."
+      ]
+     }
+    ]
+   },
+   {
+    "id": "S1",
+    "num": "1",
+    "title": "Introduction",
+    "depth": 1,
+    "units": [
+     {
+      "id": "S1.p1",
+      "kind": "paragraph",
+      "sentences": [
+       "Researchers read many papers each week [1, 2].",
+       "Most of that reading is skimming for the main claim (Lee et al., 2021).",
+       "Skimming saves time but misses how a claim is argued."
+      ]
+     },
+     {
+      "id": "S1.p2",
+      "kind": "paragraph",
+      "sentences": [
+       "Summaries written by language models are short.",
+       "They do not show which of the author's sentences they rest on.",
+       "No reader we know links each summary line back to the text.",
+       "Each level keeps the words that the next level needs.",
+       "A reader can open any paragraph in place to see all of it.",
+       "The folds are stored beside the paper on this computer."
+      ]
+     }
+    ]
+   },
+   {
+    "id": "S2",
+    "num": "2",
+    "title": "Method",
+    "depth": 1,
+    "units": [
+     {
+      "id": "S2.p1",
+      "kind": "paragraph",
+      "sentences": [
+       "Each paragraph is folded into five levels, from a topic to the full text.",
+       "A word keeps its place across levels when it appears in both, scored by s = n / N. The PDF beside the text is matched by runs of three words.",
+       "Each level keeps the words that the next level needs.",
+       "A reader can open any paragraph in place to see all of it.",
+       "The folds are stored beside the paper on this computer.",
+       "Nothing in the library changes when a paper is folded."
+      ]
+     },
+     {
+      "id": "S2.F1.cap",
+      "kind": "caption",
+      "label": "Figure 1",
+      "sentences": [
+       "Figure 1: The five levels of one paragraph, from Topic to Full."
+      ]
+     },
+     {
+      "id": "S2.T1.cap",
+      "kind": "caption",
+      "label": "Table 1",
+      "sentences": [
+       "Table 1: Reading times by level."
+      ]
+     }
+    ]
+   },
+   {
+    "id": "S2.SS1",
+    "num": "2.1",
+    "title": "Results",
+    "depth": 2,
+    "units": [
+     {
+      "id": "S2.SS1.p1",
+      "kind": "paragraph",
+      "sentences": [
+       "Twelve readers found the main claim in 41 seconds with folds and 68 seconds without.",
+       "The gap held for long papers (Figure 1)."
+      ]
+     },
+     {
+      "id": "S2.SS1.i1",
+      "kind": "list item",
+      "sentences": [
+       "The study had only twelve readers, all from one field."
+      ]
+     }
+    ]
+   },
+   {
+    "id": "A1",
+    "num": "",
+    "title": "Appendix A: Materials",
+    "depth": 1,
+    "units": [
+     {
+      "id": "A1.p1",
+      "kind": "paragraph",
+      "sentences": [
+       "The readers read three papers on labour economics.",
+       "The OCR-free files were used as they were."
+      ]
+     },
+     {
+      "id": "A1.p2",
+      "kind": "paragraph",
+      "sentences": [
+       "Each paper was between 20 and 40 pages.",
+       "Nothing in the library changes when a paper is folded."
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

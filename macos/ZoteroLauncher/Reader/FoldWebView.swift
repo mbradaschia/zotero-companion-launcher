@@ -81,6 +81,7 @@ struct FoldWebView: NSViewRepresentable {
 
         func load(_ data: [String: Any]) { call("FR.load", data) }
         func state(_ s: [String: Any]) { call("FR.state", s) }
+        func fold(_ f: [String: Any]) { call("FR.fold", f) }
         func words(_ batch: [String: Any]) { call("FR.words", batch) }
         func paper(_ o: [String: Any]) { call("FR.paper", o) }
         func flash(_ text: String) { call("FR.flash", [text]) }
@@ -124,6 +125,7 @@ final class FoldWeakHandler: NSObject, WKScriptMessageHandler {
 protocol FoldPage: AnyObject {
     func load(_ data: [String: Any])
     func state(_ s: [String: Any])
+    func fold(_ f: [String: Any])
     func words(_ batch: [String: Any])
     func paper(_ o: [String: Any])
     func flash(_ text: String)

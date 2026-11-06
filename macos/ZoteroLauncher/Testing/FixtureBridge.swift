@@ -50,6 +50,9 @@ final class FixtureBridge: Bridge {
         case "/item": return FixtureMode.json(dir, "item") ?? [:]
         case "/tags/list": return FixtureMode.json(dir, "tags-list") ?? [:]
         case "/note": return FixtureMode.json(dir, "note") ?? [:]
+        // the reader's request (a path, never marked opened): the fixture paper's PDF
+        case "/attachment" where body["target"] as? String == "path" && body["markOpened"] as? Bool == false:
+            return FixturePaper.shared.map { ["path": $0.path] as [String: Any] } ?? [:]
         default: return [:] // (an empty ok: the view shows its empty state, never a hang)
         }
     }

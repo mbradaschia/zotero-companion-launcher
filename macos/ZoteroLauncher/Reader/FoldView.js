@@ -14,6 +14,7 @@ var FoldView = (function () {
     note: "M6 3h9l4 4v14H6z M14 3v5h5 M9 12h7 M9 16h7",
     chat: "M4 5h16v11H10l-5 4v-4H4z",
     ai: "M10 4l1.8 5.2L17 11l-5.2 1.8L10 18l-1.8-5.2L3 11l5.2-1.8z M18.5 3v4 M16.5 5h4",
+    stop: "M6 6h12v12H6z",
     panel: "M3 4h18v16H3z M15 4v16 M17.5 8h1.5 M17.5 11h1.5"
   }
   // The reader's own (18-unit box, 1.5 stroke): [path, stroke width] pairs.
@@ -74,33 +75,84 @@ var FoldView = (function () {
   function mark(n) { try { performance.mark(n) } catch (e) { /* (an old engine) */ } }
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)) }
 
+  // The states that take the text pane (R5-SPEC 6.1): [title, sentence, [button, data-act]].
   var STATES = {
     loading: ["Opening the paper…", "", null],
-    "no-textfold": ["TextFold isn't running", "The reader shows the levels TextFold writes. Start TextFold on this Mac, then try again.", ["Try again", "retry"]],
-    "zotero-off": ["TextFold can't reach Zotero", "Start Zotero, and in Zotero turn on Settings › Advanced › Allow other applications on this computer to communicate with Zotero.", ["Try again", "retry"]],
-    "not-folded": ["TextFold hasn't folded this paper yet", "Folding reads the paper and asks TextFold's model to write its levels. It uses TextFold's model and can take a few minutes.", ["Fold it with TextFold", "fold"]],
-    folding: ["TextFold is folding this paper", "", null],
-    "needs-engine": ["This PDF is a scan", "TextFold needs its PDF engine to read it: install the engine in TextFold's Settings, then fold again.", ["Fold it with TextFold", "fold"]],
-    "no-model": ["TextFold has no model", "Choose a model in TextFold's Settings, then fold again.", ["Fold it with TextFold", "fold"]],
-    "no-file": ["TextFold found nothing to read", "This paper has no PDF TextFold can read and no text online.", null],
-    "fold-failed": ["TextFold couldn't fold this paper", "", ["Try again", "fold"]],
+    reading: ["Reading the PDF…", "", null],
+    "no-pdf": ["This paper has no PDF", "The reader folds a paper from its PDF: attach one in Zotero, then press ⌘R.", ["Try again", "retry"]],
+    missing: ["The PDF file is missing from disk", "Zotero lists it, but the file isn't there: sync or relink it in Zotero, then press ⌘R.", ["Try again", "retry"]],
+    unreadable: ["Couldn't open the PDF", "", ["Try again", "retry"]],
+    scan: ["This PDF is a scan", "It has no text layer, so there are no words to fold. The PDF still shows.", null],
+    "too-long": ["This PDF is too long to fold", "", null],
     "group-library": ["Your own library's papers only, for now", "Papers in group libraries come in a later version.", null],
-    "bad-format": ["This TextFold is newer than the reader", "", null]
+    // (a doc.json the reader can't read: the app reads the PDF again, so the page meets it only for a moment)
+    "bad-format": ["Reading the PDF…", "", null]
   }
   function stateCopy(s) {
     var c = STATES[s.kind] || STATES.loading
     var sentence = c[1]
-    if (s.kind === "folding") {
-      if (s.status === "queued" || s.queued) sentence = "Waiting for TextFold's other work."
-      else {
-        var stage = String(s.stage || "Starting")
-        stage = stage.charAt(0).toUpperCase() + stage.slice(1)
-        sentence = (s.total ? stage + ": " + (s.done || 0) + " of " + s.total : stage) + ". You can read the PDF meanwhile."
-      }
-    }
-    if (s.kind === "fold-failed") sentence = String(s.error || "").slice(0, 300)
-    if (s.kind === "bad-format") sentence = "It writes format " + (s.format || "?") + " version " + (s.version === "" || s.version === undefined ? "?" : s.version) + ": update the Zotero Launcher to read it."
+    if (s.kind === "reading") sentence = s.pages ? (s.done || 0) + " of " + s.pages + " pages." : ""
+    if (s.kind === "unreadable") sentence = String(s.why || s.error || "").slice(0, 300)
+    if (s.kind === "too-long") sentence = "It has " + (s.n || s.units || 0) + " paragraphs; the reader takes up to 5000."
     return { title: c[0], sentence: sentence, action: c[2] }
+  }
+
+  // The fold over the text (R5-SPEC 6.2): FR.fold's kind to its banner. f: the fold object (FoldMake.foldView);
+  // left: the sections not folded yet. → { title, sentence, action: [text, data-act, payload] } or null (no banner)
+  var FOLD_FATAL = {
+    "ai-key": ["The model's key was refused", "Settings › Models & providers takes a new key."],
+    "ai-signin": ["Signed out of the model", "Sign in again in Settings › Models & providers."],
+    "ai-limit": ["Rate limited or out of credit", "Wait a minute, or check your plan."],
+    "ai-busy": ["The model is overloaded", "Try again in a minute."],
+    "ai-offline": ["Couldn't reach the model", "Check the connection."]
+  }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : many) }
+  function costPhrase(f) {
+    var c = String(f && f.cost || "")
+    if (!c) return ""
+    return c.charAt(0) === "<" ? " under $0.01 at its list price" : " about " + c + " at its list price"
+  }
+  // The runner's message as the banner's first sentence: capitalized, its end left to the banner.
+  function errorText(f) {
+    var e = String(f && f.error || "").slice(0, 200).replace(/[\s.]+$/, "").replace(/^\s+/, "")
+    return e ? e.charAt(0).toUpperCase() + e.slice(1) : ""
+  }
+  function foldCopy(f, left) {
+    var k = f && f.kind
+    var name = String(f && f.name || f && f.model || "the model")
+    // (what's left to fold: the run's own when it was a Fold again, so finishing it folds again what it hadn't)
+    var rest = f && Array.isArray(f.left) ? f.left : left
+    var only = rest && rest.length ? { only: rest.slice() } : {}
+    if (f && f.again) only.force = true
+    var others = f && f.again ? "the others keep their earlier levels" : "the rest show first sentences"
+    if (!k || k === "folded") return null
+    if (k === "unfolded") {
+      var first = "Key, Takeaway and Topic show each paragraph's first sentence."
+      if (f.disabled === "cjk") return { title: "Not folded yet", sentence: first + " Folding a paper in Chinese or Japanese comes in a later version.", action: null }
+      if (f.disabled) return { title: "Not folded yet", sentence: first, action: null }
+      var more = typeof f.calls === "number" ? " Fold with AI sends the paper's text to " + name + " in " + plural(f.calls, "request", "requests") + costPhrase(f) + "." +
+        (f.cached === 1 ? " 1 of them was answered before and costs nothing." : f.cached > 1 ? " " + f.cached + " of them were answered before and cost nothing." : "") : ""
+      return { title: "Not folded yet", sentence: first + more, action: ["Fold with AI", "fold", {}] }
+    }
+    if (k === "folding") return { title: "Folding with AI", sentence: f.done + " of " + f.total + " sections, with " + name + ". Each section shows its levels as it comes back.", action: ["Stop", "stop", {}] }
+    if (k === "stopped") return { title: "Folding stopped", sentence: f.done + " of " + f.total + " sections are folded" + (f.again ? " again" : "") + "; " + others + ". Finishing asks only for what's left.", action: ["Finish folding", "fold", only] }
+    if (k === "partial") {
+      var n = (f.failed || []).length
+      var shows = f.again ? (n === 1 ? "It keeps its earlier levels." : "They keep their earlier levels.") : (n === 1 ? "It shows first sentences." : "They show first sentences.")
+      var retry = { only: (f.failed || []).slice() }
+      if (f.again) retry.force = true
+      return { title: n === 1 ? "1 section wasn't folded" : n + " sections weren't folded", sentence: (errorText(f) ? errorText(f) + ". " : "") + shows,
+        action: [n === 1 ? "Try it again" : "Try them again", "fold", retry] }
+    }
+    if (k === "pdf-changed") return { title: "The PDF changed", sentence: "It was read again, so Key, Takeaway and Topic show first sentences until it's folded again.", action: ["Fold with AI", "fold", {}] }
+    if (k === "no-ai") return { title: "No AI model is set up", sentence: "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", action: null }
+    if (k === "no-runner") return { title: "The AI features aren't installed", sentence: "Folding needs the AI features: Settings › Setup installs them.", action: null }
+    if (k === "old-runner") return { title: "The AI features are older than the app", sentence: "Settings › Setup › Install the AI features updates them.", action: null }
+    if (FOLD_FATAL[k]) {
+      var e = errorText(f)
+      return { title: FOLD_FATAL[k][0], sentence: (e ? e + ". " : "") + FOLD_FATAL[k][1], action: f.done ? ["Finish folding", "fold", only] : ["Try again", "fold", f.again ? { force: true } : {}] }
+    }
+    return null
   }
   var PDF_PROBLEMS = { "no-pdf": "This paper has no PDF attached: the text reads on its own", missing: "The PDF file is missing from disk" }
   var HINTS = "? keys  ·  1…5 level  ·  ⌘ scroll folds, zooms the PDF  ·  j k paragraph  ·  ↵ open  ·  esc fold back  ·  ⌘W close"
@@ -109,14 +161,15 @@ var FoldView = (function () {
     ["↵", "Open the selected paragraph in full, in place (a double-click too)"], ["esc", "Fold it back; hide the selection bar, a menu, these keys"],
     ["h  n  c", "Highlight, note, ask about the selected words"], ["⌥→  ⌥←", "The paper's next / previous status"], ["⇧⌥→  ⇧⌥←", "Its task's next / previous status"],
     ["⌥⌘P", "The PDF beside the text"], ["⌥⌘M", "The margin: links and notes"], ["?  F1", "Show or hide these keys"], ["⌘-  ⌘+  ⌘0", "The text smaller, larger, its size"],
-    ["⌘R", "Look TextFold up again"], ["⌘W", "close"]]
+    ["⌘R", "Read the paper and its PDF again"], ["⌘W", "close"]]
   var BUCKETS = [600, 900, 1200, 1800, 2400]
 
   function mount(root, host) {
     var S = {
       d: null, m: null, state: { kind: "loading" }, level: "full", opened: {}, sel: null, follow: null,
       pdfOn: true, pdfLeft: false, pdfW: 470, marginOn: true, marginW: 220, zoom: 1, role: null, showBack: false,
-      store: C.emptyStore({}), links: null, pages: [], wordsDone: false, keys: false, menu: null, pick: null, flash: "", ask: {}
+      store: C.emptyStore({}), links: null, pages: [], wordsDone: false, keys: false, menu: null, pick: null, flash: "", ask: {},
+      fold: null, confirm: false
     }
     var rows = {} // a unit's row: { row, ubox, line, shape, body, aside, ncount, drawn }
     var queue = [] // units still to draw at the level shown (drawn in idle chunks)
@@ -174,7 +227,16 @@ var FoldView = (function () {
     function drawFoot() {
       ftLeft.className = S.flash ? "flash" : ""
       ftLeft.textContent = S.flash || HINTS
-      ftLevel.textContent = C.level(S.level).foot
+      ftLevel.textContent = levelFoot()
+    }
+    // The level's footer: an AI level says whether AI wrote it yet (aiCaption's count), never "written by AI" for first sentences.
+    function levelFoot() {
+      var l = C.level(S.level)
+      if (!l.ai || !S.m) return l.foot
+      var all = foldableSections(), done = all.filter(sectionFolded).length
+      if (!done) return l.name + " · first sentences until folded"
+      if (done < all.length) return l.name + " · written by AI for " + done + " of " + all.length + " sections, the others first sentences"
+      return l.foot
     }
 
     // ---- the header
@@ -301,7 +363,7 @@ var FoldView = (function () {
     }
 
     // ---- the toolbar
-    var dialBtns = {}, bPdf, bSwap, bMargin, roleBtns = {}, capAi
+    var dialBtns = {}, bPdf, bSwap, bMargin, roleBtns = {}, capAi, bFold
     function drawTools() {
       clear(tools)
       var dial = el("div", { class: "dial", role: "group", "aria-label": "Level" })
@@ -315,6 +377,10 @@ var FoldView = (function () {
         dial.appendChild(b)
       })
       tools.appendChild(dial)
+      tools.appendChild(el("div", { class: "vsep", "aria-hidden": "true" }))
+      bFold = el("button", { type: "button", class: "tb fold", id: "bFold" }, [icon("ai"), el("span", { class: "lbl", text: "Fold with AI" })])
+      bFold.addEventListener("click", foldClick)
+      tools.appendChild(bFold)
       tools.appendChild(el("div", { class: "vsep", "aria-hidden": "true" }))
       var pg = el("div", { class: "group", role: "group", "aria-label": "Panes" })
       bPdf = button("tb", "PDF beside the text · ⌥⌘P", [icon("pdf")], { "aria-pressed": "false", "aria-keyshortcuts": "Alt+Meta+P", id: "bPdf" })
@@ -340,9 +406,9 @@ var FoldView = (function () {
     function pdfShown() { return S.pdfOn && S.level !== "topic" && !!(S.d && S.d.pdf) && !(S.d.pdf.problem === "no-pdf") }
     function updateTools() {
       C.LEVELS.forEach(function (L) { var b = dialBtns[L.id]; if (b) { b.setAttribute("aria-pressed", L.id === S.level ? "true" : "false"); b.disabled = !S.m } })
-      var p = S.m && S.m.provenance
-      var aiTip = p && p.local ? "Not written by a model yet: the paper's first sentences" : "Written by AI (" + [p && p.model, p && fmtDate(p.levelsMade)].filter(Boolean).join(", ") + ")"
+      var aiTip = aiCaption()
       if (capAi) { capAi.title = aiTip; capAi.lastChild.textContent = aiTip }
+      updateFold()
       if (bPdf) {
         var noPdf = S.d && S.d.pdf && S.d.pdf.problem === "no-pdf"
         bPdf.disabled = S.level === "topic" || !S.d || !S.d.pdf || !!noPdf
@@ -354,6 +420,115 @@ var FoldView = (function () {
         name(bMargin, S.marginOn && !fitW.margin ? "Margin: hidden while the window is narrow; press to show it · ⌥⌘M" : "Margin: links and notes · ⌥⌘M")
       }
       Object.keys(roleBtns).forEach(function (r) { roleBtns[r].setAttribute("aria-pressed", S.role === r ? "true" : "false") })
+    }
+
+    // ---- the fold: what is folded, the toolbar's button, the confirm, the AI caption
+    function foldableSections() {
+      return S.m ? S.m.sections.filter(function (s) { return s.units.some(function (id) { return !C.apparatus(S.m.units[id]) }) }) : []
+    }
+    // (a doc whose levels came from elsewhere, D9: all of it counts as folded)
+    function foreign() { var p = S.m && S.m.provenance; return !!p && !p.local && p.ai }
+    function sectionFolded(s) { return foreign() || s.made }
+    function notFolded() { return foldableSections().filter(function (s) { return !sectionFolded(s) }).map(function (s) { return s.id }) }
+    function failedIds() { return (S.fold && S.fold.failed) || [] }
+    // The line a section not folded shows in place of its takeaway, or "".
+    function sectionLine(s) {
+      if (sectionFolded(s) || !s.units.some(function (id) { return !C.apparatus(S.m.units[id]) })) return ""
+      return failedIds().indexOf(s.id) >= 0 ? "First sentences: this section wasn't folded" : "First sentences: not folded yet"
+    }
+    function aiCaption() {
+      if (!S.m) return ""
+      var all = foldableSections(), done = all.filter(sectionFolded).length
+      if (!done) return "Not written by AI yet: each paragraph's first sentence"
+      var p = S.m.provenance, f = S.fold
+      var who = f && f.name && f.model && p.model === f.model ? f.name : p.model
+      var head = "Written by AI (" + [who, fmtDate(p.levelsMade)].filter(Boolean).join(", ") + ")"
+      return done < all.length ? head + " for " + done + " of " + all.length + " sections; the others show first sentences" : head
+    }
+    function foldTip(f) {
+      var name = String(f.name || f.model || "the model")
+      if (f.disabled === "cjk") return "Folding a paper in Chinese or Japanese comes in a later version"
+      if (f.disabled === "scan") return STATES.scan[1]
+      if (f.disabled) { var c = foldCopy({ kind: f.disabled }, []); return c ? c.sentence : "" }
+      if (f.kind === "folding") return "Stop folding: what's done stays"
+      if (f.kind === "folded") return "Fold again: " + name + " writes every section anew"
+      return "Fold with AI: " + name + " writes Key, Takeaway and Topic (Settings › Defaults changes the model)"
+    }
+    function updateFold() {
+      if (!bFold) return
+      var f = S.fold || (S.state && S.state.kind === "scan" ? { kind: "unfolded", disabled: "scan" } : null)
+      bFold.hidden = !f
+      if (!f) return
+      var folding = f.kind === "folding" && !f.disabled
+      var again = f.kind === "folded" && !f.disabled
+      var text = folding ? "Stop folding" : again ? "Fold again…" : "Fold with AI"
+      bFold.replaceChild(icon(folding ? "stop" : "ai"), bFold.firstChild)
+      bFold.lastChild.textContent = text
+      bFold.disabled = !!f.disabled
+      bFold.setAttribute("data-fold", folding ? "stop" : again ? "again" : "fold")
+      var tip = foldTip(f)
+      bFold.title = tip
+      bFold.setAttribute("aria-label", text + ": " + tip.replace(/^[^:]*: /, ""))
+      if (f.disabled) bFold.setAttribute("aria-label", text + ": " + tip)
+    }
+    function foldClick() {
+      var f = S.fold
+      if (!f || f.disabled) return
+      if (f.kind === "folding") { post("stop"); return }
+      if (f.kind === "folded") { S.confirm = true; drawBanners(); var k = document.getElementById("bKeep"); if (k) k.focus(); return }
+      var left = Array.isArray(f.left) ? f.left : notFolded(), all = foldableSections().length
+      var payload = left.length && left.length < all ? { only: left.slice() } : {}
+      if (f.again) payload.force = true
+      post("fold", payload)
+    }
+    function closeConfirm(focusFold) {
+      if (!S.confirm) return false
+      S.confirm = false
+      drawBanners()
+      if (focusFold && bFold) bFold.focus()
+      return true
+    }
+    function foldBanner() {
+      var f = S.fold
+      if (S.confirm && f) {
+        var name = String(f.name || f.model || "the model")
+        var calls = typeof f.calls === "number" ? f.calls : 0
+        var yes = el("button", { type: "button", class: "act", text: "Fold again", "data-act": "fold", "data-payload": JSON.stringify({ force: true }) })
+        yes.addEventListener("click", function () { S.confirm = false; post("fold", { force: true }); drawBanners(); if (bFold) bFold.focus() })
+        var no = el("button", { type: "button", class: "act quiet", text: "Keep these", id: "bKeep" })
+        no.addEventListener("click", function () { closeConfirm(true) })
+        return el("div", { class: "banner confirm", role: "note", "data-state": "fold-again" }, [el("strong", { text: "Fold the whole paper again?" }),
+          el("span", { text: name + " writes every section anew in " + plural(calls, "request", "requests") + costPhrase(f) + "; your highlights and notes stay on the paper's words." }), yes, no])
+      }
+      var c = f && foldCopy(f, notFolded())
+      if (!c) return null
+      var act = null
+      if (c.action) {
+        var payload = c.action[2] || {}
+        act = el("button", { type: "button", class: "act", text: c.action[0], "data-act": c.action[1], "data-payload": JSON.stringify(payload) })
+        // (the banner is drawn again as the fold goes: the focus goes to the Fold button, which stays)
+        act.addEventListener("click", function () { post(c.action[1], payload); if (bFold && !bFold.hidden && !bFold.disabled) bFold.focus() })
+      }
+      return el("div", { class: "banner", role: "note", "data-state": f.kind }, [el("strong", { text: c.title }), el("span", { text: c.sentence }), act])
+    }
+    // The section lines and Topic cards' lines, in place (FR.fold changes them without drawing the text again).
+    function drawSectionLines() {
+      if (!S.m) return
+      S.m.sections.forEach(function (s) {
+        var t = column.querySelector('.sec[data-s="' + cssId(s.id) + '"] + .stake')
+        var line = sectionLine(s)
+        if (t) {
+          t.textContent = line || s.takeaway
+          t.className = "stake" + (line ? " fs" : "")
+          t.hidden = !((line || s.takeaway) && (S.level === "key" || S.level === "takeaway"))
+        }
+        var card = grid.querySelector('.tcard[data-s="' + cssId(s.id) + '"]')
+        if (card) {
+          var tk = card.querySelector(".take")
+          if (!tk && (line || s.takeaway)) { tk = el("div", { class: "take" }); card.insertBefore(tk, card.querySelector(".chips")) }
+          if (tk) { tk.textContent = line || s.takeaway; tk.className = "take" + (line ? " fs" : "") }
+        }
+      })
     }
 
     // ---- the text: states, banners, the column, the grid
@@ -371,23 +546,8 @@ var FoldView = (function () {
     function drawBanners() {
       clear(banner)
       if (!S.m) return
-      var s = S.state || {}
-      if (s.kind === "no-textfold") {
-        var b = el("div", { class: "banner", role: "note", "data-state": "no-textfold" }, [el("span", { text: "TextFold isn't running: these are the levels saved on " + (fmtDate(S.d && S.d.saved) || "an earlier day") + "." })])
-        var a = el("button", { type: "button", class: "act", text: "Try again", "data-act": "retry", "aria-keyshortcuts": "Meta+R" })
-        a.addEventListener("click", function () { post("retry") })
-        b.appendChild(a)
-        banner.appendChild(b)
-      } else if (s.kind && STATES[s.kind] && ["loading", "not-folded", "bad-format", "group-library", "no-file"].indexOf(s.kind) < 0) {
-        banner.appendChild(stateBox(s, true))
-      }
-      if (S.m.provenance.local && ["folding"].indexOf(s.kind) < 0) {
-        var l = el("div", { class: "banner", role: "note", "data-state": "local-only" }, [el("span", { text: "No model has written these levels yet: Key, Takeaway and Topic show the paper's first sentences." })])
-        var f = el("button", { type: "button", class: "act", text: "Fold it with TextFold", "data-act": "fold" })
-        f.addEventListener("click", function () { post("fold") })
-        l.appendChild(f)
-        banner.appendChild(l)
-      }
+      var b = foldBanner()
+      if (b) banner.appendChild(b)
     }
     function drawState() {
       drawBanners()
@@ -465,9 +625,14 @@ var FoldView = (function () {
       mg.hidden = !fitW.margin || ["takeaway"].indexOf(S.level) >= 0
       mg.style.right = (28 + fitW.marginW + 12 - 5.5) + "px"
       S.m.sections.forEach(function (s) {
-        var t = column.querySelector('.sec[data-s="' + cssId(s.id) + '"] + .stake')
-        if (t) t.hidden = !(s.takeaway && (S.level === "key" || S.level === "takeaway"))
+        // (below Full, a section of references, notes or equations only is not shown: its units have nothing there)
+        var only = s.units.length > 0 && s.units.every(function (id) { return C.apparatus(S.m.units[id]) })
+        var head = column.querySelector('.sec[data-s="' + cssId(s.id) + '"]')
+        var list = column.querySelector('.units[data-s="' + cssId(s.id) + '"]')
+        if (head) head.hidden = only && S.level !== "full"
+        if (list) list.hidden = only && S.level !== "full"
       })
+      drawSectionLines()
       drawLost()
     }
 
@@ -488,6 +653,7 @@ var FoldView = (function () {
       r.ubox.replaceChild(sh, r.shape)
       r.shape = sh
       var ps = C.pieces(u, L), on = C.marked(S.store.marks, uid, ps)
+      r.row.hidden = !ps.length
       var words = el("span", { class: "body " + C.font(u, L) + (L === "takeaway" ? " tk4" : "") })
       var frag = document.createDocumentFragment()
       for (var i = 0; i < ps.length; i++) {
@@ -607,8 +773,9 @@ var FoldView = (function () {
           ch.addEventListener("click", function () { setLevel("key", h.unit) })
           chips.appendChild(ch)
         })
+        var line = sectionLine(S.m.sections.filter(function (x) { return x.id === c.id })[0])
         grid.appendChild(el("div", { class: "tcard", "data-s": c.id }, [el("div", { class: "tt" }, [c.num ? el("span", { class: "n", text: c.num }) : null, c.title]),
-          c.takeaway ? el("div", { class: "take", text: c.takeaway }) : null, chips]))
+          line || c.takeaway ? el("div", { class: "take" + (line ? " fs" : ""), text: line || c.takeaway }) : null, chips]))
       })
     }
 
@@ -855,7 +1022,7 @@ var FoldView = (function () {
     text.addEventListener("touchstart", function () { moved = true }, { passive: true })
     document.addEventListener("keydown", function (e) { if (SCROLL_KEYS.indexOf(e.key) >= 0 && !e.metaKey) moved = true }, true)
     function stepSelect(d) {
-      var ids = rowsInOrder()
+      var ids = rowsInOrder().filter(function (id) { return !rows[id].row.hidden })
       if (!ids.length || S.level === "topic") return
       var at = ids.indexOf(S.sel)
       var next = ids[at < 0 ? (d > 0 ? firstVisible(ids) : firstVisible(ids)) : clamp(at + d, 0, ids.length - 1)]
@@ -1235,6 +1402,7 @@ var FoldView = (function () {
       if (e.key === "Escape") {
         if (S.keys) { S.keys = false; keysEl.hidden = true; e.preventDefault(); return }
         if (S.menu) { closeMenu(true); e.preventDefault(); return }
+        if (S.confirm) { closeConfirm(true); e.preventDefault(); return }
         if (typing(t)) { t.blur(); text.focus({ preventScroll: true }); return }
         if (S.pick || !selbar.hidden) { clearSelection(); hideBar(); e.preventDefault(); return }
         if (foldBack()) { e.preventDefault(); return }
@@ -1311,7 +1479,7 @@ var FoldView = (function () {
     }
     function docIdentity() { return S.m ? { id: S.m.id, lang: S.m.lang, levels_made: S.m.provenance.levelsMade } : null }
     function pdfIdentity() { var p = S.d && S.d.pdf; return p && !p.problem ? { bytes: p.bytes || 0, modified: p.modified || "", pages: p.pages } : null }
-    // FR.load: the app sends the whole window again whenever something of it changes (the PDF opened, TextFold's answer,
+    // FR.load: the app sends the whole window again whenever something of it changes (the PDF opened, a fold's progress,
     // ⌘R, a fold done). The same paper keeps what the reader did: the marks held here (the file can be behind them, a
     // change is posted 400 ms later), the level, and with the same doc the paragraphs opened, the selection and the
     // place in the text; a new doc of it keeps the place where its paragraph is still there.
@@ -1327,6 +1495,8 @@ var FoldView = (function () {
       var keep = same && !!prevM && !column.hidden ? readingAnchor(text.getBoundingClientRect()) : null
       var mine = same && S.storeOwn ? S.store : null
       S.d = d; S.state = st; S.paperId = pid
+      if (!same) S.confirm = false
+      S.fold = d.fold || null
       if (!same) applyPrefs(d.prefs) // (a reload keeps the page's own: it sent them)
       if (sameDoc) S.m = prevM
       else {
@@ -1383,6 +1553,16 @@ var FoldView = (function () {
     function state(s) {
       S.state = s || { kind: "loading" }
       drawState()
+      updateFold()
+    }
+    // FR.fold: the fold's banner, the Fold button, the section lines and the AI caption; the text is not drawn again.
+    function fold(f) {
+      S.fold = f || null
+      if (S.fold && S.fold.kind !== "folded") S.confirm = false
+      drawBanners()
+      updateTools()
+      drawSectionLines()
+      drawFoot()
     }
     function words(batch) {
       if (!batch || S.wordsDone) return
@@ -1421,8 +1601,8 @@ var FoldView = (function () {
     drawState()
     drawPanes()
     post("ready")
-    return { load: load, state: state, words: words, paper: paper, flash: flash, _S: S }
+    return { load: load, state: state, fold: fold, words: words, paper: paper, flash: flash, _S: S }
   }
 
-  return { mount: mount, SHARED: SHARED, OWN: OWN, STATES: STATES, stateCopy: stateCopy }
+  return { mount: mount, SHARED: SHARED, OWN: OWN, STATES: STATES, stateCopy: stateCopy, foldCopy: foldCopy }
 })()

@@ -1,0 +1,8 @@
+{"type":"start","model":"fixture:model","name":"Fixture model","provider":"Fixture","sections":3,"calls":3,"cached":0}
+{"type":"call","done":1,"total":3,"cached":0}
+{"type":"section","id":"abstract","model":"fixture:model","cached":false,"section":{"takeaway":"We study how readers move between words and summaries","topic":"readers"},"units":[{"id":"abstract.p1","role":"context","evidence":[0],"key":"We study how readers move between a paper's own words and short summaries of it.","takeaway":"We study how readers move between words and summaries","topic":"readers"}],"warnings":[]}
+{"type":"call","done":2,"total":3,"cached":0}
+{"type":"section","id":"S1","model":"fixture:model","cached":false,"section":{"takeaway":"Researchers read many papers each week","topic":"many papers"},"units":[{"id":"S1.p1","role":"context","evidence":[0],"key":"Researchers read many papers each week [1, 2].","takeaway":"Researchers read many papers each week","topic":"many papers"},{"id":"S1.p2","role":"context","evidence":[0],"key":"Summaries written by language models are short.","takeaway":"Summaries written by language models are short","topic":"Summaries"}],"warnings":[]}
+{"type":"call","done":3,"total":3,"cached":0}
+{"type":"section","id":"S2","model":"fixture:model","cached":false,"section":{"takeaway":"Each paragraph is folded into five levels","topic":"five levels"},"units":[{"id":"S2.p1","role":"context","evidence":[0],"key":"Each paragraph is folded into five levels, from a topic to the full text.","takeaway":"Each paragraph is folded into five levels","topic":"five levels"}],"warnings":[]}
+{"type":"done","folded":3,"failed":0,"stopped":"","costUsd":0.01,"models":["fixture:model"]}

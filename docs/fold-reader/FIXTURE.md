@@ -4,6 +4,8 @@ The R1 tests never commit the text of a real paper (the gallery paper used for t
 CC BY-SA 4.0). They use the hand-made document below, a fake words payload made from it by a function, and a large
 document generated for the performance budgets. Everything is deterministic: no clock, no randomness without a seed.
 The validator may also run the check on the real gallery data kept outside the repository (section 5).
+R5 (our own folding, R5-SPEC.md) adds a synthetic paper's PDF lines, a PDF drawn in XCTest and made-up model
+replies: section 6.
 
 Files (R1 creates them):
 
@@ -182,3 +184,116 @@ sentence's tokens, atoms as their text, math as `$alt$`; `key` the `brief` token
 output: each `<word>`'s box divided by its `<page>`'s width and height, as the words payload). The scratchpad's
 `gal/p.html` and `gal/bbox.html` work with it; the check then prints the coverage and the budgets instead of the
 fixture's assertions. Nothing from them is written into the repository.
+
+## 6. R5: the synthetic paper, its lines and the model's replies
+
+R5 (R5-SPEC.md) reads the PDF itself, so its tests need a paper's *lines* (R5-SPEC 3.1's payload), a PDF made in
+XCTest, and model replies. All of it is made up here, from section 1's sentences and the fillers below; nothing comes
+from a real paper or a real model. Deterministic: no clock, no randomness.
+
+Files (R5 creates them):
+
+- `macos/js/tests/fold-fixture.js` gains `fakePaper(options)` (6.2) and `bigSection(n)` (95 units by default: section
+  4's word generator, one sentence of twelve words a unit, ids `S1.p1` ...).
+- `macos/js/tests/fixtures/fold-reader/made.json`: `FoldMake.read(fakePaper())`'s `doc` and `links`, written once by
+  the implementer, read by a person against 6.3, then a golden (a change to it is a reviewed change).
+- `macos/js/tests/fixtures/fold-reader/fold-input.json`: the `fold` command's stdin for that doc (R5-SPEC 4.1),
+  `paper: "1:ABCD1234"`; `prompt-S1.txt` and `prompt-section.txt`: the goldens of R5 criterion 16 (S1's prompt; the
+  section-line prompt of `bigSection()` with each unit's takeaway `Takeaway <n>`), checked by hand against
+  Appendix A once.
+- `macos/js/tests/fixtures/fold-reader/replies/`: the replies of 6.4.
+- `macos/ZoteroLauncherTests/Fixtures/synthetic/fold-plan.json` and `fold-stream.jsonl`: fixture mode's answers (6.6).
+
+### 6.1 Fillers
+
+Sentences used to make paragraphs long enough to cross a break (made up, like section 1's):
+
+- F1 `Each level keeps the words that the next level needs.`
+- F2 `A reader can open any paragraph in place to see all of it.`
+- F3 `The folds are stored beside the paper on this computer.`
+- F4 `Nothing in the library changes when a paper is folded.`
+- F5 `The OCR-free files were used as they were.`
+
+### 6.2 `fakePaper(options)` → `{pages, sizes, meta, expected}`
+
+Lays a paper out on US Letter pages (612 by 792 points) as a typeset two-column PDF would, and returns the lines
+payload (`pages`: `[{n, size: [612, 792], lines: [{t, b, s, f, lb, w}]}]`, boxes 0 to 1), `meta` (title
+`Folding a Paper: A Small Synthetic Study`, authors `Rivera, Ana` and `Okafor, Ben`, the abstract's text, `lang: "en"`,
+a fake `pdf` identity) and `expected` (6.3, with every unit's line boxes as the generator placed them).
+
+- **Type:** a character is `0.5 × size` points wide, a space `0.25 × size`; a line's box is its words' union, a word
+  `size` high from its top; lines `1.2 × size` apart. Body 10 pt; headings 12 pt bold (`f: 1`, `lb` all their
+  words); the title 18 pt bold; captions 9 pt; table cells 9 pt; figure labels 7 pt; the footnote 8 pt; page numbers
+  and the running head 9 pt.
+- **Columns:** left 54 to 297, right 315 to 558 points; spanning blocks 54 to 558. A paragraph after another in the
+  same section starts 10 pt indented, with no extra gap; headings have 8 pt above them.
+- **Page 1:** the arXiv-like stamp `arXiv:2601.01234v1 [cs.HC] 15 Jan 2026` set vertically at x 20 (each word's box
+  taller than wide); the title spanning at y 80; `Ana Rivera Ben Okafor` (11 pt) at 110; `Example University ·
+  Sample Institute · ana@example.org` (9 pt) at 125; `Abstract` (11 pt bold) at 150 and the abstract (section 1's
+  `abstract1.1` sentences) spanning below it; then two columns from y 240: `1 Introduction`, the paragraph of
+  `S1.p1.1`'s sentences (its first `skimming` cut `skim-` / `ming` at a line end), the paragraph of `S1.p2.1`'s
+  sentences then F1, F2, F3 (long enough to end at the top of the right column); `2 Method`, the paragraph of
+  `S2.p1.1`'s sentences then F1 to F4 (it ends on page 2's left column).
+- **Page 2:** running head `Rivera and Okafor · Folding a Paper` (y 30, spanning); left column: the rest of the
+  method paragraph; three figure labels `0.5`, `1.0`, `Topic` (7 pt) over the caption `Figure 1: The five levels of
+  one paragraph, from Topic to Full.`; the centred equation `s = n / N (1)`; `Table 1: Reading times by level.` over
+  three rows of three cells (`Level Seconds Readers`, `Full 68 12`, `Folded 41 12`, the cells of a row starting 60 pt apart); `2.1
+  Results`; the paragraph of `S2.SS1.p1.1`'s sentences; the list item `• The study had only twelve readers, all from
+  one field.`; at the column's foot, the footnote `1 The readers were volunteers from one department.` Right column:
+  `References`; `[1] A. Author. A made-up paper on reading. Example Press, 2020.` and `[2] B. Writer. Another made-up
+  paper. Sample Journal, 2021.`, each a second line indented 10 pt; `Appendix A: Materials` (12 pt bold,
+  unnumbered); the paragraph of `A1.p1.1`'s first sentence then F5 (`OCR-` ends a line, `free` starts the next).
+- **Page 3:** the running head; the paragraph `Each paper was between 20 and 40 pages.` (section 1's last sentence)
+  then F4, in the left column.
+- **Every page:** its number centred at y 760.
+- `options.columns: 1`: one column 54 to 558, the same blocks in the same order (fewer lines, the same texts).
+- `options.pages: 40`: sections `S3` to `S40` added after `2.1 Results`, each `<n> Part <n>` and three paragraphs of
+  F1 to F4, until 40 pages (the budget of R5-SPEC 3.6).
+- `options.scan: true`: the same pages with no lines (`fakePaper({scan: true, empty: [2]})`: only page 2 empty).
+
+### 6.3 What `FoldMake.read(fakePaper())` gives
+
+| Section | num | title | depth | Units (kind) |
+|---|---|---|---|---|
+| `abstract` | | Abstract | 1 | `abstract.p1` (abstract) |
+| `S1` | 1 | Introduction | 1 | `S1.p1`, `S1.p2` (paragraph) |
+| `S2` | 2 | Method | 1 | `S2.p1` (paragraph), `S2.F1.cap` (caption, `Figure 1`), `S2.e1` (equation), `S2.T1.cap` (caption, `Table 1`) |
+| `S2.SS1` | 2.1 | Results | 2 | `S2.SS1.p1` (paragraph), `S2.SS1.i1` (list item) |
+| `bib` | | References | 1 | `bib.r1`, `bib.r2` (reference) |
+| `A1` | | Appendix A: Materials | 1 | `A1.p1`, `A1.p2` (paragraph) |
+| `Sx` | | Notes | 1 | `Sx.n1` (footnote) |
+
+Texts: each unit's sentences as section 1 and 6.1 give them, joined by one space (`skimming` and `OCR-free` whole);
+the list item without its bullet; no unit holds the stamp, the title, the author or affiliation lines, the running
+head, a page number, a figure label or a table cell. `S1.p2` has boxes in both columns of page 1; `S2.p1` on pages 1
+and 2 (its page-2 boxes with a fifth element `2`). Coverage 14 of 14. Back matter: `bib`, `A1`, `Sx`.
+
+### 6.4 Model replies (`fixtures/fold-reader/replies/`)
+
+Made-up replies for `fold-input.json`'s sections, each a file of the text a model would send:
+
+- `S1-ok.txt`: valid JSON, two units, roles `context` and `gap`, a section line.
+- `S1-prose.txt`: the same JSON after `Here is the JSON:` and inside a ```` ```json ```` fence.
+- `S1-keyed.txt`: `units` as an object keyed by `U0`, `U1`; `S1-string.txt`: `units` as a JSON string.
+- `S1-broken.txt`: cut off in the middle (no closing brace); `S1-half.txt`: only `U0`.
+- `S2-dirty.txt`: a takeaway with an em dash and a final `.`, evidence `[5, 2, 2, -1, 0, 1]` for a 3-sentence unit,
+  role `finding`, a 4-word topic not in the takeaway, an 8-word topic, an empty takeaway.
+- `section-ok.txt`: a section line for `bigSection()`.
+
+The assertions of R5 criteria 18 and 19 name what each must give.
+
+### 6.5 The PDF made in XCTest
+
+`FoldReaderTests` draws, with CoreText into a PDF context: two pages, two columns as 6.2 (Helvetica 10 body,
+Helvetica-Bold 12 headings, Helvetica-Bold 10 `Abstract.` run into the abstract's first line, Helvetica 8 footnote,
+page numbers), section 1's abstract, `S1.p1.1`, `S1.p2.1` and `S2.p1.1` sentences, the second page turned 90°. It
+records where each word was drawn, for R5 criteria 35 and 36. A third PDF of two pages holding only an image (a grey
+rectangle drawn as a bitmap) is the scan.
+
+### 6.6 Fixture mode
+
+`fold-plan.json`: `{model: "fixture:model", name: "Fixture model", provider: "Fixture", sections: 5, calls: 5,
+cached: 0, inputTokens: 4000, outputTokens: 900, costUsd: 0.01}`. `fold-stream.jsonl`: a `start`, then a `call` and a
+`section` for each of the fixture paper's foldable sections, with levels made from that section's first sentences
+(no model), and a `done`. `FixtureRunner.stream` answers `fold` with it (the `chat` stream otherwise), and `run`
+answers `fold --plan` with the plan.

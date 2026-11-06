@@ -1,5 +1,9 @@
-The fold reader (FoldCore.js) ports code from TextFold, github.com/chenxiachan/textfold
-(commit f0e5b607eb01b74ac1efeadc6883ad48b3aaaa42), under the Apache License 2.0 below. Its NOTICE:
+The fold reader ports code from TextFold, github.com/chenxiachan/textfold
+(commit f0e5b607eb01b74ac1efeadc6883ad48b3aaaa42), under the Apache License 2.0 below, in three
+files, each changed (rewritten in JavaScript; see each file's header for what it ports):
+macos/ZoteroLauncher/Reader/FoldCore.js, macos/ZoteroLauncher/Reader/FoldMake.js and
+macos/runner/lib/fold.mjs (this file has a copy in macos/runner/, which is installed on its own).
+Its NOTICE:
 
 TextFold (formerly PaperFold)
 Copyright 2026 Xia Chen

@@ -7,6 +7,18 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The reader folds a paper itself, from its PDF, with your AI model.** *Read with folds* reads the paper's PDF on
+  this Mac (two columns, headings, the abstract, footnotes and references found from the page itself) and shows it at
+  once: Full and Brief are the paper's words, and Key, Takeaway and Topic show each paragraph's first sentence until
+  you press *Fold with AI*. That button sends the paper's text, a section at a time, to the model you set up for
+  prompts, after its banner says how many requests it takes and the price when the provider lists one; each section
+  folds in as it comes back, *Stop folding* keeps what is done, and *Finish folding* asks only for what's left. The
+  levels are kept on this Mac with your highlights and notes. No separate folding app needs to be installed or
+  running any more; the prompt runner (0.3.0) has the new `fold` command, so *Settings › Setup › Install the AI
+  features* updates it.
+
 ### The Mac app (`macos-v0.4.35`)
 
 - **Read with folds.** A paper's menu has *Read with folds* (or press `v` on it): a window of its own shows the

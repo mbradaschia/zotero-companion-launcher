@@ -274,17 +274,30 @@ says so.
 ## The fold reader
 
 - **One name:** *Read with folds* (the menu row, `v`), the window *Read · <citation>*; its five levels are *Full*,
-  *Brief*, *Key*, *Takeaway*, *Topic*, the last three written by TextFold's model and marked so (a dashed rule and a
-  sparkle on the dial, `written by AI` in the footer). Users read "levels", never "zoom" for them.
+  *Brief*, *Key*, *Takeaway*, *Topic*. The reader reads the paper from its PDF itself: Full and Brief are the paper's
+  own words; Key, Takeaway and Topic are written by the prompts model set up in Settings › Defaults, and marked so (a
+  dashed rule and a sparkle on the dial, `Written by AI (<model>, <date>)` over them). Until a section is folded they
+  show its paragraphs' first sentences, in the serif, under `First sentences: not folded yet`. Users read "levels",
+  never "zoom" for them.
+- **Spending is a click:** *Fold with AI* (the toolbar's button, or the banner's) is the only thing that sends the
+  paper to the model; its banner says the model, the number of requests and the price when the provider lists one,
+  before anything is sent. *Fold again…* asks first, with `Keep these` focused. *Stop folding* keeps what came back.
+  No key starts a fold.
 - **Keys:** `1` to `5` a level, `-` and `=` coarser and finer, ⌘ scroll over the text a level, `j` `k` a paragraph,
   `↵` open it in place, esc fold back (then hide the bar), `⌥⌘P` the PDF, `⌥⌘M` the margin, `?` the keys; the
-  window's own, as the review table's: ⌘W close, ⌘- ⌘+ ⌘0 text size, ⌘R look TextFold up again. esc never closes it.
+  window's own, as the review table's: ⌘W close, ⌘- ⌘+ ⌘0 text size, ⌘R read the paper and its PDF again. esc never
+  closes it.
 - **Never colour alone** in the reader: pressed is a border, selected a bar and a tint, the paragraph followed on the
-  PDF dashed where selected is solid, a highlight a fill and an underline, a role a shape as well as its colour.
-- **Its states** (SPEC section 9) take the text pane: a title line, one sentence, at most one button (`Try again` or
-  `Fold it with TextFold`); the PDF still shows when there is one. Only that button spends TextFold's model.
-- **Kept on this Mac:** highlights, notes and questions (`<runnerState>/fold-reader/`), the levels and panes
-  (`ZLFoldPrefs`), the text size and the window's size. Nothing in Zotero changes.
+  PDF dashed where selected is solid, a highlight a fill and an underline, a role a shape as well as its colour, a
+  disabled Fold button dashed and faint with the reason in its tooltip, the stop button its text beside the square.
+- **Its states** take the text pane (opening, reading the PDF with its page count, no PDF, the file missing, a scan,
+  too long, a group library): a title line, one sentence, at most one button (`Try again`); the PDF still shows when
+  there is one. The fold's own situations (not folded yet, folding, stopped, some sections failed, the PDF changed,
+  no model, the AI features missing or older than the app, the model's key, sign-in, limit or connection) are a
+  banner over the text, with the same shape.
+- **Kept on this Mac:** the doc read from the PDF, its links to the PDF, the last fold, highlights, notes and
+  questions (`<runnerState>/fold-reader/`), the levels and panes (`ZLFoldPrefs`), the text size and the window's size.
+  Nothing in Zotero changes.
 
 ## Pills
 
