@@ -56143,6 +56143,241 @@
   ]
  },
  {
+  "name": "searchEditRows/taken",
+  "wrapper": "searchEditRows",
+  "args": [
+   "save",
+   "teece ",
+   "a:teece",
+   false,
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities y:2010..",
+     "pinned": true
+    },
+    {
+     "id": "s2",
+     "name": "Teece",
+     "query": "a:teece",
+     "pinned": false
+    },
+    {
+     "id": "s3",
+     "name": "Reviews",
+     "query": "#review",
+     "pinned": true
+    }
+   ],
+   ""
+  ],
+  "expect": [
+   {
+    "rowId": "search-save",
+    "icon": "",
+    "label": "“teece” is taken: type another name",
+    "labelHtml": "“teece” is taken: type another name",
+    "detail": "Another saved search has this name",
+    "available": false,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "",
+    "promptId": "",
+    "value": "teece",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "search-save-pin",
+    "icon": "",
+    "label": "“teece” is taken: type another name",
+    "labelHtml": "“teece” is taken: type another name",
+    "detail": "Another saved search has this name",
+    "available": false,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "",
+    "promptId": "",
+    "value": "teece",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
+  "name": "searchEditRows/rename-own",
+  "wrapper": "searchEditRows",
+  "args": [
+   "rename",
+   "Teece",
+   "a:teece",
+   false,
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities y:2010..",
+     "pinned": true
+    },
+    {
+     "id": "s2",
+     "name": "Teece",
+     "query": "a:teece",
+     "pinned": false
+    },
+    {
+     "id": "s3",
+     "name": "Reviews",
+     "query": "#review",
+     "pinned": true
+    }
+   ],
+   "s2"
+  ],
+  "expect": [
+   {
+    "rowId": "search-rename-save",
+    "icon": "",
+    "label": "Rename to “Teece”",
+    "labelHtml": "Rename to “Teece”",
+    "detail": "",
+    "available": true,
+    "submenu": false,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "",
+    "promptId": "",
+    "value": "Teece",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   }
+  ]
+ },
+ {
+  "name": "searchNameTaken/case",
+  "wrapper": "searchNameTaken",
+  "args": [
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities y:2010..",
+     "pinned": true
+    },
+    {
+     "id": "s2",
+     "name": "Teece",
+     "query": "a:teece",
+     "pinned": false
+    },
+    {
+     "id": "s3",
+     "name": "Reviews",
+     "query": "#review",
+     "pinned": true
+    }
+   ],
+   " CAPABILITIES",
+   ""
+  ],
+  "expect": true
+ },
+ {
+  "name": "searchNameTaken/itself",
+  "wrapper": "searchNameTaken",
+  "args": [
+   [
+    {
+     "id": "s1",
+     "name": "Capabilities",
+     "query": "dynamic capabilities y:2010..",
+     "pinned": true
+    },
+    {
+     "id": "s2",
+     "name": "Teece",
+     "query": "a:teece",
+     "pinned": false
+    },
+    {
+     "id": "s3",
+     "name": "Reviews",
+     "query": "#review",
+     "pinned": true
+    }
+   ],
+   "Capabilities",
+   "s1"
+  ],
+  "expect": false
+ },
+ {
   "name": "pickerRows/all",
   "wrapper": "pickerRows",
   "args": [
@@ -109943,6 +110178,82 @@
    }
   ],
   "expect": "#to-read"
+ },
+ {
+  "name": "reviewNameTaken/other",
+  "wrapper": "reviewNameTaken",
+  "args": [
+   " crt",
+   [
+    {
+     "id": "r-aaaaaaaaaa",
+     "name": "CRT"
+    },
+    {
+     "id": "r-bbbbbbbbbb",
+     "name": "CRT 2"
+    }
+   ],
+   "r-cccccccccc"
+  ],
+  "expect": true
+ },
+ {
+  "name": "reviewNameTaken/itself",
+  "wrapper": "reviewNameTaken",
+  "args": [
+   "CRT",
+   [
+    {
+     "id": "r-aaaaaaaaaa",
+     "name": "CRT"
+    },
+    {
+     "id": "r-bbbbbbbbbb",
+     "name": "CRT 2"
+    }
+   ],
+   "r-aaaaaaaaaa"
+  ],
+  "expect": false
+ },
+ {
+  "name": "reviewUniqueName/next",
+  "wrapper": "reviewUniqueName",
+  "args": [
+   "CRT",
+   [
+    {
+     "id": "r-aaaaaaaaaa",
+     "name": "CRT"
+    },
+    {
+     "id": "r-bbbbbbbbbb",
+     "name": "CRT 2"
+    }
+   ],
+   "r-cccccccccc"
+  ],
+  "expect": "CRT 3"
+ },
+ {
+  "name": "reviewUniqueName/free",
+  "wrapper": "reviewUniqueName",
+  "args": [
+   "Fatigue",
+   [
+    {
+     "id": "r-aaaaaaaaaa",
+     "name": "CRT"
+    },
+    {
+     "id": "r-bbbbbbbbbb",
+     "name": "CRT 2"
+    }
+   ],
+   "r-cccccccccc"
+  ],
+  "expect": "Fatigue"
  },
  {
   "name": "reviewScope/query",

@@ -16,6 +16,13 @@ bridge and the prompt runner share one version.
   and task change from the window's header. It needs [TextFold](https://github.com/chenxiachan/textfold) running on
   this Mac, which writes the levels; nothing in Zotero changes. Your own library's papers only, for now.
 
+### The Mac app (`macos-v0.4.34`)
+
+- **No two lists with the same name.** A new review table whose name another table has gets the next free one
+  ("CRT 2"), as does a table whose name follows a new source; renaming a table to a name in use is refused. Saving or
+  renaming a saved search to a name another search has can't be chosen: the row says the name is taken (case and
+  spaces at the ends don't make it another name).
+
 ### The Mac app (`macos-v0.4.33`)
 
 - **The Lists panel.** A column on the left of the launcher lists every kind of list it knows, each with its papers'

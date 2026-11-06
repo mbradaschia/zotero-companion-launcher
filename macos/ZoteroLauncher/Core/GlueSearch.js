@@ -6,6 +6,23 @@ function GlueSearch(V, C, T, F) {
   var LISTS_WORDS = [["Pin above the results", "Pin to Favorites"], ["Take its badge away", "Out of the Lists panel's Favorites"],
     ["A badge above the results: Tab and Shift+Tab switch between them", "A favorite in the Lists panel: Tab and ⇧Tab go through them"],
     ["A badge above the results; Tab switches to it", "A favorite in the Lists panel; Tab goes to it"]]
+  // No two saved searches named the same (ignoring case and spaces at the ends): exceptId, the one being renamed.
+  var nameKey = function (n) { return String(n == null ? "" : n).trim().replace(/\s+/g, " ").toLowerCase() }
+  var searchNameTaken = function (searches, name, exceptId) {
+    var k = nameKey(name)
+    return !!k && (searches || []).some(function (s) { return s && s.id !== exceptId && nameKey(s.name) === k })
+  }
+  // Saving or renaming to a name in use: the row says so and can't be chosen.
+  var takenRows = function (rows, searches, exceptId) {
+    if (!searches) return rows
+    return rows.map(function (r) {
+      if (["search-save", "search-save-pin", "search-rename-save"].indexOf(r.rowId) < 0 || !searchNameTaken(searches, r.value, exceptId)) return r
+      var name = String(r.value).trim()
+      var label = "“" + name + "” is taken: type another name"
+      return Object.assign({}, r, { label: label, labelHtml: V.escapeHtml(label), available: false,
+        detail: "Another saved search has this name" })
+    })
+  }
   var listsWords = function (rows, lists) {
     if (!lists) return rows
     return rows.map(function (r) {
@@ -32,7 +49,11 @@ function GlueSearch(V, C, T, F) {
     savedSearchRows: function (searches, query, color) { return V.buildSearchRows(searches || [], query || "", color, F.filter) },
     // (lists: the Lists panel is on, a pin is a favorite there, not a badge)
     searchMenuRows: function (search, lists) { return listsWords(V.searchMenuRows(search || null), lists) },
-    searchEditRows: function (mode, text, query, lists) { return listsWords(V.buildSearchEditRows(mode, text || "", query || ""), lists) },
+    // (searches and editingId: a name in use can't be saved; none given, as the Omarchy launcher's)
+    searchEditRows: function (mode, text, query, lists, searches, editingId) {
+      return listsWords(takenRows(V.buildSearchEditRows(mode, text || "", query || ""), searches || null, editingId || ""), lists)
+    },
+    searchNameTaken: function (searches, name, exceptId) { return searchNameTaken(searches || [], name, exceptId || "") },
 
     // ---- the @ pickers
     pickerRows: function (query, hasSearches, taxonomies) { return V.buildPickerRows(query || "", !!hasSearches, taxonomies || []) },

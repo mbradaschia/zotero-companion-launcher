@@ -416,3 +416,13 @@ test("chatList: the rows as shown, each with its citation and the columns you se
   assert.deepEqual(out.papers[1].cells, [])
   assert.equal(R.chatList(Array.from({ length: 230 }, (_, i) => row("A" + String(i).padStart(7, "0"))), cols, ctx, {}, "x").papers.length, 200)
 })
+
+test("no two tables named the same: a second CRT is CRT 2; case and spaces don't make another name", () => {
+  const reviews = [{ id: "r-aaaaaaaaaa", name: "CRT" }, { id: "r-bbbbbbbbbb", name: "CRT 2" }];
+  assert.equal(R.uniqueName("CRT", reviews, "r-cccccccccc"), "CRT 3");
+  assert.equal(R.uniqueName("  crt  ", reviews, "r-cccccccccc"), "crt 3");
+  assert.equal(R.uniqueName("CRT", reviews, "r-aaaaaaaaaa"), "CRT"); // (its own name)
+  assert.equal(R.nameTaken("crt 2", reviews, "r-cccccccccc"), true);
+  assert.equal(R.nameTaken("Fatigue", reviews, ""), false);
+  assert.equal(R.nameTaken("", reviews, ""), false);
+});

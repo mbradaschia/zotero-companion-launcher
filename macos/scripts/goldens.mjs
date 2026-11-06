@@ -307,6 +307,10 @@ function cases() {
   add("searchEditRows/save", "searchEditRows", "save", "", "dynamic capabilities");
   add("searchEditRows/rename", "searchEditRows", "rename", "New name", "a:teece");
   add("searchEditRows/query", "searchEditRows", "query", "a:teece y:2000..", "a:teece");
+  add("searchEditRows/taken", "searchEditRows", "save", "teece ", "a:teece", false, searches, "");
+  add("searchEditRows/rename-own", "searchEditRows", "rename", "Teece", "a:teece", false, searches, "s2");
+  add("searchNameTaken/case", "searchNameTaken", searches, " CAPABILITIES", "");
+  add("searchNameTaken/itself", "searchNameTaken", searches, "Capabilities", "s1");
   add("pickerRows/all", "pickerRows", "", true, []);
   add("pickerRows/typed", "pickerRows", "yea", false, []);
   add("pickerValueRows/tags", "pickerValueRows", fixture("facets-tag").values, "", COLOR, false);
@@ -523,6 +527,11 @@ function cases() {
   add("reviewParse/title-first", "reviewParse", JSON.stringify({ name: "x", columns: [{ id: "year" }, { id: "title", hidden: true }], lines: 9, source: { type: "tag", title: "to-read" } }), "r-abcdefghij");
   add("reviewSourceName/query", "reviewSourceName", { type: "query", query: "teece" });
   add("reviewSourceName/tag", "reviewSourceName", { type: "tag", title: "to-read" });
+  const named = [{ id: "r-aaaaaaaaaa", name: "CRT" }, { id: "r-bbbbbbbbbb", name: "CRT 2" }];
+  add("reviewNameTaken/other", "reviewNameTaken", " crt", named, "r-cccccccccc");
+  add("reviewNameTaken/itself", "reviewNameTaken", "CRT", named, "r-aaaaaaaaaa");
+  add("reviewUniqueName/next", "reviewUniqueName", "CRT", named, "r-cccccccccc");
+  add("reviewUniqueName/free", "reviewUniqueName", "Fatigue", named, "r-cccccccccc");
   add("reviewScope/query", "reviewScope", { type: "query", query: "teece" }, []);
   add("reviewScope/saved", "reviewScope", { type: "search", key: "s1", title: "Old" }, [{ id: "s1", name: "Capabilities", query: "dynamic capabilities" }]);
   add("reviewScope/saved-gone", "reviewScope", { type: "search", key: "s1", title: "Old", query: "dc" }, []);

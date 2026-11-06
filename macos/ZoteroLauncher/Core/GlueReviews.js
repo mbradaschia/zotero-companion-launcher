@@ -6,6 +6,9 @@ function GlueReviews(RV) {
     reviewText: function (review, now) { return RV.reviewText(review, now || "") },
     reviewNew: function (source, ctx, now) { return RV.newReview(source || {}, ctx || {}, now || "") },
     reviewSourceName: function (source) { return RV.sourceName(source || {}) },
+    // No two tables named the same: whether another table has the name; the name, or "name 2"… when it's taken.
+    reviewNameTaken: function (name, reviews, exceptId) { return RV.nameTaken(name, reviews || [], exceptId || "") },
+    reviewUniqueName: function (name, reviews, exceptId) { return RV.uniqueName(name, reviews || [], exceptId || "") },
     // ⌘T on a list with a review already: its id (the newest changed), else "".
     reviewFor: function (reviews, source) { return RV.reviewFor(reviews || [], source || {}) },
     // A review's source as the launcher's search scope (Glue.searchBody's) and query; `gone`: its saved search deleted.

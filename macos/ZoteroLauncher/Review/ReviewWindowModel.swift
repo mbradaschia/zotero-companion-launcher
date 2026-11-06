@@ -197,7 +197,10 @@ final class ReviewWindowModel: ObservableObject {
             change { r in for k in ["columns", "sort", "group", "lines", "panel", "heights"] { if let v = l[k] { r[k] = v } } }
             if !Set(columnIds(review)).isSubset(of: had) { send() } // a column added from Columns: its cells (other tables' answers too)
         case "rename":
-            if let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty { change { $0["name"] = n } }
+            guard let n = (m["name"] as? String)?.trimmingCharacters(in: .whitespaces), !n.isEmpty else { return }
+            // (no two tables named the same)
+            if otherNameTaken(n) { return refused("“\(n)” is taken by another table: pick another name") }
+            change { $0["name"] = n }
         case "delete": // Delete this table… (asked in the page first): its file to the Trash, its window closed
             guard let files else { return }
             do {
@@ -284,10 +287,27 @@ final class ReviewWindowModel: ObservableObject {
         preview = nil
         let oldName = review.flatMap { r in try? launcher.core?.glue("reviewSourceName", [r["source"] ?? [:]], as: String.self) }
         change { r in
-            if oldName == nil || r["name"] as? String == oldName { r["name"] = (try? self.launcher.core?.glue("reviewSourceName", [s], as: String.self)) ?? r["name"] }
+            if oldName == nil || r["name"] as? String == oldName {
+                let name = (try? self.launcher.core?.glue("reviewSourceName", [s], as: String.self)) ?? r["name"] as? String ?? ""
+                r["name"] = self.freeName(name) // (another table's name: "name 2")
+            }
             r["source"] = s
         }
         search()
+    }
+
+    // The other tables (not this one), as their files are now.
+    private var otherReviews: [[String: Any]] {
+        guard let core = launcher.core, let files else { return [] }
+        return files.list(core).filter { $0["id"] as? String != id }
+    }
+
+    private func otherNameTaken(_ name: String) -> Bool {
+        (try? launcher.core?.glue("reviewNameTaken", [name, otherReviews, id], as: Bool.self)) ?? false
+    }
+
+    private func freeName(_ name: String) -> String {
+        (try? launcher.core?.glue("reviewUniqueName", [name, otherReviews, id], as: String.self)) ?? name
     }
 
     // ⌘S in the source's box: the query saved as a search (the launcher's, ⌘S there), and the table's source.
@@ -295,6 +315,8 @@ final class ReviewWindowModel: ObservableObject {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return }
         if launcher.syncFolderGone || launcher.paths?.readOnly == true { return refused("Not saved: " + launcher.syncFolderAway) } // (searches.json)
+        let named = name.trimmingCharacters(in: .whitespaces).isEmpty ? q : name.trimmingCharacters(in: .whitespaces)
+        if launcher.searchNameTaken(named) { return refused("“\(named)” is taken by another saved search: pick another name") }
         guard launcher.saveSearches("addSearch", [name, q, false, launcher.nowMs]), let s = launcher.savedSearches.last, let id = s["id"] as? String else {
             return refused("Couldn't save the search")
         }
