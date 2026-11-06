@@ -59,6 +59,48 @@ test("bigDoc: 240 units of twelve sentences of twelve words, deterministic, abou
   assert.ok(pages >= 70 && pages <= 80, "pages " + pages)
 })
 
+test("fakePaper: three US Letter pages of lines, boxes 0 to 1, the stamp set vertically, skim- / ming and OCR- / free at line ends", () => {
+  const p = F.fakePaper()
+  assert.equal(p.pages.length, 3)
+  assert.deepEqual(p.sizes, [[612, 792], [612, 792], [612, 792]])
+  assert.deepEqual(F.fakePaper(), p, "the same every time")
+  for (const pg of p.pages) {
+    assert.deepEqual(pg.size, [612, 792])
+    for (const l of pg.lines) {
+      assert.equal(l.t, l.w.map((w) => w[0]).join(" "))
+      for (const w of l.w) for (const v of w.slice(1)) assert.ok(v >= 0 && v <= 1)
+      assert.ok(l.s > 0 && (l.f === 0 || l.f === 1) && l.lb >= 0 && l.lb <= l.w.length)
+    }
+    assert.ok(pg.lines.some((l) => l.t === String(pg.n)), "page " + pg.n + " has its number")
+  }
+  const words = (n) => p.pages[n - 1].lines.reduce((a, l) => a.concat(l.w), [])
+  const stamp = words(1).filter((w) => w[0] === "arXiv:2601.01234v1")[0]
+  assert.ok((stamp[4] - stamp[2]) * 792 > (stamp[3] - stamp[1]) * 612, "the stamp's words are taller than wide")
+  const at = (n, t) => words(n).findIndex((w) => w[0] === t)
+  const w1 = words(1), w2 = words(2)
+  assert.ok(at(1, "skim-") >= 0 && at(1, "ming") >= 0 && w1[at(1, "ming")][2] > w1[at(1, "skim-")][2], "ming starts the next line")
+  assert.ok(at(2, "OCR-") >= 0 && w2[at(2, "free")][2] > w2[at(2, "OCR-")][2], "free starts the next line")
+  assert.equal(p.meta.title, "Folding a Paper: A Small Synthetic Study")
+  assert.deepEqual(p.meta.authors, ["Rivera, Ana", "Okafor, Ben"])
+  assert.equal(p.meta.lang, "en")
+  assert.deepEqual(p.expected.sections.map((s) => s.id), ["abstract", "S1", "S2", "S2.SS1", "bib", "A1", "Sx"])
+  assert.equal(p.expected.sections.reduce((n, s) => n + s.units.length, 0), 14)
+  assert.equal(F.fakePaper({ pages: 40 }).pages.length, 40)
+  assert.deepEqual(F.fakePaper({ scan: true }).pages.map((pg) => pg.lines.length), [0, 0, 0])
+  assert.deepEqual(F.fakePaper({ scan: true, empty: [2] }).pages.map((pg) => pg.lines.length > 0), [true, false, true])
+  assert.deepEqual(F.fakePaper({ columns: 1 }).expected.sections.map((s) => s.units.map((u) => u.text)), p.expected.sections.map((s) => s.units.map((u) => u.text)))
+})
+
+test("bigSection: 95 units of one twelve-word sentence, deterministic", () => {
+  const b = F.bigSection()
+  const us = b.sections[0].units
+  assert.equal(us.length, 95)
+  assert.deepEqual(us.slice(0, 2).map((u) => u.id), ["S1.p1", "S1.p2"])
+  for (const u of us) assert.equal(u.sentences[0].replace(/\.$/, "").split(" ").length, 12)
+  assert.deepEqual(F.bigSection(), b)
+  assert.equal(F.bigSection(40).sections[0].units.length, 40)
+})
+
 test("blankPage: a white US Letter page as a data URL", () => {
   const u = F.blankPage(3)
   assert.ok(u.startsWith("data:image/svg+xml"))
@@ -69,8 +111,17 @@ test("blankPage: a white US Letter page as a data URL", () => {
 
 test("no fixture or fold test holds the gallery paper's text (SPEC 59)", () => {
   const files = [path.join(__dirname, "fold-fixture.js"), ...fs.readdirSync(__dirname).filter((f) => /^fold-.*\.js$/.test(f)).map((f) => path.join(__dirname, f))]
-  const dir = path.join(__dirname, "fixtures", "fold-reader")
-  for (const f of fs.readdirSync(dir)) files.push(path.join(dir, f))
+  const walk = (dir) => {
+    for (const f of fs.readdirSync(dir)) {
+      const p = path.join(dir, f)
+      if (fs.statSync(p).isDirectory()) walk(p)
+      else files.push(p)
+    }
+  }
+  walk(path.join(__dirname, "fixtures", "fold-reader"))
+  const synthetic = path.join(__dirname, "..", "..", "ZoteroLauncherTests", "Fixtures", "synthetic")
+  for (const f of ["fold-plan.json", "fold-stream.jsonl"]) files.push(path.join(synthetic, f))
+  files.push(path.join(__dirname, "..", "..", "runner", "lib", "fold.mjs"))
   files.push(path.join(__dirname, "..", "..", "scripts", "fold-reader-check.mjs"))
   // (and the reader's own code and its XCTest: no name from that paper as an example either)
   const reader = path.join(__dirname, "..", "..", "ZoteroLauncher", "Reader")
