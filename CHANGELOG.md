@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.33`)
 
 - **The Lists panel.** A column on the left of the launcher lists every kind of list it knows, each with its papers'
   count: *Favorites*, *Saved searches*, *Quick lists* (Recent, Open in Zotero, Pinned papers, Unfiled, No PDF),
@@ -25,14 +25,9 @@ bridge and the prompt runner share one version.
 - **Its keys.** ⌘L gives the panel the keys: ↑↓ move, →← open or fold, ↵ show the list, p a favorite, ⌃⇧↑↓ move a
   section, esc back to the results. Folded sections, favorites and the order are in `view.json` (both Macs alike).
   Settings › General › *Lists panel* turns it off (and the badges back on).
-
-### The Zotero bridge (next)
-
-- **Collections come with their place in the tree.** `/facets` for `collection` returns each collection's `key`,
-  `parentKey` and `libraryID`, so the Lists panel builds the tree from data instead of splitting names on " / ".
-- **`POST /collection/add`** puts a paper into a collection (the Lists panel's drop): `{ key, libraryID, item: { key,
-  libraryID } }` → `{ added, collection }`. Only into a collection of the paper's own library; a read-only library
-  refuses with its name; a paper already there answers `added: false`.
+- **When Zotero isn't answering** the lists still show and open; a ⚠ row says there are no counts.
+- **The collection tree needs the bridge 0.2.7** (attached to this release); with an older one, collections are
+  nested by their names.
 
 ### The Mac app (`macos-v0.4.32`)
 
@@ -623,6 +618,16 @@ bridge and the prompt runner share one version.
 - **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
   nightly build. Signed ad hoc, not notarized.
 
+## [0.2.7] - 2026-11-06
+
+### Added
+
+- **Collections come with their place in the tree.** `/facets` for `collection` returns each collection's `key`,
+  `parentKey` and `libraryID`, so the Lists panel builds the tree from data instead of splitting names on " / ".
+- **`POST /collection/add`** puts a paper into a collection (the Lists panel's drop): `{ key, libraryID, item: { key,
+  libraryID } }` → `{ added, collection }`. Only into a collection of the paper's own library; a read-only library
+  refuses with its name; a paper already there answers `added: false`.
+
 ## [0.2.6] - 2026-10-29
 
 ### Added
@@ -1100,7 +1105,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.3...v0.2.4
