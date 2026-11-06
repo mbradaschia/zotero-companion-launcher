@@ -147,6 +147,7 @@ final class LauncherModel: ObservableObject {
     }
     var openChat: (PaperRef, String) -> Void = { _, _ in } // a paper's chat window, on a past chat or its latest (LauncherPanel's ChatWindows)
     var openReviewWindow: (String) -> Void = { _ in } // a review table's window, by the review's id (LauncherPanel's ReviewWindows)
+    var openFoldReader: (PaperRef) -> Void = { _ in } // a paper's fold reader window (LauncherPanel's FoldWindows)
     var reviewsRefresh: () -> Void = {} // the open review tables drawn again (the taxonomies read again)
     var reviewsSearch: () -> Void = {} // the open review tables' sources searched again (reviewsPapersChanged)
     var reviewsSearchTimer: Timer?

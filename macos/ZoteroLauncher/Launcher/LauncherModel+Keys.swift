@@ -342,6 +342,10 @@ extension LauncherModel {
             }
             if c == "l" { revealSelected(); return true }
             if c == "p" { togglePinSelected(); return true }
+            if c == "v", let r = selectedSearchRow, r.isPaper { // the fold reader, on the highlighted paper
+                openFoldReaderChecked(PaperRef(key: r.key, libraryID: r.libraryID, title: r.title, itemType: r.itemType))
+                return true
+            }
             return false
         }
         // a note's keys, wherever the highlighted row is a note (a paper's menu, Notes, Processes)
@@ -355,6 +359,7 @@ extension LauncherModel {
         if c == "P" && ViewKind.menuPin.contains(store.view) { toggleMenuOther(); return true }
         if c == "p" { togglePinOfMenu(); return true } // under the menu (its files): the paper
         if c == "l" { finish("reveal", attachment: nil); return true }
+        if c == "v" { openFoldReaderForMenu(); return true } // its fold reader, in its own window
         if let kind = paper[c], details != nil {
             if kind == store.view { return true } // already there
             quickAction = kind

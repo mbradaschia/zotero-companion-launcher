@@ -591,6 +591,25 @@ function cases() {
   add("listsPanel/empty", "listsPanel", {}, [], [], [], settings, null);
   add("listsPanel/folded-and-ordered", "listsPanel", listFacets, listSearches, [], listTax, settings, { folded: { "tax:theory": false, status: true }, order: ["status"] });
   add("listsMoveSection/down", "listsMoveSection", {}, "searches", 1);
+
+  // the fold reader (docs/fold-reader): marks.json read and written, a cached link map checked, the menu's row
+  const foldMark = { id: "m-abc123def0", kind: "note", unit: "S1.p1.1", from: 3, to: 5, quote: "papers each week", text: "Check this", created: "2026-11-06T10:00:00.000Z", updated: "2026-11-06T10:00:00.000Z" };
+  const foldStore = { format: "zl-fold-marks", version: 1, paper: "1:ABCD1234", doc: { id: "pdf-fixture0001", lang: "en" }, marks: [foldMark] };
+  add("foldMarksText/one", "foldMarksText", foldStore);
+  add("foldMarksText/not-a-store", "foldMarksText", {});
+  add("foldMarksParse/back", "foldMarksParse", Glue.foldMarksText(foldStore).text);
+  add("foldMarksParse/bad-mark", "foldMarksParse", JSON.stringify(Object.assign({}, foldStore, { marks: [foldMark, Object.assign({}, foldMark, { id: "bad" })] })));
+  add("foldMarksParse/damaged", "foldMarksParse", "{ half");
+  const foldDoc = { id: "pdf-fixture0001", lang: "en", levels_made: "2026-11-01T09:00:00" }, foldPdf = { bytes: 12345, modified: "2026-11-01T10:00:00Z", pages: 2 };
+  const foldLinks = { format: "zl-fold-links", version: 1, doc: foldDoc, pdf: foldPdf, coverage: { linked: 1, total: 1 }, crops: [[0.06, 0.05, 0.94, 0.95], [0.06, 0.05, 0.94, 0.95]], map: { "S1.p1.1": { page: 1, boxes: [[0.1, 0.2, 0.8, 0.25]] } } };
+  add("foldLinksValid/good", "foldLinksValid", foldLinks, foldDoc, foldPdf);
+  add("foldLinksValid/another-pdf", "foldLinksValid", foldLinks, foldDoc, Object.assign({}, foldPdf, { bytes: 1 }));
+  const foldPaper = (o) => Object.assign({ item: { key: "ABCD1234", libraryID: 1, itemType: "journalArticle", title: "A paper" }, attachments: [{ key: "ATTACH01", libraryID: 1, exists: true, contentType: "application/pdf", readerType: "pdf", filename: "a.pdf" }], notes: [], tags: [], library: { libraryID: 1, type: "user" } }, o || {});
+  add("foldFirstPdf/one", "foldFirstPdf", foldPaper());
+  add("foldMenuRow/paper", "foldMenuRow", foldPaper());
+  add("foldMenuRow/no-pdf", "foldMenuRow", foldPaper({ attachments: [] }));
+  add("foldMenuRow/group", "foldMenuRow", foldPaper({ library: { libraryID: 4, type: "group" } }));
+  add("foldMenuRow/note", "foldMenuRow", foldPaper({ item: { key: "ABCD1234", libraryID: 1, itemType: "note" } }));
   return list;
 }
 

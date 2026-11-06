@@ -60,6 +60,7 @@ final class LauncherController: NSObject, NSWindowDelegate {
     private let noteWindows = NoteWindows()
     private let chatWindows = ChatWindows()
     private let reviewWindows = ReviewWindows()
+    let foldWindows = FoldWindows()
     let reviewShelf = ReviewShelf() // (the menu bar's Review Tables)
     private var monitor: Any?
     private var windowedSink: AnyCancellable?
@@ -116,6 +117,10 @@ final class LauncherController: NSObject, NSWindowDelegate {
         model.openReviewWindow = { [weak self] id in
             guard let self else { return }
             self.reviewWindows.show(id, launcher: self.model)
+        }
+        model.openFoldReader = { [weak self] paper in
+            guard let self else { return }
+            self.foldWindows.show(paper, launcher: self.model)
         }
         reviewShelf.read = { [weak self] in self?.model.reviewList() ?? [] }
         model.reviewsRefresh = { [weak self] in self?.reviewWindows.refreshAll() }

@@ -271,6 +271,21 @@ says so.
 - **⌃⌘S and ⌘L with the panel off** say where to turn it on (Settings › General › Lists panel), so the key isn't dead.
 - **Zotero not answering:** the lists still show and open; a ⚠ row says *No counts: Zotero isn't answering*.
 
+## The fold reader
+
+- **One name:** *Read with folds* (the menu row, `v`), the window *Read · <citation>*; its five levels are *Full*,
+  *Brief*, *Key*, *Takeaway*, *Topic*, the last three written by TextFold's model and marked so (a dashed rule and a
+  sparkle on the dial, `written by AI` in the footer). Users read "levels", never "zoom" for them.
+- **Keys:** `1` to `5` a level, `-` and `=` coarser and finer, ⌘ scroll over the text a level, `j` `k` a paragraph,
+  `↵` open it in place, esc fold back (then hide the bar), `⌥⌘P` the PDF, `⌥⌘M` the margin, `?` the keys; the
+  window's own, as the review table's: ⌘W close, ⌘- ⌘+ ⌘0 text size, ⌘R look TextFold up again. esc never closes it.
+- **Never colour alone** in the reader: pressed is a border, selected a bar and a tint, the paragraph followed on the
+  PDF dashed where selected is solid, a highlight a fill and an underline, a role a shape as well as its colour.
+- **Its states** (SPEC section 9) take the text pane: a title line, one sentence, at most one button (`Try again` or
+  `Fold it with TextFold`); the PDF still shows when there is one. Only that button spends TextFold's model.
+- **Kept on this Mac:** highlights, notes and questions (`<runnerState>/fold-reader/`), the levels and panes
+  (`ZLFoldPrefs`), the text size and the window's size. Nothing in Zotero changes.
+
 ## Pills
 
 Three ways, as the QML: **on** (filled: the one chosen), **tag** (a tinted outline: something the
