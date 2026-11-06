@@ -441,6 +441,23 @@ var FoldCore = (function () {
     return ROLES.filter(function (r) { return have[r] })
   }
 
+  // The byline's names: TextFold's "Last, First" list, or Zotero's string as the bridge cites it ("Sirmon",
+  // "Sirmon & Hitt", "Sirmon et al.") or as a list ("Eloundou, Tyna; Manning, Sam"): surnames, four, then et al.
+  function byline(authors) {
+    var names = []
+    ;(Array.isArray(authors) ? authors : [authors]).forEach(function (a) {
+      String(a === null || a === undefined ? "" : a).split(";").forEach(function (n) {
+        n = n.trim()
+        if (!n) return
+        if (/ et al\.?$| & /.test(n)) return names.push(n)
+        var c = n.indexOf(",")
+        names.push((c > 0 ? n.slice(0, c) : n).trim())
+      })
+    })
+    names = names.filter(Boolean)
+    if (names.length === 1) return names[0]
+    return names.length > 4 ? names.slice(0, 4).join(", ") + " et al." : names.join(", ")
+  }
   function plainText(ps) { return ps.map(function (p) { return p.t + p.sp }).join("").trim() }
 
   // A unit's topic words (its chip's text).
@@ -815,7 +832,7 @@ var FoldCore = (function () {
   return {
     LEVELS: LEVELS, ROLES: ROLES, SHAPES: SHAPES, LIMITS: LIMITS, level: level, role: role,
     tokenize: tokenize, norm: norm, lcsPairs: lcsPairs, splitSentences: splitSentences, locateTopic: locateTopic, headWords: headWords,
-    check: check, model: model, pieces: pieces, font: font, plainText: plainText, topicText: topicText,
+    check: check, model: model, pieces: pieces, font: font, plainText: plainText, byline: byline, topicText: topicText,
     topicCards: topicCards, filterRuns: filterRuns, rolesOf: rolesOf, linksOf: linksOf,
     pdfNorm: pdfNorm, indexWords: indexWords, unitWords: unitWords, locateUnit: locateUnit, crops: crops, linkMap: linkMap,
     coverageText: coverageText, linksFile: linksFile, linksValid: linksValid,

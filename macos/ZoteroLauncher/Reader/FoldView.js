@@ -125,6 +125,7 @@ var FoldView = (function () {
     var order = null // the rows shown, in order (follow's binary search reads their places live)
     var fitW = { pdf: 470, margin: true, marginW: 220 } // what the window's width allows of the widths kept (fit())
     var rove = null // the one paragraph whose controls are Tab stops
+    var levelAnchor = null, moved = true // the reading line's paragraph when the levels began to change, until the reader moves
     var quietUntil = 0, followTimer = null, followAt = 0, marksTimer = null, flashTimer = null, wheelAcc = 0, chunkTimer = null
     var boxEls = {} // a unit's boxes on the pages: [button]
     function post(type, payload) { host.post(type, payload || {}) }
@@ -140,9 +141,9 @@ var FoldView = (function () {
     var panes = el("div", { class: "panes" })
     var text = el("div", { id: "text", role: "document", "aria-label": "Paper text", tabIndex: 0 })
     var selbar = el("div", { class: "selbar", role: "toolbar", "aria-label": "Selected text", hidden: true })
-    var bHl = button("", "Highlight · h", [icon("highlight"), el("span", { text: "Highlight" })], { "aria-pressed": "false", "aria-keyshortcuts": "h" })
-    var bNote = button("", "Note · n", [icon("note"), el("span", { text: "Note" })], { "aria-keyshortcuts": "n" })
-    var bAsk = button("", "Ask · c", [icon("chat"), el("span", { text: "Ask" })], { "aria-keyshortcuts": "c" })
+    var bHl = button("", "Highlight · h", [icon("highlight")], { "aria-pressed": "false", "aria-keyshortcuts": "h" })
+    var bNote = button("", "Note · n", [icon("note")], { "aria-keyshortcuts": "n" })
+    var bAsk = button("", "Ask · c", [icon("chat")], { "aria-keyshortcuts": "c" })
     ;[bHl, bNote, bAsk].forEach(function (b) { b.addEventListener("mousedown", function (e) { e.preventDefault() }); selbar.appendChild(b) })
     var banner = el("div", { class: "banners" })
     var statePanel = el("div", { class: "state", hidden: true })
@@ -180,8 +181,7 @@ var FoldView = (function () {
     function paperTitle() { return (S.d && S.d.paper && S.d.paper.title) || (S.m && S.m.title) || "Untitled" }
     function bylineText() {
       var p = (S.d && S.d.paper) || {}
-      var authors = (S.m && S.m.authors.length ? S.m.authors : p.authors || []).map(function (a) { return String(a).split(",")[0].trim() }).filter(Boolean)
-      var who = authors.length > 4 ? authors.slice(0, 4).join(", ") + " et al." : authors.join(", ")
+      var who = C.byline(S.m && S.m.authors.length ? S.m.authors : p.authors || [])
       var year = p.year || (S.m && S.m.date ? S.m.date.slice(0, 4) : "")
       var pages = S.d && S.d.pdf && S.d.pdf.pages ? S.d.pdf.pages + (S.d.pdf.pages === 1 ? " page" : " pages") : ""
       return [who, year, p.publication || "", pages].filter(function (x) { return x }).join(" · ")
@@ -339,7 +339,7 @@ var FoldView = (function () {
     function hasPdf() { return !!(S.d && S.d.pdf && !S.d.pdf.problem) }
     function pdfShown() { return S.pdfOn && S.level !== "topic" && !!(S.d && S.d.pdf) && !(S.d.pdf.problem === "no-pdf") }
     function updateTools() {
-      C.LEVELS.forEach(function (L) { if (dialBtns[L.id]) dialBtns[L.id].setAttribute("aria-pressed", L.id === S.level ? "true" : "false") })
+      C.LEVELS.forEach(function (L) { var b = dialBtns[L.id]; if (b) { b.setAttribute("aria-pressed", L.id === S.level ? "true" : "false"); b.disabled = !S.m } })
       var p = S.m && S.m.provenance
       var aiTip = p && p.local ? "Not written by a model yet: the paper's first sentences" : "Written by AI (" + [p && p.model, p && fmtDate(p.levelsMade)].filter(Boolean).join(", ") + ")"
       if (capAi) { capAi.title = aiTip; capAi.lastChild.textContent = aiTip }
@@ -401,6 +401,7 @@ var FoldView = (function () {
     function buildColumn() {
       clear(column)
       rows = {}
+      rove = null
       boxEls = {}
       var mg = el("button", { type: "button", class: "mgrip", title: "Resize the margin. ← → resize, double-click resets.", "aria-label": "Resize the margin. ← → resize, double-click resets." }, [el("span", { "aria-hidden": "true" })])
       dragger(mg, function () { return fitW.marginW }, function (start, dx) { setMarginW(start - dx) }, function (d) { setMarginW(S.marginW + d) }, function () { setMarginW(220) }, "marginWidth")
@@ -481,7 +482,7 @@ var FoldView = (function () {
       var sh
       if (L === "full") sh = el("span", { class: "shape", role: "img", "aria-label": u.role, title: u.role, text: C.SHAPES[u.role] })
       else {
-        sh = button("shape", "Open this paragraph in full (" + u.role + ")", [C.SHAPES[u.role]], { "aria-keyshortcuts": "Enter" })
+        sh = button("shape", "Open this paragraph in full (" + u.role + ")", [C.SHAPES[u.role]], { "aria-keyshortcuts": "Enter", "data-rove": true, tabIndex: roving(uid) })
         sh.addEventListener("click", function () { openUnit(uid) })
       }
       r.ubox.replaceChild(sh, r.shape)
@@ -503,6 +504,21 @@ var FoldView = (function () {
       drawMargin(uid)
       r.row.style.containIntrinsicSize = ""
     }
+    // One paragraph's controls are Tab stops (the selected one's, else the first's): j and k move between paragraphs,
+    // Tab into the one you're on, not through every paragraph's.
+    function roving(uid) {
+      if (!rove || !rows[rove] || !rows[rove].row.parentNode) rove = S.sel || (order || (order = rowsInOrder()))[0] || null
+      return uid === rove ? 0 : -1
+    }
+    function setRove(uid) {
+      if (!uid || uid === rove || !rows[uid]) return
+      var was = rove
+      rove = uid
+      ;[was, uid].forEach(function (id) {
+        if (!id || !rows[id]) return
+        Array.prototype.forEach.call(rows[id].row.querySelectorAll("[data-rove]"), function (b) { b.tabIndex = id === uid ? 0 : -1 })
+      })
+    }
     function unitMarks(uid) { return S.store.marks.filter(function (k) { return k.unit === uid && !k.lost && (k.kind === "note" || k.kind === "ask") }) }
     function drawMargin(uid) {
       var r = rows[uid], L = unitLevel(uid)
@@ -518,6 +534,8 @@ var FoldView = (function () {
       C.linksOf(S.m, uid).forEach(function (l) {
         var b = el("button", { type: "button", class: "mlink", title: "Go to " + (l.where || "it") + (l.topic ? ": " + l.topic : "") }, ["→ ", el("span", { class: "rel", text: l.rel }), " " + l.where + (l.topic ? " · " + l.topic : "")])
         b.setAttribute("aria-label", l.label.replace(/^→ /, ""))
+        b.setAttribute("data-rove", "")
+        b.tabIndex = roving(uid)
         b.addEventListener("click", function () { select(l.to, true) })
         r.aside.appendChild(b)
       })
@@ -624,6 +642,13 @@ var FoldView = (function () {
       }
       return null
     }
+    // (a kept paragraph still at the reading line's half of the pane: nothing scrolled it away since)
+    function near(a) {
+      var r = a && rows[a.uid] && rows[a.uid].row.parentNode && rows[a.uid].row.getBoundingClientRect()
+      if (!r) return false
+      var cr = text.getBoundingClientRect()
+      return r.bottom > cr.top - 400 && r.top < cr.top + cr.height * 0.5
+    }
     function keepAnchor(a) {
       if (!a || !rows[a.uid]) return
       var cr = text.getBoundingClientRect(), r = rows[a.uid].row.getBoundingClientRect()
@@ -710,6 +735,11 @@ var FoldView = (function () {
       hideBar()
       var snap = column.hidden && grid.hidden ? null : snapshot()
       if (aim) snap = { rects: snap ? snap.rects : {}, anchor: { uid: aim, off: 120 } }
+      // (1 to 4 and back puts the paragraph back where it was: each change keeps the first change's paragraph, not the
+      // one that happens to cross the line at a coarser level, until the reader scrolls)
+      else if (snap && snap.anchor && !moved && near(levelAnchor)) snap.anchor = levelAnchor
+      if (snap && snap.anchor) levelAnchor = snap.anchor
+      moved = false
       var was = S.level
       S.opened = {}
       S.level = id
@@ -720,14 +750,19 @@ var FoldView = (function () {
       drawFoot()
       columnLayout()
       if (id === "topic") {
+        var from = snap && snap.anchor
+        if (was !== "topic") S.fromTopic = from
         column.hidden = true; grid.hidden = false
         drawGrid()
+        var card = from && S.m.units[from.uid] && grid.querySelector('.tcard[data-s="' + cssId(S.m.units[from.uid].section) + '"]')
+        text.scrollTop = card ? Math.max(0, text.scrollTop + card.getBoundingClientRect().top - text.getBoundingClientRect().top - 16) : 0
         animate(snap)
         settled()
       } else {
         grid.hidden = true; column.hidden = false
-        if (was === "topic" && !aim) snap = { rects: snap ? snap.rects : {}, anchor: null }
-        if (was === "topic") text.scrollTop = 0
+        if (was === "topic" && !aim) snap = { rects: snap ? snap.rects : {}, anchor: S.fromTopic && rows[S.fromTopic.uid] ? S.fromTopic : null }
+        if (was === "topic" && !(snap && snap.anchor)) text.scrollTop = 0
+        if (was === "topic") levelAnchor = snap && snap.anchor
         drawNear(snap && snap.anchor)
         animate(snap)
         drainSoon()
@@ -753,6 +788,8 @@ var FoldView = (function () {
       keepAnchor(snap.anchor)
       animate(snap)
       refreshMarks()
+      quietUntil = Date.now() + 900
+      scrollPdfTo(uid, true)
     }
     function foldBack(uid) {
       var ids = uid ? [uid] : Object.keys(S.opened)
@@ -774,6 +811,7 @@ var FoldView = (function () {
       var before = [S.sel, S.follow]
       S.sel = uid; S.follow = uid
       before.concat([uid]).forEach(function (id) { if (id) { rowClass(id); boxClass(id) } })
+      setRove(uid)
     }
     function select(uid, fromPdf) {
       if (!S.m || !S.m.units[uid]) return
@@ -790,6 +828,7 @@ var FoldView = (function () {
       if (!r) return
       if (!r.drawn) drawUnit(uid)
       quietUntil = Date.now() + 900
+      moved = true
       var cr = text.getBoundingClientRect(), d = r.row.getBoundingClientRect().top - cr.top - 110
       // near: a smooth scroll; far: a jump, the paragraph then kept at 110 px while the rows it passed draw
       if (Math.abs(d) <= text.clientHeight && !reduced()) return text.scrollTo({ top: text.scrollTop + d, behavior: "smooth" })
@@ -810,6 +849,11 @@ var FoldView = (function () {
     }
     try { new ResizeObserver(held).observe(column) } catch (e) { /* (an old engine: the frames after settled() only) */ }
     ;["wheel", "pointerdown", "keydown", "touchstart"].forEach(function (t) { text.addEventListener(t, function () { hold = null }, { passive: true }) })
+    var SCROLL_KEYS = ["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "j", "k"]
+    text.addEventListener("wheel", function (e) { if (!e.metaKey && !e.ctrlKey) moved = true }, { passive: true })
+    text.addEventListener("pointerdown", function () { moved = true }, { passive: true })
+    text.addEventListener("touchstart", function () { moved = true }, { passive: true })
+    document.addEventListener("keydown", function (e) { if (SCROLL_KEYS.indexOf(e.key) >= 0 && !e.metaKey) moved = true }, true)
     function stepSelect(d) {
       var ids = rowsInOrder()
       if (!ids.length || S.level === "topic") return
@@ -951,18 +995,20 @@ var FoldView = (function () {
     }
     function setMarginW(w) {
       S.marginW = clamp(Math.round(w), 160, 420)
+      S.marginAsked = S.marginOn // (a width given is asked for: the PDF makes room)
       fit(true)
     }
-    // What the window's width allows of the widths kept: the text keeps 420 px; first the margin folds away (unless it
-    // was asked for), then the PDF narrows (to 240), then the margin (to 160). The kept widths come back as it widens.
+    // What the window's width allows of the widths kept: the paper's words keep 420 px (the text pane less 110: its
+    // padding, the bars' lane, the role shape). First the margin folds away (unless it was asked for), then the PDF
+    // narrows (to 220), then the margin (to 160). The kept widths come back as the window widens.
     var NEED = 420
     function fit(force) {
       var paneW = panes.clientWidth || window.innerWidth || 1360, pdfOn = pdfShown()
-      var body = function (pw, on, mw) { return Math.min(696, paneW - (pdfOn ? pw + 7 : 0) - 56 - 14 - (on ? mw + 24 : 0)) }
+      var body = function (pw, on, mw) { return Math.min(696, paneW - (pdfOn ? pw + 7 : 0) - 110 - (on ? mw + 24 : 0)) }
       var pw = S.pdfW, on = S.marginOn && !!S.m, mw = S.marginW
       if (body(pw, true, mw) >= NEED) S.marginAsked = false
       if (on && !S.marginAsked && body(pw, on, mw) < NEED) on = false
-      if (pdfOn && body(pw, on, mw) < NEED) pw = Math.max(240, Math.min(pw, pw - (NEED - body(pw, on, mw))))
+      if (pdfOn && body(pw, on, mw) < NEED) pw = Math.max(220, Math.min(pw, pw - (NEED - body(pw, on, mw))))
       if (on && body(pw, on, mw) < NEED) mw = Math.max(160, mw - (NEED - body(pw, on, mw)))
       var was = fitW
       if (!force && was.pdf === pw && was.margin === on && was.marginW === mw) return
@@ -1039,7 +1085,7 @@ var FoldView = (function () {
       ;[zo, zl, zi, zf, cov, pl, close].forEach(function (x) { pbar.appendChild(x) })
       if (info.problem) {
         pagesEl.appendChild(el("div", { class: "pmsg", text: info.problem === "unreadable" ? "Couldn't open the PDF: " + (info.detail || "it can't be read") : PDF_PROBLEMS[info.problem] || info.problem }))
-        ;[zo, zi, zf].forEach(function (x) { x.disabled = true })
+        ;[zo, zl, zi, zf].forEach(function (x) { x.hidden = true })
         updateZoom()
         return
       }
@@ -1195,6 +1241,8 @@ var FoldView = (function () {
       if (e.key === "Enter" && S.sel && (t === text || t === document.body || !t || t.tagName !== "BUTTON")) { e.preventDefault(); openUnit(S.sel); return }
     }
     document.addEventListener("keydown", onKey)
+    document.addEventListener("keydown", function (e) { if (e.key === "Tab" || e.key.indexOf("Arrow") === 0) root.classList.add("kbd") }, true)
+    document.addEventListener("pointerdown", function () { root.classList.remove("kbd") }, true)
     text.addEventListener("wheel", function (e) {
       if (!e.ctrlKey && !e.metaKey) return
       e.preventDefault()
@@ -1217,7 +1265,7 @@ var FoldView = (function () {
       if (S.menu && menuEl && !menuEl.contains(e.target) && !(e.target.closest && e.target.closest(".pill"))) closeMenu(false)
       if (!selbar.contains(e.target) && !selbar.hidden) hideBar()
     })
-    window.addEventListener("resize", function () { fit(); pageSrcs() })
+    window.addEventListener("resize", function () { moved = true; fit(); pageSrcs() })
 
     function setRole(r) {
       S.role = r
@@ -1251,7 +1299,8 @@ var FoldView = (function () {
       var same = !!S.d && S.paperId === pid
       var m = null, st = d.state || { kind: d.doc ? "ready" : "loading" }
       if (d.doc) { var mm = C.model(d.doc); if (mm.problem) st = mm.problem; else m = mm }
-      var prevM = S.m, sameDoc = same && !!prevM && !!m && prevM.id === m.id && prevM.lang === m.lang && prevM.provenance.levelsMade === m.provenance.levelsMade
+      var prevM = S.m, sameDoc = same && !!prevM && !!m && prevM.id === m.id && prevM.lang === m.lang && prevM.provenance.levelsMade === m.provenance.levelsMade &&
+        prevM.provenance.local === m.provenance.local && prevM.order.length === m.order.length
       var pdfSame = same && JSON.stringify((S.d && S.d.pdf) || null) === JSON.stringify(d.pdf || null)
       var keep = same && !!prevM && !column.hidden ? readingAnchor(text.getBoundingClientRect()) : null
       var mine = same && S.storeOwn ? S.store : null
@@ -1264,8 +1313,8 @@ var FoldView = (function () {
         if (!(m && S.sel && m.units[S.sel])) { S.sel = null; S.follow = null }
       }
       if (!same) { S.opened = {}; S.sel = null; S.follow = null; S.role = null }
-      S.pick = null; S.pages = []
-      if (!(sameDoc && pdfSame)) { S.wordsDone = false; S.links = null }
+      // (the link map is the payload's, else the words' that follow it: the app sends them again when it has none)
+      S.pick = null; S.pages = []; S.wordsDone = false; S.links = null
       var empty = function () { return C.emptyStore({ paper: pid, doc: S.m ? { id: S.m.id, lang: S.m.lang } : {} }) }
       if (S.m) {
         if (!(sameDoc && mine)) {
@@ -1335,6 +1384,7 @@ var FoldView = (function () {
       pageSrcs()
       updateZoom()
       if (S.sel) boxClass(S.sel)
+      if (S.sel || S.follow) scrollPdfTo(S.sel || S.follow, false)
     }
     function paper(o) {
       if (!S.d || !o) return

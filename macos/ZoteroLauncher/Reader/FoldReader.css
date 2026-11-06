@@ -83,17 +83,19 @@ button:disabled { cursor: default; opacity: .5; }
 /* ---- the panes */
 .panes { display: flex; min-height: 0; position: relative; }
 #text { flex: 1; min-width: 0; overflow: auto; position: relative; outline: none; }
-#text:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+#text:focus-visible { outline: none; }
+.kbd #text:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .column { position: relative; margin: 0 auto; padding: 22px 28px max(160px, 60vh); }
-.sec { font-weight: 600; font-size: 18px; margin: 22px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line2); }
+.sec { font-weight: 600; font-size: 18px; margin: 22px var(--mgw, 0px) 10px 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line2); }
 .sec.d2, .sec.d3 { font-size: 15px; }
 .sec .n { color: var(--faint); margin-right: 8px; font-weight: 500; }
-.stake { color: var(--muted); font-size: 14px; line-height: 1.5; margin: -4px 0 12px 28px; font-family: var(--f-ui); }
-.u { display: flex; gap: 24px; margin-bottom: 12px; }
+.stake { color: var(--muted); font-size: 14px; line-height: 1.5; margin: -4px var(--mgw, 0px) 12px 42px; font-family: var(--f-ui); }
+/* (a row's left 14 px hold its bars: the solid one of the selection, the dashed tick of the paragraph followed) */
+.u { display: flex; gap: 24px; margin-bottom: 12px; padding-left: 14px; }
 .u.nomargin { gap: 10px; }
 .u.lv-full { margin-bottom: 16px; } .u.lv-takeaway { margin-bottom: 7px; }
 .ubody { flex: 1; min-width: 0; }
-.ubox { display: flex; gap: 10px; width: 100%; border-radius: 8px; padding: 2px 4px; margin-left: -4px; position: relative; border-left: 3px solid transparent; }
+.ubox { display: flex; gap: 10px; width: 100%; border-radius: 8px; padding: 2px 4px; position: relative; border-left: 3px solid transparent; }
 .u.sel .ubox { background: var(--sel); border-left: 3px solid var(--ink); }
 .u.fol:not(.sel) .ubox { border-left: 3px dashed transparent; }
 .u.fol:not(.sel) .ubox::before { content: ""; position: absolute; left: -9px; top: 4px; bottom: 4px; border-left: 2px dashed var(--accent); }
@@ -109,12 +111,12 @@ button.shape:hover { background: var(--line2); }
 .body.ui.tk4 { font-size: 14.5px; }
 .pc { display: inline-block; transform-origin: 0 0; white-space: pre-wrap; }
 .pc.ink { color: var(--ink); } .pc.muted { color: var(--muted); } .pc.strong { color: var(--ink); font-weight: 600; }
-.pc.cite { color: var(--accent); text-decoration: underline dotted; text-underline-offset: 3px; }
+.pc.cite { color: var(--cite, var(--accent)); text-decoration: underline dotted; text-underline-offset: 3px; }
 .pc.math { font-family: var(--f-mono); font-size: .9em; }
 .pc.hl { background: var(--hl); box-shadow: inset 0 -2px 0 var(--hl-line); }
 .ncount { flex-shrink: 0; align-self: flex-start; margin-top: 4px; display: inline-flex; align-items: center; gap: 3px; border: 1px solid var(--line); background: var(--paper);
   border-radius: 6px; padding: 1px 6px; font-size: 11.5px; color: var(--ink); }
-.stub { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; margin: 0 0 10px; padding: 4px 6px; border: 1px dashed var(--line); border-radius: 6px; }
+.stub { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; margin: 0 0 10px 14px; padding: 4px 6px; border: 1px dashed var(--line); border-radius: 6px; }
 .stub .shapes { letter-spacing: 2px; color: var(--ink); }
 .stub button { margin-left: auto; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 1px 8px; }
 
@@ -170,7 +172,7 @@ aside.mg { flex-shrink: 0; font-size: 11.5px; line-height: 1.45; color: var(--mu
 /* the PDF pane */
 #grip { width: 7px; flex-shrink: 0; border: 0; padding: 0; background: var(--line2); cursor: col-resize; display: grid; place-items: center; }
 #grip span { width: 2px; height: 28px; border-radius: 2px; background: var(--faint); display: block; }
-#pdf { flex-shrink: 0; max-width: calc(100% - 320px); display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+#pdf { flex-shrink: 0; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .pbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--chrome); color: var(--muted); font-size: 12px; }
 .zb { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; width: 26px; height: 22px; padding: 0; display: inline-grid; place-items: center; color: var(--ink); }
 .zb[aria-pressed="true"] { border: 1.5px solid var(--ink); }
