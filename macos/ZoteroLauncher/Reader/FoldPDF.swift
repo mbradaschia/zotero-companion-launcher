@@ -91,49 +91,57 @@ final class FoldPDF: @unchecked Sendable {
     // A page's words: runs of non-space characters of its text, each with the union of its characters' boxes (empty
     // ones skipped), normalized to the crop box in display orientation: [[text, x0, y0, x1, y1]].
     static func words(of page: PDFPage) -> [[Any]] {
-        guard let text = page.string, !text.isEmpty else { return [] }
-        let s = text as NSString
         let box = page.bounds(for: .cropBox)
         let rot = rotation(page)
-        let spaces = CharacterSet.whitespacesAndNewlines
         var out: [[Any]] = []
-        // Line by line, as PDFKit lays the page out: its page text can run one line's last word into the next line's
-        // first with no space between (and a character's box then belongs to the other line), so a word never
-        // crosses a line, and only the boxes on the word's own line count.
-        func scan(_ range: NSRange, line: CGRect?) {
-            var start = -1
-            var rect = CGRect.null
-            func flush(_ end: Int) {
-                defer { start = -1; rect = .null }
-                guard start >= 0, !rect.isNull, out.count < maxWords else { return }
-                let word = s.substring(with: NSRange(location: start, length: end - start))
-                var row: [Any] = [word]
-                for v in normalize(rect, in: box, rotation: rot) { row.append(v) }
-                out.append(row)
-            }
-            for i in range.location..<NSMaxRange(range) {
-                let c = s.character(at: i)
-                let space = UnicodeScalar(c).map { spaces.contains($0) } ?? false // (half a surrogate pair: part of a word)
-                if space { flush(i); continue }
-                if start < 0 { start = i }
-                let r = page.characterBounds(at: i)
-                guard r.width > 0 || r.height > 0 else { continue }
-                if let line = line, r.midY < line.minY - 1 || r.midY > line.maxY + 1 { continue }
-                rect = rect.union(r)
-            }
-            flush(NSMaxRange(range))
+        func add(_ word: String, _ rect: CGRect) {
+            guard out.count < maxWords, !rect.isNull, !word.isEmpty else { return }
+            var row: [Any] = [word]
+            for v in normalize(rect, in: box, rotation: rot) { row.append(v) }
+            out.append(row)
         }
+        // Line by line, as PDFKit lays the page out: CI showed page.string running one line's last word into the
+        // next line's first, and its indices then disagreeing with characterBounds(at:). Each line's own text, its
+        // range and its box agree with each other.
         let lines = page.selection(for: page.bounds(for: .mediaBox))?.selectionsByLine() ?? []
         for line in lines {
-            let bounds = line.bounds(for: page)
-            for k in 0..<line.numberOfTextRanges(on: page) {
-                let r = line.range(at: k, on: page)
-                guard r.location != NSNotFound, r.length > 0, NSMaxRange(r) <= s.length else { continue }
-                scan(r, line: bounds)
+            guard let text = line.string, !text.isEmpty else { continue }
+            let r = line.bounds(for: page)
+            guard r.width > 0, r.height > 0 else { continue }
+            let t = text as NSString
+            let spaces = CharacterSet.whitespacesAndNewlines
+            func space(_ k: Int) -> Bool { UnicodeScalar(t.character(at: k)).map { spaces.contains($0) } ?? false }
+            // the line's own place in the page's characters: when its text is exactly that range, each character's
+            // box is PDFKit's own (only boxes on this line count); otherwise words are spread along the line
+            let range = line.numberOfTextRanges(on: page) == 1 ? line.range(at: 0, on: page) : NSRange(location: NSNotFound, length: 0)
+            let exact = range.location != NSNotFound && range.length == t.length
+            var k = 0
+            while k < t.length {
+                if space(k) { k += 1; continue }
+                var j = k
+                while j < t.length, !space(j) { j += 1 }
+                var rect = CGRect.null
+                if exact {
+                    for c in k..<j {
+                        let b = page.characterBounds(at: range.location + c)
+                        if (b.width > 0 || b.height > 0), b.midY >= r.minY - 1, b.midY <= r.maxY + 1 { rect = rect.union(b) }
+                    }
+                }
+                if rect.isNull {
+                    let n = CGFloat(max(t.length, 1))
+                    let x0 = r.minX + r.width * CGFloat(k) / n, x1 = r.minX + r.width * CGFloat(j) / n
+                    rect = CGRect(x: x0, y: r.minY, width: x1 - x0, height: r.height)
+                }
+                add(t.substring(with: NSRange(location: k, length: j - k)), rect)
+                k = j
             }
         }
-        if lines.isEmpty { scan(NSRange(location: 0, length: s.length), line: nil) }
         return out
+    }
+
+    // How many lines PDFKit finds on a page (the tests' diagnostics)
+    static func lineCount(of page: PDFPage) -> Int {
+        page.selection(for: page.bounds(for: .mediaBox))?.selectionsByLine().count ?? 0
     }
 
     // A box in page space (PDF points, origin bottom left) as 0 to 1 of the crop box, origin top left, turned as the

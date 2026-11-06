@@ -388,7 +388,7 @@ final class FoldReaderTests: XCTestCase {
         // (when it doesn't add up, the words that aren't one of the eight say how they came apart or together)
         let first = FoldPDF.words(of: try XCTUnwrap(doc.page(at: 0))).compactMap { $0.first as? String }
         let vocab: Set<String> = ["fold", "paper", "level", "reader", "words", "page", "brief", "key"]
-        XCTAssertEqual(count, 40 * 45 * 12, "page 1: \(first.count) words; odd ones: \(first.filter { !vocab.contains($0) }.prefix(12))")
+        XCTAssertEqual(count, 40 * 45 * 12, "page 1: \(FoldPDF.lineCount(of: try XCTUnwrap(doc.page(at: 0)))) lines, \(first.count) words; odd ones: \(first.filter { !vocab.contains($0) }.prefix(12))")
         XCTAssertLessThan(took, 2, "words of 40 pages: \(took) s")
         _ = pdf.pngNow(1, width: 600) // (the document warm)
         let t1 = Date()
