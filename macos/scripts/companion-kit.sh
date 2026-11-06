@@ -8,10 +8,11 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 DEST=${1:?usage: companion-kit.sh DEST}
 rm -rf "$DEST"
-mkdir -p "$DEST/macos/companion" "$DEST/macos/js" "$DEST/macos/ZoteroLauncher/Core" "$DEST/macos/ZoteroLauncher/Review" "$DEST/macos/runner/lib" "$DEST/contracts"
+mkdir -p "$DEST/macos/companion" "$DEST/macos/js" "$DEST/macos/ZoteroLauncher/Core" "$DEST/macos/ZoteroLauncher/Review" "$DEST/macos/ZoteroLauncher/Reader" "$DEST/macos/runner/lib" "$DEST/contracts"
 cp -R "$ROOT/companion/server.mjs" "$ROOT/companion/lib" "$ROOT/companion/web" "$DEST/macos/companion/"
 cp -R "$ROOT/js/lib" "$ROOT/js/vendor" "$DEST/macos/js/"
 cp "$ROOT"/ZoteroLauncher/Core/Glue*.js "$DEST/macos/ZoteroLauncher/Core/"
 cp "$ROOT/ZoteroLauncher/Review/ReviewCore.js" "$DEST/macos/ZoteroLauncher/Review/"
+cp "$ROOT/ZoteroLauncher/Reader/FoldCore.js" "$DEST/macos/ZoteroLauncher/Reader/"
 cp "$ROOT/runner/lib/paths.mjs" "$ROOT/runner/lib/bridge.mjs" "$ROOT/runner/lib/atomic.mjs" "$DEST/macos/runner/lib/"
 cp "$ROOT/../contracts/Paths.js" "$ROOT/../contracts/Merge.js" "$DEST/contracts/"
