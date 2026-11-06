@@ -1,7 +1,7 @@
 # The fold reader: plan
 
-What gets built in which phase, and R1's tasks in order. The behaviour is in [SPEC.md](SPEC.md), the test data in
-[FIXTURE.md](FIXTURE.md). Each phase ends with its tests green, `scripts/check-boundaries.sh` and `macos/scripts/parity.sh`
+What gets built in which phase, and R1's and R5's tasks in order. The behaviour is in [SPEC.md](SPEC.md) (R1) and
+[R5-SPEC.md](R5-SPEC.md) (R5, which replaces SPEC's TextFold sections), the test data in [FIXTURE.md](FIXTURE.md). Each phase ends with its tests green, `scripts/check-boundaries.sh` and `macos/scripts/parity.sh`
 passing, a UX consistency review (`.claude/agents/ux-consistency-reviewer.md`) and Marcelo's look.
 
 ## Phases
@@ -9,12 +9,12 @@ passing, a UX consistency review (`.claude/agents/ux-consistency-reviewer.md`) a
 | Phase | Adds | Needs first |
 |---|---|---|
 | **R1** | The reader window from a paper's menu (`Read with folds`, `v`); the five levels and the morph; header with status, task and taxonomies; PDF pane (PDFKit images, crop, zoom, swap, divider, link map by 3-word runs, coverage, follow); highlights, notes and Ask kept on this Mac; margin; every TextFold state; node tests, the Playwright check, XCTest | nothing |
-| **R2** | Ask sent to the paper's chat window with the question and its passage as the draft (`ChatWindowModel.draft`, the user presses ↵); TextFold's own `/api/pdfmap` for `pdf-` docs (better boxes, and scans); several PDFs (a picker); group libraries (their group id from the bridge, a new field); find in the text (⌘F); stop a fold; the reader's tokens in `ThemeTests` (contrast of `--hl`, `--sel` in every theme); a translation picker (`lang`) | Marcelo's yes on the chat draft wording |
+| **R2** | Ask sent to the paper's chat window with the question and its passage as the draft (`ChatWindowModel.draft`, the user presses ↵); ~~TextFold's own `/api/pdfmap` for `pdf-` docs~~ (obsolete: R5 reads the PDF itself, its boxes exact); several PDFs (a picker); group libraries (their group id from the bridge, a new field); find in the text (⌘F); ~~stop a fold~~ (in R5); the reader's tokens in `ThemeTests` (contrast of `--hl`, `--sel` in every theme); a translation picker (`lang`) | Marcelo's yes on the chat draft wording |
 | **R3** | Marks synced between machines: a `reader/` entry in `contracts/Paths.js` `SYNCED`, its fixtures, SYNC-FORMAT.md, a by-mark merge in `Merge.js` (tombstones as todos), anchors with the sentence's text so another machine's fold can re-anchor them | Marcelo's yes (a contract change, both launchers' tests) |
 | **R4** | Highlights and notes into Zotero: a bridge route to write annotations (or a child note) for one paper, never in bulk, with a confirm view naming the paper and the count, and an undo; the docked chat in the reader (ReviewWindowModel+Chat.swift's slot layout made shared) | Marcelo's yes for each kind of write |
-| **R5** | Our own folding with the app's runner: a `fold` command writing the TextFold format's subset of SPEC 5.1 from the PDF's text (the runner's extraction), stored in the reader's folder; TextFold optional | the runner's extraction quality on scans |
+| **R5** | Our own folding, TextFold gone ([R5-SPEC.md](R5-SPEC.md)): the PDF read by PDFKit into the doc (`FoldMake.js`, exact boxes); the runner's `fold` command (TextFold's prompts, ported) on the prompts model; stop, finish, retry, fold again; every state without TextFold; `TextFoldClient.swift` deleted. Pulled ahead of R2 to R4 | nothing (scans and CJK stay out) |
 | **R6** | The Lists rail: the collapsed 46 pt rail of PR #84 on the reader window's left, its entries opening the launcher's places | PR #84 merged |
-| **R7** | The Omarchy move: FoldCore.js, FoldView.js, FoldReader.css to `shared/` (decision D3, PR #83); the Omarchy launcher's own host (a WebEngineView bridge with `post` and `window.FR`) | PR #83 merged |
+| **R7** | The Omarchy move: FoldCore.js, FoldMake.js, FoldView.js, FoldReader.css to `shared/`, `runner/lib/fold.mjs` copied into `daemon/`, the lines payload made from `pdftotext -bbox-layout` (R5-SPEC 9) (decision D3, PR #83); the Omarchy launcher's own host (a WebEngineView bridge with `post` and `window.FR`) | PR #83 merged |
 
 ## R1: tasks in order
 
@@ -142,9 +142,106 @@ TextFold running: open from the menu and with `v`, every level with `1` to `5`, 
 the window, the PDF following the text, and the not-running, not-folded and folding states by stopping TextFold or
 picking an unfolded paper. Nothing in Zotero changes during the check (the item's modified date stays the same).
 
+## R5: tasks in order
+
+One agent, one session, after R1 (it is next: R2 to R4 wait). Each task ends with its tests passing. Criteria are
+R5-SPEC section 11's (`R5-n`). Node tests run with `cd macos && node --test js/tests/*.test.js`.
+
+### 1. The fixture
+
+- `macos/js/tests/fold-fixture.js`: `fakePaper(options)`, `bigSection(n)` (FIXTURE.md 6.2); the files of FIXTURE.md
+  6 (`fold-input.json`, `replies/`; `made.json`, `prompt-S1.txt`, `prompt-section.txt` once their code exists, tasks
+  2 and 4).
+- Proves it: `fold-fixture.test.js` grows: `fakePaper()` gives 3 pages, the stamp's boxes taller than wide, the
+  `skim-` and `OCR-` line ends, `columns: 1` the same blocks; `pages: 40` gives 40; no fixture file holds a real
+  paper's text (R5-45).
+
+### 2. FoldMake: lines to the doc
+
+- `macos/ZoteroLauncher/Reader/FoldMake.js` (R5-SPEC 3.2 to 3.4, its attribution header), FoldCore's small changes
+  (3.3: token offsets, apparatus pieces, the coverage line, `not a fold doc`).
+- Proves it: `macos/js/tests/fold-make.test.js`: R5-1 to R5-15; `made.json` written, read against FIXTURE 6.3, kept.
+
+### 3. FoldMake: merge, input, view
+
+- `foldInput`, `foldMerge`, `foldView`, `costText`; `GlueFold.js` wrappers and the new `foldMenuRow` details;
+  `JSCore.swift` loads `FoldMake.js` after `FoldCore.js`.
+- Proves it: `fold-make.test.js` R5-26; `fold-glue.test.js` updated (the row's details).
+
+### 4. The runner's `fold`
+
+- `macos/runner/lib/fold.mjs` (R5-SPEC 4, Appendix A, its attribution header), `fold` and `fold --plan` in
+  `bin/oma-zotero-prompt.mjs` (the usage header too), `package.json` 0.3.0, `macos/runner/TEXTFOLD-LICENSE.txt`.
+- Proves it: `macos/js/tests/fold-run.test.js`: R5-16 to R5-25 (fakes only; the end-to-end case as
+  `review-run.test.js` runs its command, with a fake provider).
+
+### 5. The page
+
+- `FoldView.js`: 6.1's states, 6.2's banners, the Fold button and its confirm, the section lines, the AI caption,
+  `FR.fold`, apparatus hidden, the keys panel's ⌘R; `FoldBridge.js` exports `fold`; `FoldReader.css` for the button
+  and the confirm on the existing tokens.
+- `macos/scripts/fold-reader-check.mjs`: criterion 40's table replaced by R5-27 and R5-28, then R5-29 to R5-34.
+- Proves it: the check all `ok`; `fold-page.test.js` (no new colour token; the `ai` and `stop` icons are
+  ReviewGrid.js's paths).
+
+### 6. Native: lines, maker, store
+
+- `FoldPDF.swift`: `lines`, `lines(of:)`, `sha256()`; `FoldMaker.swift`; `FoldStore.swift`: `fold.json`, a damaged
+  `doc.json` kept aside.
+- Proves it: `FoldReaderTests.swift`: R5-35, R5-36, R5-37, the `lines` budget of R5-40.
+
+### 7. Native: the window
+
+- `FoldWindowModel.swift`: TextFold out; open, identity, extraction, plan, fold, merge, stop, close (R5-SPEC 5.1);
+  `TextFoldClient.swift` and its tests deleted; `FixtureRunner.swift` and its two fixture files.
+- Proves it: `FoldReaderTests.swift`: R5-38, R5-39, R5-40, R5-41.
+
+### 8. Words and records
+
+- `macos/VENDORED.md` (rows for `FoldMake.js` and `runner/lib/fold.mjs`), `TEXTFOLD-LICENSE.txt`'s first lines,
+  `macos/docs/ux-conventions.md`'s fold reader section (levels written by the prompts model, `Fold with AI` the only
+  thing that spends it, ⌘R reads again), `macos/README.md`'s Reading with folds, `CHANGELOG.md`'s next entry
+  ("the reader folds a paper itself, from its PDF, with your AI model"), none naming TextFold but as attribution.
+- Proves it: R5-42 to R5-45 read; then R5's done means, below.
+
+## R5 risks to watch
+
+- **PDFKit's fonts.** `attributedString` may lack font attributes or report a matrix-scaled size; the height fallback
+  covers it, and R5-35 pins it on CI. Headings found only by size get weaker then: numbered headings still work.
+- **Layouts the rules don't know** (three columns, sidebars, a figure's text read as paragraphs, a table set as
+  prose): the units are still the paper's words with exact boxes, only grouped worse. Tuning goes into FoldMake's
+  thresholds, kept by the synthetic criteria; each change recorded under Deviations, in an R5 group of its own.
+- **Cost and time.** A 40-page paper is about 15 calls; the plan says how many before anything is sent, and the price
+  when the provider lists one. Subscriptions (two at a time) are slower than API keys (four).
+- **Model replies.** Small local models miss the JSON more often: one repair, then that section keeps its first
+  sentences and can be retried; nothing breaks the doc.
+- **An old runner.** The app's runner updates itself when bundled newer; until then `fold` is unknown and the window
+  says `The AI features are older than the app`.
+- **R1 docs kept (D9)** use the word vote for links, with R1's coverage; Fold again replaces them.
+
+## R5 done means
+
+From the repository root, in this order, each passing:
+
+```sh
+(cd macos && node --test js/tests/*.test.js)          # R5-1 to R5-26 (and R1's node criteria still)
+node macos/scripts/fold-reader-check.mjs              # R5-27 to R5-34 and R1's other [pw] criteria
+scripts/check-boundaries.sh
+(cd macos && scripts/parity.sh --phase 3b --phase 4a --phase 4b --phase 5 --phase 6 --phase 7 --phase 8 --phase 9)
+(cd macos && xcodegen generate && xcodebuild test -project ZoteroLauncher.xcodeproj -scheme ZoteroLauncher \
+  -destination 'platform=macOS,arch=arm64' -only-testing:ZoteroLauncherTests/FoldReaderTests)
+                                                      # R5-35 to R5-41 (on macOS CI)
+```
+
+Then the `[read]` criteria, and a hand check on the Mac with a real two-column paper and a provider set up: open
+with `v`, the text and its first-sentence levels at once, the banner naming the model and the request count, Fold
+with AI filling sections as they come, Stop midway and Finish folding (Processes shows the run), Fold again's
+confirm, a key turned off (the `ai-key` banner), a scan, and no TextFold anywhere on screen. Nothing in Zotero
+changes (the item's modified date stays the same).
+
 ## Deviations
 
-Found while building R1; each keeps its criterion's intent.
+Found while building R1 (R5's go in a group of their own after these); each keeps its criterion's intent.
 
 - **`bigDoc` lays out as 74 pages**, not the 34 to 46 FIXTURE.md estimates (its words fill pages more thinly than
   the estimate assumed). The fixture test asserts 70 to 80; the budgets are measured on it as it is, so the check is
