@@ -38,7 +38,7 @@ test("14: garbleAll words: coverage under 30% and the warning", () => {
   const r = C.linkMap(m, g.pages, g.sizes)
   assert.deepEqual(r.coverage, { linked: 2, total: 8 })
   assert.equal(r.warn, true)
-  assert.equal(C.coverageText(r.coverage), "⚠︎ Linked 2 of 8 paragraphs (25%): this PDF may not be the text TextFold folded")
+  assert.equal(C.coverageText(r.coverage), "⚠︎ Linked 2 of 8 paragraphs (25%): this PDF may not be the one these levels were made from")
   const none = C.linkMap(m, [{ n: 1, words: [] }], [[612, 792]])
   assert.equal(none.noText, true)
   assert.deepEqual(none.crops, [[0.06, 0.05, 0.94, 0.95]])

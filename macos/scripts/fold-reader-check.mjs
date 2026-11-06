@@ -386,7 +386,7 @@ ok((await pg.textContent(".pbar .cover")) === "6 of 8 linked" && !(await cls(".p
 const gw = F.fakeWords(doc, { garbleAll: true });
 await load(full);
 await words(gw);
-ok((await pg.textContent(".pbar .cover")) === "⚠︎ Linked 2 of 8 paragraphs (25%): this PDF may not be the text TextFold folded" && (await cls(".pbar .cover")).includes(" warn "), "41 the garbled words: the coverage warning with ⚠");
+ok((await pg.textContent(".pbar .cover")) === "⚠︎ Linked 2 of 8 paragraphs (25%): this PDF may not be the one these levels were made from" && (await cls(".pbar .cover")).includes(" warn "), "41 the garbled words: the coverage warning with ⚠");
 await load(full);
 await words({ pages: [{ n: 1, words: [] }, { n: 2, words: [] }], sizes: fw.sizes });
 ok((await pg.textContent(".pbar .cover")) === "This PDF has no text layer (a scan): the panes can't be linked, but you can read both", "no-text: the scan's line");

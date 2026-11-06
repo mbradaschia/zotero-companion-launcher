@@ -1,4 +1,4 @@
-// The fold reader's logic (docs/fold-reader/SPEC.md sections 5 and 6.1): a TextFold doc read into a model, each
+// The fold reader's logic (docs/fold-reader/SPEC.md sections 5 and 6.1): a fold doc read into a model, each
 // level's pieces, the Topic cards, the role filter's runs, the PDF words indexed and each unit's place on the pages
 // (the link map), crops and coverage, and the marks (made, re-anchored, parsed, written). Pure: no window, no page,
 // no timers. Loaded by JavaScriptCore (Glue), the reader's page and Node, as plain ES5 (its regexes use the u flag).
@@ -39,6 +39,9 @@ var FoldCore = (function () {
 
   var LIMITS = { units: 5000, sentences: 400, tokens: 5000, bytes: 20 * 1024 * 1024 }
   var ID = /^[\w.-]{1,120}$/
+  // Units that are the paper's apparatus, not its argument: shown at Full only, never folded (R5-SPEC 3.3).
+  var APPARATUS = { reference: 1, footnote: 1, equation: 1 }
+  function apparatus(u) { return !!(u && APPARATUS[u.kind]) }
 
   // ---- tokens (tokens.py)
 
@@ -69,7 +72,7 @@ var FoldCore = (function () {
 
   function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k) }
 
-  // A sentence's tokens: { t, s (1: a space follows), k ("cite", "math" or absent) }.
+  // A sentence's tokens: { t, s (1: a space follows), k ("cite", "math" or absent), a, b (its characters' offsets) }.
   function tokenize(text) {
     var s = String(text == null ? "" : text), out = [], spans = []
     CITES.forEach(function (src) {
@@ -92,7 +95,7 @@ var FoldCore = (function () {
       off += part.length
     }
     return out.map(function (t) {
-      var o = { t: t.t, s: t.s }
+      var o = { t: t.t, s: t.s, a: t.at, b: t.end }
       if (t.k) o.k = t.k
       else if (spans.some(function (sp) { return t.at >= sp[0] && t.end <= sp[1] })) o.k = "cite"
       return o
@@ -193,7 +196,7 @@ var FoldCore = (function () {
 
   // A doc's problem, or null. bytes: its JSON text's size, when known.
   function check(doc, bytes) {
-    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return badFormat(doc, "not a TextFold doc")
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return badFormat(doc, "not a fold doc")
     if (doc.format !== "textfold/doc" || doc.version !== 0) return badFormat(doc, "format " + doc.format + " version " + doc.version)
     if (bytes && bytes > LIMITS.bytes) return badFormat(doc, "larger than 20 MB")
     if (!Array.isArray(doc.sections)) return badFormat(doc, "no sections")
@@ -269,7 +272,7 @@ var FoldCore = (function () {
       back = back || BACK_ID.test(s.id) || BACK_TITLE.test(str(s.title).trim())
       var take = tokenize(str(s.takeaway))
       var sec = { id: s.id, num: str(s.num), title: str(s.title), depth: s.depth === 2 || s.depth === 3 ? s.depth : 1, takeaway: str(s.takeaway),
-        takeToks: take, topic: str(s.topic), topicK: locateTopic(str(s.topic), take), back: back, units: [] }
+        takeToks: take, topic: str(s.topic), topicK: locateTopic(str(s.topic), take), back: back, made: s.made === "ai", model: str(s.model), units: [] }
       var us = Array.isArray(s.units) ? s.units : []
       for (var j = 0; j < us.length; j++) {
         var u = unitModel(us[j], s.id)
@@ -346,6 +349,7 @@ var FoldCore = (function () {
   function pieces(u, lv) {
     var L = level(lv)
     if (!L || !u) return []
+    if (L.id !== "full" && apparatus(u)) return []
     var id = u.id
     if (L.id === "full") {
       var brief = {}
@@ -408,9 +412,10 @@ var FoldCore = (function () {
           label: (showBack ? "▾ Hide" : "▸ Show") + " appendices and back matter (" + nBack + (nBack === 1 ? " section)" : " sections)") })
       }
       if (s.back && !showBack) return
-      if (!s.units.length) { out.push({ kind: "head", id: s.id, num: s.num, title: s.title }); return }
+      var own = s.units.filter(function (uid) { return !apparatus(m.units[uid]) })
+      if (!own.length) { out.push({ kind: "head", id: s.id, num: s.num, title: s.title }); return }
       out.push({ kind: "card", id: s.id, num: s.num, title: s.title, takeaway: s.takeaway, back: s.back,
-        chips: s.units.map(function (uid) { var u = m.units[uid]; return { unit: uid, role: u.role, shape: SHAPES[u.role], pieces: pieces(u, "topic") } }) })
+        chips: own.map(function (uid) { var u = m.units[uid]; return { unit: uid, role: u.role, shape: SHAPES[u.role], pieces: pieces(u, "topic") } }) })
     })
     return out
   }
@@ -620,7 +625,7 @@ var FoldCore = (function () {
   // The coverage line: "Linked 11 of 12 paragraphs"; under 30%: the warning (SPEC 9).
   function coverageText(c) {
     var pct = c.total ? Math.round(c.linked / c.total * 100) : 0
-    if (warnCoverage(c.linked, c.total)) return "⚠︎ Linked " + c.linked + " of " + c.total + " paragraphs (" + pct + "%): this PDF may not be the text TextFold folded"
+    if (warnCoverage(c.linked, c.total)) return "⚠︎ Linked " + c.linked + " of " + c.total + " paragraphs (" + pct + "%): this PDF may not be the one these levels were made from"
     return "Linked " + c.linked + " of " + c.total + " paragraphs"
   }
 
@@ -830,7 +835,7 @@ var FoldCore = (function () {
   }
 
   return {
-    LEVELS: LEVELS, ROLES: ROLES, SHAPES: SHAPES, LIMITS: LIMITS, level: level, role: role,
+    LEVELS: LEVELS, ROLES: ROLES, SHAPES: SHAPES, LIMITS: LIMITS, ID: ID, APPARATUS: APPARATUS, apparatus: apparatus, level: level, role: role,
     tokenize: tokenize, norm: norm, lcsPairs: lcsPairs, splitSentences: splitSentences, locateTopic: locateTopic, headWords: headWords,
     check: check, model: model, pieces: pieces, font: font, plainText: plainText, byline: byline, topicText: topicText,
     topicCards: topicCards, filterRuns: filterRuns, rolesOf: rolesOf, linksOf: linksOf,
