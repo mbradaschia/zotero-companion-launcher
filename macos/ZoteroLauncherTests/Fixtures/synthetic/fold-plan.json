@@ -1,0 +1,11 @@
+{
+ "model": "fixture:model",
+ "name": "Fixture model",
+ "provider": "Fixture",
+ "sections": 5,
+ "calls": 5,
+ "cached": 0,
+ "inputTokens": 4000,
+ "outputTokens": 900,
+ "costUsd": 0.01
+}

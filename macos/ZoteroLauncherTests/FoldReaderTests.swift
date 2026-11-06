@@ -23,7 +23,6 @@ final class FoldReaderTests: XCTestCase {
         bridge.answers["/search"] = { _ in .ok(typed) }
         bridge.answers["/item"] = { _ in .ok(item) }
         bridge.answers["/attachment"] = { _ in .error("the file is missing from disk") }
-        FoldStub.reset()
     }
 
     override func tearDown() async throws { try? FileManager.default.removeItem(at: home) }
@@ -32,12 +31,6 @@ final class FoldReaderTests: XCTestCase {
         let model = LauncherModel(bridge: bridge, desktop: FakeDesktop(), env: ["HOME": home.path, "hostname": "mac"], runner: FakeRunner(), fetcher: FakeFetcher())
         model.willShow(query: "")
         return model
-    }
-
-    private func stubClient(home: URL? = nil, env: [String: String] = [:]) -> TextFoldClient {
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [FoldStub.self]
-        return TextFoldClient(configuration: config, environment: env, home: home ?? self.home)
     }
 
     // ---- a PDF made here: known words at known places (CoreText), the second page turned 90°
@@ -143,7 +136,7 @@ final class FoldReaderTests: XCTestCase {
 
     // R5-35: the lines payload: sizes, bold, the run-in heading, the words in order, their boxes
     func testLinesGiveSizesBoldRunInHeadingsWordsAndBoxes() throws {
-        let paper = PaperPDF()
+        let paper = FixturePaper()
         let url = try paper.write(in: home)
         let doc = try XCTUnwrap(PDFDocument(url: url))
         XCTAssertEqual(doc.pageCount, 2)
@@ -202,7 +195,7 @@ final class FoldReaderTests: XCTestCase {
     // R5-36: FoldMaker on that PDF: FIXTURE 6.3's ids and kinds for the units it holds, each unit's boxes where its
     // words were drawn; an image-only PDF is a scan
     func testFoldMakerReadsThePaperIntoItsUnitsAndBoxesAndAScanIsAScan() throws {
-        let paper = PaperPDF()
+        let paper = FixturePaper()
         let url = try paper.write(in: home)
         let pdf = FoldPDF(url: url)
         guard case .success(let info) = pdf.openNow() else { return XCTFail("didn't open") }
@@ -230,7 +223,7 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(((made.links?["coverage"]) as? [String: Any])?["linked"] as? Int, 5)
 
         // two pages of a picture only: a scan
-        let scan = try PaperPDF.imageOnly(in: home)
+        let scan = try FixturePaper.imageOnly(in: home)
         let spdf = FoldPDF(url: scan)
         guard case .success(let sinfo) = spdf.openNow() else { return XCTFail("the scan didn't open") }
         let none = try maker.read(spdf.linesNow(), meta: paperMeta(scan, pages: sinfo.pages, sizes: sinfo.sizes))
@@ -252,7 +245,7 @@ final class FoldReaderTests: XCTestCase {
 
     // R5-37: the doc's identity; a touched file keeps it, another file is read again; a damaged doc.json kept aside
     func testTheDocsIdIsTheFilesHashAndATouchedFileKeepsItAndAnotherIsReadAgain() throws {
-        let paper = PaperPDF()
+        let paper = FixturePaper()
         let url = try paper.write(in: home)
         let data = try Data(contentsOf: url)
         let hex = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
@@ -353,108 +346,6 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldWebView.handler, "fold")
     }
 
-    // 52: where TextFold is
-    func testServerJsonIsReadInOrderOnlyLoopbackAndFallsBackTo3017() throws {
-        let data = home.appendingPathComponent("tfdata"), app = home.appendingPathComponent("Library/Application Support/TextFold")
-        try FileManager.default.createDirectory(at: data, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: app, withIntermediateDirectories: true)
-        XCTAssertEqual(stubClient().base().absoluteString, "http://127.0.0.1:3017", "nothing written: the default port")
-        try Data(#"{"format": "textfold/server", "version": 1, "url": "http://127.0.0.1:4555/", "port": 4555}"#.utf8).write(to: app.appendingPathComponent("server.json"))
-        XCTAssertEqual(stubClient().base().absoluteString, "http://127.0.0.1:4555")
-        try Data(#"{"url": "http://localhost:4666"}"#.utf8).write(to: data.appendingPathComponent("server.json"))
-        XCTAssertEqual(stubClient(env: ["TEXTFOLD_DATA": data.path]).base().absoluteString, "http://localhost:4666", "$TEXTFOLD_DATA first")
-        try Data(#"{"url": "http://example.com:4666"}"#.utf8).write(to: data.appendingPathComponent("server.json"))
-        XCTAssertEqual(stubClient(env: ["TEXTFOLD_DATA": data.path]).base().absoluteString, "http://127.0.0.1:4555", "another host's URL is refused")
-        for bad in ["https://127.0.0.1:3017", "http://10.0.0.2:3017", "http://127.0.0.1.example.com", "file:///tmp/x"] { XCTAssertNil(TextFoldClient.loopback(bad), bad) }
-        XCTAssertNotNil(TextFoldClient.loopback("http://[::1]:3017"))
-    }
-
-    // 52: every reply mapped to its state
-    func testEveryReplyMapsToItsState() {
-        func kind(_ f: TextFoldClient.Folded) -> String {
-            switch f {
-            case .job(let id): return "job:" + id
-            case .state(let s): return (s["kind"] as? String ?? "") + ((s["generate"] as? String).map { ":" + $0 } ?? "")
-            }
-        }
-        XCTAssertEqual(kind(TextFoldClient.readReply(200, ["ref": "2201.11903", "title": "T"], nil)), "folding:2201.11903")
-        XCTAssertEqual(kind(TextFoldClient.readReply(200, ["job": ["id": "j1", "pid": "pdf-a"], "via": "file"], nil)), "job:j1")
-        XCTAssertEqual(kind(TextFoldClient.readReply(200, ["needs": "engine", "upload": "pdf-a"], nil)), "needs-engine")
-        XCTAssertEqual(kind(TextFoldClient.readReply(400, ["error": "no-file"], nil)), "no-file")
-        XCTAssertEqual(kind(TextFoldClient.readReply(400, ["error": "no-fulltext"], nil)), "no-file")
-        XCTAssertEqual(kind(TextFoldClient.readReply(400, ["error": "bad-item"], nil)), "fold-failed")
-        XCTAssertEqual(kind(TextFoldClient.readReply(503, ["error": "api-off"], nil)), "zotero-off")
-        XCTAssertEqual(kind(TextFoldClient.readReply(0, nil, "refused")), "no-textfold")
-        func polled(_ job: [String: Any]) -> String {
-            switch TextFoldClient.jobState([job], id: "j1") {
-            case .running(let s): return "folding:" + (s["status"] as? String ?? "")
-            case .moved(let next): return "moved:" + next
-            case .done(let pid): return "done:" + pid
-            case .state(let s): return s["kind"] as? String ?? ""
-            }
-        }
-        XCTAssertEqual(polled(["id": "j1", "status": "queued"]), "folding:queued")
-        XCTAssertEqual(polled(["id": "j1", "status": "running", "stage": "levels", "done": 3, "total": 12]), "folding:running")
-        XCTAssertEqual(polled(["id": "j1", "status": "done", "pid": "pdf-a"]), "done:pdf-a")
-        XCTAssertEqual(polled(["id": "j1", "status": "moved", "next": "j2"]), "moved:j2")
-        XCTAssertEqual(polled(["id": "j1", "status": "error", "error": "no-model"]), "no-model")
-        XCTAssertEqual(polled(["id": "j1", "status": "error", "error": "needs-engine"]), "needs-engine")
-        XCTAssertEqual(polled(["id": "j1", "status": "error", "error": "boom"]), "fold-failed")
-        XCTAssertEqual(polled(["id": "j1", "status": "stopped"]), "fold-failed")
-    }
-
-    // 52: over HTTP (stubbed): the lookup, the fold, a moved job followed, no Origin sent
-    func testLookupAndFoldOverHTTPFollowMovedJobsAndSendNoOrigin() throws {
-        let doc: [String: Any] = ["format": "textfold/doc", "version": 0, "id": "pdf-abc", "lang": "en", "sections": [Any]()]
-        FoldStub.answer("/api/zotero") { _ in (200, ["ok": true, "library": "users/0"]) }
-        FoldStub.answer("/api/zotero/items") { _ in (200, [["key": "OTHERKEY", "paper": "pdf-zzz"], ["key": "P3NM4G92", "paper": "pdf-abc"]]) }
-        FoldStub.answer("/api/doc/pdf-abc") { _ in (200, doc) }
-        FoldStub.answer("/api/zotero/read") { _ in (200, ["job": ["id": "j1"], "via": "file"]) }
-        FoldStub.answer("/api/jobs") { _ in (200, [["id": "j1", "status": "moved", "next": "j2"], ["id": "j2", "status": "done", "pid": "pdf-abc"]]) }
-        let client = stubClient()
-        let base = URL(string: "http://127.0.0.1:3017")!
-
-        let up = expectation(description: "ping")
-        client.ping(base) { XCTAssertTrue($0); up.fulfill() }
-        let found = expectation(description: "found")
-        client.find(base, key: "P3NM4G92", title: "A title & more", cachedId: nil) { f in
-            if case .doc(let id, let d) = f { XCTAssertEqual(id, "pdf-abc"); XCTAssertEqual(d["id"] as? String, "pdf-abc") } else { XCTFail("no doc") }
-            found.fulfill()
-        }
-        wait(for: [up, found], timeout: 5)
-        let search = try XCTUnwrap(FoldStub.requests().first { $0.url?.path == "/api/zotero/items" })
-        XCTAssertEqual(search.url?.query, "lib=users/0&q=A%20title%20%26%20more")
-
-        let folded = expectation(description: "folded")
-        client.fold(base, key: "P3NM4G92") { f in
-            guard case .job(let id) = f else { XCTFail("no job"); return folded.fulfill() }
-            client.poll(base, job: id, each: { _ in }, cancelled: { false }) { f in
-                if case .doc(let id, _) = f { XCTAssertEqual(id, "pdf-abc") } else { XCTFail("no doc after the moved job") }
-                folded.fulfill()
-            }
-        }
-        wait(for: [folded], timeout: 5)
-        let read = try XCTUnwrap(FoldStub.requests().first { $0.url?.path == "/api/zotero/read" })
-        XCTAssertEqual(read.httpMethod, "POST")
-        XCTAssertEqual(FoldStub.bodies["/api/zotero/read"]?["item"] as? String, "users/0/P3NM4G92")
-        for r in FoldStub.requests() {
-            XCTAssertNil(r.value(forHTTPHeaderField: "Origin"), r.url?.path ?? "")
-            XCTAssertNil(r.value(forHTTPHeaderField: "Cookie"), r.url?.path ?? "")
-        }
-
-        // nothing answers: TextFold isn't running; a 503: it can't reach Zotero
-        FoldStub.reset()
-        FoldStub.answer("/api/zotero/items") { _ in (503, ["error": "not-running"]) }
-        let off = expectation(description: "off")
-        client.search(base, key: "P3NM4G92", title: "x") { f in
-            if case .state(let s) = f { XCTAssertEqual(s["kind"] as? String, "zotero-off") } else { XCTFail() }
-            off.fulfill()
-        }
-        let none = expectation(description: "none")
-        client.ping(base) { XCTAssertFalse($0); none.fulfill() }
-        wait(for: [off, none], timeout: 5)
-    }
-
     // 22
     func testADamagedMarksFileIsKeptAsideNeverOverwrittenAndWritesAreAtomic() throws {
         let model = launcher()
@@ -497,10 +388,8 @@ final class FoldReaderTests: XCTestCase {
     // 53
     func testThePagesMarksAreWrittenAndItsStatusGoesThroughTheLauncher() throws {
         let model = launcher()
-        FoldStub.answer("/api/zotero") { _ in (200, ["ok": true]) }
-        FoldStub.answer("/api/zotero/items") { _ in (200, [Any]()) }
         let paper = PaperRef(key: "P3NM4G92", libraryID: 1, title: "A paper", itemType: "journalArticle")
-        let window = FoldWindowModel(paper: paper, launcher: model, client: stubClient())
+        let window = FoldWindowModel(paper: paper, launcher: model)
         let page = FakeFoldPage()
         window.page = page
         window.handle(["type": "ready"])
@@ -526,6 +415,193 @@ final class FoldReaderTests: XCTestCase {
         window.handle(["type": "prefs", "level": "nonsense"])
         XCTAssertEqual(FoldWindowModel.prefs["level"] as? String, "key")
         UserDefaults.standard.removeObject(forKey: "ZLFoldPrefs")
+        window.windowClosing()
+    }
+
+    // ---- R5: the window's fold
+
+    private static let paperRef = PaperRef(key: "P3NM4G92", libraryID: 1, title: "A paper", itemType: "journalArticle")
+
+    // The main run loop turned until `cond` holds, or `timeout` seconds went by; whether it held.
+    private func until(_ timeout: TimeInterval = 10, _ cond: () -> Bool) -> Bool {
+        let end = Date().addingTimeInterval(timeout)
+        while !cond() && Date() < end { RunLoop.main.run(until: Date().addingTimeInterval(0.01)) }
+        return cond()
+    }
+
+    private func object(_ text: String?) -> [String: Any] {
+        (text.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]) ?? [:]
+    }
+
+    // R5-38: the plan and a fold with a fake runner: the stdin, the events into doc.json, links.json and fold.json,
+    // Stop and closing, 143, 127, an old runner, a fold.json left folding
+    func testThePlanAndAFoldStreamedFromAFakeRunnerAndEveryWayAFoldEnds() throws {
+        let model = launcher()
+        let runner = try XCTUnwrap(model.runner as? FakeRunner)
+        let pdfURL = try FixturePaper().write(in: home)
+        bridge.answers["/attachment"] = { _ in .ok(["path": pdfURL.path]) }
+        let plan: [String: Any] = ["model": "lab:m1", "name": "Lab model", "provider": "Lab", "sections": 3, "calls": 3, "cached": 0, "inputTokens": 900, "outputTokens": 300, "costUsd": 0.004]
+        runner.answers["fold"] = { _, _ in FakeRunner.json(plan) }
+        runner.holdStreams.insert("fold")
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until { page.folds.last?["calls"] as? Int == 3 }, "the plan on the page: \(page.folds.last ?? [:]), \(page.states.last ?? [:])")
+        let asked = try XCTUnwrap(runner.calls("fold").first)
+        XCTAssertEqual(Array(asked.argv.suffix(3)), ["fold", "--plan", "--quiet"])
+        let input = object(asked.stdin)
+        XCTAssertEqual(Set(input.keys), ["paper", "model", "force", "only", "doc"])
+        XCTAssertEqual(input["paper"] as? String, "1:P3NM4G92")
+        XCTAssertEqual(input["model"] as? String, "default")
+        XCTAssertEqual(((input["doc"] as? [String: Any])?["sections"] as? [[String: Any]])?.compactMap { $0["id"] as? String }, ["abstract", "S1", "S2"])
+        XCTAssertFalse((asked.stdin ?? "").contains("\"key\""), "no key in what the runner is sent")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "unfolded")
+        XCTAssertEqual(page.folds.last?["name"] as? String, "Lab model")
+        let store = try XCTUnwrap(window.store)
+        let docId = try XCTUnwrap(store.readJSON(FoldStore.doc)?["id"] as? String)
+        XCTAssertTrue(docId.hasPrefix("pdf-"))
+
+        // a fold, streamed: each section into doc.json, links.json and fold.json as it comes
+        window.handle(["type": "fold"])
+        let run = try XCTUnwrap(runner.streams.last)
+        let call = try XCTUnwrap(runner.calls("fold").last)
+        XCTAssertTrue(call.argv.contains("--quiet") && !call.argv.contains("--plan"), call.argv.joined(separator: " "))
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "folding")
+        XCTAssertEqual(store.readRun()?["status"] as? String, "folding")
+        run.emit(["type": "start", "model": "lab:m1", "name": "Lab model", "provider": "Lab", "sections": 3, "calls": 3, "cached": 0])
+        XCTAssertEqual(page.flashes.last, "Started: folding 3 sections with Lab model")
+        let unit: [String: Any] = ["id": "S1.p1", "role": "claim", "evidence": [0], "key": "Researchers read many papers each week.", "takeaway": "Researchers read many papers", "topic": "papers"]
+        run.emit(["type": "section", "id": "S1", "model": "lab:m1", "cached": false, "section": ["takeaway": "Readers skim many papers", "topic": "papers"], "units": [unit], "warnings": [Any]()])
+        let doc = try XCTUnwrap(store.readJSON(FoldStore.doc))
+        let s1 = (doc["sections"] as? [[String: Any]] ?? []).first { $0["id"] as? String == "S1" }
+        XCTAssertEqual(s1?["made"] as? String, "ai")
+        XCTAssertEqual((s1?["units"] as? [[String: Any]])?.first?["takeaway"] as? String, "Researchers read many papers")
+        let made = (doc["provenance"] as? [String: Any])?["levels_made"] as? String ?? ""
+        XCTAssertFalse(made.isEmpty)
+        XCTAssertEqual((store.readJSON(FoldStore.links)?["doc"] as? [String: Any])?["levels_made"] as? String, made, "links.json follows the doc")
+        XCTAssertEqual((store.readRun()?["sections"] as? [String: Any])?["S1"] as? String, "done")
+        XCTAssertEqual(page.folds.last?["done"] as? Int, 1)
+        run.emit(["type": "failed", "id": "S2", "error": "the reply has no JSON"])
+        run.emit(["type": "done", "folded": 1, "failed": 1, "stopped": "", "costUsd": 0.002, "models": ["lab:m1"]])
+        run.end()
+        XCTAssertEqual(store.readRun()?["status"] as? String, "partial")
+        XCTAssertEqual((store.readRun()?["errors"] as? [String: Any])?["S2"] as? String, "the reply has no JSON")
+        XCTAssertEqual(page.flashes.last, "Folding is done: 1 folded, 1 failed")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "partial")
+        XCTAssertEqual(page.folds.last?["failed"] as? [String], ["S2"])
+        XCTAssertEqual((page.loads.last?["fold"] as? [String: Any])?["kind"] as? String, "partial", "FR.load carries the fold")
+        XCTAssertEqual((page.loads.last?["doc"] as? [String: Any])?["id"] as? String, docId)
+
+        // Try it again: only the failed one, with fold.json's model; Stop: the stream stopped, 143, stopped
+        window.handle(["type": "fold", "only": ["S2"]])
+        let again = object(runner.calls("fold").last?.stdin)
+        XCTAssertEqual(again["only"] as? [String], ["S2"])
+        XCTAssertEqual(again["model"] as? String, "lab:m1", "one paper, one model")
+        let second = try XCTUnwrap(runner.streams.last)
+        window.handle(["type": "fold"]) // (ignored while a run goes)
+        XCTAssertTrue(runner.streams.last === second)
+        window.handle(["type": "stop"])
+        XCTAssertTrue(second.stopped)
+        XCTAssertEqual(store.readRun()?["status"] as? String, "stopped")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "stopped")
+        XCTAssertEqual(page.flashes.last, "Stopped: 1 of 3 sections folded, the rest show first sentences")
+
+        // Fold again: everything, with the default model; closing the window stops it
+        window.handle(["type": "fold", "force": true])
+        let forced = object(runner.calls("fold").last?.stdin)
+        XCTAssertEqual(forced["force"] as? Bool, true)
+        XCTAssertEqual(forced["model"] as? String, "default")
+        let third = try XCTUnwrap(runner.streams.last)
+        XCTAssertFalse(third === second)
+        window.windowClosing()
+        XCTAssertTrue(third.stopped, "closing the window stops the fold")
+        XCTAssertEqual(store.readRun()?["status"] as? String, "stopped")
+
+        // a fold.json left folding (the app quit meanwhile) opens as stopped
+        var left = try XCTUnwrap(store.readRun())
+        left["status"] = "folding"
+        try store.writeRun(left)
+        let reopened = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        XCTAssertEqual(reopened.run?["status"] as? String, "stopped")
+        XCTAssertEqual(store.readRun()?["status"] as? String, "stopped")
+        let page2 = FakeFoldPage()
+        reopened.page = page2
+        reopened.handle(["type": "ready"])
+        XCTAssertTrue(until { page2.folds.last?["kind"] as? String == "stopped" }, "\(page2.folds.last ?? [:])")
+        reopened.windowClosing()
+
+        // the runner not there (127): no-runner; older than the app (2, its usage): old-runner
+        for (result, kind) in [(RunnerResult(status: 127, missing: true), "no-runner"), (RunnerResult(status: 2, stderr: "usage: oma-zotero-prompt <command>"), "old-runner")] {
+            runner.answers["fold"] = { _, _ in result }
+            let w = FoldWindowModel(paper: Self.paperRef, launcher: model)
+            let p = FakeFoldPage()
+            w.page = p
+            w.handle(["type": "ready"])
+            XCTAssertTrue(until { p.folds.last?["kind"] as? String == kind }, "\(kind): \(p.folds.last ?? [:])")
+            XCTAssertEqual(p.folds.last?["disabled"] as? String, kind)
+            w.windowClosing()
+        }
+    }
+
+    // R5-39: fixture mode answers fold --plan from fold-plan.json and fold from fold-stream.jsonl: the fixture paper
+    // opens, folds and shows folded
+    func testFixtureModeOpensFoldsAndShowsTheFixturePaperFolded() throws {
+        let dir = try XCTUnwrap(Bundle(for: FakeBridge.self).resourceURL).appendingPathComponent("Fixtures")
+        let runner = FixtureRunner(dir: dir, streamDelay: 0.01)
+        let model = LauncherModel(bridge: FixtureBridge(dir: dir), desktop: FakeDesktop(), env: ["HOME": home.path, "hostname": "mac"], runner: runner, fetcher: FakeFetcher())
+        model.willShow(query: "")
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until { page.folds.last?["calls"] as? Int == 5 }, "fold-plan.json's plan: \(page.folds.last ?? [:]), \(page.states.last ?? [:])")
+        XCTAssertEqual(page.folds.last?["kind"] as? String, "unfolded")
+        XCTAssertEqual(page.folds.last?["name"] as? String, "Fixture model")
+        XCTAssertTrue(runner.calls.contains { $0.contains("fold") && $0.contains("--plan") })
+        window.handle(["type": "fold"])
+        XCTAssertTrue(until { page.folds.last?["kind"] as? String == "folded" }, "\(page.folds.last ?? [:])")
+        XCTAssertEqual(page.flashes.last, "Folding is done: 3 sections")
+        let doc = try XCTUnwrap(page.loads.last?["doc"] as? [String: Any])
+        XCTAssertEqual((doc["provenance"] as? [String: Any])?["model"] as? String, "fixture:model")
+        window.windowClosing()
+    }
+
+    // A PDF of `pages` pages of 45 lines of Helvetica 10, each its own sentence.
+    private func makeLongPDF(pages: Int) throws -> URL {
+        let made = home.appendingPathComponent("long-\(UUID().uuidString).pdf")
+        var box = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let ctx = try XCTUnwrap(CGContext(made as CFURL, mediaBox: &box, nil))
+        let font = CTFontCreateWithName("Helvetica" as CFString, 10, nil)
+        for p in 0..<pages {
+            ctx.beginPDFPage(nil)
+            for i in 0..<45 {
+                let text = "Page \(p + 1), part \(i + 1): each level keeps the words that the next level needs."
+                let attr = NSAttributedString(string: text, attributes: [NSAttributedString.Key(kCTFontAttributeName as String): font])
+                ctx.textPosition = CGPoint(x: 72, y: 700 - CGFloat(i) * 13)
+                CTLineDraw(CTLineCreateWithAttributedString(attr), ctx)
+            }
+            ctx.endPDFPage()
+        }
+        ctx.closePDF()
+        return made
+    }
+
+    // R5-40: a 40-page PDF, nothing cached: the window open to its text within 5 s (the state reading meanwhile)
+    func testAWindowOpensA40PagePaperToItsTextWithinItsBudget() throws {
+        let url = try makeLongPDF(pages: 40)
+        bridge.answers["/attachment"] = { _ in .ok(["path": url.path]) }
+        let model = launcher()
+        let t0 = Date()
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until(10) { page.loads.contains { $0["doc"] is [String: Any] } }, "\(page.states.last ?? [:])")
+        let took = Date().timeIntervalSince(t0)
+        XCTAssertLessThan(took, 5, "open to text: \(took) s")
+        XCTAssertTrue(page.loads.contains { ($0["state"] as? [String: Any])?["kind"] as? String == "reading" } || page.states.contains { $0["kind"] as? String == "reading" },
+                      "the state reading meanwhile")
         window.windowClosing()
     }
 
@@ -625,11 +701,13 @@ final class FoldReaderTests: XCTestCase {
 final class FakeFoldPage: FoldPage {
     var loads: [[String: Any]] = []
     var states: [[String: Any]] = []
+    var folds: [[String: Any]] = []
     var batches: [[String: Any]] = []
     var papers: [[String: Any]] = []
     var flashes: [String] = []
     func load(_ data: [String: Any]) { loads.append(data) }
     func state(_ s: [String: Any]) { states.append(s) }
+    func fold(_ f: [String: Any]) { folds.append(f) }
     func words(_ batch: [String: Any]) { batches.append(batch) }
     func paper(_ o: [String: Any]) { papers.append(o) }
     func flash(_ text: String) { flashes.append(text) }
@@ -648,246 +726,4 @@ final class FakeSchemeTask: NSObject, WKURLSchemeTask {
     func didReceive(_ data: Data) { self.data.append(data) }
     func didFinish() { finished = true }
     func didFailWithError(_ error: Error) { finished = true }
-}
-
-// TextFold, stubbed: answers by path, every request kept (with its body).
-final class FoldStub: URLProtocol {
-    private static let lock = NSLock()
-    private static var answers: [String: (URLRequest) -> (Int, Any)] = [:]
-    private static var seen: [URLRequest] = []
-    static var bodies: [String: [String: Any]] {
-        lock.lock(); defer { lock.unlock() }
-        var out: [String: [String: Any]] = [:]
-        for r in seen { if let path = r.url?.path, let b = body(r) { out[path] = b } }
-        return out
-    }
-
-    static func reset() { lock.lock(); answers = [:]; seen = []; lock.unlock() }
-    static func answer(_ path: String, _ f: @escaping (URLRequest) -> (Int, Any)) { lock.lock(); answers[path] = f; lock.unlock() }
-    static func requests() -> [URLRequest] { lock.lock(); defer { lock.unlock() }; return seen }
-
-    private static func body(_ r: URLRequest) -> [String: Any]? {
-        var data = r.httpBody
-        if data == nil, let stream = r.httpBodyStream {
-            stream.open()
-            var d = Data()
-            var buf = [UInt8](repeating: 0, count: 4096)
-            while stream.hasBytesAvailable { let n = stream.read(&buf, maxLength: buf.count); if n <= 0 { break }; d.append(buf, count: n) }
-            stream.close()
-            data = d
-        }
-        return data.flatMap { try? JSONSerialization.jsonObject(with: $0) } as? [String: Any]
-    }
-
-    override class func canInit(with request: URLRequest) -> Bool { true }
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
-        Self.lock.lock()
-        Self.seen.append(request)
-        let f = request.url.flatMap { Self.answers[$0.path] }
-        Self.lock.unlock()
-        guard let f, let url = request.url else {
-            client?.urlProtocol(self, didFailWithError: URLError(.cannotConnectToHost))
-            return
-        }
-        let (status, json) = f(request)
-        let data = (try? JSONSerialization.data(withJSONObject: json, options: [.fragmentsAllowed])) ?? Data()
-        let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "application/json"])!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: data)
-        client?.urlProtocolDidFinishLoading(self)
-    }
-
-    override func stopLoading() {}
-}
-
-// R5's paper, drawn here with CoreText (FIXTURE.md 6.5): two pages, two columns (54 to 297 and 315 to 558 points),
-// Helvetica 10 body, Helvetica-Bold 12 headings, Helvetica-Bold 10 `Abstract.` run into the abstract's first line, a
-// Helvetica 8 footnote, Helvetica 9 page numbers; section 1's abstract, S1.p1.1, S1.p2.1 and S2.p1.1 sentences (and
-// the fillers of 6.1); the second page turned 90° (its text drawn turned the other way, so it reads upright as the page
-// shows). Every word's box is recorded as the page shows it (0 to 1, origin top left), with the unit it belongs to.
-final class PaperPDF {
-    struct Word {
-        let text: String
-        let bold: Bool
-        let unit: String?
-        var box: [Double] = []
-    }
-
-    struct Line {
-        let page: Int // 0-based
-        let x: CGFloat
-        let baseline: CGFloat // points from the top, as the page shows
-        let size: CGFloat
-        var words: [Word]
-    }
-
-    static let shown = [CGSize(width: 612, height: 792), CGSize(width: 792, height: 612)]
-    static let abstract = ["We study how readers move between a paper's own words and short summaries of it.",
-                           "Readers who could fold the text found the main claims faster than readers of the plain text.", "We describe the reader and its limits."]
-    static let intro = ["Researchers read many papers each week [1, 2].", "Most of that reading is skimming for the main claim (Lee et al., 2021).",
-                        "Skimming saves time but misses how a claim is argued."]
-    static let gap = ["Summaries written by language models are short.", "They do not show which of the author's sentences they rest on.",
-                      "No reader we know links each summary line back to the text."]
-    static let method = ["Each paragraph is folded into five levels, from a topic to the full text.",
-                         "A word keeps its place across levels when it appears in both, scored by s = n / N.", "The PDF beside the text is matched by runs of three words."]
-    static let fillers = ["Each level keeps the words that the next level needs.", "A reader can open any paragraph in place to see all of it.",
-                          "The folds are stored beside the paper on this computer.", "Nothing in the library changes when a paper is folded."]
-
-    private(set) var lines: [Line] = []
-
-    // where a paragraph goes on: the column, its top, the baseline reached, its foot
-    struct At {
-        var page: Int
-        var x0: CGFloat
-        var x1: CGFloat
-        var top: CGFloat
-        var baseline: CGFloat
-        var bottom: CGFloat
-    }
-    private var next: [At] = []
-
-    init() { lay() }
-
-    static func font(_ size: CGFloat, bold: Bool) -> CTFont { CTFontCreateWithName((bold ? "Helvetica-Bold" : "Helvetica") as CFString, size, nil) }
-
-    static func attributed(_ words: [Word], size: CGFloat) -> NSAttributedString {
-        let key = NSAttributedString.Key(kCTFontAttributeName as String)
-        let out = NSMutableAttributedString()
-        for (i, w) in words.enumerated() {
-            if i > 0 { out.append(NSAttributedString(string: " ", attributes: [key: font(size, bold: words[i - 1].bold && w.bold)])) }
-            out.append(NSAttributedString(string: w.text, attributes: [key: font(size, bold: w.bold)]))
-        }
-        return out
-    }
-
-    static func width(_ words: [Word], size: CGFloat) -> CGFloat {
-        CGFloat(CTLineGetTypographicBounds(CTLineCreateWithAttributedString(attributed(words, size: size)), nil, nil, nil))
-    }
-
-    // A line kept with each word's box: CoreText's offsets along it, the font's ascent and descent about the baseline.
-    private func add(_ page: Int, x: CGFloat, baseline: CGFloat, size: CGFloat, words: [Word]) {
-        let ct = CTLineCreateWithAttributedString(Self.attributed(words, size: size))
-        let s = Self.shown[page]
-        var boxed: [Word] = []
-        var at = 0
-        for w in words {
-            let font = Self.font(size, bold: w.bold)
-            let x0 = x + CTLineGetOffsetForStringIndex(ct, at, nil), x1 = x + CTLineGetOffsetForStringIndex(ct, at + (w.text as NSString).length, nil)
-            let top = baseline - CTFontGetAscent(font), foot = baseline + CTFontGetDescent(font)
-            var b = w
-            b.box = [Double(x0 / s.width), Double(top / s.height), Double(x1 / s.width), Double(foot / s.height)]
-            boxed.append(b)
-            at += (w.text as NSString).length + 1
-        }
-        lines.append(Line(page: page, x: x, baseline: baseline, size: size, words: boxed))
-    }
-
-    // A paragraph from `at`, a line every 1.2 × size, on into the next column past the foot of this one; where it ends.
-    private func para(_ text: String, size: CGFloat, at start: At, unit: String?, indent: CGFloat = 0, bold: Bool = false, lead: [Word] = []) -> At {
-        var at = start
-        var cur: [Word] = []
-        var x = at.x0 + indent
-        for w in lead + text.split(separator: " ").map({ Word(text: String($0), bold: bold, unit: unit) }) {
-            if !cur.isEmpty && x + Self.width(cur + [w], size: size) > at.x1 {
-                add(at.page, x: x, baseline: at.baseline, size: size, words: cur)
-                cur = []
-                at.baseline += 1.2 * size
-                x = at.x0
-                if at.baseline > at.bottom, !next.isEmpty { at = next.removeFirst(); x = at.x0 }
-            }
-            cur.append(w)
-        }
-        if !cur.isEmpty { add(at.page, x: x, baseline: at.baseline, size: size, words: cur) }
-        at.baseline += 1.2 * size
-        return at
-    }
-
-    private func lay() {
-        _ = para(Self.abstract.joined(separator: " "), size: 10, at: At(page: 0, x0: 54, x1: 558, top: 160, baseline: 160, bottom: 720), unit: "abstract.p1",
-                 lead: [Word(text: "Abstract.", bold: true, unit: nil)])
-        next = [At(page: 0, x0: 315, x1: 558, top: 250, baseline: 250, bottom: 380), At(page: 1, x0: 54, x1: 297, top: 64, baseline: 64, bottom: 520),
-                At(page: 1, x0: 315, x1: 558, top: 64, baseline: 64, bottom: 520)]
-        var at = At(page: 0, x0: 54, x1: 297, top: 250, baseline: 250, bottom: 380)
-        func heading(_ t: String) {
-            if at.baseline > at.top { at.baseline += 8 }
-            at = para(t, size: 12, at: at, unit: nil, bold: true)
-        }
-        heading("1 Introduction")
-        at = para(Self.intro.joined(separator: " "), size: 10, at: at, unit: "S1.p1")
-        at = para((Self.gap + Self.fillers.prefix(3)).joined(separator: " "), size: 10, at: at, unit: "S1.p2", indent: 10)
-        heading("2 Method")
-        at = para((Self.method + Self.fillers).joined(separator: " "), size: 10, at: at, unit: "S2.p1")
-        let one = Self.width([Word(text: "1", bold: false, unit: nil)], size: 9), two = Self.width([Word(text: "2", bold: false, unit: nil)], size: 9)
-        _ = para("1", size: 9, at: At(page: 0, x0: 306 - one / 2, x1: 600, top: 765, baseline: 765, bottom: 800), unit: nil)
-        _ = para("1 The readers were volunteers from one department.", size: 8, at: At(page: 1, x0: 54, x1: 297, top: 548, baseline: 548, bottom: 600), unit: "Sx.n1")
-        _ = para("2", size: 9, at: At(page: 1, x0: 396 - two / 2, x1: 700, top: 590, baseline: 590, bottom: 612), unit: nil)
-    }
-
-    // Each unit's boxes as FoldMake gives them (R5-SPEC 3.4): its first page; one box a line, its words' union, a box on
-    // another page carrying that page as a fifth element.
-    func unitBoxes() -> [String: (page: Int, boxes: [[Double]])] {
-        var out: [String: (page: Int, boxes: [[Double]])] = [:]
-        for line in lines {
-            var byUnit: [String: [Double]] = [:]
-            var order: [String] = []
-            for w in line.words {
-                guard let u = w.unit else { continue }
-                if let b = byUnit[u] { byUnit[u] = [min(b[0], w.box[0]), min(b[1], w.box[1]), max(b[2], w.box[2]), max(b[3], w.box[3])] } else { byUnit[u] = w.box; order.append(u) }
-            }
-            for u in order {
-                guard var b = byUnit[u] else { continue }
-                let first = out[u]?.page ?? line.page + 1
-                if first != line.page + 1 { b.append(Double(line.page + 1)) }
-                out[u] = (first, (out[u]?.boxes ?? []) + [b])
-            }
-        }
-        return out
-    }
-
-    // The PDF: drawn, then its second page turned (written to a file of its own, never over the one read).
-    func write(in dir: URL) throws -> URL {
-        let made = dir.appendingPathComponent("paper-\(UUID().uuidString).pdf")
-        var box = CGRect(x: 0, y: 0, width: 612, height: 792)
-        guard let ctx = CGContext(made as CFURL, mediaBox: &box, nil) else { throw CocoaError(.fileWriteUnknown) }
-        for p in 0..<2 {
-            ctx.beginPDFPage(nil)
-            ctx.saveGState()
-            // (as shown, x across and y up: the page's own x is 612 less that y, its y that x)
-            if p == 1 { ctx.concatenate(CGAffineTransform(a: 0, b: 1, c: -1, d: 0, tx: 612, ty: 0)) }
-            ctx.textMatrix = .identity
-            for line in lines where line.page == p {
-                ctx.textPosition = CGPoint(x: line.x, y: Self.shown[p].height - line.baseline)
-                CTLineDraw(CTLineCreateWithAttributedString(Self.attributed(line.words, size: line.size)), ctx)
-            }
-            ctx.restoreGState()
-            ctx.endPDFPage()
-        }
-        ctx.closePDF()
-        guard let doc = PDFDocument(url: made) else { throw CocoaError(.fileReadCorruptFile) }
-        doc.page(at: 1)?.rotation = 90
-        let turned = dir.appendingPathComponent("paper-turned-\(UUID().uuidString).pdf")
-        guard doc.write(to: turned) else { throw CocoaError(.fileWriteUnknown) }
-        return turned
-    }
-
-    // Two pages holding only a picture (a grey bitmap): a scan.
-    static func imageOnly(in dir: URL) throws -> URL {
-        let url = dir.appendingPathComponent("scan-\(UUID().uuidString).pdf")
-        var box = CGRect(x: 0, y: 0, width: 612, height: 792)
-        guard let ctx = CGContext(url as CFURL, mediaBox: &box, nil),
-              let bitmap = CGContext(data: nil, width: 64, height: 64, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)
-        else { throw CocoaError(.fileWriteUnknown) }
-        bitmap.setFillColor(gray: 0.6, alpha: 1)
-        bitmap.fill(CGRect(x: 0, y: 0, width: 64, height: 64))
-        guard let image = bitmap.makeImage() else { throw CocoaError(.fileWriteUnknown) }
-        for _ in 0..<2 {
-            ctx.beginPDFPage(nil)
-            ctx.draw(image, in: CGRect(x: 72, y: 72, width: 468, height: 648))
-            ctx.endPDFPage()
-        }
-        ctx.closePDF()
-        return url
-    }
 }

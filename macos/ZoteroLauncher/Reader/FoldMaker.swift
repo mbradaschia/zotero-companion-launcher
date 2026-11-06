@@ -97,6 +97,9 @@ final class FoldMaker {
             }
             var m = meta
             m["lang"] = FoldMaker.language(of: pages)
+            var identity = m["pdf"] as? [String: Any] ?? [:]
+            if (identity["sha256"] as? String ?? "").isEmpty, let sha = pdf.sha256() { identity["sha256"] = sha }
+            m["pdf"] = identity
             let result: Result<Made, Error>
             do {
                 let maker = try FoldMaker(resources: resources)
@@ -136,9 +139,9 @@ final class FoldMaker {
     static func cached(_ doc: [String: Any]?, links: [String: Any]?, bytes: Int, modified: String, extractor: Int, sha256: () -> String?) -> Cached {
         guard let doc else { return .read }
         guard ours(doc) else {
+            // (R1's, the only other kind there is: its levels kept when a model wrote them)
             let p = provenance(doc)
-            let fromTextFold = (p["made_with"] as? String ?? "").hasPrefix("TextFold")
-            return fromTextFold && p["local"] as? Bool != true && p["ai_generated"] as? Bool != false ? .kept : .read
+            return p["local"] as? Bool != true && p["ai_generated"] as? Bool != false ? .kept : .read
         }
         let source = doc["source"] as? [String: Any] ?? [:]
         let old = ((source["extractor"] as? NSNumber)?.intValue ?? 0) < extractor && !folded(doc)

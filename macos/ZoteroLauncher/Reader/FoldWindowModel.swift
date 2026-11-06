@@ -1,10 +1,12 @@
 import AppKit
 import Foundation
 
-// One paper's fold reader window (docs/fold-reader/SPEC.md 6.3, 7, 9): the paper (the bridge's /item), its first PDF
-// (its path through /attachment, never marked opened), the doc TextFold gives (or the one saved last time), the marks
-// and the link map kept for it (FoldStore), and the messages between the page and the app. The page draws; FoldCore.js
-// decides, here (through Glue) and in the page alike.
+// One paper's fold reader window (docs/fold-reader/SPEC.md 6.3, 7, 9; R5-SPEC.md 5): the paper (the bridge's /item),
+// its first PDF (its path through /attachment, never marked opened) read into the doc here (FoldPDF's lines and
+// FoldMaker, on the PDF's queue), the doc, its link map, the marks and the last fold kept for it (FoldStore), the fold
+// itself (the runner's `fold`, streamed: Fold with AI is the only thing that sends the paper to a model), and the
+// messages between the page and the app. The page draws; FoldCore.js and FoldMake.js decide, here (through Glue) and
+// in the page alike.
 @MainActor
 final class FoldWindowModel: ObservableObject {
     unowned let launcher: LauncherModel
@@ -13,7 +15,6 @@ final class FoldWindowModel: ObservableObject {
     weak var page: FoldPage?
     var close: () -> Void = {}
     let scheme = FoldSchemeHandler()
-    let client: TextFoldClient
 
     private var ready = false
     private var closed = false
@@ -21,25 +22,40 @@ final class FoldWindowModel: ObservableObject {
     private var pdf: FoldPDF?
     private var pdfInfo: [String: Any]? // FR.load's pdf ({pages, sizes, name, urlPattern, bytes, modified} or {problem})
     private var doc: [String: Any]?
-    private var saved: String? // when the doc came from the cache: when it was saved
     private var state: [String: Any] = ["kind": "loading"]
-    private var base: URL?
-    private var folding = false
+    private var opening = 0 // each open (and ⌘R) its own: what an older one answers is dropped
     private var wordBatches: [[String: Any]] = []
     private var wordsStarted = false
     private var wordsDone = false
-    private var sendWords = false // the page drew the doc without a valid link map: it takes the words
+    private var sendWords = false // the page drew a doc without a valid link map (R1's, D9): it takes the words
     private(set) var store: FoldStore?
 
-    init(paper: PaperRef, launcher: LauncherModel, client: TextFoldClient = TextFoldClient()) {
+    // the fold (R5-SPEC 5.1)
+    private(set) var run: [String: Any]? // fold.json
+    private var runBefore: [String: Any]? // (kept while a run starts: put back if the runner can't fold)
+    private var plan: [String: Any]? // fold --plan's answer
+    private var stream: RunnerStream?
+    private var stopEvent: [String: Any]? // this run's stop line
+    private var runner = "ok" // "ok", "missing", "old"
+    private var pdfChanged = false
+    private var foldAfterReading = false // Fold again on a doc an older FoldMake read: read again first
+    private var runs = 0 // each fold its own: a line of an older one is dropped
+    private var lastLoad = Date.distantPast
+    private var loadSoon = false
+    var folding: Bool { stream != nil }
+
+    init(paper: PaperRef, launcher: LauncherModel) {
         self.paper = paper
         self.launcher = launcher
-        self.client = client
         title = "Read · " + (paper.title.isEmpty ? "a paper" : paper.title)
         store = FoldStore(runnerState: launcher.pathsJSON["runnerState"] as? String ?? "", libraryID: paper.libraryID, key: paper.key)
-        if let cached = store?.readJSON(FoldStore.doc) {
-            doc = cached
-            saved = store.flatMap { s in (try? FileManager.default.attributesOfItem(atPath: s.url(FoldStore.doc).path))?[.modificationDate] as? Date }.map(Self.iso)
+        if var r = store?.readRun() {
+            // (left folding: the app quit or crashed meanwhile)
+            if r["status"] as? String == "folding" {
+                r["status"] = "stopped"
+                try? store?.writeRun(r)
+            }
+            run = r
         }
         loadItem()
     }
@@ -81,14 +97,23 @@ final class FoldWindowModel: ObservableObject {
         page?.flash("Text \(Int((next * 100).rounded()))%" + (next == 1 ? "" : " (⌘0 its size)"))
     }
 
+    // ---- Glue, JSON in and out
+
+    private func glue(_ function: String, _ arguments: [Any]) -> Any? {
+        guard let core = launcher.core, let json = try? core.glueJSON(function, arguments) else { return nil }
+        return try? JSONSerialization.jsonObject(with: Data(json.utf8), options: [.fragmentsAllowed])
+    }
+
     // ---- the paper and its PDF
 
     private var ref: [String: Any] { ["key": paper.key, "libraryID": paper.libraryID] }
 
     func loadItem() {
+        opening += 1
+        let at = opening
         launcher.bridge.post("/item", ref, timeout: 10) { [weak self] result in
             MainActor.assumeIsolated {
-                guard let self, !self.closed else { return }
+                guard let self, !self.closed, at == self.opening else { return }
                 if case .ok(let answer) = result { self.details = answer } else { self.details = nil }
                 self.named()
                 if self.paper.libraryID != 1 || (self.details?["library"] as? [String: Any])?["type"] as? String == "group" {
@@ -96,48 +121,64 @@ final class FoldWindowModel: ObservableObject {
                     self.pdfInfo = ["problem": "no-pdf"]
                     return self.send()
                 }
-                self.openPdf()
-                self.lookUp()
+                self.openPdf(at)
             }
         }
     }
 
     private var paperInfo: [String: Any]? { details?["paper"] as? [String: Any] }
 
+    private var cite: String { paperInfo.flatMap { (try? launcher.core?.glue("paperCite", [$0], as: String.self)) } ?? "" }
+
     // The window's title: Read · <its citation> (Rivera et al. (2026)), else its title.
     private func named() {
-        let cite = paperInfo.flatMap { (try? launcher.core?.glue("paperCite", [$0], as: String.self)) }.flatMap { $0.isEmpty ? nil : $0 }
-        let name = cite ?? (paperInfo?["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (paper.title.isEmpty ? "a paper" : paper.title)
+        let name = cite.isEmpty ? ((paperInfo?["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (paper.title.isEmpty ? "a paper" : paper.title)) : cite
         title = "Read · " + name
     }
 
-    private func openPdf() {
-        guard let details, let core = launcher.core,
-              let json = try? core.glueJSON("foldFirstPdf", [details]),
-              let att = (try? JSONSerialization.jsonObject(with: Data(json.utf8), options: [.fragmentsAllowed])) as? [String: Any],
-              let key = att["key"] as? String else {
-            pdfInfo = ["problem": "no-pdf"]
-            return send()
+    // No PDF to read (R5-SPEC 6.1): a doc kept from before still reads (the PDF pane says why it's away); else the
+    // state takes the text pane.
+    private func noPdf(_ problem: [String: Any]) {
+        pdfInfo = problem
+        if doc == nil, let kept = store.flatMap({ s in launcher.core.map { s.readDoc($0) } }), let d = kept.doc { doc = d }
+        if doc == nil {
+            let kind = problem["problem"] as? String ?? "no-pdf"
+            state = kind == "unreadable" ? ["kind": "unreadable", "why": Self.sentence(problem["detail"] as? String ?? "")] : ["kind": kind]
+        } else {
+            state = ["kind": "ready"]
         }
+        send()
+        askPlan()
+    }
+
+    // "it is locked with a password" → "It is locked with a password."
+    static func sentence(_ s: String) -> String {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = t.first else { return "" }
+        let body = first.uppercased() + t.dropFirst()
+        return body.hasSuffix(".") ? body : body + "."
+    }
+
+    private func openPdf(_ at: Int) {
+        guard let details, let att = glue("foldFirstPdf", [details]) as? [String: Any], let key = att["key"] as? String else { return noPdf(["problem": "no-pdf"]) }
         let body: [String: Any] = ["key": key, "libraryID": att["libraryID"] as? Int ?? paper.libraryID, "target": "path", "markOpened": false]
         launcher.bridge.post("/attachment", body, timeout: 10) { [weak self] result in
             MainActor.assumeIsolated {
-                guard let self, !self.closed else { return }
+                guard let self, !self.closed, at == self.opening else { return }
                 guard case .ok(let answer) = result, let path = answer["path"] as? String, !path.isEmpty else {
-                    self.pdfInfo = result.message.contains("missing") ? ["problem": "missing"] : ["problem": "unreadable", "detail": result.message]
-                    return self.send()
+                    return self.noPdf(result.message.contains("missing") ? ["problem": "missing"] : ["problem": "unreadable", "detail": result.message])
                 }
-                self.open(URL(fileURLWithPath: path))
+                self.open(URL(fileURLWithPath: path), at)
             }
         }
     }
 
-    private func open(_ url: URL) {
+    private func open(_ url: URL, _ at: Int) {
         let pdf = FoldPDF(url: url)
         self.pdf = pdf
         pdf.open { [weak self] result in
             MainActor.assumeIsolated {
-                guard let self, !self.closed else { return }
+                guard let self, !self.closed, at == self.opening else { return }
                 switch result {
                 case .success(let info):
                     let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
@@ -146,73 +187,329 @@ final class FoldWindowModel: ObservableObject {
                     self.scheme.pdf = pdf
                     self.scheme.pages = info.pages
                     self.pdfInfo = ["pages": info.pages, "sizes": info.sizes, "name": url.lastPathComponent, "urlPattern": pdf.urlPattern, "bytes": bytes, "modified": modified]
+                    self.identify(url, bytes: bytes, modified: modified, at)
                 case .failure(let e):
                     self.pdf = nil
-                    self.pdfInfo = e.payload
+                    self.noPdf(e.payload)
                 }
+            }
+        }
+    }
+
+    // ---- the doc: the one kept, or the PDF read again (R5-SPEC 3.5)
+
+    private var extractor: Int { Int((try? launcher.core?.evaluate("FoldMake.EXTRACTOR")) ?? "") ?? 1 }
+
+    private func identify(_ url: URL, bytes: Int, modified: String, _ at: Int) {
+        guard let core = launcher.core else { return }
+        let kept = store?.readDoc(core) ?? FoldStore.Doc()
+        if let name = kept.damaged, let store { page?.flash(launcher.shown(store.url(FoldStore.doc).path) + " wasn't valid: kept beside it as " + name) }
+        let cachedLinks = store?.readJSON(FoldStore.links)
+        let extractor = self.extractor
+        let old = kept.doc
+        // (hashed off the main thread, only when the size or the date changed)
+        DispatchQueue.global(qos: .userInitiated).async {
+            let verdict = FoldMaker.cached(old, links: cachedLinks, bytes: bytes, modified: modified, extractor: extractor) { FoldPDF.sha256(of: url) }
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    guard !self.closed, at == self.opening else { return }
+                    self.identified(verdict, old, links: cachedLinks)
+                }
+            }
+        }
+    }
+
+    private func identified(_ verdict: FoldMaker.Cached, _ old: [String: Any]?, links: [String: Any]?) {
+        switch verdict {
+        case .use, .kept:
+            doc = old
+            state = ["kind": "ready"]
+            send()
+            askPlan()
+        case .touched:
+            doc = old
+            if var l = links, let p = pdfIdentity {
+                l["pdf"] = p
+                try? store?.writeJSON(FoldStore.links, l)
+            }
+            state = ["kind": "ready"]
+            send()
+            askPlan()
+        case .changed:
+            pdfChanged = true
+            read()
+        case .stale, .read:
+            read()
+        }
+    }
+
+    // The PDF read into the doc (lines, FoldMaker), the state `reading` meanwhile; then doc.json and links.json.
+    private func read() {
+        guard let pdf, let info = pdfInfo, info["problem"] == nil else { return }
+        let at = opening
+        doc = nil
+        state = ["kind": "reading", "done": 0, "pages": info["pages"] ?? 0]
+        send()
+        let p = paperInfo ?? [:]
+        let authors = (p["authors"] as? String).map { $0.isEmpty ? [String]() : [$0] } ?? []
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let meta: [String: Any] = [
+            "title": (p["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? paper.title, "authors": authors, "date": p["year"] as? String ?? "", "cite": cite,
+            "pdf": ["bytes": info["bytes"] ?? 0, "modified": info["modified"] ?? "", "pages": info["pages"] ?? 0, "sizes": info["sizes"] ?? [Any]()] as [String: Any],
+            "made_with": ("Zotero Launcher " + version).trimmingCharacters(in: .whitespaces), "exported": Self.iso(Date()),
+        ]
+        FoldMaker.make(pdf, meta: meta, progress: { [weak self] done, pages in
+            guard let self, !self.closed, at == self.opening, self.doc == nil else { return }
+            self.state = ["kind": "reading", "done": done, "pages": pages]
+            self.page?.state(self.state)
+        }, done: { [weak self] result in
+            guard let self, !self.closed, at == self.opening else { return }
+            switch result {
+            case .success(let made):
+                if let s = made.state {
+                    self.state = s
+                    self.foldAfterReading = false
+                    return self.send()
+                }
+                guard let d = made.doc else { return }
+                self.doc = d
+                try? self.store?.writeJSON(FoldStore.doc, d)
+                if let l = made.links { try? self.store?.writeJSON(FoldStore.links, l) }
+                self.state = ["kind": "ready"]
+                self.send()
+                if self.foldAfterReading {
+                    self.foldAfterReading = false
+                    self.startFold(force: true, only: nil)
+                } else {
+                    self.askPlan()
+                }
+            case .failure(let e):
+                self.foldAfterReading = false
+                self.state = ["kind": "unreadable", "why": Self.sentence("\(e)")]
+                self.send()
+            }
+        })
+    }
+
+    // ---- the fold (R5-SPEC 5.1)
+
+    private var paperId: String { "\(paper.libraryID):\(paper.key)" }
+
+    private func foldable(_ d: [String: Any]?) -> [[String: Any]] {
+        (d?["sections"] as? [[String: Any]] ?? []).filter { s in (s["units"] as? [[String: Any]] ?? []).contains { !["reference", "footnote", "equation"].contains($0["kind"] as? String ?? "") } }
+    }
+
+    // The sections not folded yet (what Finish folding asks for).
+    private var notFolded: [String] {
+        foldable(doc).filter { $0["made"] as? String != "ai" }.compactMap { $0["id"] as? String }
+    }
+
+    private var model: String {
+        guard let m = run?["model"] as? String, !m.isEmpty, run?["doc"] as? String == doc?["id"] as? String else { return "default" }
+        return m
+    }
+
+    // The page's fold object (FoldMake.foldView), sent with FR.load and as FR.fold.
+    var foldObject: [String: Any]? {
+        guard let doc else { return nil }
+        let live: [String: Any] = ["folding": folding, "runner": runner, "pdfChanged": pdfChanged, "stop": (stopEvent as Any?) ?? NSNull(),
+                                   "scan": state["kind"] as? String == "scan"]
+        var thisRun: Any = NSNull(), thePlan: Any = NSNull()
+        if let r = run, r["doc"] as? String == doc["id"] as? String { thisRun = r }
+        if let p = plan { thePlan = p }
+        return glue("foldView", [doc, thisRun, thePlan, live]) as? [String: Any]
+    }
+
+    private func pushFold() {
+        guard ready, !closed, let f = foldObject else { return }
+        page?.fold(f)
+    }
+
+    // fold --plan: how many requests, the model, the price; asked when the runner is there and nothing folds.
+    func askPlan() {
+        guard let doc, !folding, !closed else { return pushFold() }
+        let all = notFolded
+        let again = all.isEmpty
+        let only: Any = again || all.count == foldable(doc).count ? NSNull() as Any : all as Any
+        let o: [String: Any] = ["paper": paperId, "model": again ? "default" : model, "force": again, "only": only]
+        guard let input = glue("foldInput", [doc, o]) as? [String: Any],
+              input["error"] == nil, let text = try? JSCore.jsonText(input) else { return pushFold() }
+        let id = doc["id"] as? String
+        launcher.runRunner(["fold", "--plan"], stdin: text, timeout: 60) { [weak self] r in
+            guard let self, !self.closed, self.doc?["id"] as? String == id else { return }
+            self.runner = Self.runnerKind(r)
+            self.plan = r.ok ? r.json as? [String: Any] : nil
+            self.pushFold()
+        }
+    }
+
+    // ok, or missing (not installed: 127) or old (it doesn't know `fold`: its usage, status 2).
+    static func runnerKind(_ r: RunnerResult) -> String {
+        if r.missing || r.status == 127 { return "missing" }
+        if r.status == 2 && r.stderr.contains("usage:") { return "old" }
+        return "ok"
+    }
+
+    // The page's fold message: {force?, only?}; ignored while a run goes.
+    func fold(_ m: [String: Any] = [:]) {
+        guard !folding, doc != nil else { return }
+        let force = m["force"] as? Bool == true
+        let only = (m["only"] as? [Any])?.compactMap { $0 as? String }
+        // Fold again on R1's doc (D9), or one an older FoldMake read: the PDF read again first, then folded
+        let source = doc?["source"] as? [String: Any] ?? [:]
+        if force, pdf != nil, !FoldMaker.ours(doc) || ((source["extractor"] as? NSNumber)?.intValue ?? 0) < extractor {
+            foldAfterReading = true
+            return read()
+        }
+        startFold(force: force, only: only.flatMap { $0.isEmpty ? nil : $0 })
+    }
+
+    private func startFold(force: Bool, only: [String]?) {
+        guard let doc, !folding else { return }
+        let use = force ? "default" : model
+        var o: [String: Any] = ["paper": paperId, "model": use, "force": force, "only": NSNull()]
+        if let only { o["only"] = only }
+        guard let input = glue("foldInput", [doc, o]) as? [String: Any] else { return }
+        if let e = input["error"] as? String { page?.flash("Not folded: " + e); return }
+        guard let text = try? JSCore.jsonText(input) else { return }
+        UsageLog.shared.count("fold:run")
+        runBefore = run
+        run = ["doc": doc["id"] ?? "", "model": use, "started": Self.iso(Date()), "status": "folding", "sections": [String: Any](), "errors": [String: Any]()]
+        saveRun()
+        stopEvent = nil
+        pdfChanged = false
+        let id = doc["id"] as? String
+        runs += 1
+        let this = runs
+        var over = false // (a runner may answer at once, before stream() returns)
+        let started = launcher.runner.stream(launcher.runnerArgv(["fold", "--quiet"]), stdin: text, onLine: { [weak self] line in
+            guard let self, self.doc?["id"] as? String == id, this == self.runs else { return }
+            self.line(line)
+        }, completion: { [weak self] r in
+            over = true
+            guard let self, this == self.runs else { return }
+            self.ended(r)
+        })
+        guard let started else {
+            if !over { ended(RunnerResult(status: 127, missing: true)) }
+            return
+        }
+        if !over { stream = started }
+        pushFold()
+    }
+
+    private func saveRun() {
+        guard let run else { return }
+        try? store?.writeRun(run)
+    }
+
+    private func line(_ text: String) {
+        guard var event = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any], let type = event["type"] as? String else { return }
+        switch type {
+        case "start":
+            if let m = event["model"] as? String, !m.isEmpty { run?["model"] = m }
+            saveRun()
+            let n = event["sections"] as? Int ?? 0
+            page?.flash("Started: folding \(n) \(n == 1 ? "section" : "sections") with " + ((event["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? model))
+        case "section":
+            guard let doc, let id = event["id"] as? String, let merged = glue("foldMerge", [doc, event, Self.iso(Date())]) as? [String: Any] else { return }
+            self.doc = merged
+            try? store?.writeJSON(FoldStore.doc, merged)
+            if let links = store?.readJSON(FoldStore.links), FoldMaker.ours(merged), let relinked = glue("foldRelink", [links, merged]) as? [String: Any] {
+                try? store?.writeJSON(FoldStore.links, relinked)
+            }
+            mark(id, "done")
+            pushFold()
+            loadAtMostEverySecond()
+        case "failed":
+            guard let id = event["id"] as? String else { return }
+            mark(id, "failed", error: event["error"] as? String ?? "")
+            pushFold()
+        case "stop":
+            event.removeValue(forKey: "type")
+            stopEvent = event
+            run?["stop"] = event
+            saveRun()
+            pushFold()
+        case "done":
+            let stopped = event["stopped"] as? String ?? ""
+            let failed = event["failed"] as? Int ?? 0, folded = event["folded"] as? Int ?? 0
+            run?["status"] = !stopped.isEmpty ? "stopped" : failed > 0 ? "partial" : "done"
+            saveRun()
+            if stopped.isEmpty { page?.flash(failed > 0 ? "Folding is done: \(folded) folded, \(failed) failed" : "Folding is done: \(folded) \(folded == 1 ? "section" : "sections")") }
+        default: break // (call: its count is in Processes)
+        }
+    }
+
+    private func mark(_ id: String, _ status: String, error: String? = nil) {
+        var sections = run?["sections"] as? [String: Any] ?? [:]
+        sections[id] = status
+        run?["sections"] = sections
+        if let error {
+            var errors = run?["errors"] as? [String: Any] ?? [:]
+            errors[id] = String(error.prefix(200))
+            run?["errors"] = errors
+        }
+        saveRun()
+    }
+
+    // The run's end: stopped (130, 143, or its done line said a fatal error stopped it), the runner missing or older
+    // than the app (fold.json as it was before: nothing ran), or done (its done line said how).
+    private func ended(_ r: RunnerResult) {
+        stream = nil
+        runner = Self.runnerKind(r)
+        if runner != "ok" {
+            if runner == "missing" { launcher.runnerState.missing = true }
+            run = runBefore
+            if let before = runBefore { try? store?.writeRun(before) } else if let store { try? FileManager.default.removeItem(at: store.url(FoldStore.run)) }
+        } else {
+            let unfinished = run?["status"] as? String == "folding" // (no done line)
+            if unfinished {
+                run?["status"] = "stopped"
+                saveRun()
+            }
+            if r.status == 130 || r.status == 143 || (!unfinished && run?["status"] as? String == "stopped") {
+                let f = foldObject
+                page?.flash("Stopped: \(f?["done"] as? Int ?? 0) of \(f?["total"] as? Int ?? 0) sections folded, the rest show first sentences")
+            } else if unfinished {
+                page?.flash("Folding stopped: " + r.problem)
+            }
+        }
+        loadSoon = false
+        send()
+        askPlan()
+    }
+
+    func stop() { stream?.stop() }
+
+    // FR.load at most once a second while sections come in (FR.fold goes at once).
+    private func loadAtMostEverySecond() {
+        let wait = 1 - Date().timeIntervalSince(lastLoad)
+        if wait <= 0 { return send() }
+        guard !loadSoon else { return }
+        loadSoon = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + wait) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.loadSoon else { return }
+                self.loadSoon = false
                 self.send()
             }
         }
     }
 
-    // ---- TextFold
-
-    // TextFold found and asked for the paper's doc (never a model: that's fold()).
-    func lookUp() {
-        let base = client.base()
-        self.base = base
-        client.ping(base) { [weak self] up in
-            MainActor.assumeIsolated {
-                guard let self, !self.closed else { return }
-                guard up else { self.state = ["kind": "no-textfold"]; return self.send() }
-                self.client.find(base, key: self.paper.key, title: (self.paperInfo?["title"] as? String) ?? self.paper.title, cachedId: self.doc?["id"] as? String) { [weak self] found in
-                    MainActor.assumeIsolated { self?.found(found) }
-                }
-            }
-        }
-    }
-
-    private func found(_ f: TextFoldClient.Found) {
-        guard !closed else { return }
-        switch f {
-        case .doc(_, let d):
-            doc = d
-            saved = nil
-            state = ["kind": "ready"]
-            try? store?.writeJSON(FoldStore.doc, d)
-        case .state(let s):
-            state = s
-            if s["kind"] as? String == "not-folded" { doc = nil; saved = nil } // (TextFold has none now: the cached one isn't this paper's any more)
-        }
+    // ⌘R and Try again: the paper and its PDF read again (R5-SPEC 3.5); a run going on goes on.
+    func retry() {
+        guard !folding else { return }
+        pdf = nil
+        pdfInfo = nil
+        doc = nil
+        plan = nil
+        state = ["kind": "loading"]
+        wordBatches = []
+        wordsStarted = false
+        wordsDone = false
         send()
-    }
-
-    // Fold it with TextFold (the page's button): read, then the job polled until its doc comes.
-    func fold() {
-        guard !folding, let base else { return lookUp() }
-        folding = true
-        state = ["kind": "folding", "status": "queued"]
-        page?.state(state)
-        client.fold(base, key: paper.key) { [weak self] folded in
-            MainActor.assumeIsolated {
-                guard let self, !self.closed else { return }
-                switch folded {
-                case .job(let id):
-                    self.client.poll(base, job: id, each: { [weak self] s in
-                        MainActor.assumeIsolated { guard let self, !self.closed else { return }; self.state = s; self.page?.state(s) }
-                    }, cancelled: { [weak self] in MainActor.assumeIsolated { self?.closed ?? true } }) { [weak self] found in
-                        MainActor.assumeIsolated {
-                            self?.folding = false
-                            self?.found(found)
-                        }
-                    }
-                case .state(let s):
-                    self.folding = false
-                    self.state = s
-                    self.send()
-                }
-            }
-        }
+        loadItem()
     }
 
     // ---- the page
@@ -258,7 +555,6 @@ final class FoldWindowModel: ObservableObject {
 
     private func paperPayload() -> [String: Any] {
         let p = paperInfo ?? [:]
-        let cite = (try? launcher.core?.glue("paperCite", [p], as: String.self)) ?? ""
         let authors = (p["authors"] as? String).map { $0.isEmpty ? [] : [$0] } ?? []
         return ["key": paper.key, "libraryID": paper.libraryID, "title": (p["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? paper.title,
                 "authors": authors, "year": p["year"] as? String ?? "", "publication": p["publication"] as? String ?? "", "cite": cite]
@@ -266,6 +562,7 @@ final class FoldWindowModel: ObservableObject {
 
     func send() {
         guard ready, !closed, let page else { return }
+        lastLoad = Date()
         var marks: Any = NSNull()
         if doc != nil, let core = launcher.core, let read = store?.readMarks(core) {
             if let s = read.store { marks = s }
@@ -281,14 +578,16 @@ final class FoldWindowModel: ObservableObject {
             "taxonomies": taxonomiesPayload(),
             "doc": doc ?? NSNull(),
             "state": state,
-            "saved": saved ?? NSNull(),
+            "saved": NSNull(),
             "marks": marks,
             "links": links ?? NSNull(),
             "prefs": Self.prefs,
             "pdf": pdfInfo ?? NSNull(),
+            "fold": foldObject ?? NSNull(),
         ])
-        // the words, when the page has to link the panes itself (no valid links.json): what's read so far, then the rest
-        sendWords = links == nil && pdf != nil && pdfInfo?["problem"] == nil
+        // the words, when the page has to link the panes itself (R1's doc without a valid links.json): what's read so
+        // far, then the rest
+        sendWords = doc != nil && links == nil && pdf != nil && pdfInfo?["problem"] == nil
         guard sendWords, let pdf else { return }
         for (i, b) in wordBatches.enumerated() { page.words(["pages": b["pages"] ?? [Any](), "done": wordsDone && i == wordBatches.count - 1]) }
         guard !wordsStarted else { return }
@@ -334,16 +633,21 @@ final class FoldWindowModel: ObservableObject {
             item["year"] = paperInfo?["year"] as? String ?? ""
             launcher.setDefaultTask(item, status: s)
             page?.paper(["task": taskPayload()])
-        case "fold": fold()
-        case "retry": lookUp()
+        case "fold": fold(m)
+        case "stop": stop()
+        case "retry": retry()
         default: break
         }
     }
 
-    func windowClosing() { closed = true }
+    // The window closing: a fold going on is stopped (what came back stays).
+    func windowClosing() {
+        closed = true
+        stream?.stop()
+    }
 
-    // ⌘W closes; ⌘- ⌘+ ⌘0 the text size; ⌘R TextFold looked up again; the editing keys for the page's text boxes.
-    // esc never closes the window (the page's: fold back, hide the bar).
+    // ⌘W closes; ⌘- ⌘+ ⌘0 the text size; ⌘R the paper and its PDF read again; the editing keys for the page's text
+    // boxes. esc never closes the window (the page's: fold back, hide the bar). No key starts a fold.
     func windowKey(_ e: NSEvent) -> Bool {
         let flags = e.modifierFlags.intersection([.command, .option, .control, .shift])
         let chars = (e.charactersIgnoringModifiers ?? "").lowercased()
@@ -353,7 +657,7 @@ final class FoldWindowModel: ObservableObject {
             stepZoom(step)
             return true
         }
-        if flags == .command && chars == "r" { UsageLog.shared.count("fold:retry"); lookUp(); return true }
+        if flags == .command && chars == "r" { UsageLog.shared.count("fold:retry"); retry(); return true }
         let edits: [String: Selector] = ["c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "x": #selector(NSText.cut(_:)),
                                          "a": #selector(NSText.selectAll(_:)), "z": Selector(("undo:"))]
         if flags == .command, let action = edits[chars] { NSApp.sendAction(action, to: nil, from: nil); return true }
