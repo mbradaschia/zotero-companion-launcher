@@ -278,3 +278,51 @@ Found while building R1 (R5's go in a group of their own after these); each keep
   the muted text stays lighter than the ink; taxonomy labels are nudged to 4.5:1 on their pill as well.
 - **Swift is not compiled here** (no `swift` or `xcodebuild` in the build container): `FoldReaderTests.swift` (the
   `[swift]` criteria 22, 49 to 53, 55, 56) first runs on macOS CI.
+
+### R5
+
+Found while building R5; each keeps its criterion's intent.
+
+- **The fixture's `Abstract.` is run in** (Helvetica-Bold 10 on the abstract's first line, `lb` 1), not FIXTURE 6's
+  11 pt heading line, as R5-6 and FIXTURE 6.5 ask for a run-in heading.
+- **Page 1's columns end at 380 pt** in `fakePaper` and the Swift fixture paper (FIXTURE does not say where), so S1.p2
+  crosses into the right column and S2.p1 onto page 2, both mid-sentence.
+- **`fakePaper({pages: 40})`** adds parts until the paper has that many pages: the node budget (R5-15) runs on it.
+- **Hyphens are joined only where a line ends** (`skim- ming` at a line break), never inside a line, as pdftext's
+  `_join` meets them only there after its own line joins.
+- **The body size and the frame are measured after the drops** (page numbers, running heads, stamps), so a paper's
+  page furniture cannot set them.
+- **A spanning paragraph's short last line spans too** (it starts at the paragraph's left edge, right under it, in
+  its size), so it isn't read as the left column's first line.
+- **S2.p1's `s = n / N.`** ends no sentence (`N.` reads as an initial): the fixture's expected sentences join the two.
+- **References are read as one stream of lines** per flow, an entry starting at a number, a bracket or an outdent, not
+  as paragraphs.
+- **Text before the first heading of a paper that starts with its references** goes into an `S1` titled `Text`, put
+  before `bib`, so no unit is lost.
+- **The runner's task is titled with the paper's title** (`Fold “<title>”`), as the fold's stdin carries no cite.
+- **Counts are singular at one:** `1 request`, `1 section`; the partial banner says `It shows first sentences.` for
+  one section.
+- **A cost under a cent reads ` under $0.01 at its list price`**, not ` about < $0.01 …`.
+- **A disabled unfolded banner has no button** (no model, no runner, an old runner, a scan, Chinese or Japanese): the
+  toolbar's Fold button is there, disabled, its tooltip the reason.
+- **The reply cache key is `JSON.stringify`'s** of the call's parts (not Python's separators), so it is the runner's
+  own and no TextFold cache is read.
+- **An empty topic stays `""`** (a unit kept as written), never filled from its takeaway.
+- **`--plan`'s `costUsd`** is computed from the plan's token estimates and the model's list price, rounded to a
+  millionth.
+- **The menu row is unavailable with no PDF** (`It has no PDF: the reader folds a paper from its PDF`), as the reader
+  folds only from a PDF.
+- **FoldPDF cuts a PDFKit line at a gap wider than 1.5 × its height** into one line a side, each word's box from its
+  own text range, as PDFKit may give two columns' lines on one baseline as one.
+- **The Swift fixture paper is a two-page subset** of FIXTURE 6 (abstract, S1, S2 and a footnote, `Sx.n1`), so
+  `fold-plan.json` keeps FIXTURE 6.6's five sections while `fold-stream.jsonl` folds the three the paper has.
+- **The file's date kept for 3.5 is `links.json`'s `pdf.modified`** (the doc's `source` keeps the size and SHA-256).
+- **FoldMake's `no-text` shows the `scan` state**, the same words for a PDF with nothing to fold.
+- **Fixture mode's `/attachment`** (a path, never marked opened) answers a PDF the app draws once a run in the
+  temporary folder, so the reader opens there with no Zotero.
+- **Fold again on R1's doc (D9) or one an older FoldMake read** reads the PDF again first, then folds.
+- **An unreadable PDF's reason is made a sentence** (capital, final period); with the PDF away, a doc kept from
+  before still reads, and the PDF pane says why.
+- **The CHANGELOG's entry says no separate folding app is needed** rather than naming TextFold, as R5-43 asks the
+  next entry to name none; the entry below it (0.4.35) is the one that named it.
+- **Swift is still not compiled here**: R5-35 to R5-40 (`FoldReaderTests.swift`) first run on macOS CI.

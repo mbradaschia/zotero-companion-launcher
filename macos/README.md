@@ -67,9 +67,12 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
 
 ## Reading with folds
 
-A paper's menu has *Read with folds* (or `v` on it): its own window shows the paper at five levels, from every word
-to one line per section, beside its PDF, with highlights and notes kept on this Mac. It needs
-[TextFold](https://github.com/chenxiachan/textfold) running on this Mac, which writes the levels.
+A paper's menu has *Read with folds* (or `v` on it): its own window reads the paper from its PDF and shows it at five
+levels, from every word to one line per section, beside the PDF, with highlights and notes kept on this Mac. The
+short levels (Key, Takeaway, Topic) show each paragraph's first sentence until you press *Fold with AI*, which writes
+them with the model you set up for prompts (Settings › Defaults), through the AI features: the banner says how many
+requests it takes, and the price when the provider lists one, before anything is sent. The levels are kept for the
+next time; nothing in Zotero changes.
 
 ## The menu bar
 
