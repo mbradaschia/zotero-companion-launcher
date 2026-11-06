@@ -190,6 +190,13 @@ function GlueSettings(V, C, T, P, S) {
         detail: dock ? "On · the app has a Dock icon and is in ⌘Tab: clicking it (or switching to it) opens the launcher"
           : "Off · only the menu bar's icon and the hotkey: no Dock icon, not in ⌘Tab" }))
     }
+    if (typeof x.lists === "boolean") {
+      var lists = x.lists
+      rows.push(L({ section: "The launcher", rowId: "set-toggle", value: "mac.listsPanel", icon: lists ? S.ICON.on : S.ICON.off, checked: lists, available: true,
+        label: "Lists panel", badge: badge,
+        detail: lists ? "On · your lists beside the results (saved searches, reading status, tasks, taxonomies, collections, tags), with counts; ⌃⌘S folds it to its icons, ⌘L gives it the keys"
+          : "Off · no lists beside the results: your pinned searches are badges above them" }))
+    }
     return rows
   }
 
@@ -386,7 +393,7 @@ function GlueSettings(V, C, T, P, S) {
       var out = []
       var m = mac || {}
       INDEXED.forEach(function (p) {
-        macWords(page(p[0], settings, ctx, { todos: todos, theme: m.theme, openAsWindow: m.openAsWindow, dock: m.dock })).forEach(function (r) {
+        macWords(page(p[0], settings, ctx, { todos: todos, theme: m.theme, openAsWindow: m.openAsWindow, dock: m.dock, lists: m.lists })).forEach(function (r) {
           if (!r.label || (r.rowId === "set-info" && !r.available)) return
           var nav = r.rowId === "set-nav"
           out.push({ page: nav ? r.value : p[0], pageTitle: nav ? r.label : p[1], label: r.label, detail: r.detail, section: r.section, rowId: nav ? "" : r.rowId, value: nav ? "" : r.value })

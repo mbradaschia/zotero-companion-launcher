@@ -127,6 +127,21 @@ test("collections: their paths in tree order, papers counted with subcollections
   ]);
 });
 
+test("collections carry key, parentKey and libraryID (the Lists panel's tree and its drops); a paper only into its own library's", () => {
+  const ctx = vm.createContext({ console });
+  vm.runInContext(lib("search.js"), ctx);
+  vm.runInContext(lib("collections.js") + "\nthis.OmaCollections = OmaCollections;", ctx);
+  const cols = ctx.OmaCollections.build([
+    { id: 1, key: "AAAAAAAA", libraryID: 1, name: "Topics", parentID: null },
+    { id: 2, key: "BBBBBBBB", libraryID: 1, name: "SCM", parentID: 1 },
+    { id: 3, key: "CCCCCCCC", libraryID: 2, name: "Shared", parentID: null },
+  ], new Map([[1, "My Library"], [2, "Lab"]]));
+  const values = F.values([], "collection", { collections: cols, collectionCounts: new Map() });
+  assert.deepEqual(plain(values).map((v) => [v.key, v.parentKey, v.libraryID]), [["AAAAAAAA", null, 1], ["BBBBBBBB", "AAAAAAAA", 1], ["CCCCCCCC", null, 2]]);
+  assert.equal(ctx.OmaCollections.addRefusal(cols[2], 2), "");
+  assert.match(ctx.OmaCollections.addRefusal(cols[2], 1), /its own library .*Lab/);
+});
+
 test("resolveTerms: a c: term → the papers of every collection it matches, subcollections included", async () => {
   const children = { 1: [10, 11], 2: [12], 3: [13] };
   const ctx = vm.createContext({

@@ -34,6 +34,13 @@ enum KeyRouter {
         let sizeKey = s.inNote && [KeyEvent.Key.character("-"), .character("+"), .character("="), .character("0")].contains(k)
         let save = s.inSearch && (e.control || e.command) && !e.option && !e.shift && k == .character("s") // ⌘S as Ctrl+S
         let table = s.inSearch && e.command && !e.option && !e.shift && !e.control && k == .character("t") // ⌘T: a review table
+        // the Lists panel's: ⌃⌘S (the Mac's Show Sidebar) open or folded, ⌘L its keys (with the panel off: they say how to
+        // turn it on), ⌘1…⌘9 a favorite (in the results)
+        if e.command && !e.option && !e.shift {
+            if e.control && k == .character("s") { return .toggleLists }
+            if !e.control && k == .character("l") { return .focusLists }
+            if s.lists && !e.control && s.inSearch, case .character(let c) = k, c.isASCII, let n = c.wholeNumberValue, (1...9).contains(n) { return .favorite(n) }
+        }
         if e.command && !sizeKey && !save && !table && !(paste && (s.view == "settings-edit" || s.textEntry)) { return .pass }
         if s.inNote { return .note(e) }
         if k == .delete && plain && s.tabTodo && s.filterText.isEmpty { return .deleteTask } // (with text: the field's)
@@ -53,7 +60,7 @@ enum KeyRouter {
         if tabs && plain && (s.view == "settings-tax-label" || s.view == "settings-tax-ai") { return .ignore } // (Tab never deletes a label or saves a draft)
         if s.view == "todo-due" && plain, let command = calendar(k) { return command }
         if tabs && plain && s.tabTodo { return .cycleTask(dir) }
-        if tabs && plain && (s.atRoot || s.pickingAtTop) && s.pinnedSearches { return .cycleSearch(dir) }
+        if tabs && plain && (s.atRoot || s.pickingAtTop || s.inFavorite) && s.pinnedSearches { return .cycleSearch(dir) }
         if horizontal != 0 && e.option && e.shift && !e.control && s.taskTarget { return .cycleDefaultTask(horizontal) }
         if horizontal != 0 && e.option && !e.shift && !e.control && s.statusTarget { return .cycleStatus(horizontal) }
         if k == .enter && e.shift { return .alternate }

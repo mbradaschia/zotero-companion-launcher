@@ -16,6 +16,29 @@ struct LauncherView: View {
     }
 
     var body: some View {
+        HStack(spacing: 0) {
+            // the Lists panel (or its rail) on the left, when it's on
+            if model.listsEnabled {
+                ListsColumn(model: model)
+                Divider()
+            }
+            main
+        }
+        // (under 760 points wide: the rail, whatever you chose)
+        .background(GeometryReader { g in
+            Color.clear
+                .onAppear { model.listsWidthChanged(narrow: g.size.width < LauncherModel.listsNarrow) }
+                .onChange(of: g.size.width < LauncherModel.listsNarrow) { _, narrow in model.listsWidthChanged(narrow: narrow) }
+        })
+        .frame(minWidth: LauncherPanel.minSize.width, maxWidth: .infinity, minHeight: LauncherPanel.minSize.height, maxHeight: .infinity) // (resizable: it fills the panel)
+        // solid, not a see-through material: what's behind (lighter still while it isn't the window in front) made the text hard to read
+        .background(theme.palette.background, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .themed()
+    }
+
+    // The context bar, the search box, the badges, the rows and the footer.
+    private var main: some View {
         VStack(spacing: 0) {
             if let context = model.context {
                 HStack(alignment: .top, spacing: 8) { // (the ranks and the count beside the breadcrumb's first line)
@@ -61,7 +84,7 @@ struct LauncherView: View {
             .padding(.top, model.context == nil ? 12 : 8) // (closer under the breadcrumb)
             .padding(.bottom, 12)
 
-            if !model.badges.isEmpty || !model.sortLabel.isEmpty { BadgeBar(model: model) } // (in a scope too: the sort is always shown)
+            if !model.badgesShown.isEmpty || !model.sortLabel.isEmpty { BadgeBar(model: model) } // (in a scope too: the sort is always shown)
             if store.view == "tasks" && !model.processesAndPending.isEmpty { ProcessFilterBar(model: model) }
             Divider()
             // a new list slides in: from the right going in, from the left going back; the old one fades (its own
@@ -78,11 +101,7 @@ struct LauncherView: View {
             Divider()
             FooterView(model: model)
         }
-        .frame(minWidth: LauncherPanel.minSize.width, maxWidth: .infinity, minHeight: LauncherPanel.minSize.height, maxHeight: .infinity) // (resizable: it fills the panel)
-        // solid, not a see-through material: what's behind (lighter still while it isn't the window in front) made the text hard to read
-        .background(theme.palette.background, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .themed()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // The paper's taxonomy strip, when it has a label or a note to show.
@@ -213,7 +232,7 @@ struct BadgeBar: View {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
-                        ForEach(model.badges, id: \.id) { badge in
+                        ForEach(model.badgesShown, id: \.id) { badge in
                             BadgeChip(name: badge.name, id: badge.id, active: badge.id != "+save" && badge.id == model.searchState.active) {
                                 badge.id == "+save" ? model.saveSearchPrompt() : model.selectSearch(badge.id)
                             }

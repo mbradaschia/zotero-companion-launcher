@@ -255,6 +255,22 @@ says so.
   Saved searches. Enter (and the arrow, `↵ its papers`) opens one, ⇧↵ its menu (rename, edit, delete), as the saved
   searches list does; ⇧↵ on a setting or a place does nothing.
 
+## The Lists panel
+
+- **One name everywhere:** *Lists panel* (the setting, its flashes, the keys view); folded is *its icons* (the rail),
+  never "sidebar". The toggle at its top says *Open the Lists panel (⌃⌘S)* / *Fold the Lists panel to its icons (⌃⌘S)*.
+- **Shown, keys, open:** the list shown is filled and bold; the row the keys are on (⌘L) is outlined, in `onAccent` on
+  the filled one; a favorite carries a pin. On the rail the section holding the list shown is filled, the one whose
+  pop-over is open outlined. Never colour alone.
+- **Favorites stand for the badges** while the panel is on: every place that said "badge above the results" says
+  *a favorite in the Lists panel* (Shift+Enter's menu, saving, the keys view), Tab and ⇧Tab go through them, ⌘1…⌘9 show
+  one (its ⌘ in the hover, and in the flash that makes it a favorite, up to the ninth).
+- **The panel's keys are its own** while ⌘L gives them: ↑↓ →← ↵ and `p` (⌥p in the ⌥-key mode), the footer says so;
+  a letter typed there goes into the search box, never to a paper's one-key action; esc, Tab, ⌘L, hiding the launcher,
+  or a place clicked give the keys back to the results.
+- **⌃⌘S and ⌘L with the panel off** say where to turn it on (Settings › General › Lists panel), so the key isn't dead.
+- **Zotero not answering:** the lists still show and open; a ⚠ row says *No counts: Zotero isn't answering*.
+
 ## Pills
 
 Three ways, as the QML: **on** (filled: the one chosen), **tag** (a tinted outline: something the

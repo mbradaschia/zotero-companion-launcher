@@ -7,6 +7,28 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.33`)
+
+- **The Lists panel.** A column on the left of the launcher lists every kind of list it knows, each with its papers'
+  count: *Favorites*, *Saved searches*, *Quick lists* (Recent, Open in Zotero, Pinned papers, Unfiled, No PDF),
+  *Reading status*, *Tasks* (under Backlog, Next, Active, Waiting), *Taxonomies* (each folding open to its labels),
+  *Collections* (the tree), *Tags* (folded) and *Review tables*. A click shows a list's papers one level in, as Enter
+  on a collection does (esc goes back; clicking it again too): a status or a label is a search of its own terms,
+  named for where it is ("Reading status › reading"), so typing searches inside it and ⌘T opens it as a table.
+- **Favorites in place of the badges.** Your pinned saved searches are the first Favorites, so the badge row above
+  the results goes (Group, Sort and Order stay). p on a list (⌘L first) or its right-click menu pins it; Tab and ⇧Tab
+  go through the Favorites, ⌘1 to ⌘9 open one.
+- **Folded to icons.** The button at the panel's top, or ⌃⌘S, folds it to a 46-point rail of the sections' icons
+  (each opens its lists as a pop-over) and opens it again; the window starts open, the overlay as the rail (opened,
+  the overlay grows to the left, so the results keep their size). Under 760 points wide, the rail. Drag the panel's
+  edge for its width (180 to 320).
+- **Its keys.** ⌘L gives the panel the keys: ↑↓ move, →← open or fold, ↵ show the list, p a favorite, ⌃⇧↑↓ move a
+  section, esc back to the results. Folded sections, favorites and the order are in `view.json` (both Macs alike).
+  Settings › General › *Lists panel* turns it off (and the badges back on).
+- **When Zotero isn't answering** the lists still show and open; a ⚠ row says there are no counts.
+- **The collection tree needs the bridge 0.2.7** (attached to this release); with an older one, collections are
+  nested by their names.
+
 ### The Mac app (`macos-v0.4.32`)
 
 - **The docked chat fits its pane.** It was at least 320 points wide, so a narrower right pane cut it off at both
@@ -596,6 +618,16 @@ bridge and the prompt runner share one version.
 - **Releases:** a `macos-v*` tag builds and publishes the app with an `install.sh` for that version, beside the
   nightly build. Signed ad hoc, not notarized.
 
+## [0.2.7] - 2026-11-06
+
+### Added
+
+- **Collections come with their place in the tree.** `/facets` for `collection` returns each collection's `key`,
+  `parentKey` and `libraryID`, so the Lists panel builds the tree from data instead of splitting names on " / ".
+- **`POST /collection/add`** puts a paper into a collection (the Lists panel's drop): `{ key, libraryID, item: { key,
+  libraryID } }` → `{ added, collection }`. Only into a collection of the paper's own library; a read-only library
+  refuses with its name; a paper already there answers `added: false`.
+
 ## [0.2.6] - 2026-10-29
 
 ### Added
@@ -1073,7 +1105,8 @@ First release.
   create), full text, annotations, citations (CSL, APA 7), tags and tabs. Updates itself from the
   GitHub releases.
 
-[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/mbradaschia/zotero-companion-launcher/compare/v0.2.3...v0.2.4

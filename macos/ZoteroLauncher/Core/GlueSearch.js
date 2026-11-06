@@ -2,6 +2,18 @@
 // blocks, Zotero's sync. JSON in, JSON out; dates as epoch milliseconds.
 function GlueSearch(V, C, T, F) {
   var at = function (ms) { return new Date(Number(ms) || Date.now()) }
+  // The Lists panel on: a pinned search is one of its Favorites (Tab goes through them), not a badge above the results.
+  var LISTS_WORDS = [["Pin above the results", "Pin to Favorites"], ["Take its badge away", "Out of the Lists panel's Favorites"],
+    ["A badge above the results: Tab and Shift+Tab switch between them", "A favorite in the Lists panel: Tab and ⇧Tab go through them"],
+    ["A badge above the results; Tab switches to it", "A favorite in the Lists panel; Tab goes to it"]]
+  var listsWords = function (rows, lists) {
+    if (!lists) return rows
+    return rows.map(function (r) {
+      var x = Object.assign({}, r)
+      ;["label", "detail"].forEach(function (f) { LISTS_WORDS.forEach(function (w) { if (x[f] === w[0]) x[f] = w[1] }) })
+      return x
+    })
+  }
 
   return {
     // ---- saved searches (searches.json)
@@ -18,8 +30,9 @@ function GlueSearch(V, C, T, F) {
     // What the results show, as one search: the scope's query and what is typed.
     combinedQuery: function (scope, typed) { return V.combinedQuery(V.scopeQuery(scope || null), typed || "") },
     savedSearchRows: function (searches, query, color) { return V.buildSearchRows(searches || [], query || "", color, F.filter) },
-    searchMenuRows: function (search) { return V.searchMenuRows(search || null) },
-    searchEditRows: function (mode, text, query) { return V.buildSearchEditRows(mode, text || "", query || "") },
+    // (lists: the Lists panel is on, a pin is a favorite there, not a badge)
+    searchMenuRows: function (search, lists) { return listsWords(V.searchMenuRows(search || null), lists) },
+    searchEditRows: function (mode, text, query, lists) { return listsWords(V.buildSearchEditRows(mode, text || "", query || ""), lists) },
 
     // ---- the @ pickers
     pickerRows: function (query, hasSearches, taxonomies) { return V.buildPickerRows(query || "", !!hasSearches, taxonomies || []) },

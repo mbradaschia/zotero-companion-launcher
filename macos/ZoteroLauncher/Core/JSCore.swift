@@ -21,7 +21,7 @@ enum JSCoreError: Error, CustomStringConvertible {
 // `module`, and its exports become a global of that name, so Glue.js can reach them all. Swift
 // calls Glue's wrappers, JSON in and out, so it sees plain Codable structs.
 final class JSCore {
-    static let libraries = ["Fuzzy", "Client", "Views", "Settings", "Todos"]
+    static let libraries = ["Fuzzy", "Client", "Views", "Settings", "Todos", "Sidebar"]
     static let glue = ["GlueLists.js", "GlueTodos.js", "GlueSearch.js", "GlueSettings.js", "GlueRunner.js", "GlueChat.js", "GlueTaxonomies.js", "GlueReviews.js", "Glue.js"]
 
     private let context: JSContext

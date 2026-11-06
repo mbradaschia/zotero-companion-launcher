@@ -50,6 +50,30 @@ final class LauncherModel: ObservableObject {
             if opened && store.view == "settings-general" { store.followTop = false; rebuildList() }
         }
     }
+    // Settings › General › Lists panel (this Mac's): on (the default), the lists beside the results (LauncherModel+Lists),
+    // open or folded to the icon rail; off, the badges above the results instead. Open or folded: the window's and the
+    // overlay's each their own (the window open, the overlay the rail, at first); its width this Mac's, 180 to 320.
+    // (Under the tests: off, each model's own.)
+    @Published var listsEnabled: Bool = LauncherModel.underTests ? false : (UserDefaults.standard.object(forKey: "ZLListsPanel") as? Bool ?? true) {
+        didSet {
+            if !Self.underTests { UserDefaults.standard.set(listsEnabled, forKey: "ZLListsPanel") }
+            runnerState.index = nil
+            searchState.active = "" // (the badges and the favorites: one or the other)
+            lists.focus = false
+            if listsEnabled { refreshLists() }
+            if opened && store.view == "settings-general" { store.followTop = false; rebuildList() }
+        }
+    }
+    @Published var listsOpenWindow: Bool = LauncherModel.underTests ? true : (UserDefaults.standard.object(forKey: "ZLListsOpenWindow") as? Bool ?? true) {
+        didSet { if !Self.underTests { UserDefaults.standard.set(listsOpenWindow, forKey: "ZLListsOpenWindow") } }
+    }
+    @Published var listsOpenOverlay: Bool = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLListsOpenOverlay") {
+        didSet { if !Self.underTests { UserDefaults.standard.set(listsOpenOverlay, forKey: "ZLListsOpenOverlay") } }
+    }
+    @Published var listsWidth: CGFloat = LauncherModel.underTests ? LauncherModel.listsDefaultWidth : LauncherModel.keptListsWidth {
+        didSet { if !Self.underTests { UserDefaults.standard.set(Double(listsWidth), forKey: "ZLListsWidth") } }
+    }
+    @Published var lists = ListsState()
     static let underTests = NSClassFromString("XCTestCase") != nil
     @Published private(set) var shown = 0 // counts openings: the view focuses on each
     private(set) var opened = false // shown: answers and timers for a launcher that closed do nothing
@@ -210,6 +234,7 @@ final class LauncherModel: ObservableObject {
         refreshArtifacts()
         tax.tagCounts = nil // (the @ picker's taxonomy values: counted again this opening)
         refreshTaxonomies() // a paper's taxonomy rows and pills
+        refreshLists() // the Lists panel's counts (when it's on)
         // a taxonomy's page left open: read again (its file may have been edited meanwhile; a save would write over it)
         if ["settings-taxonomy", "settings-tax-label"].contains(store.view), !tax.editId.isEmpty { reloadTaxonomy() }
         if store.inSettings { // back in Settings: what may have changed meanwhile (a key, Node, an install)
@@ -258,6 +283,8 @@ final class LauncherModel: ObservableObject {
         keyTimer?.invalidate()
         store.keys.clear()
         quickAction = ""
+        lists.focus = false // (the keys are the results' when it opens again)
+        lists.popover = ""
     }
 
     func flashMessage(_ text: String) {

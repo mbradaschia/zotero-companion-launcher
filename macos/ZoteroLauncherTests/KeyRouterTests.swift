@@ -328,4 +328,26 @@ final class KeyRouterTests: XCTestCase {
         XCTAssertEqual(buffer.handle(char("y"), state { $0.view = "note" }, at: t0.addingTimeInterval(0.1)), [.note(char("y"))])
         XCTAssertTrue(buffer.pending)
     }
+
+    // ---- the Lists panel's keys (phase L2): ⌃⌘S and ⌘L always (off, they say how to turn it on), ⌘1…⌘9 while it's on
+
+    func testTheListsPanelsCommandKeys() {
+        let on = state { $0.lists = true }
+        XCTAssertEqual(route(char("s", control: true, command: true), on), .toggleLists) // ⌃⌘S, the Mac's Show Sidebar
+        XCTAssertEqual(route(char("s", command: true), on), .saveSearch) // (⌘S still saves)
+        XCTAssertEqual(route(char("l", command: true), on), .focusLists)
+        XCTAssertEqual(route(char("3", command: true), on), .favorite(3))
+        XCTAssertEqual(route(char("3", command: true), state { $0.lists = true; $0.view = "actions" }), .pass) // (a favorite from the results only)
+        XCTAssertEqual(route(char("l", command: true)), .focusLists) // off: its flash says where to turn it on
+        XCTAssertEqual(route(char("s", control: true, command: true)), .toggleLists)
+        XCTAssertEqual(route(char("3", command: true)), .pass)
+    }
+
+    func testTabGoesOnToTheNextFavoriteFromInsideOne() {
+        let inside = state { $0.lists = true; $0.view = "search"; $0.scoped = true; $0.inFavorite = true; $0.pinnedSearches = true }
+        XCTAssertEqual(route(key(.tab), inside), .cycleSearch(1))
+        XCTAssertEqual(route(key(.backtab, shift: true), inside), .cycleSearch(-1))
+        let elsewhere = state { $0.lists = true; $0.view = "search"; $0.scoped = true; $0.pinnedSearches = true }
+        XCTAssertEqual(route(key(.backtab, shift: true), elsewhere), .back) // (a list that isn't a favorite: ⇧Tab goes back, as before)
+    }
 }

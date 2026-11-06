@@ -27,6 +27,7 @@ extension LauncherModel {
     // The saved searches changed (here, or the other machine's merged in): a badge whose search is
     // gone or unpinned goes back to All; an edited one is searched again (ZoteroSearch.qml:764).
     func searchesChanged() {
+        buildLists() // (the Lists panel's saved searches and favorites)
         if !searchState.active.isEmpty && !pinnedSearches.contains(where: { $0["id"] as? String == searchState.active }) { searchState.active = "" }
         if ["searches", "search-menu", "picker"].contains(store.view) {
             store.followTop = false
@@ -129,6 +130,10 @@ extension LauncherModel {
         guard let s = savedSearch(id) else { return }
         let pinned = s["pinned"] as? Bool == true
         guard saveSearches("updateSearch", [id, ["pinned": !pinned]]) else { return }
+        if listsEnabled {
+            buildLists()
+            return flashMessage(pinned ? "Out of Favorites" : favoriteFlash("search:" + id))
+        }
         flashMessage(pinned ? "Unpinned" : "Pinned: its badge is above the results; Tab switches to it")
     }
 
@@ -259,8 +264,8 @@ extension LauncherModel {
     func searchViewRows(_ core: JSCore) throws -> [ListRow] {
         switch store.view {
         case "searches": return try core.glue("savedSearchRows", [searchesJSON, store.filterText, Self.accentHex], as: [ListRow].self)
-        case "search-menu": return try core.glue("searchMenuRows", [searchState.menu ?? NSNull()], as: [ListRow].self)
-        case "search-edit": return try core.glue("searchEditRows", [searchState.editMode, store.filterText, searchState.toSave], as: [ListRow].self)
+        case "search-menu": return try core.glue("searchMenuRows", [searchState.menu ?? NSNull(), listsEnabled], as: [ListRow].self)
+        case "search-edit": return try core.glue("searchEditRows", [searchState.editMode, store.filterText, searchState.toSave, listsEnabled], as: [ListRow].self)
         case "picker": return try core.glue("pickerRows", [store.filterText, !savedSearches.isEmpty, tax.taxonomies], as: [ListRow].self)
         default: break
         }
@@ -341,6 +346,9 @@ extension LauncherModel {
         store.caretBack = caretBack
         store.queryLive = true
     }
+
+    // The badges as drawn: none with the Lists panel on (its Favorites are the pinned searches, and ⌘S still saves).
+    var badgesShown: [(id: String, name: String)] { listsEnabled ? [] : badges }
 
     // The badges above the results, at the top level and while picking a paper there: All, each pinned search, and
     // (not while picking: ⌘S doesn't save there) the save hint.

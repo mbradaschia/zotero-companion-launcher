@@ -566,6 +566,22 @@ function cases() {
   add("reviewSetCell/ai-kept", "reviewSetCell", aiCells, "1:P3NM4G92", "my gap", "2026-10-28T11:00:00Z", "mac");
   add("reviewRestoreCell/back", "reviewRestoreCell", edited, "1:P3NM4G92", "2026-10-28T12:00:00Z");
   add("reviewRestoreCell/nothing", "reviewRestoreCell", aiCells, "1:P3NM4G92", "2026-10-28T12:00:00Z");
+  // the Lists panel (lib/Sidebar.js through Glue.listsPanel): counts from /facets, a pinned saved search first in Favorites,
+  // a collection tree from key and parentKey, a taxonomy folded by default, a section moved
+  const listFacets = {
+    status: [{ value: "none", label: "No status", count: 4, token: "status:none" }, { value: "reading", label: "reading", count: 2, token: 'status:"reading"' }],
+    task: [{ value: "Waiting", label: "Waiting", count: 1, token: 'task:"Waiting"', detail: "waiting" }],
+    tag: [{ value: "theory/resource-based view", label: "theory/resource-based view", count: 3 }, { value: "SCM", label: "SCM", count: 5 }],
+    collection: [{ value: "Topics", label: "Topics", count: 6, key: "AAAAAAAA", parentKey: null, libraryID: 1 },
+      { value: "Topics / SCM", label: "Topics / SCM", count: 2, key: "BBBBBBBB", parentKey: "AAAAAAAA", libraryID: 1 }],
+    has: [{ value: "!collection", label: "In no collection", count: 7 }, { value: "!pdf", label: "No PDF", count: 1 }],
+  };
+  const listSearches = [{ id: "s1", name: "Capabilities", query: "dynamic capabilities", pinned: true }, { id: "s2", name: "Theses", query: "type:thesis" }];
+  const listTax = [{ id: "theory", name: "Theories", prefix: "theory/", labels: ["resource-based view"] }];
+  add("listsPanel/full", "listsPanel", listFacets, listSearches, [{ id: "r-abc", name: "SCM table", updated: "x" }], listTax, settings, { favorites: ["status:reading"] });
+  add("listsPanel/empty", "listsPanel", {}, [], [], [], settings, null);
+  add("listsPanel/folded-and-ordered", "listsPanel", listFacets, listSearches, [], listTax, settings, { folded: { "tax:theory": false, status: true }, order: ["status"] });
+  add("listsMoveSection/down", "listsMoveSection", {}, "searches", 1);
   return list;
 }
 
