@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.34`)
 
 - **No two lists with the same name.** A new review table whose name another table has gets the next free one
   ("CRT 2"), as does a table whose name follows a new source; renaming a table to a name in use is refused. Saving or
