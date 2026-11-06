@@ -859,16 +859,17 @@ var FoldMake = (function () {
     var disabled = lv.runner === "missing" ? "no-runner" : lv.runner === "old" ? "old-runner" : lv.scan ? "scan" : lang === "zh" || lang === "ja" ? "cjk" :
       pl.error ? (STOP_KINDS[pl.kind] === "no-ai" || !pl.kind ? "no-ai" : "") : ""
     var kind
+    // (6.2's order: what can't fold now (no runner, an old one) wins over how a run ended, except a doc folded
+    // throughout; after a Fold again, done counts that run's sections, so its end never reads as folded)
     if (lv.folding) kind = "folding"
-    else if (stop && stop.kind && done < total) kind = STOP_KINDS[stop.kind] || "ai-offline"
-    else if (failed.length) kind = "partial"
-    else if ((r.status === "stopped" || r.status === "folding") && done < total && (again || done > 0)) kind = "stopped"
     else if (total > 0 && done === total) kind = "folded"
     else if (lv.runner === "missing") kind = "no-runner"
     else if (lv.runner === "old") kind = "old-runner"
+    else if (stop && stop.kind) kind = STOP_KINDS[stop.kind] || "ai-offline"
     else if (pl.error) kind = STOP_KINDS[pl.kind] || "no-ai"
     else if (lv.pdfChanged && !done) kind = "pdf-changed"
-    else if (r.status === "stopped" || r.status === "folding" || done > 0) kind = "stopped"
+    else if (failed.length) kind = "partial"
+    else if (r.status === "stopped" || r.status === "folding" || done > 0 || again) kind = "stopped"
     else kind = "unfolded"
     return {
       kind: kind, done: done, total: total, failed: failed, error: error.slice(0, 200), again: again, left: left,

@@ -350,6 +350,11 @@ test("R5-26: after Fold again, a Stop, a refused key and failed sections show ho
   assert.equal(v(all, { force: true, status: "done", sections: { abstract: "done", S1: "done", S2: "done", "S2.SS1": "done", A1: "done" } }).kind, "folded")
   const first = v(Glue.foldMerge(made.doc, event("S1", ["S1.p1", "S1.p2"]), "2026-11-06T10:00:00Z"), { status: "stopped", sections: { S1: "done" } })
   assert.deepEqual([first.kind, first.done, first.again, first.left], ["stopped", 1, false, ["abstract", "S2", "S2.SS1", "A1"]])
+  // a Fold again that stopped, then no runner or an old one: that wins, as it can't fold now (6.2), and disables
+  for (const [runner, kind] of [["missing", "no-runner"], ["old", "old-runner"]]) {
+    const gone = v(all, { force: true, status: "stopped", sections: { abstract: "done" } }, { runner: runner })
+    assert.deepEqual([gone.kind, gone.disabled, gone.again, gone.done], [kind, kind, true, 1], runner + ": " + JSON.stringify(gone))
+  }
 })
 
 test("R5-26: costText is Settings' money: under a cent, two decimals, nothing when unknown", () => {

@@ -123,7 +123,7 @@ final class FoldPDF: @unchecked Sendable {
     }
 
     // A line's text pieces: one for each of its ranges of the page's characters, each UTF-16 unit with the index of the
-    // page character it is (characterBounds(at:) takes those). The line's or the range's own text when it fits the
+    // page character it is (what selection(for:) takes). The line's or the range's own text when it fits the
     // range (fit); else its characters one at a time, so every word keeps the boxes of its own characters. (R5's first
     // CI run: on the fixture paper's pages the words came out spread along their lines, the line's text not fitting
     // its range, and spread across the page on the turned one.)
@@ -156,8 +156,9 @@ final class FoldPDF: @unchecked Sendable {
         var out: [Piece] = []
         var how: [String] = []
         for i in 0..<n {
-            let range = line.range(at: i, on: page)
-            guard range.location != NSNotFound, range.length > 0 else { how.append("empty"); continue }
+            // (within the page's characters: selection(for:) raises, which Swift can't catch, for an empty range or one
+            // that ends past them, and a line's range counts a break after its text that the page's last line may lack)
+            guard let range = within(line.range(at: i, on: page), page.numberOfCharacters) else { how.append("empty"); continue }
             let owner = Array(range.location..<(range.location + range.length))
             if n == 1, let f = fit(line.string, styled ? line.attributedString : nil, to: range.length) {
                 out.append(Piece(text: f.text, owner: Array(owner.prefix(f.text.length)), fonts: f.fonts))
@@ -193,6 +194,12 @@ final class FoldPDF: @unchecked Sendable {
             how.append("chars")
         }
         return (out, how)
+    }
+
+    // A range cut to the page's characters (0 to count), nil when nothing of it is left.
+    static func within(_ r: NSRange, _ count: Int) -> NSRange? {
+        guard r.location != NSNotFound, r.location >= 0, r.length > 0, r.location < count else { return nil }
+        return NSRange(location: r.location, length: min(r.length, count - r.location))
     }
 
     // A part of a line's box, from a to b (0 to 1 of its length) along the way it reads: across, or down a page turned
@@ -250,7 +257,8 @@ final class FoldPDF: @unchecked Sendable {
                 // characterBounds(at:) doesn't, so on CI its boxes ran one character later each line down the page)
                 var rect = CGRect.null
                 let from = part.owner[w.location], to = part.owner[w.location + w.length - 1]
-                if to >= from, let sel = page.selection(for: NSRange(location: from, length: to - from + 1)) {
+                if to >= from, let word = within(NSRange(location: from, length: to - from + 1), page.numberOfCharacters),
+                   let sel = page.selection(for: word) {
                     let b = sel.bounds(for: page)
                     if !b.isNull, b.width > 0 || b.height > 0, b.midY >= r.minY - 1, b.midY <= r.maxY + 1 { rect = b } // (only a box on this line)
                 }
@@ -279,7 +287,7 @@ final class FoldPDF: @unchecked Sendable {
         pageLines(page).map { line in
             let r = line.bounds(for: page)
             let n = line.numberOfTextRanges(on: page)
-            let ranges = (0..<n).map { i -> String in let g = line.range(at: i, on: page); return "\(g.location)+\(g.length)" }
+            let ranges = (0..<n).map { i -> String in let g = line.range(at: i, on: page); return "\(g.location)+\(g.length)" } + ["of \(page.numberOfCharacters)"]
             let read = pieces(line, on: page, styled: false)
             let words = lineWords(line, on: page)
             let texts = read.pieces.map { "\"\($0.text)\" (\($0.text.length))" }

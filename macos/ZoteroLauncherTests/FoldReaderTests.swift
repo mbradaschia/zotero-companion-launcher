@@ -562,8 +562,16 @@ final class FoldReaderTests: XCTestCase {
             let p = FakeFoldPage()
             w.page = p
             w.handle(["type": "ready"])
-            XCTAssertTrue(until { p.folds.last?["kind"] as? String == kind }, "\(kind): \(p.folds.last ?? [:])")
-            XCTAssertEqual(p.folds.last?["disabled"] as? String, kind)
+            // (one line, read when the check fails: an annotation shows only a message's first line, and a dictionary's
+            // arrays print over several)
+            let seen = { () -> String in
+                let f = p.folds.last ?? [:], kept = store.readRun() ?? [:]
+                let one = { (v: Any?) -> String in v.map { "\($0)" } ?? "none" }
+                return "kind \(one(f["kind"])) disabled \(one(f["disabled"])) again \(one(f["again"])) done \(one(f["done"])) of \(one(f["total"]))" +
+                    " left \((f["left"] as? [String] ?? []).joined(separator: ",")); fold.json status \(one(kept["status"])) force \(one(kept["force"]))"
+            }
+            XCTAssertTrue(until { p.folds.last?["kind"] as? String == kind }, "\(kind): \(seen())")
+            XCTAssertEqual(p.folds.last?["disabled"] as? String, kind, seen())
             w.windowClosing()
         }
     }

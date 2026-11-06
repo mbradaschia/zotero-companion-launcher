@@ -329,6 +329,21 @@ Found while building R5; each keeps its criterion's intent.
   `characterBounds(at:)`: on macOS CI a line's range is its text plus one break index, and `characterBounds` counts
   without those breaks, so its boxes drift one character a line. A range one or two longer than its text is read as
   the text; a word with no selection is spread along its line by CoreText's advances.
+- **What FoldPDF takes PDFKit to do**, from Apple's PDFKit reference and the CI runs that tested it:
+  - `selectionsByLine()` gives one selection a line of the selection it is called on (documented); FoldPDF calls it on
+    the page's media box selection. That two columns' lines on one baseline may come as one line is not documented
+    either way, so FoldPDF cuts them itself.
+  - `range(at:on:)` and `numberOfTextRanges(on:)` have no documented contract. CI showed a line's range as its text
+    plus one index, the break after it; FoldPDF reads a range up to two longer than its text as that text.
+  - `selection(for: NSRange)` is documented to raise an exception for an empty range or one with an end outside the
+    page's characters (`numberOfCharacters`, documented as including whitespace). Swift cannot catch it, so every
+    range is cut to the page's characters first. CI showed the ranges' indices are the ones it takes: words on
+    every line of the fixture's pages got their own boxes from it.
+  - `characterBounds(at:)` is documented only as the bounds of the character at an index. CI showed its index
+    skipping the breaks the ranges count, so FoldPDF no longer uses it.
+  - `bounds(for:)` is in page space, 72 dpi from the lower left (documented). The reference doesn't say how the page's
+    rotation enters; CI's turned page passes with FoldPDF turning the boxes itself (normalize), so page space is the
+    page unturned.
 - **The 1.5 heights cut uses the line's median word height**, and a line across the page is then cut at its middle
   (`cutAtMiddle`) at the widest gap over the page's centre when that gap is 0.5 × the height or more and twice the
   line's other gaps; FoldMake's `recut` does the same at the frame's middle for lines given as one, kept only when the
@@ -346,7 +361,8 @@ Found while building R5; each keeps its criterion's intent.
 - **`fold.json`'s run carries `force`**, and `foldView` gives `again` (a Fold again run) and `left` (the sections
   still to fold), so a Stop, a refused key or failed sections after Fold again read as that run's end (`stopped`,
   the stop's kind or `partial`), not `folded`; the flash says how many were folded again and that the others keep
-  their earlier levels.
+  their earlier levels. 6.2's order holds otherwise: a missing or old runner wins over how a run ended, except a doc
+  folded throughout.
 - **The AI levels' footer says what is written by AI**: `first sentences until folded` with nothing folded, and
   `written by AI for d of t sections, the others first sentences` part way.
 - **The runner's message starts with a capital** in a banner, the unfolded banner names why Chinese or Japanese can't
