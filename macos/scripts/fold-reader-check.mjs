@@ -392,6 +392,7 @@ await words({ pages: [{ n: 1, words: [] }, { n: 2, words: [] }], sizes: fw.sizes
 ok((await pg.textContent(".pbar .cover")) === "This PDF has no text layer (a scan): the panes can't be linked, but you can read both", "no-text: the scan's line");
 await load(payload(doc, fw, { pdf: { problem: "missing" } }));
 ok((await pg.textContent("#pdf .pmsg")) === "The PDF file is missing from disk", "missing: its line");
+ok((await pg.$$eval(".pbar .zb, .pbar .zlabel", (l) => l.filter((x) => x.offsetParent !== null || x.textContent).length)) === 0, "no PDF to zoom: no zoom buttons and no Fit");
 await load(payload(doc, fw, { pdf: { problem: "unreadable", detail: "it is encrypted" } }));
 ok((await pg.textContent("#pdf .pmsg")) === "Couldn't open the PDF: it is encrypted", "unreadable: its line");
 await load(payload(doc, null));
@@ -621,6 +622,17 @@ await pg.setViewportSize({ width: 1360, height: 820 });
 await wait(150);
 const back = await widths();
 ok(back.pdf === 470 && back.aside === 220 && back.margin === "true", "wide again: the PDF and the margin at their widths kept: " + JSON.stringify(back));
+const boxStops = await pg.$$eval("#pages .bx", (l) => l.filter((x) => x.tabIndex >= 0).length);
+await pg.focus('#pages .bx[tabindex="0"]');
+const firstBox = await pg.evaluate(() => document.activeElement.getAttribute("data-u"));
+await pg.keyboard.press("ArrowDown");
+const nextBox = await pg.evaluate(() => document.activeElement.getAttribute("data-u"));
+ok(boxStops === 1 && nextBox && nextBox !== firstBox && (await pg.$$eval("#pages .bx", (l) => l.filter((x) => x.tabIndex >= 0).length)) === 1, `the PDF's boxes are one Tab stop, ↓ to the next paragraph's (${firstBox} → ${nextBox})`);
+await pg.setViewportSize({ width: 760, height: 480 });
+await wait(150);
+const heights = await pg.evaluate(() => ({ tools: document.querySelector(".tools").offsetHeight, text: document.getElementById("text").offsetHeight }));
+ok(heights.tools <= 70 && heights.text >= 290, `at 760 × 480 the toolbar keeps one row (${heights.tools} px) and the text ${heights.text} px of the height`);
+await pg.setViewportSize({ width: 1360, height: 820 });
 
 // narrow, 42
 await pg.setViewportSize({ width: 760, height: 480 });

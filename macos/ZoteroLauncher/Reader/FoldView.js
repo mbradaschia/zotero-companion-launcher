@@ -1143,7 +1143,7 @@ var FoldView = (function () {
           var p = pageEls[(b[4] || e.page) - 1]
           if (!p) return
           var bt = el("button", { type: "button", class: "bx", "data-u": uid, "data-k": k, "aria-label": "Go to this paragraph: " + firstWords(uid), title: "Go to this paragraph: " + firstWords(uid) })
-          if (k > 0) bt.tabIndex = -1
+          bt.tabIndex = -1
           bt.style.left = (b[0] * 100) + "%"; bt.style.top = (b[1] * 100) + "%"
           bt.style.width = ((b[2] - b[0]) * 100) + "%"; bt.style.height = ((b[3] - b[1]) * 100) + "%"
           bt.addEventListener("click", function () { select(uid, true) })
@@ -1152,8 +1152,29 @@ var FoldView = (function () {
         })
         boxClass(uid)
       })
+      boxRove = null
+      roveBox(S.sel || S.follow)
     }
+    // The boxes are one Tab stop (the selected or followed paragraph's first box, else the first): ↑ ↓ go through them.
+    var boxRove = null
+    function roveBox(uid) {
+      if (!uid || !boxEls[uid]) uid = boxRove && boxEls[boxRove] ? boxRove : S.m && S.m.order.filter(function (u) { return boxEls[u] && boxEls[u].length })[0]
+      if (!uid || uid === boxRove && boxEls[uid][0].tabIndex === 0) return
+      if (boxRove && boxEls[boxRove]) boxEls[boxRove].forEach(function (b) { b.tabIndex = -1 })
+      boxRove = uid
+      boxEls[uid][0].tabIndex = 0
+    }
+    pagesEl.addEventListener("keydown", function (e) {
+      var t = e.target
+      if (!t.classList || !t.classList.contains("bx") || (e.key !== "ArrowDown" && e.key !== "ArrowUp") || e.altKey || e.metaKey) return
+      e.preventDefault()
+      var ids = S.m.order.filter(function (u) { return boxEls[u] && boxEls[u].length }), at = ids.indexOf(t.getAttribute("data-u"))
+      var next = ids[clamp(at + (e.key === "ArrowDown" ? 1 : -1), 0, ids.length - 1)]
+      roveBox(next)
+      boxEls[next][0].focus()
+    })
     function boxClass(uid) {
+      if (uid && (uid === S.sel || (!S.sel && uid === S.follow))) roveBox(uid)
       ;(boxEls[uid] || []).forEach(function (b) { b.classList.toggle("sel", S.sel === uid); b.classList.toggle("fol", S.follow === uid && S.sel !== uid) })
     }
     function scrollPdfTo(uid, always) {
@@ -1177,7 +1198,8 @@ var FoldView = (function () {
     }
     function updateZoom() {
       var zl = pbar.querySelector(".zlabel"), zf = pbar.querySelector('[aria-label="Fit the page width"]')
-      if (zl) zl.textContent = S.zoom === 1 ? "Fit" : Math.round(S.zoom * 100) + "%"
+      var none = !(S.d && S.d.pdf) || !!S.d.pdf.problem
+      if (zl) zl.textContent = none ? "" : S.zoom === 1 ? "Fit" : Math.round(S.zoom * 100) + "%"
       if (zf) zf.setAttribute("aria-pressed", S.zoom === 1 ? "true" : "false")
       coverage()
       pageLabel()
