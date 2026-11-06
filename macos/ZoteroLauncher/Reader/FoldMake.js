@@ -80,17 +80,13 @@ var FoldMake = (function () {
         if (!ws.length) return
         lines++
         ws.forEach(function (w) { pc += w.t.length })
-        var run = [], first = true
-        var flush = function () {
-          segs.push(segment(run, n, W, H, sz, Number(l.f) || 0, first ? Math.min(Number(l.lb) || 0, run.length) : 0))
-          first = false
-          run = []
-        }
-        ws.forEach(function (w) {
-          if (run.length && w.x0 - run[run.length - 1].x1 > 1.5 * sz) flush()
-          run.push(w)
-        })
-        flush()
+        // (cut where its words stand 1.5 sizes apart; a line cut so takes each side's size and weight from it, half)
+        var cuts = [0]
+        ws.forEach(function (w, i) { if (i && w.x0 - ws[i - 1].x1 > 1.5 * sz) cuts.push(i) })
+        cuts.push(ws.length)
+        var whole = segment(ws, n, W, H, sz, Number(l.f) || 0, Math.min(Number(l.lb) || 0, ws.length))
+        if (cuts.length === 2) segs.push(whole)
+        else for (var c = 1; c < cuts.length; c++) segs.push(half(whole, cuts[c - 1], cuts[c]))
       })
       chars += pc
       perPage.push(pc)
@@ -184,8 +180,61 @@ var FoldMake = (function () {
       var others = gaps.filter(function (g) { return g !== at }).map(function (g) { return g.b - g.a }).sort(function (a, b) { return a - b })
       var typical = others.length ? others[Math.floor(others.length / 2)] : 0
       if (at.b - at.a < 2 * typical) { out.push(s); return }
-      out.push(segment(s.words.slice(0, at.i), s.page, s.W, s.H, s.size, s.f, Math.min(s.lb, at.i)))
-      out.push(segment(s.words.slice(at.i), s.page, s.W, s.H, s.size, s.f, 0))
+      out.push(half(s, 0, at.i))
+      out.push(half(s, at.i, s.words.length))
+    })
+    return out
+  }
+
+  // Words from..to of a line cut in two, each side its own size and weight as far as the line says: the size scaled by
+  // its words' height against the line's, bold for most of its words when the bold start (lb) covers them.
+  function half(s, from, to) {
+    var ws = s.words.slice(from, to)
+    var mid = function (list) { var h = list.map(function (w) { return w.y1 - w.y0 }).sort(function (a, b) { return a - b }); return h[Math.floor(h.length / 2)] }
+    // (the line's size is its characters' mean: scaled to each side by its words' heights, as a size is a height)
+    var chars = 0, sum = 0
+    s.words.forEach(function (w) { chars += w.t.length; sum += (w.y1 - w.y0) * w.t.length })
+    var own = mid(ws), size = s.size
+    if (chars && sum > 0 && own > 0) size = Math.round(s.size * own / (sum / chars) * 2) / 2
+    var bold = Math.max(0, Math.min(s.lb, to) - from)
+    var f = (s.f & ~1) | (bold * 2 > ws.length ? 1 : 0)
+    return segment(ws, s.page, s.W, s.H, size, f, from === 0 ? Math.min(s.lb, to) : 0)
+  }
+
+  // A line still across the middle of a page whose other lines show two columns (5 or more of 4 words or more each
+  // side: the gutter runs from the left ones' right edge to the right ones' left edge) is cut at the gap that is the
+  // gutter, its ends within a size of those edges, when that gap is half a size or wider and 1.5 times the line's
+  // other gaps (a loosely justified line's spaces of 7 or 8 pt keep a 14.5 pt gutter under recut's twice); kept, as
+  // recut's cuts are, when the frame then reads as two columns.
+  function gutterOf(segs, fr) {
+    var lefts = [], rights = []
+    segs.forEach(function (s) {
+      if (s.words.length < 4) return
+      if (s.x1 <= fr.mid) lefts.push(s.x1)
+      else if (s.x0 >= fr.mid) rights.push(s.x0)
+    })
+    if (lefts.length < 5 || rights.length < 5) return null
+    lefts.sort(function (a, b) { return a - b })
+    rights.sort(function (a, b) { return a - b })
+    var a = pct(lefts, Math.floor(lefts.length * 0.9)), b = pct(rights, Math.floor(rights.length * 0.1))
+    return b > a ? { a: a, b: b } : null
+  }
+  function cutGutter(segs, fr) {
+    var g = fr.two ? gutterOf(segs, fr) : null
+    if (!g) return segs
+    var out = []
+    segs.forEach(function (s) {
+      if (!(s.x0 < g.a - s.size && s.x1 > g.b + s.size) || s.words.length < 4) { out.push(s); return }
+      var gaps = []
+      for (var i = 1; i < s.words.length; i++) gaps.push({ i: i, a: s.words[i - 1].x1, b: s.words[i].x0 })
+      var at = null
+      gaps.forEach(function (x) { if (Math.abs(x.a - g.a) <= s.size && Math.abs(x.b - g.b) <= s.size && (!at || x.b - x.a > at.b - at.a)) at = x })
+      if (!at || at.b - at.a < 0.5 * s.size) { out.push(s); return }
+      var others = gaps.filter(function (x) { return x !== at }).map(function (x) { return x.b - x.a }).sort(function (a, b) { return a - b })
+      var typical = others.length ? others[Math.floor(others.length / 2)] : 0
+      if (at.b - at.a < 1.5 * typical) { out.push(s); return }
+      out.push(half(s, 0, at.i))
+      out.push(half(s, at.i, s.words.length))
     })
     return out
   }
@@ -280,12 +329,27 @@ var FoldMake = (function () {
     gaps.sort(function (a, b) { return a - b })
     return gaps[Math.floor(gaps.length / 2)]
   }
+  // The median distance from one body line's top to the next's, in a flow.
+  function medianPitch(flows, body) {
+    var d = []
+    flows.forEach(function (f) {
+      for (var i = 1; i < f.segs.length; i++) {
+        var a = f.segs[i - 1], b = f.segs[i]
+        if (sameRow(a, b) || Math.abs(a.size - body) >= 0.6 || Math.abs(b.size - body) >= 0.6) continue
+        var g = b.y0 - a.y0
+        if (g > 0 && g < 3 * body) d.push(g)
+      }
+    })
+    if (!d.length) return 1.2 * body
+    d.sort(function (a, b) { return a - b })
+    return d[Math.floor(d.length / 2)]
+  }
   function blocksOf(flows, edges, body, gapMedian) {
-    var blocks = []
+    var blocks = [], pitch = medianPitch(flows, body)
     flows.forEach(function (f) {
       var e = edges[f.side] || edges.one
       var cur = null
-      f.segs.forEach(function (s) {
+      f.segs.forEach(function (s, i) {
         var indent = function (x) { return x.x0 - e[0] > 0.8 * x.size }
         var brk = !cur
         if (cur) {
@@ -298,7 +362,7 @@ var FoldMake = (function () {
               LIST.test(s.text) || CAPTION_AT.test(s.text) || TABLE_AT.test(s.text) ||
               (!cur.list && indent(s) && !indent(p)) ||
               (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text)) ||
-              headLine(p, e) || headLine(s, e)
+              headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)
           }
         }
         if (brk) {
@@ -317,13 +381,17 @@ var FoldMake = (function () {
     })
     return blocks
   }
-  // A line that stands as a heading at the body's size and weight (IEEE's centred "I. INTRODUCTION"): a short
-  // numbered line, or a short line centred in its column; the paragraph after it starts a block of its own.
-  function headLine(s, e) {
+  // A line that stands as a heading at the body's size and weight (IEEE's centred "I. INTRODUCTION"): a short line
+  // centred in its column, or a short numbered one that stands apart: first in its flow, after a paragraph's end (the
+  // line above ends a sentence), 1.3 line pitches or more below the line above, or with a new paragraph after it (a
+  // ragged line "12 Patients were seen in" mid-paragraph is none). The paragraph after it starts a block of its own.
+  function headLine(s, e, above, below, pitch) {
     var w = e[1] - e[0]
-    if (s.x1 - s.x0 > 0.7 * w || s.words.length > 10) return false
-    if (NUMBERED.test(s.text) && !SENTENCE_END.test(s.text)) return true
-    return s.x0 - e[0] > 2 * s.size && Math.abs((s.x0 + s.x1) / 2 - (e[0] + e[1]) / 2) <= 0.05 * w && !SENTENCE_END.test(s.text)
+    if (s.x1 - s.x0 > 0.7 * w || s.words.length > 10 || SENTENCE_END.test(s.text)) return false
+    if (s.x0 - e[0] > 2 * s.size && Math.abs((s.x0 + s.x1) / 2 - (e[0] + e[1]) / 2) <= 0.05 * w) return true
+    if (!NUMBERED.test(s.text)) return false
+    if (!above || sameRow(above, s) || SENTENCE_END.test(above.text) || s.y0 - above.y0 >= 1.3 * pitch) return true
+    return !!below && below.x0 - e[0] > 0.8 * below.size && !(s.x0 - e[0] > 0.8 * s.size)
   }
   function rowsOf(segs) {
     var n = 0
@@ -373,18 +441,21 @@ var FoldMake = (function () {
     return t.length ? l / t.length : 1
   }
   // A heading run into its paragraph's first line, bold: every bold word at its start when they name a numbered
-  // heading, an abstract or the references; else the shortest bold start that names an abstract or the references
-  // (IEEE's bold-italic "Abstract" and its dash before an abstract set in bold).
-  function runIn(b) {
+  // heading or the references, or an abstract before the body's first heading (early); else, early, the shortest bold
+  // start that names an abstract or the references and ends in a full stop, a colon or a dash, or has a dash after it
+  // (IEEE's bold-italic "Abstract" and its dash before an abstract set in bold). "Summary statistics." or
+  // "References to earlier work." mid-paper starts a paragraph.
+  function runIn(b, early) {
     var first = b.segs[0]
     if (!first.lb) return null
     var lead = function (k) { return first.words.slice(0, k).map(function (w) { return w.t }).join(" ").replace(/[.:—–-]+$/, "") }
     var k = 0
     if (!(first.lb >= first.words.length && b.segs.length === 1)) {
       var all = lead(first.lb)
-      if (NUMBERED.test(all) || ABSTRACT.test(all) || REFS.test(all)) k = first.lb
+      if (NUMBERED.test(all) || REFS.test(all) || (early && ABSTRACT.test(all))) k = first.lb
     }
-    for (var i = 1; !k && i < first.lb && i <= 8; i++) { var t = lead(i); if (ABSTRACT.test(t) || REFS.test(t)) k = i }
+    var marked = function (i) { return /[.:—–-]$/.test(first.words[i - 1].t) || (i < first.words.length && /^[—–-]/.test(first.words[i].t)) }
+    for (var i = 1; early && !k && i < first.lb && i <= 8; i++) { var t = lead(i); if ((ABSTRACT.test(t) || REFS.test(t)) && marked(i)) k = i }
     if (!k) return null
     var rest = joinWords(b.segs, k)
     if (!rest.length) return null
@@ -407,7 +478,7 @@ var FoldMake = (function () {
 
   // The blocks after the front matter as items: headings, units (with their kind) and drops, in reading order.
   function itemsOf(blocks, body, front) {
-    var items = [], inRefs = false, refLines = null
+    var items = [], inRefs = false, refLines = null, early = true
     var flushRefs = function () {
       if (!refLines || !refLines.length) { refLines = null; return }
       var entries = []
@@ -426,7 +497,7 @@ var FoldMake = (function () {
     }
     blocks.forEach(function (b, bi) {
       if (front[bi]) return
-      var head = headingOf(b, body), ri = head === null ? runIn(b) : null
+      var head = headingOf(b, body), ri = head === null ? runIn(b, early) : null
       if (head !== null || ri) {
         flushRefs()
         var title = head !== null ? head : ri.title
@@ -440,6 +511,7 @@ var FoldMake = (function () {
         var h = { type: "heading", text: title, size: b.size, refs: REFS.test(title), abstract: ABSTRACT.test(title), flow: b.flow,
           joinable: head !== null && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) && !ri }
         items.push(h)
+        if (!h.abstract) early = false
         inRefs = h.refs
         if (ri) items.push({ type: "unit", kind: "paragraph", words: ri.rest, flow: b.flow, size: b.size, block: b, runIn: true })
         return
@@ -514,7 +586,7 @@ var FoldMake = (function () {
     var stop = -1
     for (var i = 0; i < page1.length; i++) {
       var b = page1[i], t = b.text
-      if (ABSTRACT.test(t) || REFS.test(t) || (NUMBERED.test(t) && b.words.length <= 10) || runIn(b) ||
+      if (ABSTRACT.test(t) || REFS.test(t) || (NUMBERED.test(t) && b.words.length <= 10) || runIn(b, true) ||
           (Math.abs(b.size - body) < 0.6 && b.words.length >= 25)) { stop = i; break }
     }
     var out = {}, title = null, abstract = null
@@ -674,8 +746,9 @@ var FoldMake = (function () {
     var segs = dropFurniture(got.segs, count)
     var body = bodySize(segs)
     var fr = frameOf(segs, body)
-    // (merged columns make the frame look like one: cut at its middle, kept when the frame is two columns then)
-    var cut = recut(segs, { two: true, mid: fr.mid })
+    // (merged columns make the frame look like one: cut at its middle, then at the gutter the cut lines show, kept
+    // when the frame is two columns then)
+    var cut = cutGutter(recut(segs, { two: true, mid: fr.mid }), { two: true, mid: fr.mid })
     if (cut.length !== segs.length) { var fr2 = frameOf(cut, body); if (fr2.two) { segs = cut; fr = fr2 } }
     var flows = flowsOf(segs, fr, body)
     var edges = edgesOf(segs, fr, body)
@@ -882,7 +955,7 @@ var FoldMake = (function () {
   return {
     EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, relink: relink,
     foldInput: foldInput, foldMerge: foldMerge, foldView: foldView, costText: costText, STOP_KINDS: STOP_KINDS,
-    _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, recut: recut, dropFurniture: dropFurniture, sentencesOf: sentencesOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
+    _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, recut: recut, cutGutter: cutGutter, dropFurniture: dropFurniture, sentencesOf: sentencesOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
   }
 })()
 

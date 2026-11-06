@@ -1,5 +1,5 @@
 # PDF words to the lines FoldPDF gives (pdfplumber): a line cut where its words stand 1.5 x its height apart.
-# usage: extract.py IN.pdf pdfkit OUT.json, then round to 5 decimals
+# usage: extract.py IN.pdf pdfkit OUT.json (boxes to 6 decimals; the committed fixtures are then rounded to 5)
 import json, sys, re
 import pdfplumber
 path, mode, out = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -23,7 +23,6 @@ with pdfplumber.open(path) as pdf:
                 if runs[-1]:
                     gap = w["x0"] - runs[-1][-1]["x1"]
                     if mode == "pdfkit" and gap > 1.5 * hi: runs.append([])
-                    if mode == "cols" and runs[-1][-1]["x1"] < W / 2 and w["x0"] > W / 2: runs.append([])
                 runs[-1].append(w)
             for run in runs:
                 if not run: continue

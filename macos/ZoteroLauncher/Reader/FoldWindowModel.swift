@@ -280,7 +280,7 @@ final class FoldWindowModel: ObservableObject {
             case .failure:
                 // (FoldMaker's own error names its internals: the state says it plainly)
                 self.foldAfterReading = false
-                self.state = ["kind": "unreadable", "why": "Its text couldn't be read into the reader. The PDF still shows."]
+                self.state = ["kind": "unreadable", "why": "Its text couldn't be read, so there are no words to fold."]
                 self.send()
             }
         })
@@ -382,7 +382,8 @@ final class FoldWindowModel: ObservableObject {
         UsageLog.shared.count("fold:run")
         runBefore = run
         // (force: a Fold again, so an end before every section came back counts this run's, not the doc's earlier ones)
-        run = ["doc": doc["id"] ?? "", "model": use, "started": Self.iso(Date()), "status": "folding", "force": force, "sections": [String: Any](), "errors": [String: Any]()]
+        run = ["doc": doc["id"] ?? "", "model": use, "started": Self.iso(Date()), "status": "folding", "force": force,
+               "sections": Self.carried(runBefore, doc: doc["id"] as? String ?? "", force: force, only: only), "errors": [String: Any]()]
         saveRun()
         stopEvent = nil
         pdfChanged = false
@@ -404,6 +405,16 @@ final class FoldWindowModel: ObservableObject {
         }
         if !over { stream = started }
         pushFold()
+    }
+
+    // A new run's sections to start from: none, except for a Fold again's Finish or Try it again (force, only), which
+    // carries the sections the Fold again it finishes had folded, so they count and aren't asked for again.
+    static func carried(_ before: [String: Any]?, doc: String, force: Bool, only: [String]?) -> [String: Any] {
+        guard force, let only, let before, before["force"] as? Bool == true, !doc.isEmpty, before["doc"] as? String == doc,
+              let sections = before["sections"] as? [String: Any] else { return [:] }
+        var out: [String: Any] = [:]
+        for (id, state) in sections where state as? String == "done" && !only.contains(id) { out[id] = "done" }
+        return out
     }
 
     private func saveRun() {

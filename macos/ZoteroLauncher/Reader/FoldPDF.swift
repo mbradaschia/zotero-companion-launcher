@@ -347,7 +347,8 @@ final class FoldPDF: @unchecked Sendable {
     // them; t: the words joined by one space; b: their boxes' union; s: the font size in points; f: 1 bold, 2 italic,
     // for most of its characters; lb: how many words at its start are bold (a run-in heading). A line with no words is
     // left out; at most 20000 words a page. A PDFKit line that runs across a gap wider than 1.5 times its height (two
-    // columns' lines on one baseline) is given as one line a side, each with its own fonts.
+    // columns' lines on one baseline) is given as one line a side, each with its own fonts; so is one across the page's
+    // middle (cutAtMiddle) or, on a page in two columns, across its gutter (cutAtGutter).
     static func lines(of page: PDFPage) -> [[String: Any]] {
         let box = page.bounds(for: .cropBox)
         let rot = rotation(page)
@@ -355,6 +356,7 @@ final class FoldPDF: @unchecked Sendable {
         let shownW = Double(turned ? box.height : box.width), shownH = Double(turned ? box.width : box.height)
         var out: [[String: Any]] = []
         var count = 0
+        var cut: [(run: [(word: Word, box: [Double])], high: Double, across: Bool)] = []
         for line in pageLines(page) {
             guard count < maxWords else { break }
             var words: [(word: Word, box: [Double])] = []
@@ -376,16 +378,23 @@ final class FoldPDF: @unchecked Sendable {
                 runs[runs.count - 1].append(w)
             }
             if across { runs = runs.flatMap { Self.cutAtMiddle($0, shownW: shownW, high: lineHigh) } }
-            for run in runs where !run.isEmpty {
-                let boxes = run.map { $0.box }
-                let b = union(boxes)
-                let height = down(boxes, letters: run[0].word.text.count, shownW, shownH) ? (b[2] - b[0]) * shownW : (b[3] - b[1]) * shownH
-                let style = Self.style(run.map { $0.word.chars })
-                var size = 0.8 * height
-                if let pt = style.size, height > 0, pt >= 0.5 * height, pt <= 1.6 * height { size = pt }
-                let rows: [[Any]] = run.map { w in [w.word.text as Any] + w.box.map { $0 as Any } }
-                out.append(["t": run.map { $0.word.text }.joined(separator: " "), "b": b, "s": (size * 2).rounded() / 2, "f": style.flags, "lb": style.leadBold, "w": rows])
-            }
+            for run in runs where !run.isEmpty { cut.append((run: run, high: lineHigh, across: across)) }
+        }
+        // (then, on a page whose lines show two columns, a line still across both is cut at the gutter)
+        var parts: [[(word: Word, box: [Double])]] = []
+        let gutter = Self.gutter(cut.filter { $0.across }.map { $0.run }, shownW: shownW)
+        for c in cut {
+            if let g = gutter, c.across { parts += Self.cutAtGutter(c.run, g, shownW: shownW, high: c.high) } else { parts.append(c.run) }
+        }
+        for run in parts where !run.isEmpty {
+            let boxes = run.map { $0.box }
+            let b = union(boxes)
+            let height = down(boxes, letters: run[0].word.text.count, shownW, shownH) ? (b[2] - b[0]) * shownW : (b[3] - b[1]) * shownH
+            let style = Self.style(run.map { $0.word.chars })
+            var size = 0.8 * height
+            if let pt = style.size, height > 0, pt >= 0.5 * height, pt <= 1.6 * height { size = pt }
+            let rows: [[Any]] = run.map { w in [w.word.text as Any] + w.box.map { $0 as Any } }
+            out.append(["t": run.map { $0.word.text }.joined(separator: " "), "b": b, "s": (size * 2).rounded() / 2, "f": style.flags, "lb": style.leadBold, "w": rows])
         }
         return out
     }
@@ -404,6 +413,39 @@ final class FoldPDF: @unchecked Sendable {
         let others = gaps.filter { $0.i != at.i }.map { $0.b - $0.a }.sorted()
         let typical = others.isEmpty ? 0 : others[others.count / 2]
         guard at.b - at.a >= 2 * typical else { return [run] }
+        return [Array(run[..<at.i]), Array(run[at.i...])]
+    }
+
+    // The gutter of a page set in two columns, in points: from the left column's right edge (its lines of 4 words or
+    // more ending left of the middle, the 90th percentile) to the right column's left edge (those starting right of
+    // it, the 10th); nil with fewer than 5 lines a side.
+    static func gutter(_ runs: [[(word: Word, box: [Double])]], shownW: Double) -> (a: Double, b: Double)? {
+        let mid = shownW / 2
+        var lefts: [Double] = [], rights: [Double] = []
+        for run in runs where run.count >= 4 {
+            let b = union(run.map { $0.box })
+            if b[2] * shownW <= mid { lefts.append(b[2] * shownW) } else if b[0] * shownW >= mid { rights.append(b[0] * shownW) }
+        }
+        guard lefts.count >= 5, rights.count >= 5 else { return nil }
+        lefts.sort()
+        rights.sort()
+        let a = lefts[min(lefts.count - 1, lefts.count * 9 / 10)], b = rights[rights.count / 10]
+        return b > a ? (a, b) : nil
+    }
+
+    // A line still across both columns cut at the gap that is the gutter (its ends within a height of the columns'
+    // edges), half a height or wider and 1.5 times the line's other gaps: a loosely justified line's spaces of 7 or 8 pt
+    // keep a 14.5 pt gutter under cutAtMiddle's twice. As FoldMake's cutGutter.
+    static func cutAtGutter(_ run: [(word: Word, box: [Double])], _ g: (a: Double, b: Double), shownW: Double, high: Double) -> [[(word: Word, box: [Double])]] {
+        guard run.count >= 4, let first = run.first, let last = run.last,
+              first.box[0] * shownW < g.a - high, last.box[2] * shownW > g.b + high else { return [run] }
+        var gaps: [(i: Int, a: Double, b: Double)] = []
+        for i in 1..<run.count { gaps.append((i: i, a: run[i - 1].box[2] * shownW, b: run[i].box[0] * shownW)) }
+        guard let at = gaps.filter({ abs($0.a - g.a) <= high && abs($0.b - g.b) <= high }).max(by: { ($0.b - $0.a) < ($1.b - $1.a) }),
+              at.b - at.a >= 0.5 * high else { return [run] }
+        let others = gaps.filter { $0.i != at.i }.map { $0.b - $0.a }.sorted()
+        let typical = others.isEmpty ? 0 : others[others.count / 2]
+        guard at.b - at.a >= 1.5 * typical else { return [run] }
         return [Array(run[..<at.i]), Array(run[at.i...])]
     }
 

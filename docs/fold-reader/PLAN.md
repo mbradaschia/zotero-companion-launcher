@@ -348,11 +348,25 @@ Found while building R5; each keeps its criterion's intent.
   (`cutAtMiddle`) at the widest gap over the page's centre when that gap is 0.5 × the height or more and twice the
   line's other gaps; FoldMake's `recut` does the same at the frame's middle for lines given as one, kept only when the
   frame then reads as two columns. Both are for two columns a narrow gutter apart (14.45 pt at 10 pt type).
+- **A line still across a page whose other lines show two columns is cut at the gutter** (FoldPDF's `cutAtGutter`,
+  FoldMake's `cutGutter`): with 5 or more lines of 4 words or more each side, the gutter runs from the left ones'
+  right edge (90th percentile) to the right ones' left edge (10th); a spanning line is cut at the gap whose ends are
+  within a size of those edges, half a size or wider and 1.5 times its other gaps, as a loosely justified line's 7 to
+  8 pt spaces keep a 14.5 pt gutter under twice. FoldMake keeps these cuts, with recut's, when the frame then reads
+  as two columns.
+- **A line FoldMake cuts in two gives each side its own size and weight**: the line's size (its characters' mean)
+  scaled by each side's word height, and bold where the line's bold start covers most of a side's words, so a bold
+  9 pt abstract line beside a 10 pt one isn't read as a heading. FoldPDF's cuts take each side's own fonts.
 - **A short line that is numbered, or centred in its column, ends its block** (`headLine`: under 0.7 of the column,
-  at most 10 words, no sentence end), so IEEE's centred `I. INTRODUCTION` at the body's size and weight heads S1.
+  at most 10 words, no sentence end), so IEEE's centred `I. INTRODUCTION` at the body's size and weight heads S1. A
+  numbered one counts only when it stands apart: first in its flow, after a line that ends a sentence, 1.3 line
+  pitches or more below the line above, or with an indented line after it, so a ragged `12 Patients were seen in`
+  mid-paragraph is none.
 - **A run-in heading is the shortest bold start naming an abstract or the references** when the whole bold start
   names none (IEEE's bold-italic `Abstract` and its dash before an abstract set in bold), and `A B S T R A C T` (Elsevier's
-  letterspaced label) names an abstract. The read's meta carries Zotero's abstract (`readMeta`), which finds an
+  letterspaced label) names an abstract. That shortest start must end in a full stop, a colon or a dash (or have a
+  dash after it), and both it and a whole bold start naming an abstract count only before the body's first heading,
+  so `Summary statistics.` or `References to earlier work.` mid-paper starts a paragraph. The read's meta carries Zotero's abstract (`readMeta`), which finds an
   abstract with no heading.
 - **Running heads that alternate** (one on odd pages, one on even) are dropped when on at least half of their pages'
   parity, at least 2, as each is under half the paper.
@@ -362,7 +376,11 @@ Found while building R5; each keeps its criterion's intent.
   still to fold), so a Stop, a refused key or failed sections after Fold again read as that run's end (`stopped`,
   the stop's kind or `partial`), not `folded`; the flash says how many were folded again and that the others keep
   their earlier levels. 6.2's order holds otherwise: a missing or old runner wins over how a run ended, except a doc
-  folded throughout.
+  folded throughout. A Finish or Try it again after a Fold again (force with `only`) starts its run's `sections` with
+  the done sections of the Fold again it finishes (`FoldWindowModel.carried`), so a second Stop still counts them and
+  the next Finish doesn't fold them again with the cache bypassed.
+- **A PDF whose text FoldMaker can't read** says `Its text couldn't be read, so there are no words to fold.` under
+  `Couldn't open the PDF`, not FoldMaker's own error.
 - **The AI levels' footer says what is written by AI**: `first sentences until folded` with nothing folded, and
   `written by AI for d of t sections, the others first sentences` part way.
 - **The runner's message starts with a capital** in a banner, the unfolded banner names why Chinese or Japanese can't

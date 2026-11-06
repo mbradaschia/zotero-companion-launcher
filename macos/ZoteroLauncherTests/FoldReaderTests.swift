@@ -213,6 +213,51 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldWindowModel.readMeta([:], title: "A paper", cite: "", pdf: info, version: "", now: Date())["abstract"] as? String, "", "none: empty")
     }
 
+    // R5-26: a Fold again's Finish or Try it again carries the sections that Fold again had folded, so a second Stop
+    // counts them and the next Finish doesn't ask for them again; anything else starts with none
+    func testAFoldAgainsFinishCarriesTheSectionsItHadFolded() {
+        let again: [String: Any] = ["doc": "pdf-1", "force": true, "status": "stopped", "sections": ["abstract": "done", "S1": "failed", "S2": "done"]]
+        let left = ["S1", "S2.SS1", "A1"]
+        XCTAssertEqual(FoldWindowModel.carried(again, doc: "pdf-1", force: true, only: left) as? [String: String], ["abstract": "done", "S2": "done"])
+        XCTAssertEqual(FoldWindowModel.carried(again, doc: "pdf-1", force: true, only: ["S2"]) as? [String: String], ["abstract": "done"], "what it asks for again isn't carried")
+        XCTAssertTrue(FoldWindowModel.carried(again, doc: "pdf-1", force: true, only: nil).isEmpty, "Fold again itself starts over")
+        XCTAssertTrue(FoldWindowModel.carried(again, doc: "pdf-1", force: false, only: left).isEmpty, "a first fold's Finish counts the doc's sections")
+        XCTAssertTrue(FoldWindowModel.carried(again, doc: "pdf-2", force: true, only: left).isEmpty, "another doc's run")
+        var first = again
+        first["force"] = false
+        XCTAssertTrue(FoldWindowModel.carried(first, doc: "pdf-1", force: true, only: left).isEmpty, "after a first fold")
+        XCTAssertTrue(FoldWindowModel.carried(nil, doc: "pdf-1", force: true, only: left).isEmpty)
+    }
+
+    // R5-35: two columns' lines PDFKit gave as one across a 14.45 pt gutter, their spaces 7 to 8 pt (under
+    // cutAtMiddle's twice): cut at the gutter the page's other lines show; a justified line across the page stays whole
+    func testALooselyJustifiedLineAcrossTheGutterIsCutThere() {
+        let W = 612.0, H = 792.0, size = 10.0
+        func run(_ xs: [(Double, Double)], y: Double) -> [(word: FoldPDF.Word, box: [Double])] {
+            xs.map { (word: FoldPDF.Word(text: "word", rect: .zero), box: [$0.0 / W, (y - size) / H, $0.1 / W, y / H]) }
+        }
+        // (words 28 pt wide from x0 to x1, spaced evenly: 7 to a column leave spaces of 8.1 pt)
+        func words(_ x0: Double, _ x1: Double, _ n: Int) -> [(Double, Double)] {
+            let space = (x1 - x0 - 28 * Double(n)) / Double(n - 1)
+            return (0..<n).map { i in let a = x0 + Double(i) * (28 + space); return (a, a + 28) }
+        }
+        let L1 = (W - 14.45) / 2, R0 = L1 + 14.45
+        var page: [[(word: FoldPDF.Word, box: [Double])]] = []
+        for i in 0..<6 { page.append(run(words(54, L1, 7), y: 100 + Double(i) * 12)); page.append(run(words(R0, 558, 7), y: 100 + Double(i) * 12)) }
+        let gutter = FoldPDF.gutter(page, shownW: W)
+        XCTAssertEqual(gutter?.a ?? 0, L1, accuracy: 0.01, "the left column's right edge: \(String(describing: gutter))")
+        XCTAssertEqual(gutter?.b ?? 0, R0, accuracy: 0.01, "the right column's left edge: \(String(describing: gutter))")
+        let merged = run(words(54, L1, 7) + words(R0, 558, 7), y: 200)
+        let spaces = (1..<merged.count).map { String(format: "%.1f", (merged[$0].box[0] - merged[$0 - 1].box[2]) * W) }.joined(separator: ",")
+        XCTAssertEqual(FoldPDF.cutAtMiddle(merged, shownW: W, high: size).count, 1, "cutAtMiddle keeps it (spaces \(spaces))")
+        if let g = gutter {
+            let parts = FoldPDF.cutAtGutter(merged, g, shownW: W, high: size)
+            XCTAssertEqual(parts.map { $0.count }, [7, 7], "cut at the gutter (spaces \(spaces))")
+            XCTAssertEqual(FoldPDF.cutAtGutter(run(words(54, 558, 14), y: 300), g, shownW: W, high: size).count, 1, "a justified line across the page")
+        }
+        XCTAssertNil(FoldPDF.gutter(Array(page.prefix(6)), shownW: W), "fewer than 5 lines a side: no gutter")
+    }
+
     // R5-36: FoldMaker on that PDF: FIXTURE 6.3's ids and kinds for the units it holds, each unit's boxes where its
     // words were drawn; an image-only PDF is a scan
     func testFoldMakerReadsThePaperIntoItsUnitsAndBoxesAndAScanIsAScan() throws {

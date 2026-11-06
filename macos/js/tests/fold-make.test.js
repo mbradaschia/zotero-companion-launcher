@@ -350,6 +350,12 @@ test("R5-26: after Fold again, a Stop, a refused key and failed sections show ho
   assert.equal(v(all, { force: true, status: "done", sections: { abstract: "done", S1: "done", S2: "done", "S2.SS1": "done", A1: "done" } }).kind, "folded")
   const first = v(Glue.foldMerge(made.doc, event("S1", ["S1.p1", "S1.p2"]), "2026-11-06T10:00:00Z"), { status: "stopped", sections: { S1: "done" } })
   assert.deepEqual([first.kind, first.done, first.again, first.left], ["stopped", 1, false, ["abstract", "S2", "S2.SS1", "A1"]])
+  // Finish after that stop carries the abstract (FoldWindowModel.carried), so a second stop after S1 counts both, and
+  // the next Finish asks for the three left; a stopped Try it again of S2 after a partial counts the four it had
+  const second = v(all, { force: true, status: "stopped", sections: { abstract: "done", S1: "done" } })
+  assert.deepEqual([second.kind, second.done, second.left], ["stopped", 2, ["S2", "S2.SS1", "A1"]])
+  const retry = v(all, { force: true, status: "stopped", sections: { abstract: "done", S1: "done", "S2.SS1": "done", A1: "done" } })
+  assert.deepEqual([retry.kind, retry.done, retry.left], ["stopped", 4, ["S2"]])
   // a Fold again that stopped, then no runner or an old one: that wins, as it can't fold now (6.2), and disables
   for (const [runner, kind] of [["missing", "no-runner"], ["old", "old-runner"]]) {
     const gone = v(all, { force: true, status: "stopped", sections: { abstract: "done" } }, { runner: runner })
