@@ -141,3 +141,29 @@ Then the `[read]` criteria (48, 57, 58) by reading the files they name, and a ha
 TextFold running: open from the menu and with `v`, every level with `1` to `5`, a highlight that survives closing
 the window, the PDF following the text, and the not-running, not-folded and folding states by stopping TextFold or
 picking an unfolded paper. Nothing in Zotero changes during the check (the item's modified date stays the same).
+
+## Deviations
+
+Found while building R1; each keeps its criterion's intent.
+
+- **`bigDoc` lays out as 74 pages**, not the 34 to 46 FIXTURE.md estimates (its words fill pages more thinly than
+  the estimate assumed). The fixture test asserts 70 to 80; the budgets are measured on it as it is, so the check is
+  harder, not easier.
+- **The light accent is `#2864d2`**, not `#2f6fdf`, so text in the accent keeps 4.5:1 on `--sel` (criterion 45). In
+  the app the theme's `reviewCSS` supplies the accent, as the review table's.
+- **`fold-failed`'s Try again posts `fold`** (TextFold is asked to fold again), not `retry` (which only looks the
+  paper up, and would find the same failure).
+- **FR.load's `pdf` carries `bytes` and `modified`** beyond SPEC 5.4, so `links.json` is checked against the PDF it
+  was made from.
+- **The headless check uses `img-src data:`** in place of `zlfold:` (no scheme handler in Chromium); everything else
+  in the CSP is the app's, the script's hash included.
+- **A group library is told by `library.type`** in the bridge's `/item` (`group`), else by a `libraryID` other than
+  1, as no group id field exists yet (R2).
+- **`v` works in two more places**: on the highlighted paper in the results (as `w` and `o` do), and the keys view's
+  row after `o  w  n  #  x` lists it.
+- **The folding state's stage is capitalized** (`Extracting: 3 of 12.`), as TextFold writes it lower case.
+- **The byline uses the doc's authors** when TextFold gives them, else the bridge's.
+- **The PDF pane is capped at `calc(100% - 320px)`** so the text keeps 320 px in a 760-wide window (the window's
+  smallest, with no horizontal scroll), whatever width was kept in `ZLFoldPrefs`.
+- **Swift is not compiled here** (no `swift` or `xcodebuild` in the build container): `FoldReaderTests.swift` (the
+  `[swift]` criteria 22, 49 to 53, 55, 56) first runs on macOS CI.

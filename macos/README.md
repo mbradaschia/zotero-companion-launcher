@@ -65,6 +65,12 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
 | `⇧↵` | the highlighted row's other action (select a paper in Zotero's library) |
 | `esc` | back, then close |
 
+## Reading with folds
+
+A paper's menu has *Read with folds* (or `v` on it): its own window shows the paper at five levels, from every word
+to one line per section, beside its PDF, with highlights and notes kept on this Mac. It needs
+[TextFold](https://github.com/chenxiachan/textfold) running on this Mac, which writes the levels.
+
 ## The menu bar
 
 *Open the Launcher* (its hotkey shown), *Review Tables*, *Chats…*, *Processes…*, *Settings…* (the launcher's own),
