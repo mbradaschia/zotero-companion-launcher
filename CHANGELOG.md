@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (`macos-v0.4.33`)
+### The Mac app (next)
 
 - **Read with folds.** A paper's menu has *Read with folds* (or press `v` on it): a window of its own shows the
   paper at five levels, from every word (Full) through its key sentences, each paragraph's point and one takeaway,
@@ -16,7 +16,7 @@ bridge and the prompt runner share one version.
   and task change from the window's header. It needs [TextFold](https://github.com/chenxiachan/textfold) running on
   this Mac, which writes the levels; nothing in Zotero changes. Your own library's papers only, for now.
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.33`)
 
 - **The Lists panel.** A column on the left of the launcher lists every kind of list it knows, each with its papers'
   count: *Favorites*, *Saved searches*, *Quick lists* (Recent, Open in Zotero, Pinned papers, Unfiled, No PDF),
