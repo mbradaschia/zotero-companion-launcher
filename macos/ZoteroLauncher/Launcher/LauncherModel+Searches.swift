@@ -76,6 +76,7 @@ extension LauncherModel {
             back()
         case "search-save", "search-save-pin":
             let pin = row.rowId == "search-save-pin"
+            if searchNameTaken(row.value) { return flashMessage("“\(row.value)” is taken: type another name") }
             guard saveSearches("addSearch", [row.value, searchState.toSave, pin, nowMs]) else { return }
             let id = savedSearches.last?["id"] as? String ?? ""
             back()
@@ -86,6 +87,7 @@ extension LauncherModel {
             flashMessage(pin ? "Saved and pinned: Tab switches to it" : "Saved: " + keyName("f") + " lists your searches")
         case "search-rename-save", "search-query-save":
             let rename = row.rowId == "search-rename-save"
+            if rename && searchNameTaken(row.value, except: menuId) { return flashMessage("“\(row.value)” is taken: type another name") }
             guard saveSearches("updateSearch", [menuId, rename ? ["name": row.value] : ["query": row.value]]) else { return }
             if !rename && searchState.active == menuId { libraryChanged = true } // its badge's results: asked again on the way back
             flashMessage(rename ? "Renamed" : "Search saved")
@@ -135,6 +137,11 @@ extension LauncherModel {
             return flashMessage(pinned ? "Out of Favorites" : favoriteFlash("search:" + id))
         }
         flashMessage(pinned ? "Unpinned" : "Pinned: its badge is above the results; Tab switches to it")
+    }
+
+    // Whether another saved search (not `except`) has this name: no two are named the same.
+    func searchNameTaken(_ name: String, except: String = "") -> Bool {
+        (try? core?.glue("searchNameTaken", [savedSearches, name, except], as: Bool.self)) ?? false
     }
 
     // p in Searches.
@@ -265,7 +272,9 @@ extension LauncherModel {
         switch store.view {
         case "searches": return try core.glue("savedSearchRows", [searchesJSON, store.filterText, Self.accentHex], as: [ListRow].self)
         case "search-menu": return try core.glue("searchMenuRows", [searchState.menu ?? NSNull(), listsEnabled], as: [ListRow].self)
-        case "search-edit": return try core.glue("searchEditRows", [searchState.editMode, store.filterText, searchState.toSave, listsEnabled], as: [ListRow].self)
+        case "search-edit": // (a name another search has: the row says so, and can't be saved)
+            let editing = searchState.editMode == "save" ? "" : searchState.menu?["id"] as? String ?? ""
+            return try core.glue("searchEditRows", [searchState.editMode, store.filterText, searchState.toSave, listsEnabled, savedSearches, editing], as: [ListRow].self)
         case "picker": return try core.glue("pickerRows", [store.filterText, !savedSearches.isEmpty, tax.taxonomies], as: [ListRow].self)
         default: break
         }
