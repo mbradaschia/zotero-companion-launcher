@@ -91,7 +91,7 @@ final class FoldReaderTests: XCTestCase {
     func testTheReadersTextReadsOnItsTintsInEveryTheme() {
         for family in ThemeFamily.all {
             for dark in [false, true] {
-                let t = Palette(family).rgb(dark: dark)
+                let t = FoldTheme.tokens(Palette(family), dark: dark)
                 let c = FoldTheme.colours(t, dark: dark)
                 let name = "\(family.name) (\(dark ? "dark" : "light"))"
                 for text in ["ink", "muted", "faint", "cite"] {
@@ -99,7 +99,14 @@ final class FoldReaderTests: XCTestCase {
                         XCTAssertGreaterThanOrEqual(c[text]!.contrast(g), 4.5, "\(name): --\(text) on \(ground)")
                     }
                 }
+                for (ground, g) in [("window", t.background), ("tax-soft", c["tax-soft"]!)] {
+                    XCTAssertGreaterThanOrEqual(c["tax"]!.contrast(g), 4.5, "\(name): a taxonomy label (--tax) on \(ground)")
+                }
                 XCTAssertGreaterThanOrEqual(c["hl-line"]!.contrast(c["hl"]!), 3, name + ": a highlight's underline")
+                if family.isSystem {
+                    XCTAssertNotEqual(c["muted"]!.hex, c["ink"]!.hex, name + ": the second line, laid over the window, stays lighter than the ink")
+                    XCTAssertGreaterThan(c["ink"]!.contrast(t.background), c["muted"]!.contrast(t.background), name + ": the ink reads stronger than the muted")
+                }
             }
         }
         let css = FoldTheme.pageCSS(Palette(ThemeFamily.named("nord")))

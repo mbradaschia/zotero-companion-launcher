@@ -139,19 +139,38 @@ enum FoldTheme {
         let sel = t.accent.mixed(bg, dark ? 0.78 : 0.88) // (reviewCSS's --sel)
         let hl = t.yellow.mixed(bg, dark ? 0.7 : 0.72)
         let head = t.text.mixed(bg, 1 - 0.035) // (reviewCSS's --head)
-        let grounds = [bg, sel, hl, head]
-        func readable(_ c: RGB) -> RGB {
+        let taxSoft = t.teal.mixed(bg, dark ? 0.78 : 0.88) // (reviewCSS's --tax-soft: a taxonomy label's pill)
+        func readable(_ c: RGB, on grounds: [RGB]) -> RGB {
             var out = c
             for _ in 0..<2 { for g in grounds { out = out.readable(on: g, ratio: 4.5) } }
             return out
         }
-        return ["ink": readable(t.text), "muted": readable(t.subtext), "faint": readable(t.subtext.mixed(bg, 0.3)), "cite": readable(t.accent),
-                "hl": hl, "hl-line": t.yellow.readable(on: hl, ratio: 3), "sel": sel, "head": head]
+        let grounds = [bg, sel, hl, head]
+        return ["ink": readable(t.text, on: grounds), "muted": readable(t.subtext, on: grounds), "faint": readable(t.subtext.mixed(bg, 0.3), on: grounds),
+                "cite": readable(t.accent, on: grounds), "tax": readable(t.teal, on: [bg, taxSoft, head]),
+                "hl": hl, "hl-line": t.yellow.readable(on: hl, ratio: 3), "sel": sel, "head": head, "tax-soft": taxSoft]
+    }
+
+    // A theme's colours for one appearance. Default's are the Mac's own, some of them translucent (the second line is
+    // the label's colour at half strength): each is laid over the window's background, so the muted text stays lighter
+    // than the ink (RGB(NSColor) alone keeps the colour and drops its alpha).
+    static func tokens(_ palette: Palette, dark: Bool) -> Tokens<RGB> {
+        var out = palette.rgb(dark: dark)
+        guard palette.family.variant(dark: dark) == nil else { return out }
+        (NSAppearance(named: dark ? .darkAqua : .aqua) ?? NSAppearance.currentDrawing()).performAsCurrentDrawingAppearance {
+            let bg = RGB(palette.ns.background) ?? out.background
+            out = palette.ns.map { color in
+                guard let c = color.usingColorSpace(.sRGB) else { return bg }
+                return bg.mixed(RGB(r: Double(c.redComponent), g: Double(c.greenComponent), b: Double(c.blueComponent)), Double(c.alphaComponent))
+            }
+            out.background = bg
+        }
+        return out
     }
 
     static func css(_ palette: Palette) -> String {
         func vars(_ dark: Bool) -> String {
-            colours(palette.rgb(dark: dark), dark: dark).filter { !["sel", "head"].contains($0.key) }.sorted { $0.key < $1.key }
+            colours(tokens(palette, dark: dark), dark: dark).filter { !["sel", "head", "tax-soft"].contains($0.key) }.sorted { $0.key < $1.key }
                 .map { "--\($0.key): \($0.value.hex);" }.joined(separator: " ")
         }
         return ":root { \(vars(false)) } @media (prefers-color-scheme: dark) { :root { \(vars(true)) } }"
