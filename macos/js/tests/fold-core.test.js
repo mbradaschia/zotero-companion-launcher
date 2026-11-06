@@ -236,7 +236,7 @@ test("47: FoldCore.js names no window, document, webkit or timers; FoldView.js n
 test("the byline's names: TextFold's list, the bridge's citation, a list in one string", () => {
   assert.equal(C.byline(["Rivera, Ana", "Okafor, Ben"]), "Rivera, Okafor")
   assert.equal(C.byline(["Sirmon & Hitt"]), "Sirmon & Hitt")
-  assert.equal(C.byline(["Eloundou et al."]), "Eloundou et al.")
-  assert.equal(C.byline("Eloundou, Tyna; Manning, Sam; Mishkin, Pamela; Rock, Daniel; Roe, Ann"), "Eloundou, Manning, Mishkin, Rock et al.")
+  assert.equal(C.byline(["Rivera et al."]), "Rivera et al.")
+  assert.equal(C.byline("Rivera, Ana; Okafor, Ben; Lind, Cara; Moreau, Dan; Roe, Ann"), "Rivera, Okafor, Lind, Moreau et al.")
   assert.equal(C.byline([]), "")
 })

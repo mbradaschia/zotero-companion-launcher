@@ -442,7 +442,7 @@ var FoldCore = (function () {
   }
 
   // The byline's names: TextFold's "Last, First" list, or Zotero's string as the bridge cites it ("Sirmon",
-  // "Sirmon & Hitt", "Sirmon et al.") or as a list ("Eloundou, Tyna; Manning, Sam"): surnames, four, then et al.
+  // "Sirmon & Hitt", "Sirmon et al.") or as a list ("Rivera, Ana; Okafor, Ben"): surnames, four, then et al.
   function byline(authors) {
     var names = []
     ;(Array.isArray(authors) ? authors : [authors]).forEach(function (a) {

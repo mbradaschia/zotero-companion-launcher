@@ -104,7 +104,7 @@ final class FoldWindowModel: ObservableObject {
 
     private var paperInfo: [String: Any]? { details?["paper"] as? [String: Any] }
 
-    // The window's title: Read · <its citation> (Eloundou et al. (2023)), else its title.
+    // The window's title: Read · <its citation> (Rivera et al. (2026)), else its title.
     private func named() {
         let cite = paperInfo.flatMap { (try? launcher.core?.glue("paperCite", [$0], as: String.self)) }.flatMap { $0.isEmpty ? nil : $0 }
         let name = cite ?? (paperInfo?["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? (paper.title.isEmpty ? "a paper" : paper.title)

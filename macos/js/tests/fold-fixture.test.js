@@ -72,6 +72,10 @@ test("no fixture or fold test holds the gallery paper's text (SPEC 59)", () => {
   const dir = path.join(__dirname, "fixtures", "fold-reader")
   for (const f of fs.readdirSync(dir)) files.push(path.join(dir, f))
   files.push(path.join(__dirname, "..", "..", "scripts", "fold-reader-check.mjs"))
+  // (and the reader's own code and its XCTest: no name from that paper as an example either)
+  const reader = path.join(__dirname, "..", "..", "ZoteroLauncher", "Reader")
+  for (const f of fs.readdirSync(reader)) if (/\.(js|css|swift)$/.test(f)) files.push(path.join(reader, f))
+  files.push(path.join(__dirname, "..", "..", "ZoteroLauncher", "Core", "GlueFold.js"), path.join(__dirname, "..", "..", "ZoteroLauncherTests", "FoldReaderTests.swift"))
   for (const f of files) {
     if (!fs.existsSync(f)) continue
     const text = fs.readFileSync(f, "utf8")
