@@ -142,14 +142,17 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(doc.pageCount, 2)
         let payload = (0..<2).map { FoldPDF.page(doc.page(at: $0), n: $0 + 1) }
         XCTAssertEqual(payload.map { $0["size"] as? [Double] ?? [] }, [[612, 792], [792, 612]], "the sizes as the pages show")
+        // (what PDFKit gave for each line: its text, box, ranges, how they were read and how many words had no box)
+        let reports = try (0..<2).map { FoldPDF.lineReport(of: try XCTUnwrap(doc.page(at: $0))) }
         for drawn in paper.lines {
             let lines = payload[drawn.page]["lines"] as? [[String: Any]] ?? []
             let texts = drawn.words.map(\.text)
+            let seen = reports[drawn.page].filter { r in texts.prefix(2).allSatisfy { r.contains($0) } }.joined(separator: " // ")
             let found = lines.filter { (($0["w"] as? [[Any]]) ?? []).compactMap { $0.first as? String } == texts }
-            XCTAssertEqual(found.count, 1, "page \(drawn.page + 1): the line \(texts.joined(separator: " ")) once, its words in order (\(lines.count) lines read)")
+            XCTAssertEqual(found.count, 1, "page \(drawn.page + 1): the line \(texts.joined(separator: " ")) once, its words in order (\(lines.count) lines read); PDFKit: \(seen)")
             guard let line = found.first else { continue }
             XCTAssertEqual(line["t"] as? String, texts.joined(separator: " "))
-            XCTAssertEqual((line["s"] as? Double) ?? 0, Double(drawn.size), accuracy: 0.5, "its size: \(texts.joined(separator: " "))")
+            XCTAssertEqual((line["s"] as? Double) ?? 0, Double(drawn.size), accuracy: 0.5, "its size: \(texts.joined(separator: " ")), its box \((line["b"] as? [Double]) ?? []); PDFKit: \(seen)")
             let bold = drawn.words.filter(\.bold).count * 2 > drawn.words.count
             XCTAssertEqual(((line["f"] as? Int) ?? 0) & 1, bold ? 1 : 0, "bold: \(texts.joined(separator: " "))")
             XCTAssertEqual(line["lb"] as? Int, drawn.words.prefix(while: { $0.bold }).count, "the bold words at its start: \(texts.joined(separator: " "))")
@@ -157,7 +160,9 @@ final class FoldReaderTests: XCTestCase {
             for (w, want) in zip(words, drawn.words) {
                 let got = w.dropFirst().compactMap { $0 as? Double }
                 XCTAssertEqual(got.count, 4)
-                for k in 0..<min(4, got.count) { XCTAssertEqual(got[k], want.box[k], accuracy: 0.01, "page \(drawn.page + 1) \(want.text) [\(k)]") }
+                for k in 0..<min(4, got.count) {
+                    XCTAssertEqual(got[k], want.box[k], accuracy: 0.01, "page \(drawn.page + 1) \(want.text) [\(k)]: got \(got), drawn \(want.box); PDFKit: \(seen)")
+                }
             }
             let b = line["b"] as? [Double] ?? []
             XCTAssertEqual(b.count, 4)
@@ -208,10 +213,13 @@ final class FoldReaderTests: XCTestCase {
         let doc = try XCTUnwrap(made.doc)
         let sections = doc["sections"] as? [[String: Any]] ?? []
         let got = sections.map { s in (s["id"] as? String ?? "") + ": " + (s["units"] as? [[String: Any]] ?? []).map { ($0["id"] as? String ?? "") + " " + ($0["kind"] as? String ?? "") }.joined(separator: ", ") }
-        XCTAssertEqual(got, ["abstract: abstract.p1 abstract", "S1: S1.p1 paragraph, S1.p2 paragraph", "S2: S2.p1 paragraph", "Sx: Sx.n1 footnote"])
+        // (the lines FoldMake was given, each its size, flags, bold run-in and box, for a message that explains itself)
+        let given = pages.map { p in (p["lines"] as? [[String: Any]] ?? []).map { l in "p\((p["n"] as? Int) ?? 0) s\((l["s"] as? Double) ?? 0) f\((l["f"] as? Int) ?? 0) lb\((l["lb"] as? Int) ?? 0) \((l["b"] as? [Double]) ?? []) \((l["t"] as? String) ?? "")" } }
+            .flatMap { $0 }.joined(separator: " // ")
+        XCTAssertEqual(got, ["abstract: abstract.p1 abstract", "S1: S1.p1 paragraph, S1.p2 paragraph", "S2: S2.p1 paragraph", "Sx: Sx.n1 footnote"], "the lines: \(given)")
         let map = try XCTUnwrap((made.links?["map"]) as? [String: Any])
         for (unit, want) in paper.unitBoxes() {
-            let entry = try XCTUnwrap(map[unit] as? [String: Any], unit)
+            guard let entry = map[unit] as? [String: Any] else { XCTFail("\(unit) isn't in the link map: \(map.keys.sorted())"); continue }
             XCTAssertEqual(entry["page"] as? Int, want.page, unit)
             let boxes = entry["boxes"] as? [[Double]] ?? []
             XCTAssertEqual(boxes.count, want.boxes.count, "\(unit): one box a line")
