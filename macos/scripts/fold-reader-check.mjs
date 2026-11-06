@@ -8,6 +8,7 @@
 // budgets instead of the fixture's assertions.
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { inflateSync } from "node:zlib";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +81,33 @@ const selectPieces = (from, to) => pg.evaluate(([a, z]) => {
   e.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
   return ws.toString();
 }, [from, to]);
+// What is painted, not only the classes: a screenshot of a few pixels (Playwright's PNG, 8-bit RGB or RGBA) read back.
+function pngPixels(buf) {
+  let at = 8, w = 0, h = 0, type = 0;
+  const idat = [];
+  while (at < buf.length) {
+    const len = buf.readUInt32BE(at), kind = buf.toString("ascii", at + 4, at + 8), data = buf.subarray(at + 8, at + 8 + len);
+    if (kind === "IHDR") { w = data.readUInt32BE(0); h = data.readUInt32BE(4); type = data[9]; }
+    if (kind === "IDAT") idat.push(data);
+    at += 12 + len;
+  }
+  const bpp = type === 6 ? 4 : 3, raw = inflateSync(Buffer.concat(idat)), stride = w * bpp, out = Buffer.alloc(h * stride);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (stride + 1)], line = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1));
+    for (let x = 0; x < stride; x++) {
+      const a = x >= bpp ? out[y * stride + x - bpp] : 0, b = y ? out[(y - 1) * stride + x] : 0, c = x >= bpp && y ? out[(y - 1) * stride + x - bpp] : 0;
+      const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+      const pred = f === 1 ? a : f === 2 ? b : f === 3 ? (a + b) >> 1 : f === 4 ? (pa <= pb && pa <= pc ? a : pb <= pc ? b : c) : 0;
+      out[y * stride + x] = (line[x] + pred) & 255;
+    }
+  }
+  const px = [];
+  for (let i = 0; i < out.length; i += bpp) px.push([out[i], out[i + 1], out[i + 2]]);
+  return px;
+}
+// the pixels of a rectangle of the page (CSS px), as [r, g, b]s
+const paint = async (r) => pngPixels(await pg.screenshot({ clip: { x: Math.max(0, r.x), y: Math.max(0, r.y), width: Math.max(1, r.w), height: Math.max(1, r.h) } }));
+const dark = (p) => p[0] + p[1] + p[2] < 200, bluish = (p) => p[2] > p[0] + 60;
 const hlIds = (u) => pg.$$eval(`.u[data-u="${u}"] .pc.hl`, (l) => l.map((x) => x.getAttribute("data-id")));
 const levelKey = async (k) => { await pg.keyboard.press(k); await pg.evaluate(() => new Promise((r) => { const t = () => (performance.getEntriesByName("fr:settled").length ? r() : setTimeout(t, 10)); t(); })); };
 
@@ -179,6 +207,9 @@ await pg.click('.u[data-u="S2.p1.1"] .body', { position: { x: 30, y: 10 } });
 await wait(700);
 const selBg = await pg.$eval('.u[data-u="S2.p1.1"] .ubox', (e) => [getComputedStyle(e).backgroundColor, getComputedStyle(e).borderLeftStyle, getComputedStyle(e).borderLeftWidth].join());
 ok((await cls('.u[data-u="S2.p1.1"]')).includes(" sel ") && /^rgb\(232, 240, 254\),solid,3px$/.test(selBg), "29 a click tints the paragraph and adds the solid bar: " + selBg);
+const barAt = await pg.$eval('.u[data-u="S2.p1.1"] .ubox', (e) => { const r = e.getBoundingClientRect(), row = e.closest(".u").getBoundingClientRect(); return { x: Math.ceil(r.left), y: r.top + 10, w: 2, h: Math.min(12, r.height - 20), inside: r.left >= row.left }; });
+const barPx = await paint(barAt);
+ok(barAt.inside && barPx.length && barPx.every(dark), "29 the solid bar is painted (its pixels are the ink), inside its row");
 const boxSel = await pg.$eval('.bx[data-u="S2.p1.1"]', (e) => [e.classList.contains("sel"), getComputedStyle(e).outlineStyle].join());
 ok(boxSel === "true,solid", "29 its PDF box is outlined solid");
 const bt = await pg.evaluate(() => { const p = document.getElementById("pages").getBoundingClientRect(), r = document.querySelector('.bx[data-u="S2.p1.1"]').getBoundingClientRect(); return (r.top - p.top) / p.height; });
@@ -198,6 +229,12 @@ const follow = await pg.evaluate(async () => {
     tick: getComputedStyle(document.querySelector('.u[data-u="S1.p1.1"] .ubox'), "::before").borderLeftStyle,
     sel: [...document.querySelectorAll(".bx.sel")].map((b) => b.getAttribute("data-u") + ":" + getComputedStyle(b).outlineStyle) }
 });
+const tickAt = await pg.$eval('.u[data-u="S1.p1.1"] .ubox', (e) => {
+  const r = e.getBoundingClientRect(), row = e.closest(".u").getBoundingClientRect(), b = getComputedStyle(e, "::before"), x = r.left + parseFloat(getComputedStyle(e).borderLeftWidth) + parseFloat(b.left)
+  return { x: Math.ceil(x), y: r.top + 6, w: 1, h: Math.min(30, r.height - 12), inside: x >= row.left }
+});
+const tickPx = await paint(tickAt);
+ok(tickAt.inside && tickPx.filter(bluish).length >= 4 && tickPx.some((p) => !bluish(p)), "30 the dashed tick is painted (accent dashes and gaps), inside its row");
 ok(follow.at === "S1.p1.1" && follow.fol.join() === "S1.p1.1" && follow.box.length && follow.box.every((x) => x === "S1.p1.1:dashed") && follow.tick === "dashed", "30 scrolling moves the dashed box and the tick to the paragraph at 30%: " + JSON.stringify(follow));
 ok(follow.sel.length && follow.sel.every((x) => x === "S2.p1.1:solid") && (await cls('.u[data-u="S2.p1.1"]')).includes(" sel "), "30 the solid one stays on the selection" + JSON.stringify(follow.sel) + (await cls('.u[data-u="S2.p1.1"]')));
 
@@ -420,6 +457,54 @@ await pg.keyboard.press("Enter");
 ok((await cls('.u[data-u="S1.p1.1"]')).includes(" opened ") || (await cls('.u[data-u="S1.p2.1"]')).includes(" opened "), "↵ opens the selected paragraph in place");
 await levelKey("1");
 
+// The app's next FR.load of the same paper (the PDF opened, TextFold's answer, ⌘R): what the reader did stays, a mark
+// made in the 400 ms before it included
+await load(full);
+await words(fw);
+await levelKey("2");
+await pg.click('.u[data-u="S2.p1.1"] .body', { position: { x: 30, y: 10 } });
+await pg.dblclick('.u[data-u="S1.p2.1"] .body');
+await pg.evaluate(() => { document.getElementById("text").scrollTop = 120; });
+await wait(1000);
+await sent();
+await selectPieces("S2.p1.1:3", "S2.p1.1:5");
+await wait(30);
+await pg.keyboard.press("h");
+const view = () => pg.evaluate(() => ({ top: document.getElementById("text").scrollTop, level: document.querySelector('.dial [aria-pressed="true"]').getAttribute("data-level"),
+  sel: [...document.querySelectorAll(".u.sel")].map((u) => u.getAttribute("data-u")).join(), opened: [...document.querySelectorAll(".u.opened")].map((u) => u.getAttribute("data-u")).join(),
+  hl: [...document.querySelectorAll("#text .column .pc.hl")].map((x) => x.getAttribute("data-id")).join() }));
+const v0 = await view();
+await load(Object.assign({}, full, { prefs: { level: "full" }, marks: null }));
+await words(fw);
+await wait(500);
+const v1 = await view();
+ok(JSON.stringify(v1) === JSON.stringify(v0) && v0.level === "brief" && v0.sel === "S1.p2.1" && v0.opened === "S1.p2.1" && v0.hl === "S2.p1.1:3,S2.p1.1:4,S2.p1.1:5", "a reload of the same doc keeps the level, the place, the selection, the paragraph opened and the highlight: " + JSON.stringify(v1));
+m = (await sent()).filter((x) => x.type === "marks");
+ok(m.length === 1 && m[0].marks.marks.length === 1 && m[0].marks.marks[0].kind === "highlight", "the mark made just before it is posted, and no store without it");
+const newer = F.doc();
+newer.provenance.levels_made = "2026-11-05T10:00:00Z";
+await load(payload(newer, fw, { marks: null }));
+await words(fw);
+await wait(500);
+m = (await sent()).filter((x) => x.type === "marks");
+ok((await hlIds("S2.p1.1")).join() === "S2.p1.1:3,S2.p1.1:4,S2.p1.1:5" && m.length && m.pop().marks.marks.length === 1, "a new doc of the same paper keeps the marks held, re-anchored and posted");
+// notes where the margin doesn't show them: a count
+await levelKey("1");
+await selectPieces("S1.p1.1:3", "S1.p1.1:5");
+await wait(30);
+await pg.keyboard.press("n");
+await pg.keyboard.type("A note");
+await pg.focus("#text");
+await levelKey("4");
+ok((await pg.isVisible('.u[data-u="S1.p1.1"] .ncount')) && (await pg.textContent('.u[data-u="S1.p1.1"] .ncount')) === "1", "at Takeaway a paragraph's notes show as a count");
+await pg.click('.u[data-u="S1.p1.1"] .ncount');
+ok((await cls('.u[data-u="S1.p1.1"]')).includes(" opened ") && (await pg.locator('.u[data-u="S1.p1.1"] aside .card').count()) === 1, "the count opens the paragraph, its note in the margin");
+await levelKey("1");
+await pg.click('.u[data-u="S1.p1.1"] aside .card .x');
+await pg.click('.u[data-u="S1.p1.1"] aside .card .ask button:has-text("Delete it")');
+await wait(450);
+await sent();
+
 // 43: names and Tab order
 const unnamed = await pg.$$eval("button, [role=button]", (l) => l.filter((x) => x.offsetParent !== null && !(x.getAttribute("aria-label") || x.textContent).trim()).map((x) => x.outerHTML.slice(0, 80)));
 ok(unnamed.length === 0, "43 every button and pill has an accessible name" + (unnamed.length ? ": " + unnamed.join(" ") : ""));
@@ -462,7 +547,7 @@ for (const k of ["2", "3"]) {
     const out = pieces.filter((a) => { const r = a.effect.target.getBoundingClientRect(); return r.bottom < t.top - 300 || r.top > t.bottom + 300 }).length
     return { all: list.length, pieces: pieces.length, out }
   });
-  ok(an.pieces > 50 && an.pieces <= 1500 && an.out === 0 && an.all === an.pieces, `26 key ${k}: ${an.pieces} pieces animate, all within 300 px of the viewport`);
+  ok(an.pieces > 50 && an.pieces <= 1500 && an.out === 0 && an.all === an.pieces, `26 key ${k}: ${an.pieces} pieces animate, all within 300 px of the viewport` + (an.out || an.all !== an.pieces ? " " + JSON.stringify(an) : ""));
   await levelKey("1"); await wait(700);
 }
 await pg.emulateMedia({ reducedMotion: "reduce" });
@@ -471,8 +556,71 @@ ok((await pg.evaluate(() => document.getAnimations().length)) === 0, "26 with re
 await levelKey("1");
 await pg.emulateMedia({ reducedMotion: "no-preference" });
 
+// On a long paper: follow names the paragraph really at 30% wherever the text is scrolled (its rows' places read as they
+// are, never a stale table), a far box puts its paragraph at 110 px at once, and 1 to 4 and back keeps the reading line
+const settle = async (k) => { await pg.evaluate(() => performance.clearMarks()); await pg.keyboard.press(k); await pg.evaluate(() => new Promise((r) => { const t = () => (performance.getEntriesByName("fr:settled").length ? r() : setTimeout(t, 10)); t(); })); };
+await load(bigLoad);
+await words(bw);
+await wait(400);
+let misses = 0, tries = 0;
+for (let y = 600; y < 60000; y += 2300) {
+  const r = await pg.evaluate(async (yy) => {
+    const t = document.getElementById("text")
+    t.scrollTop = yy
+    await new Promise((res) => setTimeout(res, 320))
+    const line = t.getBoundingClientRect().top + t.clientHeight * 0.3
+    const at = [...document.querySelectorAll("#text .u")].find((u) => u.getBoundingClientRect().bottom > line)
+    return { st: t.scrollTop, at: at && at.getAttribute("data-u"), fol: [...document.querySelectorAll(".u.fol")].map((u) => u.getAttribute("data-u")).join() }
+  }, y);
+  if (r.st < y - 5) break;
+  tries++;
+  if (r.at !== r.fol) misses++;
+}
+ok(tries >= 10 && misses === 0, `follow on the long paper: the paragraph at 30% at ${tries - misses} of ${tries} places`);
+const far = await pg.evaluate(() => { const bs = [...document.querySelectorAll(".bx")]; return bs[bs.length - 30].getAttribute("data-u"); });
+await pg.evaluate(() => { document.getElementById("text").scrollTop = 0; });
+await pg.$eval(`.bx[data-u="${far}"]`, (e) => e.scrollIntoView({ block: "center" }));
+await wait(200);
+await pg.click(`.bx[data-u="${far}"]`);
+await wait(300);
+const farTop = await pg.evaluate((u) => document.querySelector(`.u[data-u="${u}"]`).getBoundingClientRect().top - document.getElementById("text").getBoundingClientRect().top, far);
+ok(Math.abs(farTop - 110) <= 2 && (await cls(`.u[data-u="${far}"]`)).includes(" sel "), "a box near the paper's end: its paragraph selected at 110 px within 300 ms: " + Math.round(farTop));
+await pg.evaluate(() => { const t = document.getElementById("text"); t.scrollTop = t.scrollHeight * 0.45; });
+await wait(400);
+const a0 = await pg.evaluate(() => { const t = document.getElementById("text"), cr = t.getBoundingClientRect(), line = cr.top + Math.min(140, cr.height * 0.25); const u = [...document.querySelectorAll("#text .u")].find((x) => x.getBoundingClientRect().bottom > line); return { u: u.getAttribute("data-u"), off: u.getBoundingClientRect().top - cr.top }; });
+const offs = [];
+for (const k of ["2", "3", "4", "3", "2", "1"]) {
+  await settle(k);
+  await wait(650);
+  offs.push(Math.round(await pg.evaluate((u) => document.querySelector(`.u[data-u="${u}"]`).getBoundingClientRect().top - document.getElementById("text").getBoundingClientRect().top, a0.u)));
+}
+ok(offs.every((o) => Math.abs(o - a0.off) <= 2), `1 to 4 and back keeps the reading line's paragraph in its place (${Math.round(a0.off)} px): ${offs.join(" ")}`);
+await settle("3");
+const stops = await pg.$$eval("#text button, #text [tabindex], #text textarea", (l) => l.filter((x) => x.tabIndex >= 0 && !x.disabled && x.offsetParent !== null && x.id !== "text").length);
+ok(stops <= 6, "at Key one paragraph's controls are Tab stops, not every paragraph's: " + stops);
+await settle("1");
+
 // 44: budgets (the large document, median of 5)
 await budgets(bigLoad, bw, true);
+
+// narrow windows: the paper's words keep 420 px (the margin folds away, then the PDF narrows), the widths kept come back
+await load(full);
+await words(fw);
+const widths = () => pg.evaluate(() => ({ body: Math.round(document.querySelector("#text .u .body").getBoundingClientRect().width), pdf: Math.round(document.getElementById("pdf").getBoundingClientRect().width),
+  aside: document.querySelector("#text .u aside").hidden ? 0 : Math.round(document.querySelector("#text .u aside").getBoundingClientRect().width), margin: document.getElementById("bMargin").getAttribute("aria-pressed") }));
+for (const [W, H] of [[900, 640], [760, 480]]) {
+  await pg.setViewportSize({ width: W, height: H });
+  await wait(150);
+  const w = await widths();
+  ok(w.body >= 420 && w.aside === 0 && w.margin === "false" && w.pdf >= 220, `at ${W} × ${H} the text keeps ${w.body} px (the margin folded away, the PDF ${w.pdf} px)`);
+}
+await pg.click("#bMargin");
+const asked = await widths();
+ok(asked.aside >= 160 && asked.margin === "true", `at 760 the margin asked for shows (${asked.aside} px), the text ${asked.body} px`);
+await pg.setViewportSize({ width: 1360, height: 820 });
+await wait(150);
+const back = await widths();
+ok(back.pdf === 470 && back.aside === 220 && back.margin === "true", "wide again: the PDF and the margin at their widths kept: " + JSON.stringify(back));
 
 // narrow, 42
 await pg.setViewportSize({ width: 760, height: 480 });
