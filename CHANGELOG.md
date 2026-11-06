@@ -7,7 +7,7 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.35`)
 
 - **Read with folds.** A paper's menu has *Read with folds* (or press `v` on it): a window of its own shows the
   paper at five levels, from every word (Full) through its key sentences, each paragraph's point and one takeaway,
