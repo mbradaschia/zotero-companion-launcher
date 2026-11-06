@@ -64,7 +64,10 @@ extension LauncherModel {
         guard !syncFolderGone, !files.readOnly else { return flashMessage("Not saved: " + syncFolderAway) }
         do {
             let json = try core.glueJSON("reviewNew", [source, reviewContext(), ReviewFiles.iso(Date())])
-            guard let review = ReviewFiles.object(json), let id = review["id"] as? String else { return }
+            guard var review = ReviewFiles.object(json), let id = review["id"] as? String else { return }
+            // (no two tables named the same: a second "CRT" is "CRT 2")
+            let name = review["name"] as? String ?? ""
+            review["name"] = (try? core.glue("reviewUniqueName", [name, reviews, id], as: String.self)) ?? name
             try files.writeReview(review, core)
             openReviewWindow(id)
             flashMessage("Opened “\(review["name"] as? String ?? "")” as a review table (in its own window)")

@@ -187,6 +187,20 @@ final class LauncherModel5Tests: XCTestCase {
         XCTAssertEqual(model.searchViewCount, "2 searches")
     }
 
+    func testANameAnotherSearchHasCantBeSaved() throws {
+        try writeSearches([["id": "s1", "name": "Teece", "query": "a:teece"]])
+        model.willShow(query: "y:2020..")
+        model.execute(.saveSearch)
+        model.setFilter(" TEECE ") // (case and spaces at the ends don't make it another name)
+        model.rebuildList()
+        let row = try XCTUnwrap(model.listRows.first { $0.rowId == "search-save" })
+        XCTAssertFalse(row.available)
+        XCTAssertEqual(row.label, "“TEECE” is taken: type another name")
+        model.searchAction(row)
+        XCTAssertEqual(try searches().count, 1) // (nothing saved)
+        XCTAssertEqual(model.flash, "“TEECE” is taken: type another name")
+    }
+
     func testADamagedFileIsNotWrittenOver() throws {
         try FileManager.default.createDirectory(at: searchesFile.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("{oops".utf8).write(to: searchesFile)

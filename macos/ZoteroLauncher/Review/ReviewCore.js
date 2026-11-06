@@ -470,6 +470,19 @@ var ReviewCore = (function () {
     return o.title || o.key || "Review"
   }
 
+  // Two tables never share a name (ignoring case and spaces at the ends). nameTaken: whether another table (not
+  // exceptId) has it; uniqueName: the name, or the first of "name 2", "name 3"… that's free.
+  function nameKey(n) { return String(n == null ? "" : n).trim().replace(/\s+/g, " ").toLowerCase() }
+  function nameTaken(name, reviews, exceptId) {
+    var k = nameKey(name)
+    return !!k && (Array.isArray(reviews) ? reviews : []).some(function (r) { return isObject(r) && r.id !== exceptId && nameKey(r.name) === k })
+  }
+  function uniqueName(name, reviews, exceptId) {
+    var base = String(name == null ? "" : name).trim().replace(/\s+/g, " ") || "Review"
+    if (!nameTaken(base, reviews, exceptId)) return base
+    for (var n = 2; ; n++) if (!nameTaken(base + " " + n, reviews, exceptId)) return base + " " + n
+  }
+
   // A new review of a paper set: the default columns, then each taxonomy's.
   function newReview(source, ctx, now, rand) {
     var cols = DEFAULT_COLUMNS.map(function (id) { return { id: id } })
@@ -879,7 +892,7 @@ var ReviewCore = (function () {
     csvCell: csvCell, csv: csv,
     chatList: chatList,
     randomId: randomId, validId: validId, normalizeReview: normalizeReview, parseReview: parseReview, reviewText: reviewText,
-    sourceName: sourceName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
+    sourceName: sourceName, nameTaken: nameTaken, uniqueName: uniqueName, newReview: newReview, searchScope: searchScope, sameSource: sameSource, reviewFor: reviewFor,
     parseColumn: parseColumn, columnText: columnText, newColumn: newColumn, parseCells: parseCells, setCell: setCell, restoreCell: restoreCell,
     AI_KINDS: AI_KINDS, KIND_NAMES: KIND_NAMES, STATE_NAMES: STATE_NAMES, aiColumn: aiColumn, newAiColumn: newAiColumn, cleanLabels: cleanLabels, labelsText: labelsText, columnHash: columnHash, hash12: hash12,
     cellOf: cellOf, cellState: cellState, runPlan: runPlan, runMarks: runMarks, band: band, citeAPA: citeAPA, withCitation: withCitation, reference: reference, references: references, htmlText: htmlText, ROW_MIN: ROW_MIN, ROW_MAX: ROW_MAX, normalizeHeights: normalizeHeights
