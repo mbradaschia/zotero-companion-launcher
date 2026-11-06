@@ -1,0 +1,33 @@
+Here is the JSON:
+
+```json
+{
+  "section": {
+    "takeaway": "Readers skim papers but miss how claims are argued",
+    "topic": "Readers skim papers"
+  },
+  "units": [
+    {
+      "id": "U0",
+      "role": "context",
+      "takeaway": "Researchers skim many papers each week for the main claim",
+      "topic": "main claim",
+      "reason": "Skimming saves time but misses how a claim is argued",
+      "evidence": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": "U1",
+      "role": "gap",
+      "takeaway": "No reader links each summary line back to the text",
+      "topic": "summary line",
+      "reason": "",
+      "evidence": [
+        2
+      ]
+    }
+  ]
+}
+```

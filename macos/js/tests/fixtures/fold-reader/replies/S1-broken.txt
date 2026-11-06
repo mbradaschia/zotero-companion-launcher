@@ -1,0 +1,1 @@
+{"section": {"takeaway": "Readers skim papers but miss how claims are argued", "topic": "Readers skim papers"}, "units": [{"id": "U0", "role": "context", "takeaway": "Researchers skim many papers each week for the main claim", "topic": "main cl
