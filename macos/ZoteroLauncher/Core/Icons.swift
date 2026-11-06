@@ -29,6 +29,13 @@ enum Icons {
         "chat": "bubble.left", "info": "info.circle", "split": "rectangle.split.1x2", "tabs": "menubar.rectangle",
     ]
 
+    // The fold reader's own icons (its page draws them as SVG, FoldView.js's OWN), as SF Symbols: the names the native
+    // side would use for the same things (docs/fold-reader/SPEC.md 7.3, 7.4, 7.5, 7.7; FoldReaderTests checks they exist).
+    static let readerConcept: [String: String] = [
+        "pdf": "doc.richtext", "swap": "arrow.left.arrow.right", "highlight": "highlighter", "foldback": "arrow.down.right.and.arrow.up.left",
+        "zoomout": "minus.magnifyingglass", "zoomin": "plus.magnifyingglass", "fit": "arrow.left.and.right",
+    ]
+
     // An SF Symbol for a list row, by what it does.
     // `badge`: a task's state ("running", "failed", "" done).
     static func symbol(rowId: String, badge: String = "") -> String {
@@ -57,6 +64,7 @@ enum Icons {
         case "reveal": return "folder"
         case "external": return "doc.richtext"
         case "window": return "macwindow"
+        case "fold-read": return "text.book.closed"
         case "pick": return "doc"
         case "pin": return "pin"
         case "cite-copy": return "quote.opening"

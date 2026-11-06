@@ -20,6 +20,15 @@ var Glue = (function () {
   var taxGlue = (typeof GlueTaxonomies !== "undefined" ? GlueTaxonomies : require("./GlueTaxonomies.js"))(V, S)
   var RV = typeof ReviewCore !== "undefined" ? ReviewCore : require("../Review/ReviewCore.js")
   var reviewGlue = (typeof GlueReviews !== "undefined" ? GlueReviews : require("./GlueReviews.js"))(RV)
+  var FC = typeof FoldCore !== "undefined" ? FoldCore : require("../Reader/FoldCore.js")
+  var foldGlue = (typeof GlueFold !== "undefined" ? GlueFold : require("./GlueFold.js"))(FC, V)
+  // the fold reader's row (SPEC 7.1), after the window row, in its section, on a paper only
+  var withFoldRow = function (rows, details) {
+    var row = foldGlue.foldMenuRow(details)
+    if (!row) return rows
+    for (var i = 0; i < rows.length; i++) if (rows[i].rowId === "window") { row.section = rows[i].section; rows.splice(i + 1, 0, row); break }
+    return rows
+  }
 
   // Go to with only the places the Mac has (`have`: their kinds; a Settings row found by name
   // stays): the rest of the launcher's places come in later phases. With none left above the
@@ -176,7 +185,7 @@ var Glue = (function () {
 
     // A paper's menu (Tab). `pinned`: whether it is pinned; `setup`: whether setup is unfinished.
     actions: function (details, viewerName, prompts, promptsProblem, pinned, setup, extras) {
-      return V.buildActions(details, viewerName, prompts, promptsProblem, pinned, setup, extras || {})
+      return withFoldRow(V.buildActions(details, viewerName, prompts, promptsProblem, pinned, setup, extras || {}), details)
     },
 
     // A paper's menu as shown (ZoteroSearch.qml:946-960): its rows in your order, your pins on top,
@@ -184,7 +193,7 @@ var Glue = (function () {
     // promptsProblem, pinned, setup, extras, order, pins, others, sections, filter }.
     // → { ordered (before the pins and the filter: what Shift+↑↓ moves within), rows }
     menu: function (m) {
-      var act = V.buildActions(m.details, m.viewerName || "", m.prompts === undefined ? null : m.prompts, m.promptsProblem || "", !!m.pinned, !!m.setup, m.extras || {})
+      var act = withFoldRow(V.buildActions(m.details, m.viewerName || "", m.prompts === undefined ? null : m.prompts, m.promptsProblem || "", !!m.pinned, !!m.setup, m.extras || {}), m.details)
       // the paper's tasks, after its notes and chats (ZoteroSearch.qml:950-955)
       if (m.todoRows && m.todoRows.length) {
         var at = -1
@@ -274,6 +283,7 @@ var Glue = (function () {
   for (var ch in chatGlue) core[ch] = chatGlue[ch]
   for (var tg in taxGlue) core[tg] = taxGlue[tg]
   for (var rg in reviewGlue) core[rg] = reviewGlue[rg]
+  for (var fg in foldGlue) core[fg] = foldGlue[fg]
 
   // The Mac's key notation (decision 9) in the texts the view logic writes for the launcher's own
   // rows: modifiers as ⌥ ⇧ ⌃ ⌘ (⌘V pastes, as Ctrl+V does). Never on a paper's or a task's own text.
@@ -370,6 +380,7 @@ var Glue = (function () {
   var LISTS_LINES = [["Next / previous pinned search (the badges on top)", "Next / previous favorite (the Lists panel's)"],
     ["Next / previous pinned search (the badges)", "Next / previous favorite (the Lists panel's)"],
     ["Pin or unpin it (a badge above the results)", "Pin or unpin it (a favorite in the Lists panel)"]]
+  var FOLD_KEY = "Read it with folds, in its own window"
   core.keyRows = function (query, here) {
     var alt = !!(here && here.alt)
     var lists = !!(here && here.lists)
@@ -380,9 +391,10 @@ var Glue = (function () {
       var label = macKeyLine(own) // (and the HTML the row draws, from it)
       return Object.assign({}, r, { trailing: macKeyColumn(mine ? macAlt(r.trailing) : r.trailing), label: label, labelHtml: V.escapeHtml(label), section: macKeyLine(r.section) })
     })
-    // the Mac's own: ⌘T, after ⌘S, wherever ⌘S is (phase 11a's review tables)
+    // the Mac's own: ⌘T, after ⌘S, wherever ⌘S is (phase 11a's review tables); v after each o  w (the fold reader)
     rows = rows.reduce(function (out, r) {
       out.push(r)
+      if (/^(⌥)?o {2}(⌥)?w( |$)/.test(r.trailing)) out.push(Object.assign({}, r, { trailing: r.trailing.charAt(0) === "⌥" ? "⌥v" : "v", label: FOLD_KEY, labelHtml: V.escapeHtml(FOLD_KEY) }))
       if (r.trailing === "⌘S") {
         out.push(Object.assign({}, r, { trailing: "⌘T", label: REVIEW_KEY, labelHtml: V.escapeHtml(REVIEW_KEY) }))
         if (here && here.lists) LISTS_KEYS.forEach(function (k) { out.push(Object.assign({}, r, { trailing: k[0], label: k[1], labelHtml: V.escapeHtml(k[1]) })) })

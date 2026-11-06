@@ -262,6 +262,7 @@ extension LauncherModel {
         // a taxonomy form's field, Ask the AI: typed on Settings' typing page (not row ids of the QML's actions)
         if ["tax-field", "tax-label-field", "tax-ai-ask"].contains(row.rowId) { return openTaxonomyField(row) }
         if row.rowId == "tasks-stop-all" { _ = runnerAction(row); return } // (the Mac's own: not a row of the QML's activateAction)
+        if row.rowId == "fold-read" { UsageLog.shared.count("row:fold-read"); openFoldReaderForMenu(); return } // (the Mac's own, as above)
         UsageLog.shared.count("row:" + row.rowId)
         let typed = store.filterText, view = store.view, depth = store.stack.count
         if let handler = ActionMap.handlers[row.rowId] { handler(self, row) }

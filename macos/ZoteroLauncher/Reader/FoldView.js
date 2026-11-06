@@ -177,7 +177,7 @@ var FoldView = (function () {
     function paperTitle() { return (S.d && S.d.paper && S.d.paper.title) || (S.m && S.m.title) || "Untitled" }
     function bylineText() {
       var p = (S.d && S.d.paper) || {}
-      var authors = (p.authors && p.authors.length ? p.authors : (S.m ? S.m.authors : [])).map(function (a) { return String(a).split(",")[0].trim() }).filter(Boolean)
+      var authors = (S.m && S.m.authors.length ? S.m.authors : p.authors || []).map(function (a) { return String(a).split(",")[0].trim() }).filter(Boolean)
       var who = authors.length > 4 ? authors.slice(0, 4).join(", ") + " et al." : authors.join(", ")
       var year = p.year || (S.m && S.m.date ? S.m.date.slice(0, 4) : "")
       var pages = S.d && S.d.pdf && S.d.pdf.pages ? S.d.pdf.pages + (S.d.pdf.pages === 1 ? " page" : " pages") : ""
