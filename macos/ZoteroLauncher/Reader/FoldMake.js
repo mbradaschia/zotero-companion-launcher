@@ -80,13 +80,19 @@ var FoldMake = (function () {
         if (!ws.length) return
         lines++
         ws.forEach(function (w) { pc += w.t.length })
-        // (cut where its words stand 1.5 sizes apart; a line cut so takes each side's size and weight from it, half)
+        // (cut where its words stand 1.5 sizes apart; a line cut so takes each side's weight from it, half, and its
+        // size too, unless a piece is an equation's number "(n)": a display equation beside it keeps the line's size,
+        // or its taller boxes would make it a heading)
         var cuts = [0]
         ws.forEach(function (w, i) { if (i && w.x0 - ws[i - 1].x1 > 1.5 * sz) cuts.push(i) })
         cuts.push(ws.length)
         var whole = segment(ws, n, W, H, sz, Number(l.f) || 0, Math.min(Number(l.lb) || 0, ws.length))
         if (cuts.length === 2) segs.push(whole)
-        else for (var c = 1; c < cuts.length; c++) segs.push(half(whole, cuts[c - 1], cuts[c]))
+        else {
+          var few = false
+          for (var k = 1; k < cuts.length; k++) if (cuts[k] - cuts[k - 1] === 1 && /^\(\d+(\.\d+)*[a-z]?\)$/.test(ws[cuts[k - 1]].t)) few = true
+          for (var c = 1; c < cuts.length; c++) segs.push(half(whole, cuts[c - 1], cuts[c], few))
+        }
       })
       chars += pc
       perPage.push(pc)
@@ -188,14 +194,14 @@ var FoldMake = (function () {
 
   // Words from..to of a line cut in two, each side its own size and weight as far as the line says: the size scaled by
   // its words' height against the line's, bold for most of its words when the bold start (lb) covers them.
-  function half(s, from, to) {
+  function half(s, from, to, keepSize) {
     var ws = s.words.slice(from, to)
     var mid = function (list) { var h = list.map(function (w) { return w.y1 - w.y0 }).sort(function (a, b) { return a - b }); return h[Math.floor(h.length / 2)] }
     // (the line's size is its characters' mean: scaled to each side by its words' heights, as a size is a height)
     var chars = 0, sum = 0
     s.words.forEach(function (w) { chars += w.t.length; sum += (w.y1 - w.y0) * w.t.length })
     var own = mid(ws), size = s.size
-    if (chars && sum > 0 && own > 0) size = Math.round(s.size * own / (sum / chars) * 2) / 2
+    if (!keepSize && chars && sum > 0 && own > 0) size = Math.round(s.size * own / (sum / chars) * 2) / 2
     var bold = Math.max(0, Math.min(s.lb, to) - from)
     var f = (s.f & ~1) | (bold * 2 > ws.length ? 1 : 0)
     return segment(ws, s.page, s.W, s.H, size, f, from === 0 ? Math.min(s.lb, to) : 0)

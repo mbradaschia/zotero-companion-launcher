@@ -311,3 +311,25 @@ test("R5-6: a short ragged line starting with a number mid-paragraph is no headi
     assert.ok(rr.doc.sections.some((s) => s.title === "Discussion"), how + ": " + sectionsOf(rr).join(", "))
   }
 })
+
+test("R5-2: a display equation with taller glyphs beside its number \"(n)\" keeps the line's size, so it heads no section", () => {
+  const VO = "folding reader level paragraph claim sentence model summary column method result analysis evidence".split(" ")
+  let s2 = 11
+  const word = () => { s2 = (s2 * 1103515245 + 12345) % 2147483648; return VO[s2 % VO.length] }
+  const rowText = (n, last) => { const ws = []; for (let j = 0; j < n; j++) ws.push(word()); if (last) ws[n - 1] += "."; return ws.join(" ") }
+  const pages = []
+  for (let n = 1; n <= 3; n++) {
+    const rows = []; let y = 80
+    const add = (ws, size, f, lb) => { rows.push(line(ws, size || 10, f, lb)); y += 12 }
+    if (n === 1) add(words("1 Introduction", 72, 150, y, 10), 10, 1, 2)
+    for (let k = 0; k < 4; k++) {
+      for (let i = 0; i < 6; i++) add(words(rowText(13, i === 5), 72 + (i ? 0 : 10), 540, y, 10, i < 5))
+      const eq = words("x = a + b + c", 250, 330, y, 10).map((w) => [w[0], w[1], w[2] - 6 / H, w[3], w[4] + 2 / H])
+      add(eq.concat(words("(" + (n * 4 + k) + ")", 350, 365, y, 10)))
+    }
+    if (n === 2) add(words("2 Methods", 72, 130, y, 10), 10, 1, 2)
+    pages.push({ n, size: [W, H], lines: rows })
+  }
+  const r = M.read(pages, meta(pages))
+  assert.deepEqual(r.doc.sections.map((s) => s.title), ["Introduction", "Methods"], sectionsOf(r).join(", "))
+})
