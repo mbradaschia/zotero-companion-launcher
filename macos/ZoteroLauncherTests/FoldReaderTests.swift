@@ -46,9 +46,9 @@ final class FoldReaderTests: XCTestCase {
     private static let fontSize: CGFloat = 12
 
     private func makePDF(pages: Int = 2, lines: [String]? = nil, rotateSecond: Bool = true) throws -> URL {
-        let url = home.appendingPathComponent("made-\(UUID().uuidString).pdf")
+        let made = home.appendingPathComponent("made-\(UUID().uuidString).pdf")
         var box = CGRect(x: 0, y: 0, width: 612, height: 792)
-        let ctx = try XCTUnwrap(CGContext(url as CFURL, mediaBox: &box, nil))
+        let ctx = try XCTUnwrap(CGContext(made as CFURL, mediaBox: &box, nil))
         let font = CTFontCreateWithName("Helvetica" as CFString, Self.fontSize, nil)
         for _ in 0..<pages {
             ctx.beginPDFPage(nil)
@@ -62,12 +62,13 @@ final class FoldReaderTests: XCTestCase {
             ctx.endPDFPage()
         }
         ctx.closePDF()
-        if rotateSecond, pages > 1 {
-            let doc = try XCTUnwrap(PDFDocument(url: url))
-            doc.page(at: 1)?.rotation = 90
-            XCTAssertTrue(doc.write(to: url))
-        }
-        return url
+        guard rotateSecond, pages > 1 else { return made }
+        // (turned and written to a file of its own: never over the file the document is read from)
+        let doc = try XCTUnwrap(PDFDocument(url: made))
+        doc.page(at: 1)?.rotation = 90
+        let turned = home.appendingPathComponent("turned-\(UUID().uuidString).pdf")
+        XCTAssertTrue(doc.write(to: turned))
+        return turned
     }
 
     // Where CoreText put each word of the line, as boxes in page points: [x0, y0 (bottom), x1, y1 (top)].
