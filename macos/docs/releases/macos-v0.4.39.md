@@ -12,7 +12,7 @@ taxonomies, saved searches, API keys or hotkey. The bridge (0.2.7) and the promp
 
 **Sections and sub-sections, found more often.** The reader uses the PDF's own outline (its bookmarks) when the file
 has one, reads IEEE's "I. INTRODUCTION" and "A. Background" headings, keeps numbered titles with a period in them
-("4.2 SQuAD v1.1"), reads Medium-weight fonts as bold, and nests sub-sections that differ from their sections only
+("4.2 SQuAD v1.1"), an appendix's "A.1" sub-sections and titles that wrap to a second line, reads Medium-weight fonts as bold, and nests sub-sections that differ from their sections only
 by typeface, as PLOS ONE sets them. Table cells, figure labels and bold paragraph starts no longer turn into
 headings. On six test papers (three in two columns, two from PLOS ONE) it now finds 157 of 158 headings, up from
 121, and nests 157 under the right section, up from 106.

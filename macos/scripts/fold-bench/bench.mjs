@@ -58,13 +58,18 @@ for (const [name, , title, layout] of papers) {
   const junk = kept.filter((p, i) => !used.has(i) && !NEUTRAL.has(p[1])).map((p) => p[2])
   const misses = gt.filter((g, gi) => !pairs.some(([x]) => x === gi)).map((g) => g[1])
   // (for each miss, the PDF line that reads most like it, as foldlines gave it: what to look at next)
-  const lines = pages.flatMap((pg) => pg.lines.map((l) => [pg.n, l]))
+  // (and the lines either side of it on its page, at x0/y0 in points: a number set apart, a paragraph run into it)
+  const lines = pages.flatMap((pg) => pg.lines.map((l, i) => [pg, i, l]))
+  const say = (pg, l) => `“${l.t.slice(0, 50)}” @${Math.round(l.b[0] * pg.size[0])},${Math.round(l.b[1] * pg.size[1])}–${Math.round(l.b[2] * pg.size[0])} s ${l.s} f ${l.f} lb ${l.lb}/${l.w ? l.w.length : "?"} ${l.fn || ""}`
   const seen = misses.map((g) => {
     let best = null, score = 0
-    for (const [n, l] of lines) { const v = ratio(g, head(l.t).slice(0, g.length + 8)); if (v > score) { score = v; best = [n, l] } }
-    return best && score >= 0.6 ? `p${best[0]} “${best[1].t.slice(0, 50)}” s ${best[1].s} f ${best[1].f} lb ${best[1].lb}/${best[1].w ? best[1].w.length : "?"} ${best[1].fn || ""}` : "no line"
+    for (const x of lines) { const v = ratio(g, head(x[2].t).slice(0, g.length + 8)); if (v > score) { score = v; best = x } }
+    if (!best || score < 0.6) return "no line"
+    const [pg, i, l] = best, near = (j) => pg.lines[j] ? say(pg, pg.lines[j]) : "none"
+    return `p${pg.n} ${say(pg, l)}<br>  before ${near(i - 1)}<br>  after ${near(i + 1)}`
   })
-  rows.push({ name, layout, problem: r.problem, gt: gt.length, found: pairs.length, nested, junk: junk.length, junkList: junk, misses, seen, outline: outline.length, ms })
+  const body = M._.bodySize(M._.segmentsOf(pages).segs)
+  rows.push({ name, layout, problem: r.problem, gt: gt.length, found: pairs.length, nested, junk: junk.length, junkList: junk, misses, seen, body, outline: outline.length, ms })
   total.gt += gt.length; total.found += pairs.length; total.nested += nested; total.junk += junk.length
 }
 if (json) { console.log(JSON.stringify({ label, rows, total }, null, 1)); process.exit(0) }
@@ -81,7 +86,7 @@ for (const r of rows) if (!r.missing && (r.misses?.length || r.junkList?.length)
   console.log(`- ${r.name}: missed ${r.misses.length ? r.misses.map((m) => "“" + m + "”").join(", ") : "none"}; junk ${r.junkList.length ? r.junkList.map((j) => "“" + String(j).slice(0, 60) + "”").join(", ") : "none"}`)
 }
 for (const r of rows) if (r.seen?.length) {
-  console.log(`\n<details><summary>${r.name}: the lines nearest its misses</summary>\n`)
+  console.log(`\n<details><summary>${r.name}: the lines nearest its misses (body ${r.body} pt)</summary>\n`)
   r.misses.forEach((m, i) => console.log(`- “${m}”: ${r.seen[i]}`))
   console.log("\n</details>")
 }

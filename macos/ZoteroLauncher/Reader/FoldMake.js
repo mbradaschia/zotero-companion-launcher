@@ -26,7 +26,7 @@ var FoldMake = (function () {
   var TABLE_AT = /^\s*(?:table|tab\.|tabelle|表)\s*[A-Z]?\d+[a-z]?\s*(?:[:.|]|$)/i
   var REFS = /^\s*(?:\d+\.?\s*)?(?:references|bibliography|literature|works cited|literatur|参考文献)\s*$/i
   var ABSTRACT = /^\s*(?:abstract|a b s t r a c t|summary|zusammenfassung|摘要)\s*$/i
-  var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[IVX]+)\.?\s+[A-Z](?:[^.!?]|[.](?=\S)|[A-Z][.]){1,80}$/
+  var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[A-Z](?:\.\d+){1,3}|[IVX]+)\.?\s+[A-Z](?:[^.!?]|[.](?=\S)|[A-Z][.]){1,80}$/
   var BOILER = /^\W*\d?\s*(?:check for updates|open access|research article|article|original article|review)\W*$/i
   var FRONT = /^(?:<sup>|\d+\s*[A-Z][a-z]+ (?:of|for)\b|(?:received|accepted|published|revised|correspondence|e-?mail|keywords?)\b)|@/i
   var DEPTH = /^\s*((?:\d+|[A-Z]|[IVX]+)(?:[.\-]\d+)*)[.)]?\s+\S/
@@ -389,10 +389,15 @@ var FoldMake = (function () {
               (!cur.list && indent(s) && !indent(p) && !(fullyBold(s) && fullyBold(p))) ||
               (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text)) ||
               headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)
+            // (a numbered heading's title wrapped to a second, short line at the same size and weight, at the column's
+            // edge or under the title's first word: "A.4 Comparison of BERT, ELMo, and" over "OpenAI GPT"; the paragraph
+            // starts after it)
+            if (brk && cur.head && cur.segs.length === 1 && wrapOf(p, s, e, f.segs[i + 1])) { brk = false; cur.wrapped = true }
+            else if (cur.wrapped) brk = true
           }
         }
         if (brk) {
-          cur = { flow: f, segs: [], list: LIST.test(s.text), edges: e }
+          cur = { flow: f, segs: [], list: LIST.test(s.text), edges: e, head: s.words.length <= 10 && NUMBERED.test(s.text) }
           blocks.push(cur)
         }
         cur.segs.push(s)
@@ -420,6 +425,12 @@ var FoldMake = (function () {
     if (!NUMBERED.test(s.text)) return false
     if (!above || sameRow(above, s) || SENTENCE_END.test(above.text) || s.y0 - above.y0 >= 1.3 * pitch) return true
     return !!below && below.x0 - e[0] > 0.8 * below.size && !(s.x0 - e[0] > 0.8 * s.size)
+  }
+  function wrapOf(p, s, e, below) {
+    var w = e[1] - e[0]
+    return !!below && !sameRow(below, s) && s.y0 - p.y1 <= 0.6 * s.size && Math.abs(s.size - p.size) <= 0.6 && boldAll(s) === boldAll(p) &&
+      (s.x0 - e[0] <= 0.8 * s.size || (p.words.length > 1 && Math.abs(s.x0 - p.words[1].x0) <= 0.5 * s.size)) && s.x1 - s.x0 < 0.6 * w && e[1] - p.x1 < 0.5 * w && s.words.length <= 6 &&
+      !SENTENCE_END.test(s.text) && !/[-‐]$/.test(p.text) && NUMBERED.test(p.text + " " + s.text)
   }
   function rowsOf(segs) {
     var n = 0

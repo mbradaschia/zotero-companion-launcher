@@ -33,7 +33,8 @@ function para(n) {
   }) }
 }
 // Pages from blocks, top to bottom, 40 lines a page: a paragraph's lines 12 pt apart; a heading 18 pt below what is
-// above it ({head, size, f, lb, fn, x, ws: words given as they are}).
+// above it ({head, size, f, lb, fn, x, ws: words given as they are, also: lines beside or under it, after: the room it
+// takes}).
 function pages(blocks) {
   const out = [{ n: 1, size: [W, H], lines: [] }]
   let y = 90
@@ -50,7 +51,7 @@ function pages(blocks) {
       const ws = b.ws ? b.ws(y) : words(b.head, b.x != null ? b.x : L0, y, size)
       add(line(ws, b.s || size, b.f, b.lb == null ? (b.f & 1 ? ws.length : 0) : b.lb, b.fn || "Body"))
       if (b.also) for (const extra of b.also(y)) add(extra)
-      y += size + 6
+      y += b.after || size + 6
     }
   }
   return out
@@ -134,4 +135,17 @@ test("no numbers: sub-sections set at the sections' size in another face nest un
     { head: "Reading evidence", size: 12, f: 1, fn: "Minion Pro" }, para(3),
     { head: "Conclusion", size: 12, f: 1, fn: "Helvetica" }, para(3)])
   assert.deepEqual(heads(M.read(ps, meta(ps))), [[1, "Introduction"], [1, "Background"], [2, "Folding layouts"], [2, "Reading evidence"], [1, "Conclusion"]])
+})
+
+test("an appendix's lettered sub-sections at the body's size and weight, one of them wrapped to a second line, are headings", () => {
+  // (as PDFKit reads a paper whose heading font it can't name: no bold, the body's size)
+  const wrapped = "A.2 Reconstructing multilayered paragraph summaries across evidence"
+  const ps = pages([para(4), { head: "1 Introduction", size: 12, f: 1 }, para(5), { head: "References", size: 12, f: 1 },
+    { para: true, lines: ["Made Up. 2020. Folding reader levels. In Proceedings of the Reading Layout Workshop."] },
+    { head: "A Appendix of folding", size: 12, f: 1 }, para(3),
+    { head: "A.1 Folding the claim layouts" }, para(4),
+    { head: wrapped, after: 28, also: (y) => [line(words("column layouts", L0 + 17.5, y + 12, 10), 10)] }, para(4),
+    { head: "A.3 Summary of the reader" }, para(3)])
+  assert.deepEqual(heads(M.read(ps, meta(ps))).slice(-3).map((h) => h[1]),
+    ["A.1 Folding the claim layouts", wrapped + " column layouts", "A.3 Summary of the reader"])
 })

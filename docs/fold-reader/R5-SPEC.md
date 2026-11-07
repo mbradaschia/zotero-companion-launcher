@@ -103,7 +103,10 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
    first match wins:
    - *heading*: (a) a block of at most 10 words matching TextFold's `NUMBERED`
      (`^(?:[1-9]\d*(?:\.\d+){0,3}|[IVX]+)\.?\s+[A-Z][^.!?]{1,80}$`; since extractor 2 a period is allowed inside a
-     word or after a capital: `4.2 SQuAD v1.1`, `3.1 U.S. evidence`), size ≥ body, standing alone; (b) `ABSTRACT` or
+     word or after a capital: `4.2 SQuAD v1.1`, `3.1 U.S. evidence`, and an appendix's lettered numbers `A.1`, `B.2.1`
+     count as numbers), size ≥ body, standing alone; its title may wrap to one more short line at its size and
+     weight, at the column's edge or under the title's first word (`A.4 Comparison of BERT, ELMo, and` over
+     `OpenAI GPT`; `wrapOf`): that line joins the heading's block and the paragraph starts after it; (b) `ABSTRACT` or
      `REFS` (pdfdoc.py) alone on its block; (b2, extractor 2) IEEE: a Roman numeral and a title in capitals
      (`ROMAN_HEAD`, `II. BACKGROUND & DEFINITION`) or `ACKNOWLEDGMENT` / `APPENDIX`, at most 12 words and 2 lines,
      size ≥ body − 3 (small capitals bring the mean down); in a paper with two or more of those, a lettered line in
