@@ -31,6 +31,8 @@ var FoldView = (function () {
     foldback: [["M15.5 2.5L10.5 7.5M10.5 3.8v3.7h3.7 M2.5 15.5l5-5M7.5 14.2v-3.7H3.8"]],
     zoomout: [["M7.5 2.5a5 5 0 1 0 .01 0z M11.2 11.2l4.3 4.3M5.5 7.5h4"]],
     zoomin: [["M7.5 2.5a5 5 0 1 0 .01 0z M11.2 11.2l4.3 4.3M5.5 7.5h4M7.5 5.5v4"]],
+    textsmaller: [["M2 14.5L5.75 4.5l3.75 10M3.4 11h4.7 M11.5 9.5h5"]],
+    textlarger: [["M2 14.5L5.75 4.5l3.75 10M3.4 11h4.7 M11.5 9.5h5M14 7v5"]],
     fit: [["M2.5 9h13M5 6.5L2.5 9 5 11.5M13 6.5l2.5 2.5-2.5 2.5"]]
   }
   function icon(name, small) {
@@ -391,6 +393,14 @@ var FoldView = (function () {
       bMargin.addEventListener("click", function () { setMargin(!fitW.margin) })
       pg.appendChild(bPdf); pg.appendChild(bSwap); pg.appendChild(bMargin)
       tools.appendChild(pg)
+      // the text's size (the window's zoom, as ⌘- ⌘+; ⌘0 its size)
+      var tg = el("div", { class: "group", role: "group", "aria-label": "Text size" })
+      var bSmaller = button("tb", "Text smaller · ⌘-", [icon("textsmaller")], { "aria-keyshortcuts": "Meta+-", id: "bTextSmaller" })
+      var bLarger = button("tb", "Text larger · ⌘+", [icon("textlarger")], { "aria-keyshortcuts": "Meta+=", id: "bTextLarger" })
+      bSmaller.addEventListener("click", function () { post("zoom", { step: -1 }) })
+      bLarger.addEventListener("click", function () { post("zoom", { step: 1 }) })
+      tg.appendChild(bSmaller); tg.appendChild(bLarger)
+      tools.appendChild(tg)
       var rg = el("div", { class: "group roles", role: "group", "aria-label": "Paragraph roles" })
       roleBtns = {}
       if (S.m) C.rolesOf(S.m).forEach(function (r) {
@@ -1199,7 +1209,10 @@ var FoldView = (function () {
       updateTools()
       if (S.follow) rowClass(S.follow)
     }
-    function setPdfW(w) { S.pdfW = clamp(Math.round(w), 300, 760); fit(); pageSrcs() }
+    // The PDF as wide as asked, up to what leaves the paper's words their 420 px (no fixed cap: it flows with the
+    // window); a width given is asked for, so the margin folds away for it rather than the PDF narrowing back.
+    function maxPdfW() { return Math.max(300, (panes.clientWidth || window.innerWidth || 1360) - 7 - 110 - NEED) }
+    function setPdfW(w) { S.pdfW = clamp(Math.round(w), 300, maxPdfW()); S.marginAsked = false; fit(); pageSrcs() }
     function drawPanes() {
       var shown = pdfShown()
       pdf.hidden = !shown
@@ -1472,7 +1485,7 @@ var FoldView = (function () {
       if (ORDER.indexOf(p.level) >= 0) S.level = p.level
       if (typeof p.pdf === "boolean") S.pdfOn = p.pdf
       if (typeof p.pdfLeft === "boolean") S.pdfLeft = p.pdfLeft
-      if (typeof p.pdfWidth === "number") S.pdfW = clamp(p.pdfWidth, 300, 760)
+      if (typeof p.pdfWidth === "number") S.pdfW = clamp(p.pdfWidth, 300, 4000) // (fit() narrows it to the window)
       if (typeof p.margin === "boolean") S.marginOn = p.margin
       if (typeof p.marginWidth === "number") S.marginW = clamp(p.marginWidth, 160, 420)
       if (typeof p.pdfZoom === "number") S.zoom = clamp(p.pdfZoom, 1, 3)

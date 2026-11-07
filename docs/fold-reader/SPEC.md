@@ -280,7 +280,7 @@ Page to app, `window.webkit.messageHandlers.fold.postMessage({type, ...})`:
 | type | payload | the app |
 |---|---|---|
 | `ready` | | sends `FR.load` |
-| `prefs` | any of `level` (`full`, `brief`, `key`, `takeaway`, `topic`), `pdf` (bool), `pdfLeft` (bool), `pdfWidth` (300-760), `margin` (bool), `marginWidth` (160-420), `pdfZoom` (1-3) | merges into UserDefaults `ZLFoldPrefs` (this Mac, every paper) |
+| `prefs` | any of `level` (`full`, `brief`, `key`, `takeaway`, `topic`), `pdf` (bool), `pdfLeft` (bool), `pdfWidth` (300-4000; the page narrows it to the window), `margin` (bool), `marginWidth` (160-420), `pdfZoom` (1-3) | merges into UserDefaults `ZLFoldPrefs` (this Mac, every paper) |
 | `marks` | `{marks: <the whole marks store>}`, debounced 400 ms | validates (`foldMarksText`), writes `marks.json`; failure: `FR.flash("Not saved: " + why)` |
 | `links` | `{links: <links.json object>}` | validates, writes `links.json` |
 | `status` | `{from, to}` (`""`: none) | `launcher.setPaperStatus` (as the review window), then `FR.paper` |
@@ -417,7 +417,7 @@ top group `Lost their place (N)` lists marks that could not be re-anchored.
 
 | Element | Icon | Tooltip | Key | States |
 |---|---|---|---|---|
-| Divider | 2 × 28 px grip | `Resize the PDF pane. ← → resize, double-click resets.` | `←` `→` 20 px, `⇧` 80 px | width 470 px (300-760) |
+| Divider | 2 × 28 px grip | `Resize the PDF pane. ← → resize, double-click resets.` | `←` `→` 20 px, `⇧` 80 px | width 470 px (300 to what leaves the text 420 px; no fixed cap, his ask 2026-11-07) |
 | Zoom out / in | magnifier with minus / plus (`minus.magnifyingglass`, `plus.magnifyingglass`) | `Zoom the PDF out · ⌘ scroll` / `in` | pane focused: `-`, `=` or `+` | 1 to 3, step 0.25; ⌘ scroll: `deltaY / 400`, on a non-passive listener with `preventDefault` |
 | Zoom label | | `Fit` at 1, else `150%` | | |
 | Fit width | horizontal double arrow (`arrow.left.and.right`) | `Fit the page width` | `0` | pressed at 1 |

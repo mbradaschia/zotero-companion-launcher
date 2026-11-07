@@ -75,7 +75,7 @@ final class FoldWindowModel: ObservableObject {
         var p = prefs
         if let l = m["level"] as? String, ["full", "brief", "key", "takeaway", "topic"].contains(l) { p["level"] = l }
         for k in ["pdf", "pdfLeft", "margin"] { if let b = m[k] as? Bool { p[k] = b } }
-        let ranges: [String: ClosedRange<Double>] = ["pdfWidth": 300...760, "marginWidth": 160...420, "pdfZoom": 1...3]
+        let ranges: [String: ClosedRange<Double>] = ["pdfWidth": 300...4000, "marginWidth": 160...420, "pdfZoom": 1...3]
         for (k, r) in ranges { if let v = (m[k] as? NSNumber)?.doubleValue, !(m[k] is Bool) { p[k] = min(r.upperBound, max(r.lowerBound, v)) } }
         prefs = p
     }
@@ -660,6 +660,7 @@ final class FoldWindowModel: ObservableObject {
             launcher.setDefaultTask(item, status: s)
             page?.paper(["task": taskPayload()])
         case "fold": fold(m)
+        case "zoom": stepZoom(max(-1, min(1, (m["step"] as? NSNumber)?.intValue ?? 0))) // (the toolbar's text size buttons)
         case "stop": stop()
         case "retry": retry()
         default: break

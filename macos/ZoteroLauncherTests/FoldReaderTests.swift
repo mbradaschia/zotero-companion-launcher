@@ -479,8 +479,19 @@ final class FoldReaderTests: XCTestCase {
 
         window.handle(["type": "prefs", "level": "key", "pdfWidth": 9000, "margin": false])
         XCTAssertEqual(FoldWindowModel.prefs["level"] as? String, "key")
-        XCTAssertEqual(FoldWindowModel.prefs["pdfWidth"] as? Double, 760)
+        XCTAssertEqual(FoldWindowModel.prefs["pdfWidth"] as? Double, 4000, "no fixed cap: the page narrows it to the window")
         XCTAssertEqual(FoldWindowModel.prefs["margin"] as? Bool, false)
+
+        // the toolbar's text size buttons: one step of the window's zoom each way (as ⌘- ⌘+)
+        FoldWindowModel.zoom = 1
+        defer { FoldWindowModel.zoom = 1 }
+        window.handle(["type": "zoom", "step": 1])
+        XCTAssertEqual(FoldWindowModel.zoom, 1.1)
+        window.handle(["type": "zoom", "step": 9])
+        XCTAssertEqual(FoldWindowModel.zoom, 1.25, "one step at a time")
+        window.handle(["type": "zoom", "step": -1])
+        window.handle(["type": "zoom", "step": -1])
+        XCTAssertEqual(FoldWindowModel.zoom, 1)
         window.handle(["type": "prefs", "level": "nonsense"])
         XCTAssertEqual(FoldWindowModel.prefs["level"] as? String, "key")
         UserDefaults.standard.removeObject(forKey: "ZLFoldPrefs")

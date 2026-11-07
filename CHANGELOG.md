@@ -7,6 +7,13 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.38`)
+
+- **The reader's PDF pane widens as far as you drag it.** It no longer stops at 760 px: it goes on until the paper's
+  text keeps its 420 px, and narrows back with the window. The margin folds away to make room.
+- **Text size buttons.** − and + in the reader's toolbar make the text smaller and larger, a step at a time, as ⌘- and
+  ⌘+ do (⌘0 its size).
+
 ### The Mac app (`macos-v0.4.37`)
 
 - **Fold with AI has its own model and effort.** *Settings › Defaults › Fold with AI* picks the model (the prompts'

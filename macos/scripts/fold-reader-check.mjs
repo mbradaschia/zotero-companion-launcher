@@ -345,13 +345,22 @@ ok((await pdfW()) === 590, "37 ← widens it 20 px");
 await pg.keyboard.press("Shift+ArrowRight");
 ok((await pdfW()) === 510, "37 ⇧→ narrows it 80 px");
 for (let i = 0; i < 12; i++) await pg.keyboard.press("Shift+ArrowLeft");
-ok((await pdfW()) === 760, "37 at most 760");
+ok((await pdfW()) > 760, "37 past 760: no fixed cap, " + (await pdfW()));
+const roomW = await pg.$eval(".panes", (e) => e.clientWidth);
+for (let i = 0; i < 12; i++) await pg.keyboard.press("Shift+ArrowLeft");
+ok((await pdfW()) === roomW - 7 - 110 - 420, "37 at most what leaves the text 420 px: " + (await pdfW()) + " of " + roomW);
+ok(await pg.$eval("#text", (e) => e.getBoundingClientRect().width >= 530), "37 the text keeps its 420 px of words beside the widest PDF");
 for (let i = 0; i < 12; i++) await pg.keyboard.press("Shift+ArrowRight");
 ok((await pdfW()) === 300, "37 at least 300");
 await pg.dblclick("#grip");
 ok((await pdfW()) === 470, "37 a double-click resets it to 470");
 m = await sent();
 ok(m.some((y) => y.type === "prefs" && y.pdfWidth === 470) && m.some((y) => y.type === "prefs" && y.pdfLeft === true), "the widths and sides go to prefs");
+await pg.click("#bTextLarger");
+await pg.click("#bTextSmaller");
+m = await sent();
+ok(m.some((y) => y.type === "zoom" && y.step === 1) && m.some((y) => y.type === "zoom" && y.step === -1), "the text size buttons ask the window's zoom a step up and down");
+ok(await pg.$eval("#bTextLarger", (e) => e.getAttribute("aria-label") === "Text larger · ⌘+" && !!e.querySelector("svg.ic-textlarger")), "the text size buttons are icons with names");
 const asideW = () => pg.$eval('.u[data-u="S1.p1.1"] aside', (e) => Math.round(e.getBoundingClientRect().width));
 await pg.focus(".mgrip");
 await pg.keyboard.press("ArrowLeft");
@@ -440,7 +449,7 @@ ok(await pg.isVisible("#pdf"), "R5-27 the PDF pane shows the PDF meanwhile");
 const base = { kind: "unfolded", done: 0, total: 5, failed: [], error: "", model: "lab:m1", name: "Lab model", calls: 5, cached: 0, cost: "$0.12", disabled: "" };
 const fk = (o) => Object.assign({}, base, o);
 const left = JSON.stringify({ only: ["abstract", "S1", "S2", "S2.SS1", "A1"] });
-const NAMED = "Fold with AI: Lab model writes Key, Takeaway and Topic (Settings › Defaults changes the model)";
+const NAMED = "Fold with AI: Lab model writes Key, Takeaway and Topic (Settings › Defaults › Fold with AI changes the model and effort)";
 const FOLDS = [
   [fk({ calls: null }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
   [fk({}), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Fold with AI sends the paper's text to Lab model in 5 requests about $0.12 at its list price.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
@@ -451,7 +460,7 @@ const FOLDS = [
   [fk({ kind: "partial", done: 3, failed: ["S2", "A1"], error: "the reply has no JSON." }), "2 sections weren't folded", "The reply has no JSON. They show first sentences.", ["Try them again", "fold", JSON.stringify({ only: ["S2", "A1"] })], ["ai", "Fold with AI", NAMED, false]],
   [fk({ kind: "partial", done: 4, failed: ["S2"], error: "it has no units" }), "1 section wasn't folded", "It has no units. It shows first sentences.", ["Try it again", "fold", JSON.stringify({ only: ["S2"] })], ["ai", "Fold with AI", NAMED, false]],
   [fk({ kind: "pdf-changed" }), "The PDF changed", "It was read again, so Key, Takeaway and Topic show first sentences until it's folded again.", ["Fold with AI", "fold", "{}"], ["ai", "Fold with AI", NAMED, false]],
-  [fk({ kind: "no-ai", disabled: "no-ai", calls: null }), "No AI model is set up", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", null, ["ai", "Fold with AI", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", true]],
+  [fk({ kind: "no-ai", disabled: "no-ai", calls: null }), "No AI model is set up", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults › Fold with AI picks it.", null, ["ai", "Fold with AI", "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults › Fold with AI picks it.", true]],
   [fk({ kind: "no-runner", disabled: "no-runner" }), "The AI features aren't installed", "Folding needs the AI features: Settings › Setup installs them.", null, ["ai", "Fold with AI", "Folding needs the AI features: Settings › Setup installs them.", true]],
   [fk({ kind: "old-runner", disabled: "old-runner" }), "The AI features are older than the app", "Settings › Setup › Install the AI features updates them.", null, ["ai", "Fold with AI", "Settings › Setup › Install the AI features updates them.", true]],
   [fk({ kind: "unfolded", disabled: "cjk" }), "Not folded yet", "Key, Takeaway and Topic show each paragraph's first sentence. Folding a paper in Chinese or Japanese comes in a later version.", null, ["ai", "Fold with AI", "Folding a paper in Chinese or Japanese comes in a later version", true]],
