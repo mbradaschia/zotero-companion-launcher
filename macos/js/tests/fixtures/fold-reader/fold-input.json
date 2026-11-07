@@ -1,6 +1,7 @@
 {
  "paper": "1:ABCD1234",
  "model": "default",
+ "effort": "low",
  "force": false,
  "only": null,
  "doc": {

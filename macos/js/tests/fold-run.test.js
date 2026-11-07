@@ -284,6 +284,28 @@ test("R5-25: the command's ask is generate() with effort low and SYSTEM alone; t
   assert.deepEqual([seen[0].effort, seen[0].system, seen[0].target.spec, seen[0].signal], ["low", L.SYSTEM, "lab:m1", signal])
 })
 
+test("0.3.1: the input's effort (Settings › Defaults › Fold with AI) is the ask's, the plan's and the cache's; low when not given", async () => {
+  const L = await lib()
+  assert.equal(L.parseInput(rawInput()).effort, "low")
+  assert.deepEqual(["high", "", "max", "turbo", 3].map((e) => L.parseInput(Object.assign(rawInput(), { effort: e })).effort), ["high", "", "max", "low", "low"])
+  const seen = []
+  const ask = L.makeAsk({ generate: async (o) => { seen.push(o); return { text: "{}", spec: "lab:m1" } }, costOf: () => 0, settings: {}, ctx: {}, target: { spec: "lab:m1" }, effort: "high" })
+  await ask({ messages: [], signal: null })
+  assert.equal(seen[0].effort, "high")
+  const model = { spec: "lab:m1", name: "Lab", provider: "Lab", kind: "api", price: null }
+  const low = L.parseInput(rawInput()), high = L.parseInput(Object.assign(rawInput(), { effort: "high" }))
+  assert.equal(L.planFold(high, model, () => false).effort, "high")
+  // a reply cached at low isn't one at high: changing the effort asks again
+  const h = harness({ reply: (a) => answerFor(lastUser(a.messages)) })
+  await L.runFold(low, h.deps)
+  const keys = new Set(h.files.keys())
+  assert.equal(L.planFold(low, model, (k) => keys.has(k)).cached, 5)
+  assert.equal(L.planFold(high, model, (k) => keys.has(k)).cached, 0)
+  const again = harness({ files: Object.fromEntries(h.files), reply: (a) => answerFor(lastUser(a.messages)) })
+  await L.runFold(high, again.deps)
+  assert.equal(again.asked.length, 5)
+})
+
 // ---------------------------------------------------------------- end to end
 
 function serve(handler) {
@@ -423,9 +445,9 @@ test("R5-24, R5-20: --plan with the fake model; with no provider on, a setup err
   assert.deepEqual(run.lines.map((l) => [l.type, l.kind || l.stopped]), [["stop", "setup"], ["done", "setup"]])
 })
 
-test("R5-44: the runner is 0.3.0 and its usage header lists fold; the licence is beside it", () => {
+test("R5-44: the runner is 0.3.1 (0.3.0 brought fold) and its usage header lists fold; the licence is beside it", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "../../runner/package.json"), "utf8"))
-  assert.equal(pkg.version, "0.3.0")
+  assert.equal(pkg.version, "0.3.1")
   assert.match(fs.readFileSync(RUNNER, "utf8"), /^\/\/ {3}oma-zotero-prompt fold \[--plan\] --quiet/m)
   const lic = fs.readFileSync(path.join(__dirname, "../../runner/TEXTFOLD-LICENSE.txt"), "utf8")
   assert.equal(lic, fs.readFileSync(path.join(__dirname, "../../ZoteroLauncher/Reader/TEXTFOLD-LICENSE.txt"), "utf8"))

@@ -130,7 +130,7 @@ var FoldView = (function () {
       var first = "Key, Takeaway and Topic show each paragraph's first sentence."
       if (f.disabled === "cjk") return { title: "Not folded yet", sentence: first + " Folding a paper in Chinese or Japanese comes in a later version.", action: null }
       if (f.disabled) return { title: "Not folded yet", sentence: first, action: null }
-      var more = typeof f.calls === "number" ? " Fold with AI sends the paper's text to " + name + " in " + plural(f.calls, "request", "requests") + costPhrase(f) + "." +
+      var more = typeof f.calls === "number" ? " Fold with AI sends the paper's text to " + name + (f.effort ? " at " + f.effort + " effort" : "") + " in " + plural(f.calls, "request", "requests") + costPhrase(f) + "." +
         (f.cached === 1 ? " 1 of them was answered before and costs nothing." : f.cached > 1 ? " " + f.cached + " of them were answered before and cost nothing." : "") : ""
       return { title: "Not folded yet", sentence: first + more, action: ["Fold with AI", "fold", {}] }
     }
@@ -145,7 +145,7 @@ var FoldView = (function () {
         action: [n === 1 ? "Try it again" : "Try them again", "fold", retry] }
     }
     if (k === "pdf-changed") return { title: "The PDF changed", sentence: "It was read again, so Key, Takeaway and Topic show first sentences until it's folded again.", action: ["Fold with AI", "fold", {}] }
-    if (k === "no-ai") return { title: "No AI model is set up", sentence: "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults picks it.", action: null }
+    if (k === "no-ai") return { title: "No AI model is set up", sentence: "Folding needs one: Settings › Models & providers sets one up, Settings › Defaults › Fold with AI picks it.", action: null }
     if (k === "no-runner") return { title: "The AI features aren't installed", sentence: "Folding needs the AI features: Settings › Setup installs them.", action: null }
     if (k === "old-runner") return { title: "The AI features are older than the app", sentence: "Settings › Setup › Install the AI features updates them.", action: null }
     if (FOLD_FATAL[k]) {
@@ -452,7 +452,7 @@ var FoldView = (function () {
       if (f.disabled) { var c = foldCopy({ kind: f.disabled }, []); return c ? c.sentence : "" }
       if (f.kind === "folding") return "Stop folding: what's done stays"
       if (f.kind === "folded") return "Fold again: " + name + " writes every section anew"
-      return "Fold with AI: " + name + " writes Key, Takeaway and Topic (Settings › Defaults changes the model)"
+      return "Fold with AI: " + name + (f.effort ? " at " + f.effort + " effort" : "") + " writes Key, Takeaway and Topic (Settings › Defaults › Fold with AI changes the model and effort)"
     }
     function updateFold() {
       if (!bFold) return

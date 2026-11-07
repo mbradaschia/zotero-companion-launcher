@@ -242,10 +242,12 @@ const INPUT = path.join(__dirname, "fixtures", "fold-reader", "fold-input.json")
 const event = (id, units, extra) => Object.assign({ type: "section", id, model: "lab:m1", cached: false, section: { takeaway: "Section " + id + " folded", topic: "Section" },
   units: units.map((u) => ({ id: u, role: "claim", evidence: [0], key: "A short claim. Its reason.", takeaway: "A short claim", topic: "claim" })), warnings: [] }, extra || {})
 
-test("R5-26: foldInput: the foldable sections and units only, the paper and model; fold-input.json is its golden; over 4 MB is an error", () => {
+test("R5-26: foldInput: the foldable sections and units only, the paper, model and effort; fold-input.json is its golden; over 4 MB is an error", () => {
   const input = Glue.foldInput(made.doc, { paper: "1:ABCD1234", model: "default" })
-  assert.deepEqual(Object.keys(input), ["paper", "model", "force", "only", "doc"])
-  assert.deepEqual([input.paper, input.model, input.force, input.only], ["1:ABCD1234", "default", false, null])
+  assert.deepEqual(Object.keys(input), ["paper", "model", "effort", "force", "only", "doc"])
+  assert.deepEqual([input.paper, input.model, input.effort, input.force, input.only], ["1:ABCD1234", "default", "low", false, null])
+  // Settings › Defaults › Fold with AI › Effort: a level, or "" (the model's own); anything else is low
+  assert.deepEqual(["high", "", "max", "turbo", null].map((e) => Glue.foldInput(made.doc, { paper: "1:ABCD1234", effort: e }).effort), ["high", "", "max", "low", "low"])
   assert.deepEqual(input.doc.sections.map((s) => s.id), ["abstract", "S1", "S2", "S2.SS1", "A1"], "bib and Sx hold only apparatus")
   const s2 = input.doc.sections.find((s) => s.id === "S2")
   assert.deepEqual(s2.units.map((u) => [u.id, u.kind, u.label]), [["S2.p1", "paragraph", undefined], ["S2.F1.cap", "caption", "Figure 1"], ["S2.T1.cap", "caption", "Table 1"]])
@@ -297,7 +299,8 @@ test("R5-26: foldView gives every kind of 6.2 from its situation", () => {
   for (const id of ["abstract", "S1", "S2", "S2.SS1", "A1"]) all = Glue.foldMerge(all, event(id, []), "2026-11-06T10:00:00Z")
   const u = v(made.doc, null, plan, { runner: "ok" })
   assert.deepEqual(u, { kind: "unfolded", done: 0, total: 5, failed: [], error: "", again: false, left: ["abstract", "S1", "S2", "S2.SS1", "A1"], model: "lab:m1", name: "Lab model",
-    calls: 5, cached: 1, cost: "$0.12", disabled: "" })
+    effort: "", calls: 5, cached: 1, cost: "$0.12", disabled: "" })
+  assert.equal(v(made.doc, null, Object.assign({}, plan, { effort: "medium" }), { runner: "ok" }).effort, "medium", "the plan's effort, for the banner")
   assert.equal(v(made.doc, null, null, {}).calls, null, "before the plan")
   assert.equal(v(partly, { status: "folding" }, plan, { folding: true, runner: "ok" }).kind, "folding")
   assert.deepEqual(["kind", "done"].map((k) => v(partly, { status: "stopped", sections: { S1: "done" } }, plan, { runner: "ok" })[k]), ["stopped", 1])

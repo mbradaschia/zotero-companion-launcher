@@ -63,7 +63,7 @@
 //                                       columns filled paper by paper (one task; each paper's cells written as made)
 //   oma-zotero-prompt review-draft      stdin { kind, request, current }: an AI column written by your prompts model
 //                                       from what you describe (Write it with AI), nothing saved
-//   oma-zotero-prompt fold [--plan] --quiet   stdin { paper, model, force, only, doc }: the fold reader's paper folded
+//   oma-zotero-prompt fold [--plan] --quiet   stdin { paper, model, effort, force, only, doc }: the fold reader's paper folded
 //                                       by your prompts model, JSON lines out, its replies kept in
 //                                       fold-reader/<lib>-<KEY>/replies (lib/fold.mjs); --plan: what it would ask
 //                                       and cost (JSON), nothing asked
@@ -561,10 +561,10 @@ async function foldCommand(flags) {
   };
   for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, stop);
   process.stdout.on("error", stop); // (the app is gone: a write to a closed pipe)
-  log("fold", { paper: input.paper, sections: nSections, model: target.spec, force: input.force, only: input.only ? input.only.length : null });
+  log("fold", { paper: input.paper, sections: nSections, model: target.spec, effort: input.effort, force: input.force, only: input.only ? input.only.length : null });
   const r = await runFold(input, {
     model,
-    ask: foldAsk({ generate, costOf, settings, ctx, target, onFallback: (t) => log("fallback", { fold: true, note: t }) }),
+    ask: foldAsk({ generate, costOf, settings, ctx, target, effort: input.effort, onFallback: (t) => log("fallback", { fold: true, note: t }) }),
     readCache,
     writeCache: (key, rec) => writeAtomic(file(key), JSON.stringify(rec)),
     prune: (used) => {

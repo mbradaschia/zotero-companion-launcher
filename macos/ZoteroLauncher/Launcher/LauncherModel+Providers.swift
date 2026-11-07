@@ -80,6 +80,7 @@ extension LauncherModel {
         guard saved.ok else { return }
         refreshModels()
         back()
+        if path == "defaults.fold.model" { return flashMessage(value.isEmpty ? "Folding uses the prompts' model" : "Folding uses " + value) }
         flashMessage(value.isEmpty ? "No fallback model" : (path == "defaults.both" ? "Prompts and chat use " : "Now ") + value)
     }
 

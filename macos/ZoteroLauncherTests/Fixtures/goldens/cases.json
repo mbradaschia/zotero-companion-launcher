@@ -15560,6 +15560,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -15662,6 +15666,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -15749,6 +15757,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -15791,7 +15803,7 @@
     }
    }
   ],
-  "expect": "{\"artifactsDir\":null,\"syncDir\":null,\"machineName\":null,\"automationHost\":null,\"enterAction\":\"reader\",\"maxResults\":60,\"port\":23119,\"externalPdfCommand\":null,\"accelerators\":true,\"emptyQuery\":null,\"promptCommand\":null,\"zoteroCommand\":null,\"keys\":\"alt\",\"keysStart\":\"list\",\"keyDelay\":300,\"citationStyle\":\"apa\",\"providers\":{\"claude\":{\"enabled\":true},\"chatgpt\":{\"enabled\":false},\"openai\":{\"enabled\":false},\"anthropic\":{\"enabled\":false},\"google\":{\"enabled\":false},\"openrouter\":{\"enabled\":false},\"ollama\":{\"enabled\":false}},\"endpoints\":[],\"defaults\":{\"prompts\":{\"model\":\"\",\"effort\":\"high\"},\"chat\":{\"model\":\"\",\"effort\":\"high\"},\"fallback\":\"\",\"autoExtract\":false,\"autoExtractNew\":false,\"extractMaxMB\":40,\"autoTagNew\":false,\"extractOnOpen\":false,\"tagOnOpen\":false,\"autoPrompts\":[],\"catchUpDays\":30,\"processesAtOnce\":1,\"catchUpPrompts\":\"missing\",\"catchUpTaxonomies\":\"missing\",\"launchCatchUp\":true,\"launchCatchUpWhat\":{}},\"rules\":{},\"tasks\":null,\"paperStatuses\":[\"to read\",\"reading\",\"read\"],\"configured\":false}"
+  "expect": "{\"artifactsDir\":null,\"syncDir\":null,\"machineName\":null,\"automationHost\":null,\"enterAction\":\"reader\",\"maxResults\":60,\"port\":23119,\"externalPdfCommand\":null,\"accelerators\":true,\"emptyQuery\":null,\"promptCommand\":null,\"zoteroCommand\":null,\"keys\":\"alt\",\"keysStart\":\"list\",\"keyDelay\":300,\"citationStyle\":\"apa\",\"providers\":{\"claude\":{\"enabled\":true},\"chatgpt\":{\"enabled\":false},\"openai\":{\"enabled\":false},\"anthropic\":{\"enabled\":false},\"google\":{\"enabled\":false},\"openrouter\":{\"enabled\":false},\"ollama\":{\"enabled\":false}},\"endpoints\":[],\"defaults\":{\"prompts\":{\"model\":\"\",\"effort\":\"high\"},\"chat\":{\"model\":\"\",\"effort\":\"high\"},\"fold\":{\"model\":\"\",\"effort\":\"low\"},\"fallback\":\"\",\"autoExtract\":false,\"autoExtractNew\":false,\"extractMaxMB\":40,\"autoTagNew\":false,\"extractOnOpen\":false,\"tagOnOpen\":false,\"autoPrompts\":[],\"catchUpDays\":30,\"processesAtOnce\":1,\"catchUpPrompts\":\"missing\",\"catchUpTaxonomies\":\"missing\",\"launchCatchUp\":true,\"launchCatchUpWhat\":{}},\"rules\":{},\"tasks\":null,\"paperStatuses\":[\"to read\",\"reading\",\"read\"],\"configured\":false}"
  },
  {
   "name": "searchBody/empty-with-pins",
@@ -15850,6 +15862,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -15990,6 +16006,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -16113,6 +16133,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -16242,6 +16266,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -16351,6 +16379,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -23031,6 +23063,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -34425,6 +34461,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -34704,6 +34744,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -34818,6 +34862,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -35134,6 +35182,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -35224,6 +35276,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -35309,6 +35365,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -35929,6 +35989,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -36624,6 +36688,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -36948,6 +37016,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -37160,6 +37232,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -37865,6 +37941,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -38116,6 +38196,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -38850,6 +38934,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -39027,6 +39115,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -39224,6 +39316,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -39345,6 +39441,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -39536,6 +39636,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -39634,6 +39738,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -39756,6 +39864,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -39837,6 +39949,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -39961,6 +40077,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -40088,6 +40208,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -40208,6 +40332,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -46231,6 +46359,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -46480,6 +46612,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -46658,6 +46794,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -46871,6 +47011,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -47289,6 +47433,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -47389,6 +47537,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -47907,6 +48059,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -49102,6 +49258,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -50200,6 +50360,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -50648,6 +50812,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -50734,6 +50902,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -50846,6 +51018,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -50934,6 +51110,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -51031,6 +51211,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -51447,6 +51631,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -51757,6 +51945,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -51947,6 +52139,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -52216,6 +52412,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -52472,6 +52672,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -52598,6 +52802,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -52744,6 +52952,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -52842,6 +53054,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -52985,6 +53201,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -53106,6 +53326,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -53221,6 +53445,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -53340,6 +53568,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -53473,6 +53705,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -53643,6 +53879,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -53805,6 +54045,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -53929,6 +54173,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -54057,6 +54305,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -54240,6 +54492,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -54455,6 +54711,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -54669,6 +54929,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -54844,6 +55108,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -62314,6 +62582,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -62587,6 +62859,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -65019,6 +65295,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -65640,6 +65920,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -66557,6 +66841,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -67478,6 +67766,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -68025,6 +68317,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -68165,6 +68461,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -68870,6 +69170,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -69530,6 +69834,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -69968,6 +70276,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -70332,6 +70644,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -70734,6 +71050,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -71545,6 +71935,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -72886,6 +73280,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -73529,6 +73927,24 @@
     "section": "Chat",
     "rowId": "set-choice",
     "value": "defaults.chat.effort"
+   },
+   {
+    "page": "defaults",
+    "pageTitle": "Defaults",
+    "label": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "section": "Fold with AI",
+    "rowId": "set-models",
+    "value": "defaults.fold.model"
+   },
+   {
+    "page": "defaults",
+    "pageTitle": "Defaults",
+    "label": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "section": "Fold with AI",
+    "rowId": "set-choice",
+    "value": "defaults.fold.effort"
    },
    {
     "page": "defaults",
@@ -74378,6 +74794,24 @@
     {
      "page": "defaults",
      "pageTitle": "Defaults",
+     "label": "Model",
+     "detail": "The prompts' model, now claude:opus (automatic)",
+     "section": "Fold with AI",
+     "rowId": "set-models",
+     "value": "defaults.fold.model"
+    },
+    {
+     "page": "defaults",
+     "pageTitle": "Defaults",
+     "label": "Effort",
+     "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+     "section": "Fold with AI",
+     "rowId": "set-choice",
+     "value": "defaults.fold.effort"
+    },
+    {
+     "page": "defaults",
+     "pageTitle": "Defaults",
      "label": "Fallback model",
      "detail": "None: the error is shown",
      "section": "When a model fails",
@@ -74946,6 +75380,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -75070,6 +75508,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -75192,6 +75634,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -75324,6 +75770,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -75455,6 +75905,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -75578,6 +76032,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -75710,6 +76168,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -75805,6 +76267,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -75899,6 +76365,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -76028,6 +76498,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -76110,6 +76584,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -76191,6 +76669,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -76284,6 +76766,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -76373,6 +76859,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -76474,6 +76964,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -76865,6 +77359,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -80138,6 +80636,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -81200,6 +81702,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -81628,6 +82134,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -82476,6 +83056,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -82715,6 +83299,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -83175,6 +83763,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -83987,6 +84649,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -84447,6 +85113,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -85185,6 +85925,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -85616,6 +86360,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -86465,6 +87283,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -86896,6 +87718,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -87745,6 +88641,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -88176,6 +89076,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -89025,6 +89999,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -89455,6 +90433,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -90341,6 +91393,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -90743,6 +91799,80 @@
     "section": "Chat",
     "promptId": "",
     "value": "defaults.chat.effort",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-models",
+    "icon": "",
+    "label": "Model",
+    "labelHtml": "Model",
+    "detail": "The prompts' model, now claude:opus (automatic)",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.model",
+    "itemKey": "",
+    "itemLibraryID": 1,
+    "itemTitle": "",
+    "path": "",
+    "session": "",
+    "field": "",
+    "editText": "",
+    "pills": "",
+    "pillOn": "",
+    "pill": "",
+    "pillKind": "task",
+    "chips": "",
+    "chipKind": "",
+    "decision": ""
+   },
+   {
+    "rowId": "set-choice",
+    "icon": "",
+    "label": "Effort",
+    "labelHtml": "Effort",
+    "detail": "low · Fastest, least thinking · the reader's Fold with AI asks a section at a time; low keeps it quick",
+    "available": true,
+    "submenu": true,
+    "showCheck": false,
+    "checked": false,
+    "swatch": "",
+    "badge": "",
+    "trailing": "",
+    "attKey": "",
+    "attLibraryID": 1,
+    "attContentType": "",
+    "noteKey": "",
+    "noteLibraryID": 1,
+    "tag": "",
+    "section": "Fold with AI",
+    "promptId": "",
+    "value": "defaults.fold.effort",
     "itemKey": "",
     "itemLibraryID": 1,
     "itemTitle": "",
@@ -91554,6 +92684,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -92478,6 +93612,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -92898,6 +94036,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -93321,6 +94463,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -93441,6 +94587,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -93555,6 +94705,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -93668,6 +94822,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -93787,6 +94945,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -93904,6 +95066,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -94166,6 +95332,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -94281,6 +95451,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -94386,6 +95560,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -94495,6 +95673,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": true,
@@ -94603,6 +95785,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -95174,6 +96360,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -97465,6 +98655,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -98118,6 +99312,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -99022,6 +100220,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -99481,6 +100683,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -100313,6 +101519,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -101212,6 +102422,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -101581,6 +102795,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -111329,6 +112547,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -112857,6 +114079,10 @@
       "model": "",
       "effort": "high"
      },
+     "fold": {
+      "model": "",
+      "effort": "low"
+     },
      "fallback": "",
      "autoExtract": false,
      "autoExtractNew": false,
@@ -114006,6 +115232,10 @@
      "chat": {
       "model": "",
       "effort": "high"
+     },
+     "fold": {
+      "model": "",
+      "effort": "low"
      },
      "fallback": "",
      "autoExtract": false,
@@ -115955,6 +117185,7 @@
   "expect": {
    "paper": "1:ABCD1234",
    "model": "default",
+   "effort": "low",
    "force": false,
    "only": null,
    "doc": {
@@ -116078,6 +117309,7 @@
   "expect": {
    "paper": "1:ABCD1234",
    "model": "lab:m1",
+   "effort": "low",
    "force": true,
    "only": [
     "S1"
@@ -116415,6 +117647,7 @@
    ],
    "model": "lab:m1",
    "name": "Lab model",
+   "effort": "",
    "calls": 1,
    "cached": 0,
    "cost": "< $0.01",
@@ -116539,6 +117772,7 @@
    ],
    "model": "lab:m1",
    "name": "Lab model",
+   "effort": "",
    "calls": 1,
    "cached": 0,
    "cost": "< $0.01",
@@ -116649,6 +117883,7 @@
    ],
    "model": "",
    "name": "",
+   "effort": "",
    "calls": null,
    "cached": 0,
    "cost": "",
@@ -116775,6 +118010,7 @@
    ],
    "model": "lab:m1",
    "name": "Lab model",
+   "effort": "",
    "calls": 1,
    "cached": 0,
    "cost": "< $0.01",
