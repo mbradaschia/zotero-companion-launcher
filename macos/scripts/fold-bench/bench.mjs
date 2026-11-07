@@ -57,7 +57,14 @@ for (const [name, , title, layout] of papers) {
   const nested = pairs.filter(([gi], i) => gpar[gi] === (mpar[i] === null ? null : gt[mpar[i]][1])).length
   const junk = kept.filter((p, i) => !used.has(i) && !NEUTRAL.has(p[1])).map((p) => p[2])
   const misses = gt.filter((g, gi) => !pairs.some(([x]) => x === gi)).map((g) => g[1])
-  rows.push({ name, layout, problem: r.problem, gt: gt.length, found: pairs.length, nested, junk: junk.length, junkList: junk, misses, outline: outline.length, ms })
+  // (for each miss, the PDF line that reads most like it, as foldlines gave it: what to look at next)
+  const lines = pages.flatMap((pg) => pg.lines.map((l) => [pg.n, l]))
+  const seen = misses.map((g) => {
+    let best = null, score = 0
+    for (const [n, l] of lines) { const v = ratio(g, head(l.t).slice(0, g.length + 8)); if (v > score) { score = v; best = [n, l] } }
+    return best && score >= 0.6 ? `p${best[0]} “${best[1].t.slice(0, 50)}” s ${best[1].s} f ${best[1].f} lb ${best[1].lb}/${best[1].w ? best[1].w.length : "?"} ${best[1].fn || ""}` : "no line"
+  })
+  rows.push({ name, layout, problem: r.problem, gt: gt.length, found: pairs.length, nested, junk: junk.length, junkList: junk, misses, seen, outline: outline.length, ms })
   total.gt += gt.length; total.found += pairs.length; total.nested += nested; total.junk += junk.length
 }
 if (json) { console.log(JSON.stringify({ label, rows, total }, null, 1)); process.exit(0) }
@@ -72,5 +79,10 @@ for (const r of rows) {
 console.log(`| **All** | | | **${total.found} / ${total.gt}** | **${total.nested} / ${total.gt}** | **${total.junk}** | |\n`)
 for (const r of rows) if (!r.missing && (r.misses?.length || r.junkList?.length)) {
   console.log(`- ${r.name}: missed ${r.misses.length ? r.misses.map((m) => "“" + m + "”").join(", ") : "none"}; junk ${r.junkList.length ? r.junkList.map((j) => "“" + String(j).slice(0, 60) + "”").join(", ") : "none"}`)
+}
+for (const r of rows) if (r.seen?.length) {
+  console.log(`\n<details><summary>${r.name}: the lines nearest its misses</summary>\n`)
+  r.misses.forEach((m, i) => console.log(`- “${m}”: ${r.seen[i]}`))
+  console.log("\n</details>")
 }
 console.log("")
