@@ -1,0 +1,27 @@
+1 Introduction
+1 Background & Definition
+2 Background
+2 Definition
+1 Categorization and Frameworks
+2 Taxonomy of Graph Neural Networks (GNNs)
+2 Frameworks
+1 Recurrent Graph Neural Networks
+1 Convolutional Graph Neural Networks
+2 Spectral-based ConvGNNs
+2 Spatial-based ConvGNNs
+2 Graph Pooling Modules
+2 Discussion of Theoretical Aspects
+1 Graph autoencoders
+2 Network Embedding
+2 Graph Generation
+1 Spatial-temporal Graph Neural Networks
+1 Applications
+2 Data Sets
+2 Evaluation & Open-source Implementations
+2 Practical Applications
+1 Future Directions
+1 Conclusion
+1 References
+1 Data Set
+1 Reported Experimental Results for Node Classification
+1 Open-source Implementations

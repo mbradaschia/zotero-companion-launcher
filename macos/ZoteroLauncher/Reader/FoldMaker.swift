@@ -97,6 +97,7 @@ final class FoldMaker {
             }
             var m = meta
             m["lang"] = FoldMaker.language(of: pages)
+            m["outline"] = pdf.outlineNow()
             var identity = m["pdf"] as? [String: Any] ?? [:]
             if (identity["sha256"] as? String ?? "").isEmpty, let sha = pdf.sha256() { identity["sha256"] = sha }
             m["pdf"] = identity

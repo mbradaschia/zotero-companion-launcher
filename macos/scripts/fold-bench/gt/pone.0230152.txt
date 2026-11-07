@@ -1,0 +1,30 @@
+1 Introduction
+1 Classification of collaborative models
+1 Bibliometric analysis
+2 Material collection
+2 Descriptive analysis
+2 Category selection
+1 Type I—Information exchange
+2 Type of information exchanged
+2 Type of research
+2 Supply chain structure and number of echelons
+2 Type of demand and forecasting model
+2 Inventory control technique and assumptions
+2 Collaboration objectives and Bullwhip effect
+1 Type II—Vendor managed replenishment
+2 Type of information exchanged
+2 Type of research
+2 Supply chain structure and number of echelons
+2 Type of demand and forecasting model
+2 Inventory control technique and assumptions
+2 Collaboration objectives and Bullwhip effect
+1 Type III—Synchronized supply chain
+2 Type of information exchanged
+2 Type of research
+2 Supply chain structure and number of echelons
+2 Type of demand and forecasting model
+2 Inventory control technique and assumptions
+2 Collaboration objectives and Bullwhip effect
+1 Conclusion
+1 Supporting information
+1 References

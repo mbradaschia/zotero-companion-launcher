@@ -15,7 +15,7 @@ var FoldMake = (function () {
 
   var C = typeof FoldCore !== "undefined" ? FoldCore : require("./FoldCore.js")
 
-  var EXTRACTOR = 1
+  var EXTRACTOR = 2
   var APPARATUS = { reference: 1, footnote: 1, equation: 1 }
 
   // ---- TextFold's patterns (pdftext.py, pdfdoc.py)
@@ -26,7 +26,7 @@ var FoldMake = (function () {
   var TABLE_AT = /^\s*(?:table|tab\.|tabelle|表)\s*[A-Z]?\d+[a-z]?\s*(?:[:.|]|$)/i
   var REFS = /^\s*(?:\d+\.?\s*)?(?:references|bibliography|literature|works cited|literatur|参考文献)\s*$/i
   var ABSTRACT = /^\s*(?:abstract|a b s t r a c t|summary|zusammenfassung|摘要)\s*$/i
-  var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[IVX]+)\.?\s+[A-Z][^.!?]{1,80}$/
+  var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[A-Z](?:\.\d+){1,3}|[IVX]+)\.?\s+[A-Z](?:[^.!?]|[.](?=\S)|[A-Z][.]){1,80}$/
   var BOILER = /^\W*\d?\s*(?:check for updates|open access|research article|article|original article|review)\W*$/i
   var FRONT = /^(?:<sup>|\d+\s*[A-Z][a-z]+ (?:of|for)\b|(?:received|accepted|published|revised|correspondence|e-?mail|keywords?)\b)|@/i
   var DEPTH = /^\s*((?:\d+|[A-Z]|[IVX]+)(?:[.\-]\d+)*)[.)]?\s+\S/
@@ -41,6 +41,15 @@ var FoldMake = (function () {
   var LETTER_NUM = /^([A-Z](?:\.\d+)*)[.:]?\s+(\S.*)$/
   var APPENDIX = /^(?:appendix|appendices)\b/i
   var REF_START = /^\s*(?:\[\d{1,4}\]|\d{1,4}\.\s)/
+  // (IEEE's: a Roman numeral and a title in capitals, "I. INTRODUCTION"; its sub-sections "A. Background"; its
+  // unnumbered capitals; a heading's numbering, as an outline or a heading gives it)
+  var ROMAN_HEAD = /^[IVX]{1,6}\.\s+[\p{Lu}\d][\p{Lu}\d\s&,:;’'()\/–—-]*$/u
+  var LETTER_HEAD = /^[A-Z]\.\s+\p{Lu}/u
+  var CAPS_HEAD = /^(?:ACKNOWLEDG(?:E)?MENTS?|APPENDI(?:X|CES)(?:\s+[A-Z])?)$/
+  var NUMBERING = /^\s*(?:\d+(?:[.\-]\d+)*|[IVX]+(?:-[A-Z]\d*)?|[A-Z](?:[.\-]\d+)*)[.):]?\s+/
+  var KEEP_HEAD = /^\W*(?:\d+\.?\s+)?(?:acknowledge?ments?|funding|author(?:s'|s’)? contributions?|data availability|(?:conflicts?|declarations?) of interests?|competing interests?|declarations?|appendi(?:x|ces)|supporting information|supplementary)\b/i
+  var TWO_SENTENCES = /\p{Ll}{2}[.!?]\s+\p{Lu}/u
+  var DECIMAL = /(?:^|\s)\d+\.\d+(?:\s|$)/
   var LIGATURES = { "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "st", "ﬆ": "st" }
   var MIN_PAGE_CHARS = 40
 
@@ -78,6 +87,7 @@ var FoldMake = (function () {
           ws.push({ t: t, x0: w[1] * W, y0: w[2] * H, x1: w[3] * W, y1: w[4] * H, page: n, W: W, H: H })
         })
         if (!ws.length) return
+        smallCaps(ws)
         lines++
         ws.forEach(function (w) { pc += w.t.length })
         // (cut where its words stand 1.5 sizes apart; a line cut so takes each side's weight from it, half, and its
@@ -86,7 +96,7 @@ var FoldMake = (function () {
         var cuts = [0]
         ws.forEach(function (w, i) { if (i && w.x0 - ws[i - 1].x1 > 1.5 * sz) cuts.push(i) })
         cuts.push(ws.length)
-        var whole = segment(ws, n, W, H, sz, Number(l.f) || 0, Math.min(Number(l.lb) || 0, ws.length))
+        var whole = segment(ws, n, W, H, sz, Number(l.f) || 0, Math.min(Number(l.lb) || 0, ws.length), String(l.fn || ""))
         if (cuts.length === 2) segs.push(whole)
         else {
           var few = false
@@ -99,8 +109,18 @@ var FoldMake = (function () {
     })
     return { segs: segs, lines: lines, chars: chars, perPage: perPage }
   }
-  function segment(words, page, W, H, sz, f, lb) {
-    var s = { page: page, W: W, H: H, words: words, size: sz, f: f, lb: lb, x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, chars: 0 }
+  // IEEE's small capitals set by hand (a capital, then smaller capitals: "I NTRODUCTION", as two words when PDFKit
+  // sees the gap the size change leaves): one word, its boxes' union.
+  function smallCaps(ws) {
+    for (var i = 0; i + 1 < ws.length; i++) {
+      var a = ws[i], b = ws[i + 1], ha = a.y1 - a.y0, hb = b.y1 - b.y0
+      if (!/^\p{Lu}$/u.test(a.t) || !/^\p{Lu}[\p{Lu}’'.,:\-]*$/u.test(b.t) || !/\p{Lu}{2}/u.test(b.t)) continue
+      if (ha <= 0 || b.x0 - a.x1 > 0.25 * ha || hb >= 0.92 * ha || hb < 0.5 * ha) continue
+      ws.splice(i, 2, { t: a.t + b.t, x0: a.x0, y0: Math.min(a.y0, b.y0), x1: b.x1, y1: Math.max(a.y1, b.y1), page: a.page, W: a.W, H: a.H })
+    }
+  }
+  function segment(words, page, W, H, sz, f, lb, fn) {
+    var s = { page: page, W: W, H: H, words: words, size: sz, f: f, lb: lb, fn: fn || "", x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, chars: 0 }
     words.forEach(function (w) {
       s.x0 = Math.min(s.x0, w.x0); s.y0 = Math.min(s.y0, w.y0); s.x1 = Math.max(s.x1, w.x1); s.y1 = Math.max(s.y1, w.y1)
       s.chars += w.t.length
@@ -204,7 +224,7 @@ var FoldMake = (function () {
     if (!keepSize && chars && sum > 0 && own > 0) size = Math.round(s.size * own / (sum / chars) * 2) / 2
     var bold = Math.max(0, Math.min(s.lb, to) - from)
     var f = (s.f & ~1) | (bold * 2 > ws.length ? 1 : 0)
-    return segment(ws, s.page, s.W, s.H, size, f, from === 0 ? Math.min(s.lb, to) : 0)
+    return segment(ws, s.page, s.W, s.H, size, f, from === 0 ? Math.min(s.lb, to) : 0, s.fn)
   }
 
   // A line still across the middle of a page whose other lines show two columns (5 or more of 4 words or more each
@@ -366,13 +386,18 @@ var FoldMake = (function () {
               Math.abs(s.size - p.size) > 0.6 ||
               boldAll(s) !== boldAll(p) ||
               LIST.test(s.text) || CAPTION_AT.test(s.text) || TABLE_AT.test(s.text) ||
-              (!cur.list && indent(s) && !indent(p)) ||
+              (!cur.list && indent(s) && !indent(p) && !(fullyBold(s) && fullyBold(p))) ||
               (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text)) ||
               headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)
+            // (a numbered heading's title wrapped to a second, short line at the same size and weight, at the column's
+            // edge or under the title's first word: "A.4 Comparison of BERT, ELMo, and" over "OpenAI GPT"; the paragraph
+            // starts after it)
+            if (brk && cur.head && cur.segs.length === 1 && wrapOf(p, s, e, f.segs[i + 1])) { brk = false; cur.wrapped = true }
+            else if (cur.wrapped) brk = true
           }
         }
         if (brk) {
-          cur = { flow: f, segs: [], list: LIST.test(s.text), edges: e }
+          cur = { flow: f, segs: [], list: LIST.test(s.text), edges: e, head: s.words.length <= 10 && NUMBERED.test(s.text) }
           blocks.push(cur)
         }
         cur.segs.push(s)
@@ -395,9 +420,17 @@ var FoldMake = (function () {
     var w = e[1] - e[0]
     if (s.x1 - s.x0 > 0.7 * w || s.words.length > 10 || SENTENCE_END.test(s.text)) return false
     if (s.x0 - e[0] > 2 * s.size && Math.abs((s.x0 + s.x1) / 2 - (e[0] + e[1]) / 2) <= 0.05 * w) return true
+    // (IEEE's sub-section, its own line in italics: "A. Background")
+    if (LETTER_HEAD.test(s.text) && s.words.length <= 8 && ((s.f & 2) === 2 || boldAll(s))) return true
     if (!NUMBERED.test(s.text)) return false
     if (!above || sameRow(above, s) || SENTENCE_END.test(above.text) || s.y0 - above.y0 >= 1.3 * pitch) return true
     return !!below && below.x0 - e[0] > 0.8 * below.size && !(s.x0 - e[0] > 0.8 * s.size)
+  }
+  function wrapOf(p, s, e, below) {
+    var w = e[1] - e[0]
+    return !!below && !sameRow(below, s) && s.y0 - p.y1 <= 0.6 * s.size && Math.abs(s.size - p.size) <= 0.6 && boldAll(s) === boldAll(p) &&
+      (s.x0 - e[0] <= 0.8 * s.size || (p.words.length > 1 && Math.abs(s.x0 - p.words[1].x0) <= 0.5 * s.size)) && s.x1 - s.x0 < 0.6 * w && e[1] - p.x1 < 0.5 * w && s.words.length <= 6 &&
+      !SENTENCE_END.test(s.text) && !/[-‐]$/.test(p.text) && NUMBERED.test(p.text + " " + s.text)
   }
   function rowsOf(segs) {
     var n = 0
@@ -467,12 +500,33 @@ var FoldMake = (function () {
     if (!rest.length) return null
     return { title: lead(k), rest: rest }
   }
-  function headingOf(b, body) {
+  function headingOf(b, body, ctx) {
     var words = b.words.length, t = b.text
     if (words <= 10 && NUMBERED.test(t) && b.size >= body - 0.3) return t
     if (ABSTRACT.test(t) || REFS.test(t)) return t
-    if (b.lines <= 2 && t.length <= 160 && !/\.$/.test(t) && (b.size >= body + 1 || (b.segs.every(boldAll) && words <= 12))) return t
+    // (IEEE: small capitals bring the line's size under the body's)
+    if (words <= 12 && b.lines <= 2 && b.size >= body - 3 && (ROMAN_HEAD.test(t) || CAPS_HEAD.test(t))) return t
+    if (ctx && ctx.roman && words <= 12 && b.lines <= 2 && LETTER_HEAD.test(t) && !SENTENCE_END.test(t) && b.size >= body - 0.5 &&
+        b.segs.every(function (s) { return (s.f & 2) === 2 || boldAll(s) })) return t
+    // (larger or bold: a short block that stands where a heading stands, alone on its row at the column's edge or
+    // centred, one sentence at most; a table's cell, a figure's label or a bold paragraph start is none)
+    if (b.lines <= 2 && t.length <= 160 && !/\.$/.test(t) && (b.size >= body + 1 || (b.segs.every(fullyBold) && words <= 12)) &&
+        !TWO_SENTENCES.test(t) && !DECIMAL.test(t) && !LIST.test(t) && alone(b) && placed(b)) return t
     return null
+  }
+  // (bold for most of its characters, and not a bold start the rest of the line runs on from: "Masked LM and the
+  // Masking Procedure As-" is a paragraph's run-in head and its text)
+  function fullyBold(s) { return boldAll(s) && !(s.lb > 0 && s.lb < s.words.length) }
+  // (within its column: a note in the page's margin beside it doesn't count)
+  function alone(b) {
+    var first = b.segs[0], e = b.edges
+    return (b.flow.segs || []).every(function (s) {
+      return b.segs.indexOf(s) >= 0 || !sameRow(s, first) || s.x1 < e[0] - s.size || s.x0 > e[1] + s.size
+    })
+  }
+  function placed(b) {
+    var e = b.edges, x0 = Math.min.apply(null, b.segs.map(function (s) { return s.x0 }))
+    return x0 - e[0] <= 2 * b.size || centred(b)
   }
   function captionLabel(t) {
     var m = /^\s*(fig(?:ure)?\.?|scheme|chart|abb(?:ildung)?\.?|图|table|tab\.|tabelle|表)\s*([A-Z]?\d+[a-z]?)/i.exec(t)
@@ -483,7 +537,7 @@ var FoldMake = (function () {
   }
 
   // The blocks after the front matter as items: headings, units (with their kind) and drops, in reading order.
-  function itemsOf(blocks, body, front) {
+  function itemsOf(blocks, body, front, ctx) {
     var items = [], inRefs = false, refLines = null, early = true
     var flushRefs = function () {
       if (!refLines || !refLines.length) { refLines = null; return }
@@ -503,7 +557,7 @@ var FoldMake = (function () {
     }
     blocks.forEach(function (b, bi) {
       if (front[bi]) return
-      var head = headingOf(b, body), ri = head === null ? runIn(b, early) : null
+      var head = headingOf(b, body, ctx), ri = head === null ? runIn(b, early) : null
       if (head !== null || ri) {
         flushRefs()
         var title = head !== null ? head : ri.title
@@ -512,10 +566,12 @@ var FoldMake = (function () {
         if (head !== null && prev && prev.type === "heading" && prev.joinable && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) &&
             (Math.abs(prev.size - b.size) < 0.3 || /-$/.test(prev.text))) {
           prev.text = /-$/.test(prev.text) ? prev.text.replace(/(\w)-$/, "$1") + title : prev.text + " " + title
+          prev.words = joinTo(prev.words, b.words)
           return
         }
         var h = { type: "heading", text: title, size: b.size, refs: REFS.test(title), abstract: ABSTRACT.test(title), flow: b.flow,
-          joinable: head !== null && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) && !ri }
+          joinable: head !== null && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) && !ri,
+          block: b, words: ri ? [] : b.words, runIn: !!ri, style: styleOf(b) }
         items.push(h)
         if (!h.abstract) early = false
         inRefs = h.refs
@@ -555,6 +611,75 @@ var FoldMake = (function () {
     var e = b.edges, w = e[1] - e[0]
     var x0 = Math.min.apply(null, b.segs.map(function (s) { return s.x0 })), x1 = Math.max.apply(null, b.segs.map(function (s) { return s.x1 }))
     return Math.abs((x0 + x1) / 2 - (e[0] + e[1]) / 2) <= 0.1 * w && x1 - x0 < 0.8 * w
+  }
+
+  // A heading's look: its size (to 0.5), bold and italic, and its font family (PLOS sets sections in Helvetica Bold
+  // and their sub-sections in Minion Bold, both 12 pt).
+  function styleOf(b) {
+    var s = b.segs[0]
+    return (Math.round(b.size * 2) / 2) + "|" + (s.f & 3) + "|" + (boldAll(s) ? 1 : 0) + "|" + s.fn
+  }
+
+  // ---- 6b. the PDF's own outline (meta.outline: [{t, l, p}], PDFKit's outlineRoot in order), when it names the
+  // headings: they take its levels, and a heading it doesn't name is read as a paragraph unless it is back matter or
+  // deeper than the outline goes.
+
+  function outlineKey(t) {
+    return clean(String(t || "").replace(NUMBERING, "")).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")
+  }
+  function keysMeet(a, b) {
+    if (!a || !b) return false
+    if (a === b) return true
+    var short = a.length < b.length ? a : b, long = a.length < b.length ? b : a
+    return short.length >= 10 && long.indexOf(short) === 0 && short.length >= 0.75 * long.length
+  }
+  function capsOnly(t) { return !/\p{Ll}/u.test(t) && /\p{Lu}{3}/u.test(t) }
+  function applyOutline(items, outline, body) {
+    var entries = (Array.isArray(outline) ? outline : []).filter(function (e) { return e && outlineKey(e.t) && Number(e.l) >= 1 })
+    if (entries.length < 3) return items
+    var out = items.slice(), at = 0, found = []
+    entries.forEach(function (e) {
+      var key = outlineKey(e.t), page = Number(e.p) || 0
+      for (var i = at; i < out.length; i++) {
+        var it = out[i]
+        if (it.type === "drop" || it.abstract) continue
+        if (it.type === "unit" && (it.kind === "reference" || it.kind === "footnote" || it.words.length > 25)) continue
+        if (page && it.flow && Math.abs(it.flow.page - page) > 1) continue
+        var text = it.type === "heading" ? it.text : textOf(it.words)
+        if (!keysMeet(outlineKey(text), key)) continue
+        if (it.type === "unit") {
+          it = out[i] = { type: "heading", text: text, size: it.size, refs: REFS.test(text), abstract: ABSTRACT.test(text), flow: it.flow,
+            joinable: false, block: it.block, words: it.words, runIn: false, style: it.block ? styleOf(it.block) : "" }
+        }
+        found.push({ item: it, entry: e })
+        at = i + 1
+        break
+      }
+    })
+    if (found.length < 3 || found.length < 0.5 * entries.length) return items
+    // (levels from 1; after the references, entries the outline set under them are the appendix's own levels)
+    var low = Math.min.apply(null, found.map(function (f) { return Number(f.entry.l) }))
+    var refLevel = 0, deepest = 1
+    found.forEach(function (f) {
+      var l = Number(f.entry.l) - low + 1
+      if (refLevel && l > refLevel) l -= refLevel
+      if (f.item.refs) refLevel = l
+      f.item.depth = Math.min(3, l)
+      deepest = Math.max(deepest, f.item.depth)
+      f.item.outlined = true
+      var label = String(f.entry.t).replace(NUMBERING, "").trim()
+      if (capsOnly(f.item.text) && /\p{Ll}/u.test(label)) {
+        var num = NUMBERING.exec(f.item.text)
+        f.item.text = (num ? num[0].trim() + " " : "") + label
+      }
+    })
+    return out.map(function (it) {
+      if (it.type !== "heading" || it.outlined || it.abstract || it.refs || it.runIn || KEEP_HEAD.test(it.text) || CAPS_HEAD.test(it.text)) return it
+      var hm = HEAD_NUM.exec(it.text)
+      if (hm && depthOf(it.text) > deepest) return it
+      if (!it.words || !it.words.length) return it
+      return { type: "unit", kind: "paragraph", words: it.words, flow: it.flow, size: it.size, block: it.block }
+    })
   }
 
   // ---- 7. a paragraph the column or the page broke, made whole
@@ -621,8 +746,25 @@ var FoldMake = (function () {
   function sectionsOf(items, meta, frontAbstract) {
     var sections = [], cur = null, pending = [], notes = []
     var s1 = 0, ss = 0, sss = 0, a = 0, ass = 0, afterRefs = false, appendix = false, seenHeading = false
-    var maxH = 0
-    items.forEach(function (it) { if (it.type === "heading" && !it.abstract && !it.refs) maxH = Math.max(maxH, it.size) })
+    var maxH = 0, numbered = false
+    var roman = items.some(function (it) { return it.type === "heading" && ROMAN_HEAD.test(it.text) })
+    items.forEach(function (it) {
+      if (it.type !== "heading" || it.abstract || it.refs) return
+      maxH = Math.max(maxH, it.size)
+      if (HEAD_NUM.test(it.text)) numbered = true
+    })
+    // (a paper with no numbered headings: its heading looks ranked, the larger first, then by first use, so a
+    // sub-section set at the section's size in another face nests; at most three)
+    var rank = {}
+    if (!numbered) {
+      var looks = []
+      items.forEach(function (it) {
+        if (it.type !== "heading" || it.abstract || it.refs || it.runIn || KEEP_HEAD.test(it.text)) return
+        if (!looks.some(function (l) { return l.style === it.style })) looks.push({ style: it.style, size: it.size, n: looks.length })
+      })
+      looks.sort(function (a, b) { return Math.abs(a.size - b.size) > 0.25 ? b.size - a.size : a.n - b.n })
+      looks.forEach(function (l, i) { rank[l.style] = Math.min(3, i + 1) })
+    }
     var abs = wordSet(meta.abstract)
     var add = function (it) {
       var kind = it.kind
@@ -649,11 +791,14 @@ var FoldMake = (function () {
       if (it.type === "heading") {
         seenHeading = true
         if (it.abstract) { if (!sections.some(function (s) { return s.id === "abstract" })) open("abstract", "", "Abstract", 1); else cur = sections.filter(function (s) { return s.id === "abstract" })[0]; return }
-        var hm = HEAD_NUM.exec(it.text), lm = (afterRefs || appendix) ? LETTER_NUM.exec(it.text) : null
+        var hm = HEAD_NUM.exec(it.text), lm = (afterRefs || appendix || roman) ? LETTER_NUM.exec(it.text) : null
+        // (in an IEEE paper a lone letter I, V or X in mixed case is a sub-section's, not a Roman numeral)
+        if (roman && hm && /^[IVX]+$/.test(hm[1]) && !ROMAN_HEAD.test(it.text)) hm = null
         var num = hm ? hm[1] : lm && !APPENDIX.test(it.text) ? lm[1] : ""
         var title = hm ? hm[2] : num ? lm[2] : it.text
         if (it.refs) { afterRefs = true; open(uniqueId("bib", sections), num, title, 1); return }
-        var depth = num ? depthOf(it.text) : it.size >= maxH - 0.25 ? 1 : 2
+        var depth = it.depth ? it.depth : roman && lm && !hm && !afterRefs && !appendix ? 2 : num ? depthOf(it.text) :
+          !numbered && rank[it.style] ? rank[it.style] : it.size >= maxH - 0.25 ? 1 : 2
         if (APPENDIX.test(it.text) || (afterRefs && lm && !hm) || appendix) {
           appendix = true
           if (depth === 1 || a === 0) { a++; ass = 0; open("A" + a, num, title, 1) } else { ass++; open("A" + a + ".SS" + ass, num, title, 2) }
@@ -762,7 +907,9 @@ var FoldMake = (function () {
     var blocks = blocksOf(flows, edges, body, medianGap(flows, body))
     if (!blocks.length) return { problem: "no-text", stats: stats }
     var front = frontOf(blocks, body, m)
-    var items = joinBreaks(itemsOf(blocks, body, front.abstract ? withKey(front.drop, front.abstract.index) : front.drop))
+    var ctx = { roman: blocks.filter(function (b) { return b.words.length <= 12 && ROMAN_HEAD.test(b.text) }).length >= 2 }
+    var items = itemsOf(blocks, body, front.abstract ? withKey(front.drop, front.abstract.index) : front.drop, ctx)
+    items = joinBreaks(applyOutline(items, m.outline, body))
     var secs = sectionsOf(items, m, front.abstract)
     var sections = [], map = {}, n = 0, tooLong = false
     secs.forEach(function (s) {

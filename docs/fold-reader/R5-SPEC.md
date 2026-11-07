@@ -39,7 +39,7 @@ anything in R2 to R7 not named here. `daemon/` and the Omarchy launcher are unto
 ### 3.1 Native: the lines payload (FoldPDF.swift)
 
 `FoldPDF.lines(_ each:)` (on FoldPDF's serial queue, batches of 8 pages, first pages first) gives per page
-`{n, size: [w, h] (points, after rotation), lines: [{t, b, s, f, lb, w}]}`, one entry per PDFKit line
+`{n, size: [w, h] (points, after rotation), lines: [{t, b, s, f, lb, fn, w}]}`, one entry per PDFKit line
 (`page.selection(for: mediaBox).selectionsByLine()`, as R1's `words(of:)`), in PDFKit's order:
 
 - `w`: the line's words `[[text, x0, y0, x1, y1], ...]`, exactly R1's `words(of:)` (SPEC 5.4: runs of non-space
@@ -48,9 +48,17 @@ anything in R2 to R7 not named here. `daemon/` and the Omarchy launcher are unto
 - `s`: the font size in points: the character-weighted mean `pointSize` of the `.font` runs of `line.attributedString`;
   used only when it is between 0.5 and 1.6 times the line's height in points, else (and when there is no font
   attribute) `0.8 × height`, rounded to 0.5. (The fallback is also what R7's host will use with `pdftotext -bbox`.)
-- `f`: bit 1 bold (`symbolicTraits` has `.bold`, or the font name matches `/bold|black|heavy|semibold|demi/i`),
-  bit 2 italic (`.italic`, or `/italic|oblique/i`), for the line's majority of characters.
+- `f`: bit 1 bold (`symbolicTraits` has `.bold`, or the font name matches
+  `/bold|black|heavy|semibold|demi/i`, or a Medium weight, `/(^|[-_ ,+])[Mm](edi|EDI)(um|UM)?(?![a-z])/`: Nimbus Roman's
+  bold is `NimbusRomNo9L-Medi`),
+  bit 2 italic (`.italic`, or `/italic|oblique/i`, or `Ital` at a name's end, case kept: `NimbusRomNo9L-ReguItal`),
+  for the line's majority of characters. (Extractor 2.)
 - `lb`: how many words at the line's start are bold (80% of their characters), for run-in headings.
+- `fn`: the font family (`NSFont.familyName`) most of its characters are set in; "" with none. (Extractor 2.)
+
+`FoldPDF.outlineNow()` gives the PDF's own outline (`outlineRoot`, its bookmarks) in order,
+`[{t: label, l: level from 1, p: page from 1, 0 with none}]`, at most 2000 entries and 6 levels; FoldMaker passes it
+as `meta.outline`.
 
 `FoldPDF.sha256()` hashes the file (CryptoKit, streamed in 1 MB reads). Text extraction never runs on the main thread.
 
@@ -64,12 +72,14 @@ loaded from the bundle), and by the main JSCore for `merge`, `foldInput`, `foldV
 `FoldMake.read(pages, meta)` → `{doc, links, stats: {pages, lines, units, chars, textPages}}` or
 `{problem: "scan" | "too-long" | "no-text", stats}`. `meta`: `{title, authors, date, abstract (Zotero's), cite,
 lang, pdf: {sha256, bytes, modified, pages, sizes}, made_with}`. Coordinates below are in points (box × page size);
-`size` is a line's `s`. The steps, in order (the values are the starting thresholds; a change made while tuning on
+`size` is a line's `s`; `meta.outline` is FoldPDF's (3.1). The steps, in order (the values are the starting thresholds; a change made while tuning on
 real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's deviations):
 
 1. **Segments.** Each line is cut where two neighbouring words stand more than `1.5 × size` apart (TextFold's
    `pdftext._lines`): two columns side by side become two segments. A segment keeps its words (boxes), `size`, `f`,
-   `lb` (on its first segment only). Text is cleaned: ligatures ﬀ ﬁ ﬂ ﬃ ﬄ ﬅ ﬆ to their letters, U+00AD removed.
+   `lb` (on its first segment only), `fn`. Text is cleaned: ligatures ﬀ ﬁ ﬂ ﬃ ﬄ ﬅ ﬆ to their letters, U+00AD removed.
+   IEEE's hand-set small capitals are joined first: a one-capital word with all capitals after it, within a quarter
+   of its height, at 50% to 92% of its height (`I NTRODUCTION`), is one word, its boxes' union. (Extractor 2.)
 2. **Body size** = the size (rounded to 0.5) under which half of all characters are set (`pdftext._body_size`).
    **Frame** = from body-size segments: left = the 5th percentile of `x0`, right = the 95th of `x1`, column width = the
    90th percentile of widths; **two columns** when that width < `0.7 × (right − left)`, `mid = (left + right) / 2`
@@ -92,13 +102,35 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
    `REFS` heading, until the next heading) a block that is not a heading is a *reference* (below); elsewhere the
    first match wins:
    - *heading*: (a) a block of at most 10 words matching TextFold's `NUMBERED`
-     (`^(?:[1-9]\d*(?:\.\d+){0,3}|[IVX]+)\.?\s+[A-Z][^.!?]{1,80}$`), size ≥ body, standing alone; (b) `ABSTRACT` or
-     `REFS` (pdfdoc.py) alone on its block; (c) at most 2 lines, at most 160 characters, no final `.`, and size
-     ≥ body + 1, or bold throughout with at most 12 words; (d) a run-in heading: a block's first `lb` words match
+     (`^(?:[1-9]\d*(?:\.\d+){0,3}|[IVX]+)\.?\s+[A-Z][^.!?]{1,80}$`; since extractor 2 a period is allowed inside a
+     word or after a capital: `4.2 SQuAD v1.1`, `3.1 U.S. evidence`, and an appendix's lettered numbers `A.1`, `B.2.1`
+     count as numbers), size ≥ body, standing alone; its title may wrap to one more short line at its size and
+     weight, at the column's edge or under the title's first word (`A.4 Comparison of BERT, ELMo, and` over
+     `OpenAI GPT`; `wrapOf`): that line joins the heading's block and the paragraph starts after it; (b) `ABSTRACT` or
+     `REFS` (pdfdoc.py) alone on its block; (b2, extractor 2) IEEE: a Roman numeral and a title in capitals
+     (`ROMAN_HEAD`, `II. BACKGROUND & DEFINITION`) or `ACKNOWLEDGMENT` / `APPENDIX`, at most 12 words and 2 lines,
+     size ≥ body − 3 (small capitals bring the mean down); in a paper with two or more of those, a lettered line in
+     italics or bold (`A. Background`, at most 12 words, no sentence end), which also stands as its own block
+     (`headLine`); (c) at most 2 lines, at most 160 characters, no final `.`, and size ≥ body + 1, or bold throughout
+     (since extractor 2: not a bold start the line runs on from, `lb` < its words) with at most 12 words; since
+     extractor 2 also not two sentences, not a decimal number (a table's value), not a list item, alone on its row
+     within its column (a table's cell is not) and at the column's left edge (within 2 × size) or centred;
+     (d) a run-in heading: a block's first `lb` words match
      `NUMBERED`, `ABSTRACT` or `REFS` once a final `.` or `:` is dropped (pdftext `_heading_of`): split, the rest
      starts a paragraph. Depth: from the number (`pdfdoc.depth`: `3`, `3.`, `III.` 1; `3.2`, `A.1` 2; `3.2.1` 3);
-     unnumbered: 1 for the largest heading size in the document, else 2. A heading the page broke over two lines is
-     one (`_joined_headings`).
+     IEEE's lettered sub-sections 2; unnumbered: 1 for the largest heading size in the document, else 2, except in a
+     paper with no numbered heading at all (extractor 2): its heading looks (size, bold, italic, font family) ranked,
+     larger first, then in order of first use, the first 1, the next 2, the rest 3 (PLOS sets sections in Helvetica
+     Bold and sub-sections in Minion Bold, both 12 pt). A heading the page broke over two lines is one
+     (`_joined_headings`), a hanging indent included.
+   - *the outline* (6b, extractor 2): when `meta.outline` has 3 or more entries, each is matched in order to the next
+     heading or short block (25 words at most, on its page ± 1) whose text, numbering and punctuation left out, is
+     its label's (or starts it, 10 letters or more and 75% of it). Used when 3 or more and half its entries match:
+     a matched block is a heading at the outline's level (from 1; after the references an entry set under them
+     takes its level below theirs, an appendix's), its label taking the place of a heading set in capitals; a
+     heading the outline doesn't name is read as a paragraph, unless it is the abstract, the references, a run-in,
+     back matter (`KEEP_HEAD`: acknowledgments, funding, author contributions, data availability, conflicts of
+     interest, appendix, supporting information) or numbered deeper than the outline goes.
    - *caption*: first line matches `CAPTION_AT` or `TABLE_AT` (pdftext.py); its lines run while the size stays within
      0.6 and the gap is at most `1.7 × size`. Its `label` is the matched prefix normalized (`Figure 2`, `Table 1`).
    - *table body*: two or more consecutive rows of one band each cut into three or more segments: dropped.
@@ -155,7 +187,7 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
 ```
 {format: "textfold/doc", version: 0, id: "pdf-<first 16 hex of the PDF's SHA-256>", lang, title (Zotero's, else the
  title block's), authors (Zotero's), date (Zotero's), source: {kind: "pdf", url: "", label: "Zotero · <cite>",
- snapshot: "", license: "", sha256, bytes, pages, extractor: 1},
+ snapshot: "", license: "", sha256, bytes, pages, extractor: 2},
  levels: ["topic", "takeaway", "key", "brief", "full"], written: ["topic", "takeaway", "key"],
  provenance: {made_with: "Zotero Launcher <app version>", exported: <ISO>, ai_generated: false, model: "",
               levels_made: "", local: true},

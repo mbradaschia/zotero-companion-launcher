@@ -330,6 +330,31 @@ final class FoldPDF: @unchecked Sendable {
         return out
     }
 
+    // The PDF's own outline (its bookmarks), in order: [{t: label, l: level from 1, p: page from 1, 0 with none}]; [] with
+    // none. At most 2000 entries, 6 levels deep. (On the queue, or a test's thread.)
+    func outlineNow() -> [[String: Any]] {
+        if document == nil { _ = openNow() }
+        guard let doc = document, let root = doc.outlineRoot else { return [] }
+        return Self.outline(root, in: doc)
+    }
+
+    static func outline(_ root: PDFOutline, in doc: PDFDocument) -> [[String: Any]] {
+        var out: [[String: Any]] = []
+        func walk(_ node: PDFOutline, _ level: Int) {
+            guard level <= 6 else { return }
+            for i in 0..<node.numberOfChildren {
+                guard out.count < 2000, let child = node.child(at: i) else { return }
+                let label = (child.label ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                var page = 0
+                if let p = child.destination?.page { page = doc.index(for: p) + 1 }
+                if !label.isEmpty { out.append(["t": label, "l": level, "p": page]) }
+                walk(child, level + 1)
+            }
+        }
+        walk(root, 1)
+        return out
+    }
+
     // Work on the PDF's own queue (FoldMaker's extraction: its JSContext lives there).
     func onQueue(_ work: @escaping (FoldPDF) -> Void) {
         queue.async { work(self) }
@@ -394,7 +419,8 @@ final class FoldPDF: @unchecked Sendable {
             var size = 0.8 * height
             if let pt = style.size, height > 0, pt >= 0.5 * height, pt <= 1.6 * height { size = pt }
             let rows: [[Any]] = run.map { w in [w.word.text as Any] + w.box.map { $0 as Any } }
-            out.append(["t": run.map { $0.word.text }.joined(separator: " "), "b": b, "s": (size * 2).rounded() / 2, "f": style.flags, "lb": style.leadBold, "w": rows])
+            out.append(["t": run.map { $0.word.text }.joined(separator: " "), "b": b, "s": (size * 2).rounded() / 2, "f": style.flags, "lb": style.leadBold,
+                        "fn": style.family, "w": rows])
         }
         return out
     }
@@ -467,19 +493,29 @@ final class FoldPDF: @unchecked Sendable {
         var size: Double? // its font's point size, nil with no font
         var bold = false
         var italic = false
+        var family: String? // its font's family name ("Minion Pro"), nil with no font
     }
 
     struct LineStyle: Equatable {
         var size: Double? // the character-weighted mean point size of its fonts, nil with none
         var flags = 0 // 1 bold, 2 italic: most of its characters'
         var leadBold = 0 // the words at its start bold in 80% of their characters
+        var family = "" // the font family most of its characters are set in
     }
 
     static func traits(_ font: NSFont) -> (bold: Bool, italic: Bool) {
         let t = font.fontDescriptor.symbolicTraits
-        let name = font.fontName
-        let bold = t.contains(.bold) || name.range(of: "bold|black|heavy|semibold|demi", options: [.regularExpression, .caseInsensitive]) != nil
-        let italic = t.contains(.italic) || name.range(of: "italic|oblique", options: [.regularExpression, .caseInsensitive]) != nil
+        let named = traits(named: font.fontName)
+        return (t.contains(.bold) || named.bold, t.contains(.italic) || named.italic)
+    }
+
+    // What a font's name says (R5-SPEC 3.1): Times' bold face as Nimbus names it, "NimbusRomNo9L-Medi", and other
+    // Medium weights read as bold; its italic, "NimbusRomNo9L-ReguItal", as italic.
+    static func traits(named name: String) -> (bold: Bool, italic: Bool) {
+        let bold = name.range(of: "bold|black|heavy|semibold|demi", options: [.regularExpression, .caseInsensitive]) != nil ||
+            name.range(of: "(^|[-_ ,+])[Mm](edi|EDI)(um|UM)?(?![a-z])", options: .regularExpression) != nil
+        let italic = name.range(of: "italic|oblique", options: [.regularExpression, .caseInsensitive]) != nil ||
+            name.range(of: "Ital(?![a-z])", options: .regularExpression) != nil
         return (bold, italic)
     }
 
@@ -495,6 +531,7 @@ final class FoldPDF: @unchecked Sendable {
                 chars[k].size = Double(font.pointSize)
                 chars[k].bold = t.bold
                 chars[k].italic = t.italic
+                chars[k].family = font.familyName
             }
         }
         return chars
@@ -515,6 +552,9 @@ final class FoldPDF: @unchecked Sendable {
             guard !w.isEmpty, Double(w.filter { $0.bold }.count) >= 0.8 * Double(w.count) else { break }
             style.leadBold += 1
         }
+        var families: [String: Int] = [:]
+        for c in all { if let f = c.family, !f.isEmpty { families[f, default: 0] += 1 } }
+        style.family = families.max { $0.value < $1.value || ($0.value == $1.value && $0.key > $1.key) }?.key ?? ""
         return style
     }
 

@@ -188,6 +188,37 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldPDF.style(Array(words.prefix(2))).flags, 1)
         XCTAssertEqual(FoldPDF.charStyles(a, length: 5), [], "another length: its fonts aren't matched to the words")
         XCTAssertEqual(FoldPDF.style([[], []]), FoldPDF.LineStyle(), "no fonts: no size, nothing bold")
+        XCTAssertEqual(style.family, "Helvetica", "the family most of its characters are set in")
+    }
+
+    // R5-SPEC 3.1 (extractor 2): font names that say bold or italic, and the PDF's own outline in order with levels
+    // and pages
+    func testFontNamesSayBoldOrItalicAndTheOutlineComesInOrder() throws {
+        for (name, bold, italic) in [("NimbusRomNo9L-Medi", true, false), ("NimbusRomNo9L-ReguItal", false, true), ("NimbusRomNo9L-MediItal", true, true),
+                                     ("Helvetica-Medium", true, false), ("MinionPro-Bold", true, false), ("Intermedia-Regular", false, false),
+                                     ("DSDigital", false, false), ("Times-Italic", false, true), ("NimbusRomNo9L-Regu", false, false)] {
+            let t = FoldPDF.traits(named: name)
+            XCTAssertEqual(t.bold, bold, name + ": bold")
+            XCTAssertEqual(t.italic, italic, name + ": italic")
+        }
+        let url = try FixturePaper().write(in: home)
+        XCTAssertEqual(FoldPDF(url: url).outlineNow().count, 0, "no outline: none")
+        let doc = try XCTUnwrap(PDFDocument(url: url))
+        let root = PDFOutline()
+        let intro = PDFOutline(), scope = PDFOutline(), method = PDFOutline()
+        intro.label = "1 Introduction"
+        intro.destination = PDFDestination(page: try XCTUnwrap(doc.page(at: 0)), at: .zero)
+        scope.label = "1.1 Scope"
+        scope.destination = PDFDestination(page: try XCTUnwrap(doc.page(at: 1)), at: .zero)
+        method.label = " 2 Method "
+        root.insertChild(intro, at: 0)
+        root.insertChild(method, at: 1)
+        intro.insertChild(scope, at: 0)
+        doc.outlineRoot = root
+        let outlined = home.appendingPathComponent("outlined.pdf")
+        XCTAssertTrue(doc.write(to: outlined))
+        let got = FoldPDF(url: outlined).outlineNow().map { "\($0["l"] as? Int ?? 0) \($0["p"] as? Int ?? -1) \($0["t"] as? String ?? "")" }
+        XCTAssertEqual(got, ["1 1 1 Introduction", "2 2 1.1 Scope", "1 0 2 Method"], "its entries in order, levels from 1, pages from 1 (0 with none)")
     }
 
     private func paperMeta(_ url: URL, pages: Int, sizes: [[Double]]) -> [String: Any] {
@@ -268,7 +299,7 @@ final class FoldReaderTests: XCTestCase {
         let pages = pdf.linesNow()
         XCTAssertEqual(FoldMaker.language(of: pages), "en")
         let maker = try FoldMaker()
-        XCTAssertEqual(maker.extractor, 1)
+        XCTAssertEqual(maker.extractor, 2)
         let made = try maker.read(pages, meta: paperMeta(url, pages: info.pages, sizes: info.sizes).merging(["lang": "en"]) { $1 })
         XCTAssertNil(made.problem)
         let doc = try XCTUnwrap(made.doc)
@@ -334,7 +365,7 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-07T08:00:00Z", extractor: 1, sha256: same), .touched, "touched: the same bytes")
         XCTAssertEqual(asked, 1)
         XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes + 10, modified: "2026-11-07T08:00:00Z", extractor: 1) { String(repeating: "f", count: 64) }, .changed, "another file")
-        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 2, sha256: same), .stale, "an older reading, nothing folded")
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 3, sha256: same), .stale, "an older reading, nothing folded")
         var folded = doc
         var sections = doc["sections"] as? [[String: Any]] ?? []
         sections[1]["made"] = "ai"
