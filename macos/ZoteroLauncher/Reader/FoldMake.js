@@ -844,6 +844,9 @@ var FoldMake = (function () {
   function foldable(s) { return (Array.isArray(s && s.units) ? s.units : []).filter(function (u) { return u && !APPARATUS[u.kind] }) }
 
   // The fold command's stdin (4.1): the doc's foldable sections and units, the paper, the model and what to fold.
+  // Settings › Defaults › Fold with AI › Effort ("" the model's own; the runner's EFFORTS)
+  var EFFORTS = ["low", "medium", "high", "xhigh", "max"]
+
   function foldInput(doc, o) {
     var opts = o || {}
     var d = doc || {}
@@ -860,7 +863,8 @@ var FoldMake = (function () {
         }) })
     })
     var input = {
-      paper: String(opts.paper || ""), model: String(opts.model || "default"), force: opts.force === true,
+      paper: String(opts.paper || ""), model: String(opts.model || "default"),
+      effort: opts.effort === "" || EFFORTS.indexOf(opts.effort) >= 0 ? opts.effort : "low", force: opts.force === true,
       only: Array.isArray(opts.only) ? opts.only.map(String) : null,
       doc: { title: String(d.title || ""), lang: String(d.lang || "en"), sections: sections }
     }
@@ -953,6 +957,7 @@ var FoldMake = (function () {
     return {
       kind: kind, done: done, total: total, failed: failed, error: error.slice(0, 200), again: again, left: left,
       model: String(pl.model || r.model || ""), name: String(pl.name || (d.provenance && d.provenance.model) || r.model || ""),
+      effort: typeof pl.effort === "string" ? pl.effort : "",
       calls: typeof pl.calls === "number" ? pl.calls : null, cached: typeof pl.cached === "number" ? pl.cached : 0,
       cost: costText(pl.costUsd), disabled: disabled
     }

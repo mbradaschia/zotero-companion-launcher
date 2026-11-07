@@ -12,6 +12,7 @@
 // no theorem environments, no document kinds); the levels written as strings, not tokens.
 import { createHash } from "node:crypto";
 import { fatalKind } from "./fatal.mjs";
+import { EFFORTS } from "./modelspec.mjs";
 
 export const SYSTEM = "You compress the sections of research papers into nested zoom levels for a reading interface. " +
   "You are precise about what each passage claims, keep the authors' terminology, and answer with JSON only. " +
@@ -66,7 +67,9 @@ export function parseInput(raw) {
     sections.push({ id: String(s.id), num: String(s.num == null ? "" : s.num), title: String(s.title == null ? "" : s.title), depth: s.depth === 2 || s.depth === 3 ? s.depth : 1, units });
   }
   const only = Array.isArray(o.only) ? o.only.map(String).filter((x) => ID.test(x)) : null;
-  return { paper, model: String(o.model || "default"), force: o.force === true, only, doc: { title: String(d.title || ""), lang: String(d.lang || "en"), sections } };
+  // (effort: Settings › Defaults › Fold with AI's, "" the model's own; low when not given, as before 0.3.1)
+  const effort = o.effort === "" || EFFORTS.includes(o.effort) ? o.effort : "low";
+  return { paper, model: String(o.model || "default"), effort, force: o.force === true, only, doc: { title: String(d.title || ""), lang: String(d.lang || "en"), sections } };
 }
 
 // The replies' folder for a paper: <runnerState>/fold-reader/<libraryID>-<KEY>/replies.
@@ -317,6 +320,11 @@ export function sectionLine(o) {
 
 // ---- the cache key (llm.call)
 
+// A fold's effort: the input's (parseInput's), low for one made without it.
+function effortOf(input) {
+  return typeof input.effort === "string" ? input.effort : "low";
+}
+
 export function cacheKey(system, prompt, schema, spec, effort) {
   return createHash("sha256").update(JSON.stringify([system, prompt, schema, spec, effort])).digest("hex").slice(0, 24);
 }
@@ -343,7 +351,7 @@ export function planFold(input, model, has) {
       calls++;
       chars += SYSTEM.length + p.prompt.length;
       units += p.units.length;
-      if (!input.force && has(cacheKey(SYSTEM, p.prompt, SCHEMA, model.spec, "low"))) cached++;
+      if (!input.force && has(cacheKey(SYSTEM, p.prompt, SCHEMA, model.spec, effortOf(input)))) cached++;
     }
     if (s.line) { calls++; lines++; chars += SYSTEM.length; }
   }
@@ -351,7 +359,7 @@ export function planFold(input, model, has) {
   const outputTokens = 70 * units + 40 * plan.length;
   const price = model.price || {};
   const priced = model.kind !== "subscription" && typeof price.in === "number" && typeof price.out === "number";
-  return { model: model.spec, name: model.name || model.spec, provider: model.provider || "", sections: plan.length, calls, cached, inputTokens, outputTokens,
+  return { model: model.spec, name: model.name || model.spec, provider: model.provider || "", effort: effortOf(input), sections: plan.length, calls, cached, inputTokens, outputTokens,
     costUsd: priced ? Math.round((inputTokens * price.in + outputTokens * price.out) / 1e6 * 1e6) / 1e6 : null };
 }
 
@@ -359,10 +367,11 @@ export function concurrencyFor(kind) {
   return kind === "api" ? 4 : kind === "subscription" ? 2 : 1;
 }
 
-// The command's ask: one generate() call as review-run's, effort low, SYSTEM alone as the system prompt.
-export function makeAsk({ generate, costOf, settings, ctx, target, onFallback }) {
+// The command's ask: one generate() call as review-run's, at the fold's effort (low unless Settings › Defaults ›
+// Fold with AI picks another), SYSTEM alone as the system prompt.
+export function makeAsk({ generate, costOf, settings, ctx, target, onFallback, effort = "low" }) {
   return async ({ messages, signal }) => {
-    const r = await generate({ settings, ctx, target, effort: "low", system: SYSTEM, messages, signal, onFallback });
+    const r = await generate({ settings, ctx, target, effort, system: SYSTEM, messages, signal, onFallback });
     return { text: r.text, spec: r.spec || target.spec, costUsd: costOf(r) };
   };
 }
@@ -389,7 +398,7 @@ export async function runFold(input, deps) {
     return rec && typeof rec === "object" && rec.out && typeof rec.out === "object" ? rec : null;
   };
   let cached = 0;
-  for (const s of plan) for (const p of s.parts) { p.key = cacheKey(SYSTEM, p.prompt, SCHEMA, spec, "low"); if (cachedRec(p.key)) cached++; }
+  for (const s of plan) for (const p of s.parts) { p.key = cacheKey(SYSTEM, p.prompt, SCHEMA, spec, effortOf(input)); if (cachedRec(p.key)) cached++; }
   deps.emit({ type: "start", model: spec, name: model.name || spec, provider: model.provider || "", sections: plan.length, calls: total, cached });
   task({ stage: "0 of " + plural(total, "request", "requests"), done: 0 });
   const outer = deps.signal;
@@ -470,7 +479,7 @@ export async function runFold(input, deps) {
         if (halted()) return;
         const takes = units.map((u) => u.takeaway);
         const prompt = sectionPrompt(input.doc, s.section, takes);
-        const key = cacheKey(SYSTEM, prompt, SECTION_SCHEMA, spec, "low");
+        const key = cacheKey(SYSTEM, prompt, SECTION_SCHEMA, spec, effortOf(input));
         try {
           const r = await call(key, prompt, 0);
           answered(r.cached);

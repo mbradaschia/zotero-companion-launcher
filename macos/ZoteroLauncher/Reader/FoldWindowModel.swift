@@ -311,8 +311,14 @@ final class FoldWindowModel: ObservableObject {
         foldable(doc).filter { $0["made"] as? String != "ai" }.compactMap { $0["id"] as? String }
     }
 
+    // Settings › Defaults › Fold with AI: its model ("default": the prompts') and effort (low unless picked).
+    private var foldDefaults: [String: Any] { launcher.defaultsRaw["fold"] as? [String: Any] ?? [:] }
+    private var defaultModel: String { (foldDefaults["model"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "default" }
+    private var effort: String { foldDefaults["effort"] as? String ?? "low" }
+
+    // A run's own model while it isn't finished (Finish folding asks the one that began it), else the setting's.
     private var model: String {
-        guard let m = run?["model"] as? String, !m.isEmpty, run?["doc"] as? String == doc?["id"] as? String else { return "default" }
+        guard let m = run?["model"] as? String, !m.isEmpty, run?["doc"] as? String == doc?["id"] as? String else { return defaultModel }
         return m
     }
 
@@ -338,7 +344,7 @@ final class FoldWindowModel: ObservableObject {
         let all = notFolded
         let again = all.isEmpty
         let only: Any = again || all.count == foldable(doc).count ? NSNull() as Any : all as Any
-        let o: [String: Any] = ["paper": paperId, "model": again ? "default" : model, "force": again, "only": only]
+        let o: [String: Any] = ["paper": paperId, "model": again ? defaultModel : model, "effort": effort, "force": again, "only": only]
         guard let input = glue("foldInput", [doc, o]) as? [String: Any],
               input["error"] == nil, let text = try? JSCore.jsonText(input) else { return pushFold() }
         let id = doc["id"] as? String
@@ -373,8 +379,8 @@ final class FoldWindowModel: ObservableObject {
 
     private func startFold(force: Bool, only: [String]?) {
         guard let doc, !folding else { return }
-        let use = force ? "default" : model
-        var o: [String: Any] = ["paper": paperId, "model": use, "force": force, "only": NSNull()]
+        let use = force ? defaultModel : model
+        var o: [String: Any] = ["paper": paperId, "model": use, "effort": effort, "force": force, "only": NSNull()]
         if let only { o["only"] = only }
         guard let input = glue("foldInput", [doc, o]) as? [String: Any] else { return }
         if let e = input["error"] as? String { page?.flash("Not folded: " + e); return }

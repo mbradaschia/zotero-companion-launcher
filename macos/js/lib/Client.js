@@ -327,10 +327,11 @@ function normalizeStatus(raw, problems) {
 }
 
 function normalizeDefaults(raw, problems) {
-  var out = { prompts: { model: "", effort: "high" }, chat: { model: "", effort: "high" }, fallback: "", autoExtract: false, autoExtractNew: false, extractMaxMB: 40, autoTagNew: false, extractOnOpen: false, tagOnOpen: false, autoPrompts: [], catchUpDays: 30, processesAtOnce: 1, catchUpPrompts: "missing", catchUpTaxonomies: "missing", launchCatchUp: true, launchCatchUpWhat: {} }
+  var out = { prompts: { model: "", effort: "high" }, chat: { model: "", effort: "high" }, fold: { model: "", effort: "low" }, fallback: "", autoExtract: false, autoExtractNew: false, extractMaxMB: 40, autoTagNew: false, extractOnOpen: false, tagOnOpen: false, autoPrompts: [], catchUpDays: 30, processesAtOnce: 1, catchUpPrompts: "missing", catchUpTaxonomies: "missing", launchCatchUp: true, launchCatchUpWhat: {} }
   if (raw === undefined) return out
   if (!isObject(raw)) { problems.push("defaults must be an object"); return out }
-  ;["prompts", "chat"].forEach(function (p) {
+  // (fold: the Mac's fold reader's Fold with AI; its model "" follows the prompts')
+  ;["prompts", "chat", "fold"].forEach(function (p) {
     var d = raw[p]
     if (d === undefined) return
     if (!isObject(d)) return problems.push("defaults." + p + " must be an object")

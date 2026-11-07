@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.37`)
+
+- **Fold with AI has its own model and effort.** *Settings › Defaults › Fold with AI* picks the model (the prompts'
+  model unless you pick another) and the effort (low unless you pick another). The reader's banner and the Fold
+  button's tooltip name both. A different effort asks the model again rather than reusing the replies kept at the
+  last one. The prompt runner is now 0.3.1: *Settings › Setup › Install the AI features* brings it up to date (0.3.0
+  folds at low effort whatever is set).
+
 ### The Mac app (`macos-v0.4.36`)
 
 - **The reader folds a paper itself, from its PDF, with your AI model.** *Read with folds* reads the paper's PDF on

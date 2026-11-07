@@ -234,8 +234,23 @@ function GlueSettings(V, C, T, P, S) {
   }
 
   // Defaults with the Mac's rows: When the app opens after Bring papers up to date, Processes last.
+  // Settings › Defaults › Fold with AI (the Mac's fold reader): its model (the prompts' unless one is picked) and effort
+  // (low unless one is picked: a fold is many short requests), right under Chat.
+  function foldRows(state, L) {
+    var d = state.settings.defaults || {}
+    var cur = d.fold || {}
+    var prompts = (d.prompts && d.prompts.model) || (state.defaults.prompts ? state.defaults.prompts + " (automatic)" : "")
+    return [L({ section: "Fold with AI", rowId: "set-models", value: "defaults.fold.model", icon: S.ICON.model, label: "Model",
+      detail: cur.model || (prompts ? "The prompts' model, now " + prompts : "The prompts' model: none yet, turn a provider on first"), available: true, submenu: true }),
+    L({ section: "Fold with AI", rowId: "set-choice", value: "defaults.fold.effort", icon: S.ICON.defaults, label: "Effort",
+      detail: S.effortText(cur.effort === undefined ? "low" : cur.effort) + " · the reader's Fold with AI asks a section at a time; low keeps it quick", available: true, submenu: true })]
+  }
+
   function defaultsRows(state, L) {
     var rows = S.buildDefaults(state, L)
+    var chat = -1
+    rows.forEach(function (r, i) { if (r.section === "Chat") chat = i })
+    if (chat >= 0) rows = rows.slice(0, chat + 1).concat(foldRows(state, L), rows.slice(chat + 1))
     var after = -1
     rows.forEach(function (r, i) { if (r.section === "Bring papers up to date") after = i })
     var mine = launchRows(state, L)

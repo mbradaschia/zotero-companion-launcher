@@ -502,6 +502,41 @@ final class FoldReaderTests: XCTestCase {
         (text.flatMap { try? JSONSerialization.jsonObject(with: Data($0.utf8)) } as? [String: Any]) ?? [:]
     }
 
+    // Settings › Defaults › Fold with AI: its model and effort are what the plan and a fold ask, and Fold again's model;
+    // a stopped run's Finish keeps the model it began with.
+    func testFoldWithAIAsksTheModelAndEffortOfSettingsDefaults() throws {
+        let settingsFile = home.appendingPathComponent(".config/omarchy/oma-zotero-launcher.json")
+        try FileManager.default.createDirectory(at: settingsFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(#"{"defaults": {"fold": {"model": "lab:m2", "effort": "high"}}}"#.utf8).write(to: settingsFile)
+        let model = launcher()
+        let runner = try XCTUnwrap(model.runner as? FakeRunner)
+        let pdfURL = try FixturePaper().write(in: home)
+        bridge.answers["/attachment"] = { _ in .ok(["path": pdfURL.path]) }
+        let plan: [String: Any] = ["model": "lab:m2", "name": "Lab two", "provider": "Lab", "effort": "high", "sections": 3, "calls": 3, "cached": 0, "inputTokens": 900, "outputTokens": 300, "costUsd": 0.004]
+        runner.answers["fold"] = { _, _ in FakeRunner.json(plan) }
+        runner.holdStreams.insert("fold")
+        let window = FoldWindowModel(paper: Self.paperRef, launcher: model)
+        let page = FakeFoldPage()
+        window.page = page
+        window.handle(["type": "ready"])
+        XCTAssertTrue(until { page.folds.last?["calls"] as? Int == 3 }, "the plan on the page: \(page.folds.last ?? [:])")
+        let asked = object(runner.calls("fold").first?.stdin)
+        XCTAssertEqual([asked["model"] as? String, asked["effort"] as? String], ["lab:m2", "high"])
+        XCTAssertEqual(page.folds.last?["effort"] as? String, "high", "the banner's effort")
+        window.handle(["type": "fold"])
+        let first = object(runner.calls("fold").last?.stdin)
+        XCTAssertEqual([first["model"] as? String, first["effort"] as? String], ["lab:m2", "high"])
+        let run = try XCTUnwrap(runner.streams.last)
+        run.emit(["type": "start", "model": "lab:m3", "name": "Lab three", "provider": "Lab", "sections": 3, "calls": 3, "cached": 0]) // (as a fallback answers)
+        window.handle(["type": "stop"])
+        XCTAssertTrue(until { page.folds.last?["kind"] as? String == "stopped" })
+        window.handle(["type": "fold", "only": ["S1", "S2"]])
+        let finish = object(runner.calls("fold").last?.stdin)
+        XCTAssertEqual([finish["model"] as? String, finish["effort"] as? String], ["lab:m3", "high"], "Finish folding: the model it began with, the effort set")
+        window.handle(["type": "stop"])
+        window.windowClosing()
+    }
+
     // R5-38: the plan and a fold with a fake runner: the stdin, the events into doc.json, links.json and fold.json,
     // Stop and closing, 143, 127, an old runner, a fold.json left folding
     func testThePlanAndAFoldStreamedFromAFakeRunnerAndEveryWayAFoldEnds() throws {
@@ -520,9 +555,10 @@ final class FoldReaderTests: XCTestCase {
         let asked = try XCTUnwrap(runner.calls("fold").first)
         XCTAssertEqual(Array(asked.argv.suffix(3)), ["fold", "--plan", "--quiet"])
         let input = object(asked.stdin)
-        XCTAssertEqual(Set(input.keys), ["paper", "model", "force", "only", "doc"])
+        XCTAssertEqual(Set(input.keys), ["paper", "model", "effort", "force", "only", "doc"])
         XCTAssertEqual(input["paper"] as? String, "1:P3NM4G92")
         XCTAssertEqual(input["model"] as? String, "default")
+        XCTAssertEqual(input["effort"] as? String, "low", "Settings › Defaults › Fold with AI's effort: low unless picked")
         XCTAssertEqual(((input["doc"] as? [String: Any])?["sections"] as? [[String: Any]])?.compactMap { $0["id"] as? String }, ["abstract", "S1", "S2"])
         XCTAssertFalse((asked.stdin ?? "").contains("\"key\""), "no key in what the runner is sent")
         XCTAssertEqual(page.folds.last?["kind"] as? String, "unfolded")
