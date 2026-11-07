@@ -11,10 +11,12 @@ bridge and the prompt runner share one version.
 
 - **The reader finds a paper's sections and sub-sections more often.** It uses the PDF's own outline (its bookmarks)
   when the file has one, reads IEEE's "I. INTRODUCTION" and "A. Background" headings, keeps numbered titles with a
-  period in them ("4.2 SQuAD v1.1"), an appendix's "A.1" sub-sections and titles that wrap to a second line, reads Medium-weight fonts as bold, and nests sub-sections that differ from
-  their sections only by typeface (PLOS ONE). Table cells, figure labels and bold paragraph starts no longer turn
-  into headings. On six test papers it now finds 157 of 158 headings, up from 121, nested right 157 times, up from
-  106. Papers you read before are read again the next time you open them, unless you already folded them with AI.
+  period in them ("4.2 SQuAD v1.1"), reads an appendix's "A.1" sub-sections and titles that wrap to a second line,
+  reads Medium-weight fonts as bold, and nests sub-sections that differ from their sections only by typeface (PLOS
+  ONE). Table cells, figure labels and bold paragraph starts no longer turn into headings. On six test papers, read
+  by macOS's own PDF engine, it now finds 157 of 158 headings, up from 122, nests 157 right, up from 107, and makes
+  1 false heading, down from 15. Papers you read before are read again the next time you open them, unless you
+  already folded them with AI.
 
 ### The Mac app (`macos-v0.4.38`)
 
