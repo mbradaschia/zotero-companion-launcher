@@ -1,0 +1,32 @@
+1 Introduction
+1 Literature Review
+2 The Advancement of Large Language Models
+2 The Economic Impacts of Automation Technologies
+1 Methods and Data Collection
+2 Data on Activities and Tasks Performed by Occupation in the US
+2 Data on Wages, Employment, and Demographics
+2 Exposure
+2 Limitations of our methodology
+3 Subjective human judgments
+3 Measuring LLMs with GPT-4
+3 Additional Weaknesses
+1 Results
+2 Summary Statistics
+2 Wages and Employment
+2 Skill Importance
+2 Barriers to Entry
+3 Typical Education Needed for Entry
+1 Validation of Measures
+2 Comparison to Earlier Efforts
+1 Discussion
+2 GPTs as a General-Purpose Technology
+2 Implications for US Public Policy
+2 Limitations and Future Work
+1 Conclusion
+2 LLM Conclusion (GPT-4's Version)
+2 LLM Conclusion (Author-Augmented Version)
+1 Rubric
+2 Exposure
+1 O*NET Basic Skills Definitions
+1 Industrial and Productivity Exposure
+1 Occupations Without Any Exposed Tasks

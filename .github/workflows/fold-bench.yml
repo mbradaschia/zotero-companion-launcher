@@ -1,0 +1,39 @@
+name: Fold reader extraction benchmark
+
+# The reader's extraction (FoldPDF.swift's PDFKit lines, FoldMake.js) on six real papers, before and after a change
+# to it (macos/scripts/fold-bench/README.md). It reports; it gates nothing. It downloads the papers at run time.
+on:
+  pull_request:
+    paths:
+      - "macos/ZoteroLauncher/Reader/FoldPDF.swift"
+      - "macos/ZoteroLauncher/Reader/FoldMake.js"
+      - "macos/ZoteroLauncher/Reader/FoldCore.js"
+      - "macos/scripts/fold-bench/**"
+      - ".github/workflows/fold-bench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+    working-directory: macos
+
+jobs:
+  bench:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Before (the base branch) and after (this change), on this runner's PDFKit
+        env:
+          BEFORE: ${{ github.event.pull_request.base.sha || 'origin/master' }}
+        run: |
+          scripts/fold-bench/run.sh "$RUNNER_TEMP/fold-bench" | tee "$RUNNER_TEMP/bench.md"
+          cat "$RUNNER_TEMP/bench.md" >> "$GITHUB_STEP_SUMMARY"
