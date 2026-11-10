@@ -7,6 +7,15 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.42`)
+
+- **A paper folded with AI on one Mac folds on the other without asking the model again.** When your Macs share a
+  sync folder, the model's replies to the reader are also kept there (`shared/fold-replies/`), named by a hash of
+  their question, model and effort, so nothing needs merging. Folding the same paper on the other Mac with the same
+  model and effort reads them: every section cached, nothing to pay. Papers folded before are copied there the first
+  time you fold any paper after updating. The folded text, links and marks stay on each Mac. Runner 0.3.2: *Install
+  the AI features* on each Mac.
+
 ### The Mac app (`macos-v0.4.41`)
 
 - **The reader finds the sections of papers whose PDF hides its bold.** Some publishers (the Academy of Management's

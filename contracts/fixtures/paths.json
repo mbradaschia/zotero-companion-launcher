@@ -36,7 +36,8 @@
       "machine": "arch",
       "readOnly": false,
       "problems": [],
-      "sharedSettingsCache": null
+      "sharedSettingsCache": null,
+      "foldReplies": null
     }
   },
   {
@@ -74,7 +75,8 @@
       "stignore": "/home/u/Sync/zotero/.stignore",
       "readOnly": false,
       "problems": [],
-      "sharedSettingsCache": "/home/u/.config/omarchy/oma-zotero-launcher/shared-settings.json"
+      "sharedSettingsCache": "/home/u/.config/omarchy/oma-zotero-launcher/shared-settings.json",
+      "foldReplies": "/home/u/Sync/zotero/shared/fold-replies"
     }
   },
   {
@@ -95,7 +97,8 @@
       "readOnly": true,
       "problems": [
         "sync-unavailable"
-      ]
+      ],
+      "foldReplies": "/mnt/sync/shared/fold-replies"
     }
   },
   {
@@ -117,7 +120,8 @@
       "readOnly": false,
       "problems": [
         "sync-dir-invalid"
-      ]
+      ],
+      "foldReplies": null
     }
   },
   {
@@ -142,7 +146,8 @@
       "instructions": "/i/rules.md",
       "artifacts": "/home/u/art",
       "pins": "/s/shared/pins.json",
-      "machine": "mac"
+      "machine": "mac",
+      "foldReplies": "/s/shared/fold-replies"
     }
   },
   {
@@ -160,7 +165,8 @@
       "pins": "/c/omarchy/oma-zotero-launcher/pins.json",
       "chats": "/st/oma-zotero/chats",
       "runnerState": "/st/oma-zotero",
-      "modelsCache": "/ca/oma-zotero-launcher/models.json"
+      "modelsCache": "/ca/oma-zotero-launcher/models.json",
+      "foldReplies": null
     }
   },
   {
@@ -176,7 +182,8 @@
     },
     "expect": {
       "syncDir": "/s",
-      "pins": "/s/shared/pins.json"
+      "pins": "/s/shared/pins.json",
+      "foldReplies": "/s/shared/fold-replies"
     }
   },
   {
@@ -188,7 +195,8 @@
     "machine": null,
     "probe": {},
     "expect": {
-      "machine": "arch"
+      "machine": "arch",
+      "foldReplies": null
     }
   },
   {
@@ -199,7 +207,8 @@
     "machine": null,
     "probe": {},
     "expect": {
-      "machine": "this machine"
+      "machine": "this machine",
+      "foldReplies": null
     }
   }
 ]

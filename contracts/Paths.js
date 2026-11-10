@@ -129,6 +129,10 @@ function resolve(env, machineSettings, probe) {
     reviews: place("reviews", join(b.cdir, "reviews")),
     // which features are used, a file per machine (usage/<machine>.json): counts of the app's own names, nothing typed
     usage: place("usage", join(b.state, "usage")),
+    // the fold reader's cached model replies, a folder per paper, each reply named by the hash of its question, model
+    // and effort (so two machines never write one file differently): read and written beside each machine's own,
+    // only when syncing; a cache, never moved when sync is turned on or off
+    foldReplies: shared ? join(shared, "fold-replies") : null,
     artifacts: typeof artifactsDir === "string" && artifactsDir.trim() ? join(expandHome(artifactsDir.trim(), b.home)) : place("artifacts", join(b.state, "artifacts")),
     extract: join(b.cdir, "extract.json"),
     runnerTasks: join(b.state, "tasks"),

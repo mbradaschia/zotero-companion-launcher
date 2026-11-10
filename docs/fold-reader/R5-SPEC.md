@@ -359,6 +359,11 @@ refused, an empty answer, invalid JSON after the repair, a timeout).
 - `force: true` (Fold again) skips reading the cache and writes the new replies over the old.
 - `only` limits the run to those sections (Finish folding, Try them again); everything else is unchanged.
 - When a run ends with every section folded, the replies no call of that run used are deleted.
+- (0.3.2) When syncing (`paths().foldReplies`, the sync folder there), each reply is also written to
+  `<foldReplies>/<libraryID>-<KEY>/<key>.json`, and a reply missing here is read from there (and kept here). The
+  plan counts both. That folder is only added to: never pruned, a file in it that doesn't read is left (Syncthing
+  may still be bringing it). A fold run first copies there any reply this machine folded earlier that it lacks
+  (`lib/fold-replies.mjs`).
 
 ### 4.8 Runner tests' fakes
 

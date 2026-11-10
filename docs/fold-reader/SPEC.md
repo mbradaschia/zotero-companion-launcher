@@ -228,7 +228,9 @@ kind, unit, from, to, quote, text, created, updated}]}`.
 **Where:** `<state>/fold-reader/<libraryID>-<KEY>/` with `doc.json` (the last doc fetched, so the reader opens
 without TextFold), `links.json` and `marks.json`, where `<state>` is `Paths.resolve(...).runnerState` (the app's
 state folder, `~/.local/state/oma-zotero/`). Written atomically (a temporary file in the same folder, then renamed).
-Never synced. Why here and not the sync folder (`contracts/SYNC-FORMAT.md`):
+Never synced. (Since runner 0.3.2 the model's replies under `replies/`, a cache, are also written to
+`<syncDir>/shared/fold-replies/<libraryID>-<KEY>/` when syncing, so another machine folds the paper without asking
+again; R5-SPEC 4.4. The doc, links and marks stay here.) Why here and not the sync folder (`contracts/SYNC-FORMAT.md`):
 
 1. A mark's anchor is a token index into one TextFold fold. TextFold runs per machine, and another machine's TextFold
    may have folded the same paper from another source (arXiv's HTML instead of the PDF) with other unit ids. A synced

@@ -29,6 +29,11 @@ both launchers must reproduce exactly (`contracts/tests/paths.test.js`).
 - **Synced** (under `<syncDir>/shared/` when a sync folder is set, else their usual place):
   `settings.json` (the shared settings), `pins.json`, `searches.json`, `todos.json`, `view.json`,
   `instructions.md`, `prompts/`, `taxonomies/`, `taxonomy.json`, `chats/`, `artifacts/`, `reviews/`.
+- **Shared cache** (only when a sync folder is set; never moved when sync is turned on or off):
+  `<syncDir>/shared/fold-replies/<libraryID>-<KEY>/<24 hex>.json`, the fold reader's model replies
+  (`foldReplies`). Each file is named by the hash of its question, model and effort, so two
+  machines that ask the same thing write the same file and nothing is merged. Each runner reads
+  its own copy first, then this one, and writes both; it prunes only its own, never this folder.
 - **Never synced:** the machine settings file, `extract.json`, the runner's `tasks/`, its state
   and caches (`prompt-versions.json`, `key-tests.json`, `models.json`), `sync-backups/`, and API
   keys (each machine's own secret store).
