@@ -11,13 +11,16 @@ import { share, watchOwner } from "../server.mjs";
 import { makeContext } from "../lib/context.mjs";
 import { makeHome, KEY } from "./helpers.mjs";
 
-function fake({ name = "mini.tail1234.ts.net.", served = false, owner = "Me@Example.com" } = {}) {
+function fake({ name = "mini.tail1234.ts.net.", served = false, owner = "Me@Example.com", broken = false } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "companion-ts-"));
   const conf = join(dir, "serve.json");
   const log = join(dir, "calls");
   if (served) writeFileSync(conf, JSON.stringify({ Web: { [name.replace(/\.$/, "") + ":8787"]: { Handlers: { "/": { Proxy: "http://127.0.0.1:8787" } } } } }));
   const cmd = join(dir, "tailscale");
+  // Like Tailscale.app's command: without TERM it isn't one (and the companion's environment has none), and says so on
+  // stdout, exiting 0.
   writeFileSync(cmd, `#!/bin/sh
+${broken ? 'echo "it broke" >&2; exit 1' : '[ -n "$TERM" ] || { echo "The Tailscale GUI failed to start"; exit 0; }'}
 echo "$*" >> "${log}"
 case "$1 $2" in
   "status --json") ${name ? `echo '{"Self":{"DNSName":"${name}","UserID":42},"User":{"42":{"LoginName":"${owner}"},"7":{"LoginName":"someone@else.com"}}}'` : "echo '{}'; exit 1"} ;;
@@ -37,6 +40,15 @@ test("tailscale: not there, not connected", () => {
   const s = tailscaleState(8787, off.env);
   assert.deepEqual([s.found, s.name, s.serving], [true, "", false]);
   assert.match(s.problem, /isn't connected/);
+  const failing = tailscaleState(8787, fake({ broken: true }).env);
+  assert.equal(failing.problem, "Tailscale's command didn't answer on this Mac: it broke");
+});
+
+test("tailscale: asked with TERM set, as Tailscale.app's command needs (the app's environment has none)", async () => {
+  const t = fake();
+  assert.equal(t.env.TERM, undefined);
+  assert.deepEqual([tailscaleState(8787, t.env).name, tailscaleState(8787, t.env).problem], ["mini.tail1234.ts.net", ""]);
+  assert.equal(await tailscaleOwner(t.env), "Me@Example.com");
 });
 
 test("tailscale: served on the companion's own port, once", () => {
