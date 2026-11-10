@@ -565,6 +565,14 @@ var FoldMake = (function () {
     blocks.forEach(function (b, bi) {
       if (front[bi]) return
       var head = headingOf(b, body, ctx, inRefs), ri = head === null ? runIn(b, early) : null
+      // (a caption's label on a line of its own, its title on the next in bold: AMR's "FIGURE 1" over "Theoretical
+      // Model of ..."; the title is the caption's, not a heading)
+      var last = items[items.length - 1]
+      if (head !== null && last && last.type === "unit" && last.kind === "caption" && last.labelOnly && last.flow === b.flow) {
+        last.words = joinTo(last.words, b.words)
+        last.labelOnly = false
+        return
+      }
       if (head !== null || ri) {
         flushRefs()
         var title = head !== null ? head : ri.title
@@ -598,6 +606,7 @@ var FoldMake = (function () {
       if (CAPTION_AT.test(first) || TABLE_AT.test(first)) {
         item.kind = "caption"
         item.label = captionLabel(first)
+        item.labelOnly = /^\s*(fig(?:ure)?\.?|scheme|chart|table|tab\.)\s*[A-Z]?\d+[a-z]?[.:]?\s*$/i.test(t)
       } else if (b.size <= body - 1 && FOOTMARK.test(t) && !blocks.slice(bi + 1).some(function (x) { return x.flow === b.flow && Math.abs(x.size - body) < 0.6 })) {
         item.kind = "footnote"
       } else if (b.words.length <= 6 && b.size < body - 0.5) {
