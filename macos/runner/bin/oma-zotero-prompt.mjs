@@ -110,6 +110,7 @@ import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
 import { checkQuotes, quoteCheckLine, groundingText as quoteSources } from "../lib/quotes.mjs";
 import { LIST_CHAT_SYSTEM, LIST_SHARE, listChatsDir, parseListInput, fitList, listContext } from "../lib/listchat.mjs";
+import { replyStore, sharedRepliesDir, shareEarlier } from "../lib/fold-replies.mjs";
 import { parseInput as parseFoldInput, planFold, runFold, repliesDir as foldRepliesDir, concurrencyFor as foldConcurrency, makeAsk as foldAsk, TIMEOUT_MS as FOLD_TIMEOUT_MS } from "../lib/fold.mjs";
 import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell, DRAFT_SYSTEM as COLUMN_DRAFT_SYSTEM, draftMessage as columnDraftMessage, parseColumnDraft } from "../lib/reviews.mjs";
 
@@ -516,6 +517,9 @@ async function foldCommand(flags) {
   } catch (e) { throw new Error("not JSON: " + e.message); }
   const input = parseFoldInput(raw);
   const dir = foldRepliesDir(STATE_DIR, input.paper);
+  // (when syncing, the replies go to the sync folder too: the other Mac folds this paper without asking)
+  const P = paths();
+  const store = replyStore(dir, sharedRepliesDir(P, input.paper));
   const settings = loadSettings();
   const ctx = providerCtx();
   const out = (o) => process.stdout.write(JSON.stringify(o) + "\n");
@@ -535,18 +539,8 @@ async function foldCommand(flags) {
   }
   const model = { spec: target.spec, name: (info && (info.name || info.displayName)) || target.model, provider: provider.name, kind: provider.kind,
     price: info ? { in: info.priceIn, out: info.priceOut } : null };
-  const file = (key) => join(dir, key + ".json");
-  const readCache = (key) => {
-    const f = file(key);
-    if (!existsSync(f)) return null;
-    try {
-      const rec = JSON.parse(readFileSync(f, "utf8"));
-      if (rec && typeof rec === "object" && rec.out && typeof rec.out === "object") return rec;
-    } catch { /* not a reply: asked again */ }
-    try { unlinkSync(f); } catch { /* gone */ }
-    return null;
-  };
-  if (flags.plan) return out(planFold(input, model, (key) => !!readCache(key)));
+  if (flags.plan) return out(planFold(input, model, store.has));
+  if (!P.readOnly) { try { shareEarlier(STATE_DIR, P.foldReplies); } catch { /* a cache */ } }
   const nSections = input.doc.sections.filter((s) => !input.only || input.only.includes(s.id)).length;
   const plural = (n, one, many) => n + " " + (n === 1 ? one : many);
   const title = input.doc.title.length > 60 ? input.doc.title.slice(0, 59) + "…" : input.doc.title;
@@ -565,11 +559,9 @@ async function foldCommand(flags) {
   const r = await runFold(input, {
     model,
     ask: foldAsk({ generate, costOf, settings, ctx, target, effort: input.effort, onFallback: (t) => log("fallback", { fold: true, note: t }) }),
-    readCache,
-    writeCache: (key, rec) => writeAtomic(file(key), JSON.stringify(rec)),
-    prune: (used) => {
-      try { for (const f of readdirSync(dir)) if (/^[0-9a-f]{24}\.json$/.test(f) && !used.has(f.slice(0, 24))) unlinkSync(join(dir, f)); } catch { /* none */ }
-    },
+    readCache: store.read,
+    writeCache: store.write,
+    prune: store.prune,
     emit: (e) => { if (e.type === "section") folded++; out(e); },
     task: (u) => { if (currentTask) updateTask(currentTask, u); },
     concurrency: foldConcurrency(provider.kind),

@@ -445,9 +445,136 @@ test("R5-24, R5-20: --plan with the fake model; with no provider on, a setup err
   assert.deepEqual(run.lines.map((l) => [l.type, l.kind || l.stopped]), [["stop", "setup"], ["done", "setup"]])
 })
 
-test("R5-44: the runner is 0.3.1 (0.3.0 brought fold) and its usage header lists fold; the licence is beside it", () => {
+// 0.3.2: the replies in the sync folder (lib/fold-replies.mjs)
+const replies = () => import("../../runner/lib/fold-replies.mjs")
+const plainWrite = (f, text) => { fs.mkdirSync(path.dirname(f), { recursive: true }); fs.writeFileSync(f, text) }
+const REC = (n) => ({ format: "zl-fold-reply", version: 1, key: "k" + n, spec: "lab:m1", at: "2026-11-10T10:00:00.000Z", costUsd: 0.001, out: { section: { takeaway: "T" + n } } })
+const hex = (n) => String(n).repeat(24).slice(0, 24)
+
+test("0.3.2: the shared folder: only when syncing and the folder is there; a paper outside the pattern refused", async () => {
+  const R = await replies()
+  assert.equal(R.sharedRepliesDir({ foldReplies: null, readOnly: false }, "1:ABCD1234"), null)
+  assert.equal(R.sharedRepliesDir({ foldReplies: "/s/shared/fold-replies", readOnly: true }, "1:ABCD1234"), null)
+  assert.equal(R.sharedRepliesDir({ foldReplies: "/s/shared/fold-replies", readOnly: false }, "1:ABCD1234"), "/s/shared/fold-replies/1-ABCD1234")
+  assert.throws(() => R.sharedRepliesDir({ foldReplies: "/s", readOnly: false }, "1:../x"), /paper must be/)
+})
+
+test("0.3.2: the reply store: written to both; read from either and filled in; has changes nothing; prune and damage only touch this machine's", async () => {
+  const R = await replies()
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "fold-replies-"))
+  const local = path.join(tmp, "a"), shared = path.join(tmp, "s")
+  const a = R.replyStore(local, shared, plainWrite)
+  a.write(hex(1), REC(1))
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(shared, hex(1) + ".json"), "utf8")), REC(1), "written to the sync folder too")
+  // the other machine: nothing of its own, the shared reply read and kept beside its own
+  const bLocal = path.join(tmp, "b")
+  const b = R.replyStore(bLocal, shared, plainWrite)
+  assert.equal(b.has(hex(1)), true)
+  assert.ok(!fs.existsSync(path.join(bLocal, hex(1) + ".json")), "the plan's has() writes nothing")
+  assert.deepEqual(b.read(hex(1)), REC(1))
+  assert.ok(fs.existsSync(path.join(bLocal, hex(1) + ".json")), "read: kept on this machine")
+  // a reply this machine had before syncing goes to the shared folder when read
+  plainWrite(path.join(local, hex(2) + ".json"), JSON.stringify(REC(2)))
+  assert.deepEqual(a.read(hex(2)), REC(2))
+  assert.ok(fs.existsSync(path.join(shared, hex(2) + ".json")))
+  // a shared file that doesn't read (half synced) is asked again and left alone; a local one is deleted
+  fs.writeFileSync(path.join(shared, hex(3) + ".json"), "{ half")
+  assert.equal(b.read(hex(3)), null)
+  assert.ok(fs.existsSync(path.join(shared, hex(3) + ".json")), "the shared file is left")
+  fs.writeFileSync(path.join(bLocal, hex(4) + ".json"), "{ half")
+  assert.equal(b.read(hex(4)), null)
+  assert.ok(!fs.existsSync(path.join(bLocal, hex(4) + ".json")), "this machine's damaged file is deleted")
+  // prune: this machine's folder only
+  b.prune(new Set())
+  assert.deepEqual(fs.readdirSync(bLocal), [])
+  assert.deepEqual(fs.readdirSync(shared).sort(), [hex(1), hex(2), hex(3)].map((h) => h + ".json"))
+  // not syncing: this machine's folder alone, as before
+  const solo = R.replyStore(path.join(tmp, "solo"), null, plainWrite)
+  solo.write(hex(5), REC(5))
+  assert.deepEqual(solo.read(hex(5)), REC(5))
+  assert.equal(solo.has(hex(6)), false)
+  // a shared folder that refuses writes: the reply is still kept here
+  const refusing = R.replyStore(path.join(tmp, "c"), shared, (f, t) => { if (f.startsWith(shared)) throw new Error("sync folder missing"); plainWrite(f, t) })
+  refusing.write(hex(7), REC(7))
+  assert.ok(fs.existsSync(path.join(tmp, "c", hex(7) + ".json")))
+})
+
+test("0.3.2: replies folded before syncing are copied to the shared folder once, never over one already there", async () => {
+  const R = await replies()
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "fold-earlier-"))
+  const state = path.join(tmp, "state"), shared = path.join(tmp, "s")
+  plainWrite(path.join(state, "fold-reader", "1-ABCD1234", "replies", hex(1) + ".json"), JSON.stringify(REC(1)))
+  plainWrite(path.join(state, "fold-reader", "1-ABCD1234", "replies", hex(2) + ".json"), "{ half")
+  plainWrite(path.join(state, "fold-reader", "2-WXYZ9876", "replies", hex(3) + ".json"), JSON.stringify(REC(3)))
+  plainWrite(path.join(state, "fold-reader", "2-WXYZ9876", "replies", hex(4) + ".json"), JSON.stringify(REC(4)))
+  plainWrite(path.join(shared, "2-WXYZ9876", hex(4) + ".json"), JSON.stringify(REC(9)))
+  plainWrite(path.join(state, "fold-reader", "not-a-paper", "replies", hex(5) + ".json"), JSON.stringify(REC(5)))
+  assert.equal(R.shareEarlier(state, null, plainWrite), 0)
+  assert.equal(R.shareEarlier(state, shared, plainWrite), 2)
+  assert.ok(fs.existsSync(path.join(shared, "1-ABCD1234", hex(1) + ".json")))
+  assert.ok(!fs.existsSync(path.join(shared, "1-ABCD1234", hex(2) + ".json")), "a damaged reply stays here")
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(shared, "2-WXYZ9876", hex(4) + ".json"), "utf8")), REC(9), "never over one there")
+  assert.ok(!fs.existsSync(path.join(shared, "not-a-paper")))
+  assert.equal(R.shareEarlier(state, shared, plainWrite), 0, "once")
+})
+
+// Two machines on one sync folder: the settings that travel in the shared file, the sync folder in each machine's.
+async function syncedMachine(model, syncDir) {
+  const { tmp, env } = await envWith(model)
+  const { settingsFile, paths } = await import("../../runner/lib/paths.mjs")
+  const sf = settingsFile(env)
+  const settings = JSON.parse(fs.readFileSync(sf, "utf8"))
+  fs.writeFileSync(sf, JSON.stringify(Object.assign({}, settings, { general: { syncDir } })))
+  const p = paths(env)
+  assert.equal(p.readOnly, false, "the marker is there")
+  fs.writeFileSync(p.sharedSettings, JSON.stringify(settings))
+  return { tmp, env, paths: p }
+}
+
+test("0.3.2: fold end to end on two machines: the second asks nothing and costs nothing; the first's earlier folds shared", async () => {
+  const model = await fakeModel(0)
+  const syncDir = fs.mkdtempSync(path.join(os.tmpdir(), "fold-sync-"))
+  plainWrite(path.join(syncDir, "shared", "oma-zotero-sync.json"), JSON.stringify({ version: 1, created: "2026-11-10", by: "A" }))
+  const input = JSON.stringify(rawInput())
+  try {
+    // machine A folded before syncing: its replies are only its own
+    const { env: soloEnv, paths: soloPaths } = await envWith(model)
+    const first = spawnRunner(["fold", "--quiet"], soloEnv, input)
+    assert.equal((await first.done).code, 0, first.err)
+    assert.equal(model.asked.length, 5)
+    // ...then A joins the sync folder (same state folder) and folds one section again: all five are shared
+    const { settingsFile, paths } = await import("../../runner/lib/paths.mjs")
+    const settings = JSON.parse(fs.readFileSync(settingsFile(soloEnv), "utf8"))
+    fs.writeFileSync(settingsFile(soloEnv), JSON.stringify(Object.assign({}, settings, { general: { syncDir } })))
+    fs.writeFileSync(paths(soloEnv).sharedSettings, JSON.stringify(settings))
+    const joined = spawnRunner(["fold", "--quiet"], soloEnv, JSON.stringify(Object.assign(rawInput(), { only: ["A1"] })))
+    assert.equal((await joined.done).code, 0, joined.err)
+    assert.equal(model.asked.length, 5, "A asked nothing more")
+    const sharedDir = path.join(syncDir, "shared", "fold-replies", "1-ABCD1234")
+    const mine = fs.readdirSync(path.join(soloPaths.runnerState, "fold-reader", "1-ABCD1234", "replies")).filter((f) => /^[0-9a-f]{24}\.json$/.test(f)).sort()
+    assert.equal(mine.length, 5)
+    assert.deepEqual(fs.readdirSync(sharedDir).sort(), mine, "the earlier folds are in the sync folder")
+    // machine B: its own state folder, the same sync folder
+    const B = await syncedMachine(model, syncDir)
+    const plan = spawnRunner(["fold", "--plan", "--quiet"], B.env, input)
+    assert.equal((await plan.done).code, 0, plan.err)
+    assert.deepEqual([plan.lines[0].calls, plan.lines[0].cached], [5, 5], "the plan counts the shared replies")
+    const run = spawnRunner(["fold", "--quiet"], B.env, input)
+    assert.equal((await run.done).code, 0, run.err)
+    const done = run.lines.find((l) => l.type === "done")
+    assert.deepEqual([done.folded, done.failed, done.costUsd], [5, 0, 0])
+    assert.equal(model.asked.length, 5, "B asked nothing")
+    assert.deepEqual(fs.readdirSync(path.join(B.paths.runnerState, "fold-reader", "1-ABCD1234", "replies")).filter((f) => f.endsWith(".json")).sort(), mine, "kept on B too")
+    // only replies under fold-replies/ (and the settings and marker set up here) in the sync folder; no temporary file left
+    for (const f of listFiles(syncDir)) assert.ok(f.startsWith(sharedDir) || /oma-zotero-sync\.json$|settings\.json$/.test(f), "wrote " + f)
+  } finally {
+    model.server.close()
+  }
+})
+
+test("R5-44: the runner is 0.3.2 (0.3.0 brought fold) and its usage header lists fold; the licence is beside it", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "../../runner/package.json"), "utf8"))
-  assert.equal(pkg.version, "0.3.1")
+  assert.equal(pkg.version, "0.3.2")
   assert.match(fs.readFileSync(RUNNER, "utf8"), /^\/\/ {3}oma-zotero-prompt fold \[--plan\] --quiet/m)
   const lic = fs.readFileSync(path.join(__dirname, "../../runner/TEXTFOLD-LICENSE.txt"), "utf8")
   assert.equal(lic, fs.readFileSync(path.join(__dirname, "../../ZoteroLauncher/Reader/TEXTFOLD-LICENSE.txt"), "utf8"))
