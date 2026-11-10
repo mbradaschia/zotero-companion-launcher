@@ -193,13 +193,54 @@ final class FoldReaderTests: XCTestCase {
 
     // R5-SPEC 3.1 (extractor 2): font names that say bold or italic, and the PDF's own outline in order with levels
     // and pages
+    // Extractor 3: the fonts the page's content stream shows its text in give each word its weight, as PDFKit does
+    // where it can (a PDF whose fonts PDFKit reads only as plain Helvetica has nothing else to tell its headings by).
+    func testThePagesOwnFontsGiveEachWordItsWeight() throws {
+        let paper = FixturePaper()
+        let url = try paper.write(in: home)
+        let page = try XCTUnwrap(PDFDocument(url: url)?.page(at: 0))
+        let shown = FoldPDF.shown(on: page)
+        XCTAssertFalse(shown.isEmpty, "the page's text is shown somewhere")
+        XCTAssertTrue(shown.contains { $0.bold }, "Helvetica-Bold says bold")
+        let index = FoldPDF.Shown.index(shown)
+        // (each word PDFKit gives, without its fonts, against the word the fixture drew there)
+        let drawn = paper.lines.filter { $0.page == 0 }.flatMap(\.words)
+        let box = page.bounds(for: .cropBox)
+        var bold = 0, found = 0, plain = 0, wrong = 0
+        for line in FoldPDF.pageLines(page) {
+            for w in FoldPDF.lineWords(line, on: page) where !w.rect.isNull {
+                let b = FoldPDF.normalize(w.rect, in: box, rotation: FoldPDF.rotation(page))
+                guard let want = drawn.first(where: { $0.text == w.text && abs(($0.box[0] + $0.box[2]) / 2 - (b[0] + b[2]) / 2) < 0.01 &&
+                    abs(($0.box[1] + $0.box[3]) / 2 - (b[1] + b[3]) / 2) < 0.01 }) else { continue }
+                let again = index.restyle(FoldPDF.Word(text: w.text, rect: w.rect))
+                let says = again.chars.filter { $0.bold }.count * 2 > again.chars.count
+                if want.bold { bold += 1; if says { found += 1 } } else { plain += 1; if says { wrong += 1 } }
+                XCTAssertEqual(again.chars.first?.family, "Helvetica", w.text + ": its font's family")
+            }
+        }
+        XCTAssertGreaterThan(bold, 0, "the fixture's bold words, found on the page")
+        XCTAssertGreaterThan(plain, 100)
+        XCTAssertEqual(found, bold, "\(found) of \(bold) bold words found by their fonts")
+        XCTAssertLessThanOrEqual(wrong, 1, "\(wrong) of \(plain) plain words read as bold")
+    }
+
     func testFontNamesSayBoldOrItalicAndTheOutlineComesInOrder() throws {
         for (name, bold, italic) in [("NimbusRomNo9L-Medi", true, false), ("NimbusRomNo9L-ReguItal", false, true), ("NimbusRomNo9L-MediItal", true, true),
                                      ("Helvetica-Medium", true, false), ("MinionPro-Bold", true, false), ("Intermedia-Regular", false, false),
-                                     ("DSDigital", false, false), ("Times-Italic", false, true), ("NimbusRomNo9L-Regu", false, false)] {
+                                     ("DSDigital", false, false), ("Times-Italic", false, true), ("NimbusRomNo9L-Regu", false, false),
+                                     ("AdvOT5af5756d.B", true, false), ("AdvOT87d8d5de.I", false, true), ("AdvOTff5eba6d.BI", true, true),
+                                     ("AdvOTb44e3105", false, false), ("Memphis-Bold", true, false), ("AdvPSSym", false, false)] {
             let t = FoldPDF.traits(named: name)
             XCTAssertEqual(t.bold, bold, name + ": bold")
             XCTAssertEqual(t.italic, italic, name + ": italic")
+        }
+        // (extractor 3: a BaseFont's subset tag and a composite font's encoding aren't its name)
+        XCTAssertEqual(FoldPDF.baseName("ABCDEF+AdvOT5af5756d.B"), "AdvOT5af5756d.B")
+        XCTAssertEqual(FoldPDF.baseName("QWERTY+Minion-Bold-Identity-H"), "Minion-Bold")
+        XCTAssertEqual(FoldPDF.baseName("Helvetica"), "Helvetica")
+        for (name, family) in [("MinionPro-Bold", "MinionPro"), ("AdvOT5af5756d.B", "AdvOT5af5756d"), ("AdvOTb44e3105", "AdvOTb44e3105"),
+                               ("Times-Roman", "Times"), ("Helvetica", "Helvetica")] {
+            XCTAssertEqual(FoldPDF.family(name), family, name)
         }
         let url = try FixturePaper().write(in: home)
         XCTAssertEqual(FoldPDF(url: url).outlineNow().count, 0, "no outline: none")
@@ -299,7 +340,7 @@ final class FoldReaderTests: XCTestCase {
         let pages = pdf.linesNow()
         XCTAssertEqual(FoldMaker.language(of: pages), "en")
         let maker = try FoldMaker()
-        XCTAssertEqual(maker.extractor, 2)
+        XCTAssertEqual(maker.extractor, 3)
         let made = try maker.read(pages, meta: paperMeta(url, pages: info.pages, sizes: info.sizes).merging(["lang": "en"]) { $1 })
         XCTAssertNil(made.problem)
         let doc = try XCTUnwrap(made.doc)
@@ -365,7 +406,7 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-07T08:00:00Z", extractor: 1, sha256: same), .touched, "touched: the same bytes")
         XCTAssertEqual(asked, 1)
         XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes + 10, modified: "2026-11-07T08:00:00Z", extractor: 1) { String(repeating: "f", count: 64) }, .changed, "another file")
-        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 3, sha256: same), .stale, "an older reading, nothing folded")
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 4, sha256: same), .stale, "an older reading, nothing folded")
         var folded = doc
         var sections = doc["sections"] as? [[String: Any]] ?? []
         sections[1]["made"] = "ai"
