@@ -20,8 +20,14 @@ export function findTailscale(env = process.env) {
   return "";
 }
 
+// Tailscale.app's command acts as one only with TERM set: without it (the app starts the companion with a bare
+// environment) it tries to open its window, says "The Tailscale GUI failed to start" and answers nothing.
+export function cliEnv(env) {
+  return env.TERM ? env : { ...env, TERM: "dumb" };
+}
+
 function run(cmd, args, env) {
-  const r = spawnSync(cmd, args, { encoding: "utf8", timeout: 15000, env });
+  const r = spawnSync(cmd, args, { encoding: "utf8", timeout: 15000, env: cliEnv(env) });
   return { ok: r.status === 0, out: r.stdout || "", err: String(r.stderr || (r.error && r.error.message) || "").trim() };
 }
 
@@ -40,7 +46,7 @@ export function ownerOf(status) {
 export function tailscaleOwner(env = process.env) {
   const cmd = findTailscale(env);
   if (!cmd) return Promise.resolve("");
-  return new Promise((resolve) => execFile(cmd, ["status", "--json"], { encoding: "utf8", timeout: 15000, env, maxBuffer: 8 * 1024 * 1024 },
+  return new Promise((resolve) => execFile(cmd, ["status", "--json"], { encoding: "utf8", timeout: 15000, env: cliEnv(env), maxBuffer: 8 * 1024 * 1024 },
     (_e, out) => resolve(ownerOf(out || ""))));
 }
 
@@ -52,7 +58,16 @@ export function tailscaleState(port, env = process.env) {
   let name = "";
   try { name = String(JSON.parse(s.out).Self.DNSName || "").replace(/\.$/, ""); } catch { /* not running */ }
   const owner = ownerOf(s.out);
-  if (!name) return { found: true, name: "", owner: "", serving: false, problem: "Tailscale isn't connected on this Mac" };
+  if (!name) {
+    // (no JSON at all: the command itself failed, which says nothing about the connection)
+    let answered = true;
+    try { JSON.parse(s.out); } catch { answered = false; }
+    // (Tailscale.app's says why on stdout, exiting 0)
+    const said = (s.err || s.out).trim().split("\n").pop();
+    const problem = answered || !said ? "Tailscale isn't connected on this Mac"
+      : "Tailscale's command didn't answer on this Mac: " + said;
+    return { found: true, name: "", owner: "", serving: false, problem };
+  }
   const v = run(cmd, ["serve", "status", "--json"], env);
   let serving = false;
   try {

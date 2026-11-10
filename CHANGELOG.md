@@ -7,14 +7,25 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.41`)
 
 - **The reader finds the sections of papers whose PDF hides its bold.** Some publishers (the Academy of Management's
   journals among them) embed their fonts under made-up names, and macOS's PDF engine then reads every character as
   plain Helvetica, so the reader saw no heading but References. It now reads bold and italic from the PDF's own font
-  names, keeps a section title that wraps to a second centred line whole, nests bold title-case sub-sections under
-  bold capitals sections, and no longer takes a turned table's label for a heading. Papers you read before are read
-  again the next time you open them, unless you already folded them with AI (then *Fold again*).
+  names and font families, keeps a section title that wraps to a second centred line whole, nests bold title-case
+  sub-sections under bold capitals sections, and keeps figure and table captions, a figure's labels and the bold
+  book titles in the references out of the headings. On the Academy of Management Review paper that showed it, it
+  finds 21 of 35 headings, up from 1, all nested right (its 14 headings run into their paragraphs still read as
+  text). On the six test papers it still finds 157 of 158, nested right. Papers you read before are read again the
+  next time you open them, unless you already folded them with AI (then *Fold again*).
+
+### The Mac app (`macos-v0.4.40`)
+
+- **The reading companion finds Tailscale again, and your devices get in with the address alone.** After a Tailscale
+  update, Tailscale.app's command answers only with `TERM` set, and the app starts the companion without it: the
+  command said "The Tailscale GUI failed to start", so *Show the iPad Link…* said Tailscale wasn't connected and the
+  companion, not knowing who you are, asked your own iPad for a key. It's now asked with `TERM` set; and when the
+  command itself fails, the menu says what it said instead of "not connected".
 
 ### The Mac app (`macos-v0.4.39`)
 
