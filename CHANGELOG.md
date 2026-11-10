@@ -7,6 +7,14 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (`macos-v0.4.40`)
+
+- **The reading companion finds Tailscale again, and your devices get in with the address alone.** After a Tailscale
+  update, Tailscale.app's command answers only with `TERM` set, and the app starts the companion without it: the
+  command said "The Tailscale GUI failed to start", so *Show the iPad Link…* said Tailscale wasn't connected and the
+  companion, not knowing who you are, asked your own iPad for a key. It's now asked with `TERM` set; and when the
+  command itself fails, the menu says what it said instead of "not connected".
+
 ### The Mac app (`macos-v0.4.39`)
 
 - **The reader finds a paper's sections and sub-sections more often.** It uses the PDF's own outline (its bookmarks)
