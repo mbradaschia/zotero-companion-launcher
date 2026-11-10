@@ -7,6 +7,15 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### The Mac app (next)
+
+- **The reader finds the sections of papers whose PDF hides its bold.** Some publishers (the Academy of Management's
+  journals among them) embed their fonts under made-up names, and macOS's PDF engine then reads every character as
+  plain Helvetica, so the reader saw no heading but References. It now reads bold and italic from the PDF's own font
+  names, keeps a section title that wraps to a second centred line whole, nests bold title-case sub-sections under
+  bold capitals sections, and no longer takes a turned table's label for a heading. Papers you read before are read
+  again the next time you open them, unless you already folded them with AI (then *Fold again*).
+
 ### The Mac app (`macos-v0.4.39`)
 
 - **The reader finds a paper's sections and sub-sections more often.** It uses the PDF's own outline (its bookmarks)

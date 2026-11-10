@@ -382,10 +382,17 @@ final class FoldPDF: @unchecked Sendable {
         var out: [[String: Any]] = []
         var count = 0
         var cut: [(run: [(word: Word, box: [Double])], high: Double, across: Bool)] = []
-        for line in pageLines(page) {
+        var lined = pageLines(page).map { lineWords($0, on: page, styled: true) }
+        // (a page PDFKit gives no bold and no italic at all: its words take the weight and slant of the fonts the page
+        // shows them in, when those fonts' own names say any; extractor 3)
+        if !lined.contains(where: { $0.contains { $0.chars.contains { $0.bold || $0.italic } } }) {
+            let shown = Shown.index(Self.shown(on: page))
+            if !shown.isEmpty { lined = lined.map { $0.map { shown.restyle($0) } } }
+        }
+        for found in lined {
             guard count < maxWords else { break }
             var words: [(word: Word, box: [Double])] = []
-            for word in lineWords(line, on: page, styled: true) {
+            for word in found {
                 guard count < maxWords, !word.rect.isNull, !word.text.isEmpty else { continue }
                 words.append((word, normalize(word.rect, in: box, rotation: rot)))
                 count += 1
@@ -510,13 +517,277 @@ final class FoldPDF: @unchecked Sendable {
     }
 
     // What a font's name says (R5-SPEC 3.1): Times' bold face as Nimbus names it, "NimbusRomNo9L-Medi", and other
-    // Medium weights read as bold; its italic, "NimbusRomNo9L-ReguItal", as italic.
+    // Medium weights read as bold; its italic, "NimbusRomNo9L-ReguItal", as italic; a made-up name's suffix as Arbortext
+    // sets it ("AdvOT5af5756d.B", ".I", ".BI").
     static func traits(named name: String) -> (bold: Bool, italic: Bool) {
         let bold = name.range(of: "bold|black|heavy|semibold|demi", options: [.regularExpression, .caseInsensitive]) != nil ||
-            name.range(of: "(^|[-_ ,+])[Mm](edi|EDI)(um|UM)?(?![a-z])", options: .regularExpression) != nil
+            name.range(of: "(^|[-_ ,+])[Mm](edi|EDI)(um|UM)?(?![a-z])", options: .regularExpression) != nil ||
+            name.range(of: "\\.BI?$", options: .regularExpression) != nil
         let italic = name.range(of: "italic|oblique", options: [.regularExpression, .caseInsensitive]) != nil ||
-            name.range(of: "Ital(?![a-z])", options: .regularExpression) != nil
+            name.range(of: "Ital(?![a-z])", options: .regularExpression) != nil ||
+            name.range(of: "\\.B?I$", options: .regularExpression) != nil
         return (bold, italic)
+    }
+
+    // A font's BaseFont without its subset's tag ("ABCDEF+") or a composite font's encoding ("-Identity-H").
+    static func baseName(_ name: String) -> String {
+        name.replacingOccurrences(of: "^[A-Z]{6}\\+", with: "", options: .regularExpression)
+            .replacingOccurrences(of: "-Identity-[HV]$", with: "", options: .regularExpression)
+    }
+
+    // ---- the fonts the page's text is shown in (extractor 3)
+
+    // Some publishers embed their faces under made-up names, the weight only a suffix of the name ("AdvOT5af5756d.B"),
+    // and PDFKit then gives every character as plain Helvetica, no bold, no italic: every heading reads as body text.
+    // The page's content stream still says which font each piece of text is shown in and where: each text-showing
+    // operator's box (from its font's widths, the text matrix and the CTM), in page points, with what its font's name
+    // says. Text in a form XObject is not read; a Type 3 font's text is passed over.
+    struct Shown {
+        let rect: CGRect
+        let bold: Bool
+        let italic: Bool
+
+        // The boxes by 10-point bands of height, for a word's lookup.
+        struct Index {
+            var bands: [Int: [Shown]] = [:]
+            var isEmpty: Bool { bands.isEmpty }
+
+            // A word with the weight and slant of the text shown where its middle stands (the smallest box there),
+            // added to what PDFKit gave its characters.
+            func restyle(_ word: Word) -> Word {
+                guard !word.rect.isNull else { return word }
+                let mid = CGPoint(x: word.rect.midX, y: word.rect.midY)
+                let at = (bands[Int((mid.y / 10).rounded(.down))] ?? []).filter { $0.rect.insetBy(dx: -0.5, dy: -0.5).contains(mid) }
+                guard let s = at.min(by: { $0.rect.width * $0.rect.height < $1.rect.width * $1.rect.height }), s.bold || s.italic else { return word }
+                var w = word
+                if w.chars.isEmpty { w.chars = Array(repeating: CharStyle(), count: max(1, (word.text as NSString).length)) }
+                for k in w.chars.indices {
+                    w.chars[k].bold = w.chars[k].bold || s.bold
+                    w.chars[k].italic = w.chars[k].italic || s.italic
+                }
+                return w
+            }
+        }
+
+        // An index of the boxes; empty when no font of the page's says bold or italic.
+        static func index(_ shown: [Shown]) -> Index {
+            var i = Index()
+            guard shown.contains(where: { $0.bold || $0.italic }) else { return i }
+            for s in shown where s.rect.width > 0 && s.rect.height > 0 && s.rect.height < 400 {
+                for b in Int((s.rect.minY / 10).rounded(.down))...Int((s.rect.maxY / 10).rounded(.down)) { i.bands[b, default: []].append(s) }
+            }
+            return i
+        }
+    }
+
+    final class ShowScan {
+        struct Font {
+            var bold = false
+            var italic = false
+            var twoByte = false
+            var type3 = false
+            var first = 0
+            var widths: [Double] = []
+            var missing = 500.0
+        }
+        struct State {
+            var ctm = CGAffineTransform.identity
+            var font = Font()
+            var size = 0.0
+            var tc = 0.0
+            var tw = 0.0
+            var th = 1.0
+            var tl = 0.0
+        }
+        var stream: CGPDFContentStreamRef?
+        var gs = State()
+        var saved: [State] = []
+        var tm = CGAffineTransform.identity
+        var tlm = CGAffineTransform.identity
+        var fonts: [String: Font] = [:]
+        var out: [Shown] = []
+
+        static func of(_ info: UnsafeMutableRawPointer?) -> ShowScan? {
+            info.map { Unmanaged<ShowScan>.fromOpaque($0).takeUnretainedValue() }
+        }
+        static func num(_ s: CGPDFScannerRef) -> Double {
+            var v: CGPDFReal = 0
+            return CGPDFScannerPopNumber(s, &v) ? Double(v) : 0
+        }
+        static func matrix(_ s: CGPDFScannerRef) -> CGAffineTransform {
+            let f = num(s), e = num(s), d = num(s), c = num(s), b = num(s), a = num(s)
+            return CGAffineTransform(a: a, b: b, c: c, d: d, tx: e, ty: f)
+        }
+        static func bytes(_ str: CGPDFStringRef) -> [UInt8] {
+            guard let p = CGPDFStringGetBytePtr(str) else { return [] }
+            return Array(UnsafeBufferPointer(start: p, count: CGPDFStringGetLength(str)))
+        }
+
+        func font(named name: String) -> Font {
+            if let f = fonts[name] { return f }
+            var font = Font()
+            var dict: CGPDFDictionaryRef?
+            if let cs = stream, let obj = CGPDFContentStreamGetResource(cs, "Font", name), CGPDFObjectGetValue(obj, .dictionary, &dict), let d = dict {
+                var base: UnsafePointer<CChar>?
+                if CGPDFDictionaryGetName(d, "BaseFont", &base), let b = base {
+                    let t = FoldPDF.traits(named: FoldPDF.baseName(String(cString: b)))
+                    font.bold = t.bold
+                    font.italic = t.italic
+                }
+                var sub: UnsafePointer<CChar>?
+                let subtype = CGPDFDictionaryGetName(d, "Subtype", &sub) && sub != nil ? String(cString: sub!) : ""
+                font.type3 = subtype == "Type3"
+                if subtype == "Type0" {
+                    font.twoByte = true
+                    font.missing = 1000
+                    var kids: CGPDFArrayRef?
+                    var kid: CGPDFDictionaryRef?
+                    var dw: CGPDFReal = 0
+                    if CGPDFDictionaryGetArray(d, "DescendantFonts", &kids), let k = kids, CGPDFArrayGetDictionary(k, 0, &kid), let kd = kid,
+                       CGPDFDictionaryGetNumber(kd, "DW", &dw), dw > 0 { font.missing = Double(dw) }
+                } else {
+                    var desc: CGPDFDictionaryRef?
+                    var mw: CGPDFReal = 0
+                    if CGPDFDictionaryGetDictionary(d, "FontDescriptor", &desc), let fd = desc, CGPDFDictionaryGetNumber(fd, "MissingWidth", &mw), mw > 0 {
+                        font.missing = Double(mw)
+                    }
+                    var first: CGPDFInteger = 0
+                    if CGPDFDictionaryGetInteger(d, "FirstChar", &first) { font.first = Int(first) }
+                    var arr: CGPDFArrayRef?
+                    if CGPDFDictionaryGetArray(d, "Widths", &arr), let a = arr {
+                        for i in 0..<CGPDFArrayGetCount(a) {
+                            var v: CGPDFReal = 0
+                            font.widths.append(CGPDFArrayGetNumber(a, i, &v) ? Double(v) : font.missing)
+                        }
+                    }
+                }
+            }
+            fonts[name] = font
+            return font
+        }
+
+        // A text-showing operator: its strings and adjustments ([TJ]'s numbers), the text matrix moved past them, and
+        // their box kept.
+        func show(_ parts: [(bytes: [UInt8], adjust: Double)]) {
+            let f = gs.font, size = gs.size
+            var x = 0.0
+            for p in parts {
+                x -= p.adjust / 1000 * size * gs.th
+                var i = 0
+                while i < p.bytes.count {
+                    var code = Int(p.bytes[i]), n = 1
+                    if f.twoByte, i + 1 < p.bytes.count { code = code << 8 | Int(p.bytes[i + 1]); n = 2 }
+                    let k = code - f.first
+                    let w = !f.twoByte && k >= 0 && k < f.widths.count ? f.widths[k] : f.missing
+                    x += (w / 1000 * size + gs.tc + (n == 1 && code == 32 ? gs.tw : 0)) * gs.th
+                    i += n
+                }
+            }
+            let start = tm
+            tm = CGAffineTransform(translationX: x, y: 0).concatenating(tm)
+            guard !f.type3, x != 0, size != 0 else { return }
+            let box = CGRect(x: min(0, x), y: -0.2 * abs(size), width: abs(x), height: abs(size)).applying(start.concatenating(gs.ctm))
+            if box.width.isFinite, box.height.isFinite { out.append(Shown(rect: box, bold: f.bold, italic: f.italic)) }
+        }
+        func nextLine() {
+            tlm = CGAffineTransform(translationX: 0, y: -gs.tl).concatenating(tlm)
+            tm = tlm
+        }
+    }
+
+    // The page's text-showing operators' boxes, in page points, with what their fonts' names say; [] when the page has
+    // no content stream.
+    static func shown(on page: PDFPage) -> [Shown] {
+        guard let ref = page.pageRef, let table = CGPDFOperatorTableCreate() else { return [] }
+        let scan = ShowScan()
+        let cs = CGPDFContentStreamCreateWithPage(ref)
+        scan.stream = cs
+        CGPDFOperatorTableSetCallback(table, "q") { _, info in
+            guard let s = ShowScan.of(info) else { return }
+            s.saved.append(s.gs)
+        }
+        CGPDFOperatorTableSetCallback(table, "Q") { _, info in
+            guard let s = ShowScan.of(info), let g = s.saved.popLast() else { return }
+            s.gs = g
+        }
+        CGPDFOperatorTableSetCallback(table, "cm") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            s.gs.ctm = ShowScan.matrix(sc).concatenating(s.gs.ctm)
+        }
+        CGPDFOperatorTableSetCallback(table, "BT") { _, info in
+            guard let s = ShowScan.of(info) else { return }
+            s.tm = .identity
+            s.tlm = .identity
+        }
+        CGPDFOperatorTableSetCallback(table, "Tf") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            s.gs.size = ShowScan.num(sc)
+            var name: UnsafePointer<CChar>?
+            if CGPDFScannerPopName(sc, &name), let n = name { s.gs.font = s.font(named: String(cString: n)) }
+        }
+        CGPDFOperatorTableSetCallback(table, "Tc") { sc, info in ShowScan.of(info)?.gs.tc = ShowScan.num(sc) }
+        CGPDFOperatorTableSetCallback(table, "Tw") { sc, info in ShowScan.of(info)?.gs.tw = ShowScan.num(sc) }
+        CGPDFOperatorTableSetCallback(table, "Tz") { sc, info in ShowScan.of(info)?.gs.th = ShowScan.num(sc) / 100 }
+        CGPDFOperatorTableSetCallback(table, "TL") { sc, info in ShowScan.of(info)?.gs.tl = ShowScan.num(sc) }
+        CGPDFOperatorTableSetCallback(table, "Td") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            let ty = ShowScan.num(sc), tx = ShowScan.num(sc)
+            s.tlm = CGAffineTransform(translationX: tx, y: ty).concatenating(s.tlm)
+            s.tm = s.tlm
+        }
+        CGPDFOperatorTableSetCallback(table, "TD") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            let ty = ShowScan.num(sc), tx = ShowScan.num(sc)
+            s.gs.tl = -ty
+            s.tlm = CGAffineTransform(translationX: tx, y: ty).concatenating(s.tlm)
+            s.tm = s.tlm
+        }
+        CGPDFOperatorTableSetCallback(table, "Tm") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            s.tlm = ShowScan.matrix(sc)
+            s.tm = s.tlm
+        }
+        CGPDFOperatorTableSetCallback(table, "T*") { _, info in ShowScan.of(info)?.nextLine() }
+        CGPDFOperatorTableSetCallback(table, "Tj") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            var str: CGPDFStringRef?
+            if CGPDFScannerPopString(sc, &str), let t = str { s.show([(ShowScan.bytes(t), 0)]) }
+        }
+        CGPDFOperatorTableSetCallback(table, "'") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            s.nextLine()
+            var str: CGPDFStringRef?
+            if CGPDFScannerPopString(sc, &str), let t = str { s.show([(ShowScan.bytes(t), 0)]) }
+        }
+        CGPDFOperatorTableSetCallback(table, "\"") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            var str: CGPDFStringRef?
+            let ok = CGPDFScannerPopString(sc, &str)
+            s.gs.tc = ShowScan.num(sc)
+            s.gs.tw = ShowScan.num(sc)
+            s.nextLine()
+            if ok, let t = str { s.show([(ShowScan.bytes(t), 0)]) }
+        }
+        CGPDFOperatorTableSetCallback(table, "TJ") { sc, info in
+            guard let s = ShowScan.of(info) else { return }
+            var arr: CGPDFArrayRef?
+            guard CGPDFScannerPopArray(sc, &arr), let a = arr else { return }
+            var parts: [(bytes: [UInt8], adjust: Double)] = []
+            for i in 0..<CGPDFArrayGetCount(a) {
+                var str: CGPDFStringRef?
+                var v: CGPDFReal = 0
+                if CGPDFArrayGetString(a, i, &str), let t = str { parts.append((ShowScan.bytes(t), 0)) }
+                else if CGPDFArrayGetNumber(a, i, &v) { parts.append(([], Double(v))) }
+            }
+            s.show(parts)
+        }
+        let info = Unmanaged.passUnretained(scan).toOpaque()
+        let scanner = CGPDFScannerCreate(cs, table, info)
+        _ = CGPDFScannerScan(scanner)
+        CGPDFScannerRelease(scanner)
+        CGPDFContentStreamRelease(cs)
+        CGPDFOperatorTableRelease(table)
+        return withExtendedLifetime(scan) { scan.out }
     }
 
     // Each character's font (an attributed string's .font runs); [] when there is none, or its length isn't the text's

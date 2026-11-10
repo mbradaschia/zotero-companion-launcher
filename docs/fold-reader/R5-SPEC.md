@@ -52,7 +52,12 @@ anything in R2 to R7 not named here. `daemon/` and the Omarchy launcher are unto
   `/bold|black|heavy|semibold|demi/i`, or a Medium weight, `/(^|[-_ ,+])[Mm](edi|EDI)(um|UM)?(?![a-z])/`: Nimbus Roman's
   bold is `NimbusRomNo9L-Medi`),
   bit 2 italic (`.italic`, or `/italic|oblique/i`, or `Ital` at a name's end, case kept: `NimbusRomNo9L-ReguItal`),
-  for the line's majority of characters. (Extractor 2.)
+  for the line's majority of characters. (Extractor 2.) Extractor 3: on a page where PDFKit gives no character bold
+  or italic, each word takes the weight and slant of the text the page's content stream shows where the word's
+  middle stands (`FoldPDF.shown(on:)`, a `CGPDFScanner` pass: the CTM, the text matrix and each text-showing
+  operator's advance from its font's `Widths`), read from that font's `BaseFont` without its subset tag, which also
+  reads Arbortext's suffixes `.B`, `.I` and `.BI` (`AdvOT5af5756d.B`). Some publishers' PDFs (AMR's) embed every face
+  under a made-up name and PDFKit reads them all as plain Helvetica.
 - `lb`: how many words at the line's start are bold (80% of their characters), for run-in headings.
 - `fn`: the font family (`NSFont.familyName`) most of its characters are set in; "" with none. (Extractor 2.)
 
@@ -97,7 +102,9 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
    than 0.6; one is bold throughout and the other is not; this segment starts a list item (`LIST`) or a caption
    (`CAPTION_AT`, `TABLE_AT`); this segment is indented by more than `0.8 × size` from the flow's left edge after a
    line that was not (a first-line indent); or the previous line ended short (its `x1` more than `3 × size` before
-   the flow's right edge) with `.` `?` `!` or `:` (optionally followed by `)` `]` `”` `"` `’`).
+   the flow's right edge) with `.` `?` `!` or `:` (optionally followed by `)` `]` `”` `"` `’`). Since extractor 3
+   two lines bold throughout, the second not numbered, aren't parted by a centred short line (`headLine`): a bold
+   heading wrapped to a second, centred line is one block.
 6. **Kinds**, for each block after the front matter (step 9, found first). In the references section (after a
    `REFS` heading, until the next heading) a block that is not a heading is a *reference* (below); elsewhere the
    first match wins:
@@ -114,12 +121,14 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
      (`headLine`); (c) at most 2 lines, at most 160 characters, no final `.`, and size ≥ body + 1, or bold throughout
      (since extractor 2: not a bold start the line runs on from, `lb` < its words) with at most 12 words; since
      extractor 2 also not two sentences, not a decimal number (a table's value), not a list item, alone on its row
-     within its column (a table's cell is not) and at the column's left edge (within 2 × size) or centred;
+     within its column (a table's cell is not) and at the column's left edge (within 2 × size) or centred; since
+     extractor 3 not ending in a hyphen (a turned table's label, its size read from its width);
      (d) a run-in heading: a block's first `lb` words match
      `NUMBERED`, `ABSTRACT` or `REFS` once a final `.` or `:` is dropped (pdftext `_heading_of`): split, the rest
      starts a paragraph. Depth: from the number (`pdfdoc.depth`: `3`, `3.`, `III.` 1; `3.2`, `A.1` 2; `3.2.1` 3);
      IEEE's lettered sub-sections 2; unnumbered: 1 for the largest heading size in the document, else 2, except in a
-     paper with no numbered heading at all (extractor 2): its heading looks (size, bold, italic, font family) ranked,
+     paper with no numbered heading at all (extractor 2): its heading looks (size, bold, italic, font family, and since
+     extractor 3 capitals: AMR's sections in bold capitals over sub-sections in bold, one face and size) ranked,
      larger first, then in order of first use, the first 1, the next 2, the rest 3 (PLOS sets sections in Helvetica
      Bold and sub-sections in Minion Bold, both 12 pt). A heading the page broke over two lines is one
      (`_joined_headings`), a hanging indent included.
@@ -187,7 +196,7 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
 ```
 {format: "textfold/doc", version: 0, id: "pdf-<first 16 hex of the PDF's SHA-256>", lang, title (Zotero's, else the
  title block's), authors (Zotero's), date (Zotero's), source: {kind: "pdf", url: "", label: "Zotero · <cite>",
- snapshot: "", license: "", sha256, bytes, pages, extractor: 2},
+ snapshot: "", license: "", sha256, bytes, pages, extractor: 3},
  levels: ["topic", "takeaway", "key", "brief", "full"], written: ["topic", "takeaway", "key"],
  provenance: {made_with: "Zotero Launcher <app version>", exported: <ISO>, ai_generated: false, model: "",
               levels_made: "", local: true},

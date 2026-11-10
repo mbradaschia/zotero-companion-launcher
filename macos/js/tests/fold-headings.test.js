@@ -137,6 +137,25 @@ test("no numbers: sub-sections set at the sections' size in another face nest un
   assert.deepEqual(heads(M.read(ps, meta(ps))), [[1, "Introduction"], [1, "Background"], [2, "Folding layouts"], [2, "Reading evidence"], [1, "Conclusion"]])
 })
 
+// AMR: sections in bold capitals at the body's size, centred (one wrapped to a second, centred line), sub-sections in
+// bold at the column's edge, the same face and size; a turned table's label read large ("High-") is none.
+function centredWords(text, y) {
+  const width = text.length * 5 + 2.5 * (text.split(" ").length - 1)
+  return words(text, (L0 + L1) / 2 - width / 2, y, 10)
+}
+test("no numbers, one face and size: bold capitals are sections, bold title case their sub-sections; a wrapped section title is one", () => {
+  const ps = pages([para(4),
+    { head: "CONCEPTUALIZATIONS OF FOLDING REPRESENTATIONS ACROSS INTERDISCIPLINARY", f: 1,
+      also: (y) => [line(centredWords("READING LAYOUTS", y + 12), 10, 1, 2, "Body")], after: 30 }, para(4),
+    { head: "Folding layouts", f: 1 }, para(4),
+    { head: "High-", size: 16.5 }, para(3),
+    { head: "Reading evidence", f: 1 }, para(4),
+    { head: "COLUMN METHOD", f: 1, ws: (y) => centredWords("COLUMN METHOD", y) }, para(4),
+    { head: "Summary claim", f: 1 }, para(4)])
+  assert.deepEqual(heads(M.read(ps, meta(ps))), [[1, "CONCEPTUALIZATIONS OF FOLDING REPRESENTATIONS ACROSS INTERDISCIPLINARY READING LAYOUTS"],
+    [2, "Folding layouts"], [2, "Reading evidence"], [1, "COLUMN METHOD"], [2, "Summary claim"]])
+})
+
 test("an appendix's lettered sub-sections at the body's size and weight, one of them wrapped to a second line, are headings", () => {
   // (as PDFKit reads a paper whose heading font it can't name: no bold, the body's size)
   const wrapped = "A.2 Reconstructing multilayered paragraph summaries across evidence"

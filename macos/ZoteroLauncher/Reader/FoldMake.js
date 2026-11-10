@@ -15,7 +15,7 @@ var FoldMake = (function () {
 
   var C = typeof FoldCore !== "undefined" ? FoldCore : require("./FoldCore.js")
 
-  var EXTRACTOR = 2
+  var EXTRACTOR = 3
   var APPARATUS = { reference: 1, footnote: 1, equation: 1 }
 
   // ---- TextFold's patterns (pdftext.py, pdfdoc.py)
@@ -388,7 +388,9 @@ var FoldMake = (function () {
               LIST.test(s.text) || CAPTION_AT.test(s.text) || TABLE_AT.test(s.text) ||
               (!cur.list && indent(s) && !indent(p) && !(fullyBold(s) && fullyBold(p))) ||
               (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text)) ||
-              headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)
+              // (a bold heading wrapped to a second bold line, centred under it, stays whole: AMR's "TOWARD A
+              // CONCEPTUALIZATION OF WORK" over "TEAM RESILIENCE")
+              (!(fullyBold(p) && fullyBold(s) && !NUMBERED.test(s.text)) && (headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)))
             // (a numbered heading's title wrapped to a second, short line at the same size and weight, at the column's
             // edge or under the title's first word: "A.4 Comparison of BERT, ELMo, and" over "OpenAI GPT"; the paragraph
             // starts after it)
@@ -510,7 +512,8 @@ var FoldMake = (function () {
         b.segs.every(function (s) { return (s.f & 2) === 2 || boldAll(s) })) return t
     // (larger or bold: a short block that stands where a heading stands, alone on its row at the column's edge or
     // centred, one sentence at most; a table's cell, a figure's label or a bold paragraph start is none)
-    if (b.lines <= 2 && t.length <= 160 && !/\.$/.test(t) && (b.size >= body + 1 || (b.segs.every(fullyBold) && words <= 12)) &&
+    // (nor a word broken at its end: a turned table's "High-", its size read from its width)
+    if (b.lines <= 2 && t.length <= 160 && !/[.\-‐]$/.test(t) && (b.size >= body + 1 || (b.segs.every(fullyBold) && words <= 12)) &&
         !TWO_SENTENCES.test(t) && !DECIMAL.test(t) && !LIST.test(t) && alone(b) && placed(b)) return t
     return null
   }
@@ -613,11 +616,12 @@ var FoldMake = (function () {
     return Math.abs((x0 + x1) / 2 - (e[0] + e[1]) / 2) <= 0.1 * w && x1 - x0 < 0.8 * w
   }
 
-  // A heading's look: its size (to 0.5), bold and italic, and its font family (PLOS sets sections in Helvetica Bold
-  // and their sub-sections in Minion Bold, both 12 pt).
+  // A heading's look: its size (to 0.5), bold and italic, its font family (PLOS sets sections in Helvetica Bold
+  // and their sub-sections in Minion Bold, both 12 pt), and capitals (AMR sets sections in bold capitals and their
+  // sub-sections in bold, the same face and size).
   function styleOf(b) {
     var s = b.segs[0]
-    return (Math.round(b.size * 2) / 2) + "|" + (s.f & 3) + "|" + (boldAll(s) ? 1 : 0) + "|" + s.fn
+    return (Math.round(b.size * 2) / 2) + "|" + (s.f & 3) + "|" + (boldAll(s) ? 1 : 0) + "|" + s.fn + (capsOnly(b.text) ? "|C" : "")
   }
 
   // ---- 6b. the PDF's own outline (meta.outline: [{t, l, p}], PDFKit's outlineRoot in order), when it names the
