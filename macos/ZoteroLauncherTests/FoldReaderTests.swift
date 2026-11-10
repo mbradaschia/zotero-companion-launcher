@@ -209,6 +209,7 @@ final class FoldReaderTests: XCTestCase {
                 let again = index.restyle(FoldPDF.Word(text: w.text, rect: w.rect))
                 let says = again.chars.filter { $0.bold }.count * 2 > again.chars.count
                 if isBold { bold += 1; if says { found += 1 } } else { plain += 1; if says { wrong += 1 } }
+                XCTAssertEqual(again.chars.first?.family, "Helvetica", w.text + ": its font's family")
             }
         }
         XCTAssertGreaterThan(bold, 0)
@@ -230,6 +231,10 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldPDF.baseName("ABCDEF+AdvOT5af5756d.B"), "AdvOT5af5756d.B")
         XCTAssertEqual(FoldPDF.baseName("QWERTY+Minion-Bold-Identity-H"), "Minion-Bold")
         XCTAssertEqual(FoldPDF.baseName("Helvetica"), "Helvetica")
+        for (name, family) in [("MinionPro-Bold", "MinionPro"), ("AdvOT5af5756d.B", "AdvOT5af5756d"), ("AdvOTb44e3105", "AdvOTb44e3105"),
+                               ("Times-Roman", "Times"), ("Helvetica", "Helvetica")] {
+            XCTAssertEqual(FoldPDF.family(name), family, name)
+        }
         let url = try FixturePaper().write(in: home)
         XCTAssertEqual(FoldPDF(url: url).outlineNow().count, 0, "no outline: none")
         let doc = try XCTUnwrap(PDFDocument(url: url))

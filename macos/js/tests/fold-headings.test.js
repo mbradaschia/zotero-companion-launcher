@@ -138,7 +138,8 @@ test("no numbers: sub-sections set at the sections' size in another face nest un
 })
 
 // AMR: sections in bold capitals at the body's size, centred (one wrapped to a second, centred line), sub-sections in
-// bold at the column's edge, the same face and size; a turned table's label read large ("High-") is none.
+// bold at the column's edge, the same face and size, one right under its section's title; a turned table's label read
+// large ("High-"), a figure's caption in bold capitals and its smaller bold labels are none.
 function centredWords(text, y) {
   const width = text.length * 5 + 2.5 * (text.split(" ").length - 1)
   return words(text, (L0 + L1) / 2 - width / 2, y, 10)
@@ -146,8 +147,9 @@ function centredWords(text, y) {
 test("no numbers, one face and size: bold capitals are sections, bold title case their sub-sections; a wrapped section title is one", () => {
   const ps = pages([para(4),
     { head: "CONCEPTUALIZATIONS OF FOLDING REPRESENTATIONS ACROSS INTERDISCIPLINARY", f: 1,
-      also: (y) => [line(centredWords("READING LAYOUTS", y + 12), 10, 1, 2, "Body")], after: 30 }, para(4),
-    { head: "Folding layouts", f: 1 }, para(4),
+      also: (y) => [line(centredWords("READING LAYOUTS", y + 12), 10, 1, 2, "Body"), line(words("Folding layouts", L0, y + 31, 10), 10, 1, 2, "Body")], after: 40 }, para(4),
+    { head: "FIGURE 1 Reading model of layouts", f: 1, ws: (y) => centredWords("FIGURE 1 Reading model of layouts", y) },
+    { head: "Claim level", f: 1, size: 8 }, para(2),
     { head: "High-", size: 16.5 }, para(3),
     { head: "Reading evidence", f: 1 }, para(4),
     { head: "COLUMN METHOD", f: 1, ws: (y) => centredWords("COLUMN METHOD", y) }, para(4),

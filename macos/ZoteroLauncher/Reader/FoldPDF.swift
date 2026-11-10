@@ -383,12 +383,10 @@ final class FoldPDF: @unchecked Sendable {
         var count = 0
         var cut: [(run: [(word: Word, box: [Double])], high: Double, across: Bool)] = []
         var lined = pageLines(page).map { lineWords($0, on: page, styled: true) }
-        // (a page PDFKit gives no bold and no italic at all: its words take the weight and slant of the fonts the page
-        // shows them in, when those fonts' own names say any; extractor 3)
-        if !lined.contains(where: { $0.contains { $0.chars.contains { $0.bold || $0.italic } } }) {
-            let shown = Shown.index(Self.shown(on: page))
-            if !shown.isEmpty { lined = lined.map { $0.map { shown.restyle($0) } } }
-        }
+        // (each word takes the weight and slant its font's own name says, as well as what PDFKit says, and that font's
+        // family, the same on every page: PDFKit reads some embedded faces as plain Helvetica; extractor 3)
+        let shown = Shown.index(Self.shown(on: page))
+        if !shown.isEmpty { lined = lined.map { $0.map { shown.restyle($0) } } }
         for found in lined {
             guard count < maxWords else { break }
             var words: [(word: Word, box: [Double])] = []
@@ -535,6 +533,13 @@ final class FoldPDF: @unchecked Sendable {
             .replacingOccurrences(of: "-Identity-[HV]$", with: "", options: .regularExpression)
     }
 
+    // A font name's family: the name without its weight and slant after its last "-", "," or "." ("MinionPro-Bold",
+    // "AdvOT5af5756d.B", "Times-Roman"); the name itself without one.
+    static func family(_ name: String) -> String {
+        let cut = name.replacingOccurrences(of: "[-,.][^-,.]*$", with: "", options: .regularExpression)
+        return cut.isEmpty ? name : cut
+    }
+
     // ---- the fonts the page's text is shown in (extractor 3)
 
     // Some publishers embed their faces under made-up names, the weight only a suffix of the name ("AdvOT5af5756d.B"),
@@ -546,6 +551,7 @@ final class FoldPDF: @unchecked Sendable {
         let rect: CGRect
         let bold: Bool
         let italic: Bool
+        var family = "" // its font's name without the weight and slant ("MinionPro", "AdvOT5af5756d")
 
         // The boxes by 10-point bands of height, for a word's lookup.
         struct Index {
@@ -553,26 +559,26 @@ final class FoldPDF: @unchecked Sendable {
             var isEmpty: Bool { bands.isEmpty }
 
             // A word with the weight and slant of the text shown where its middle stands (the smallest box there),
-            // added to what PDFKit gave its characters.
+            // added to what PDFKit gave its characters, and that text's font family in place of PDFKit's.
             func restyle(_ word: Word) -> Word {
                 guard !word.rect.isNull else { return word }
                 let mid = CGPoint(x: word.rect.midX, y: word.rect.midY)
                 let at = (bands[Int((mid.y / 10).rounded(.down))] ?? []).filter { $0.rect.insetBy(dx: -0.5, dy: -0.5).contains(mid) }
-                guard let s = at.min(by: { $0.rect.width * $0.rect.height < $1.rect.width * $1.rect.height }), s.bold || s.italic else { return word }
+                guard let s = at.min(by: { $0.rect.width * $0.rect.height < $1.rect.width * $1.rect.height }) else { return word }
                 var w = word
                 if w.chars.isEmpty { w.chars = Array(repeating: CharStyle(), count: max(1, (word.text as NSString).length)) }
                 for k in w.chars.indices {
                     w.chars[k].bold = w.chars[k].bold || s.bold
                     w.chars[k].italic = w.chars[k].italic || s.italic
+                    if !s.family.isEmpty { w.chars[k].family = s.family }
                 }
                 return w
             }
         }
 
-        // An index of the boxes; empty when no font of the page's says bold or italic.
+        // An index of the boxes.
         static func index(_ shown: [Shown]) -> Index {
             var i = Index()
-            guard shown.contains(where: { $0.bold || $0.italic }) else { return i }
             for s in shown where s.rect.width > 0 && s.rect.height > 0 && s.rect.height < 400 {
                 for b in Int((s.rect.minY / 10).rounded(.down))...Int((s.rect.maxY / 10).rounded(.down)) { i.bands[b, default: []].append(s) }
             }
@@ -584,6 +590,7 @@ final class FoldPDF: @unchecked Sendable {
         struct Font {
             var bold = false
             var italic = false
+            var family = ""
             var twoByte = false
             var type3 = false
             var first = 0
@@ -630,9 +637,11 @@ final class FoldPDF: @unchecked Sendable {
             if let cs = stream, let obj = CGPDFContentStreamGetResource(cs, "Font", name), CGPDFObjectGetValue(obj, .dictionary, &dict), let d = dict {
                 var base: UnsafePointer<CChar>?
                 if CGPDFDictionaryGetName(d, "BaseFont", &base), let b = base {
-                    let t = FoldPDF.traits(named: FoldPDF.baseName(String(cString: b)))
+                    let name = FoldPDF.baseName(String(cString: b))
+                    let t = FoldPDF.traits(named: name)
                     font.bold = t.bold
                     font.italic = t.italic
+                    font.family = FoldPDF.family(name)
                 }
                 var sub: UnsafePointer<CChar>?
                 let subtype = CGPDFDictionaryGetName(d, "Subtype", &sub) && sub != nil ? String(cString: sub!) : ""
@@ -687,7 +696,7 @@ final class FoldPDF: @unchecked Sendable {
             tm = CGAffineTransform(translationX: x, y: 0).concatenating(tm)
             guard !f.type3, x != 0, size != 0 else { return }
             let box = CGRect(x: min(0, x), y: -0.2 * abs(size), width: abs(x), height: abs(size)).applying(start.concatenating(gs.ctm))
-            if box.width.isFinite, box.height.isFinite { out.append(Shown(rect: box, bold: f.bold, italic: f.italic)) }
+            if box.width.isFinite, box.height.isFinite { out.append(Shown(rect: box, bold: f.bold, italic: f.italic, family: f.family)) }
         }
         func nextLine() {
             tlm = CGAffineTransform(translationX: 0, y: -gs.tl).concatenating(tlm)

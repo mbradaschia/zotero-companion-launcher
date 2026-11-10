@@ -389,8 +389,9 @@ var FoldMake = (function () {
               (!cur.list && indent(s) && !indent(p) && !(fullyBold(s) && fullyBold(p))) ||
               (e[1] - p.x1 > 3 * p.size && SHORT_END.test(p.text)) ||
               // (a bold heading wrapped to a second bold line, centred under it, stays whole: AMR's "TOWARD A
-              // CONCEPTUALIZATION OF WORK" over "TEAM RESILIENCE")
-              (!(fullyBold(p) && fullyBold(s) && !NUMBERED.test(s.text)) && (headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)))
+              // CONCEPTUALIZATION OF WORK" over "TEAM RESILIENCE"; a sub-section's title in bold title case right under
+              // it is its own)
+              (!(fullyBold(p) && fullyBold(s) && !NUMBERED.test(s.text) && capsOnly(p.text) === capsOnly(s.text)) && (headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)))
             // (a numbered heading's title wrapped to a second, short line at the same size and weight, at the column's
             // edge or under the title's first word: "A.4 Comparison of BERT, ELMo, and" over "OpenAI GPT"; the paragraph
             // starts after it)
@@ -502,7 +503,7 @@ var FoldMake = (function () {
     if (!rest.length) return null
     return { title: lead(k), rest: rest }
   }
-  function headingOf(b, body, ctx) {
+  function headingOf(b, body, ctx, inRefs) {
     var words = b.words.length, t = b.text
     if (words <= 10 && NUMBERED.test(t) && b.size >= body - 0.3) return t
     if (ABSTRACT.test(t) || REFS.test(t)) return t
@@ -512,8 +513,11 @@ var FoldMake = (function () {
         b.segs.every(function (s) { return (s.f & 2) === 2 || boldAll(s) })) return t
     // (larger or bold: a short block that stands where a heading stands, alone on its row at the column's edge or
     // centred, one sentence at most; a table's cell, a figure's label or a bold paragraph start is none)
-    // (nor a word broken at its end: a turned table's "High-", its size read from its width)
-    if (b.lines <= 2 && t.length <= 160 && !/[.\-‐]$/.test(t) && (b.size >= body + 1 || (b.segs.every(fullyBold) && words <= 12)) &&
+    // (nor a word broken at its end: a turned table's "High-", its size read from its width; nor a figure's or a
+    // table's caption, nor bold set smaller than the body: a figure's labels; in the references, a bold line is a
+    // heading only in capitals or as back matter: AMR sets a book's title there in bold italics)
+    if (b.lines <= 2 && t.length <= 160 && !/[.\-‐]$/.test(t) && !captionLabel(t) &&
+        (b.size >= body + 1 || (b.segs.every(fullyBold) && words <= 12 && b.size >= body - 0.5 && (!inRefs || capsOnly(t) || KEEP_HEAD.test(t)))) &&
         !TWO_SENTENCES.test(t) && !DECIMAL.test(t) && !LIST.test(t) && alone(b) && placed(b)) return t
     return null
   }
@@ -560,13 +564,15 @@ var FoldMake = (function () {
     }
     blocks.forEach(function (b, bi) {
       if (front[bi]) return
-      var head = headingOf(b, body, ctx), ri = head === null ? runIn(b, early) : null
+      var head = headingOf(b, body, ctx, inRefs), ri = head === null ? runIn(b, early) : null
       if (head !== null || ri) {
         flushRefs()
         var title = head !== null ? head : ri.title
         var prev = items[items.length - 1]
-        // (a heading the page broke over two lines is one: pdftext._joined_headings)
+        // (a heading the page broke over two lines is one: pdftext._joined_headings; in one look: AMR's sub-section
+        // in bold right under its section's title in bold capitals is its own)
         if (head !== null && prev && prev.type === "heading" && prev.joinable && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) &&
+            capsOnly(prev.text) === capsOnly(title) &&
             (Math.abs(prev.size - b.size) < 0.3 || /-$/.test(prev.text))) {
           prev.text = /-$/.test(prev.text) ? prev.text.replace(/(\w)-$/, "$1") + title : prev.text + " " + title
           prev.words = joinTo(prev.words, b.words)
@@ -757,16 +763,17 @@ var FoldMake = (function () {
       maxH = Math.max(maxH, it.size)
       if (HEAD_NUM.test(it.text)) numbered = true
     })
-    // (a paper with no numbered headings: its heading looks ranked, the larger first, then by first use, so a
+    // (a paper with no numbered headings: its heading looks ranked, the larger first, then capitals, then by first use, so a
     // sub-section set at the section's size in another face nests; at most three)
     var rank = {}
     if (!numbered) {
       var looks = []
       items.forEach(function (it) {
         if (it.type !== "heading" || it.abstract || it.refs || it.runIn || KEEP_HEAD.test(it.text)) return
-        if (!looks.some(function (l) { return l.style === it.style })) looks.push({ style: it.style, size: it.size, n: looks.length })
+        if (!looks.some(function (l) { return l.style === it.style })) looks.push({ style: it.style, size: it.size, n: looks.length, caps: /\|C$/.test(it.style) })
       })
-      looks.sort(function (a, b) { return Math.abs(a.size - b.size) > 0.25 ? b.size - a.size : a.n - b.n })
+      // (at one size, capitals before title case: AMR's sections over its sub-sections)
+      looks.sort(function (a, b) { return Math.abs(a.size - b.size) > 0.25 ? b.size - a.size : a.caps !== b.caps ? (a.caps ? -1 : 1) : a.n - b.n })
       looks.forEach(function (l, i) { rank[l.style] = Math.min(3, i + 1) })
     }
     var abs = wordSet(meta.abstract)
