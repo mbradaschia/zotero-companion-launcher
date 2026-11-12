@@ -321,6 +321,29 @@ are replaced. The pages read are kept for the window (`FoldPDF.ocrNow`), so the 
 read them again. Then the PDF is read as any other (3.2 to 3.7) with `meta.ocr` (the pages read) and `ocr_engine`;
 the doc keeps both in `source`. Vision reading no page (an error): the state `scan` with `ocr: "failed"` and why.
 
+**Columns and headings on a scan.** A scan's pages (lines with `fn` `ocr`) skip the frame of 3.2 (the printed
+pages keep it): `ocrColumns`, page by page, finds where columns start from where lines start and end, not from a gap
+between them, as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the
+right starts at 0.590) and facing pages carry a margin column of pull quotes on alternate sides. A cut is an x with 3
+lines or more ending before it and starting after it and few crossing it; a line past it by 4 tol at most (tol 0.012
+of the page) is on its side, a line Vision read across both columns is cut at its words there; the best cut has the
+most lines on its smaller side and the most lines starting at it; each side is cut again (2 lines a side), twice at
+most, no column under a tenth of the page. A column with under a third of the biggest one's text is a margin's (`M`),
+read after the text's columns of its band and never a heading. Each column has its own edges. Vision's sizes move with
+a scan's tilt and a line's letters, so a line within 0.75 to 1.35 of the scan's body size is set at it, and a heading
+on a scan needs its weight, capitals or number (a numbered one too), more than one word unless it is a paper's
+one-word heading, and a line of text under it running most of its column. Two lines in capitals, tight, are one
+heading. The runner's `readingOrder` uses the same `ocrColumns` (a parity test keeps the two copies the same), and
+`--ocr` gives each line's words (`w`).
+
+**JSTOR.** A JSTOR file's first page is its cover sheet (two of `JSTOR is a not-for-profit service`, `Your use of the
+JSTOR archive indicates`, `Stable URL: …jstor…/stable/`): left out of the reading and of the full-text note (whose page
+numbers were one low behind it). Its stamp on each page (`This content downloaded from <address> on <date>`, `All use
+subject to …jstor…`) is furniture, NULs and all. A running head is also caught as the page's top or bottom line (not a
+list's item) when it repeats, as a scan sets it lower than 7% (AMR's `762 Academy of Management Review October` at 11%).
+JSTOR's own OCR layer behind its scans (font Code2000) is read as a text layer: its letters are right, its boxes and
+sizes are not, so its headings are weak (still open).
+
 **Shown.** While it reads, the text pane says `Reading the scan by OCR…` and `<done> of <pages> pages. Its pages are
 pictures: macOS reads their words on this Mac.` The byline then says `Read by OCR` (or `<n> pages read by OCR`) with
 the OCR icon (a page in a scanner's frame), before who set the sections; its tooltip says to check a quote against the
@@ -784,7 +807,10 @@ A scan read by OCR (3.8):
 64. `[swift]` The fixture paper drawn as pictures with a stamp in real text: `textless` gives a scan, pages 1 and 2.
 65. `[swift]` Vision reads the fixture's first page, `Researchers` within 0.02 of its box in the text layer; the payload's `fn` and size.
 66. `[swift]` `FoldMaker.make` on the scan: OCR's progress page by page, a doc with the paper's words from both pages (the turned one too), `S1`, no stamp, `source.ocr` [1, 2].
-67. `[swift]` `FoldOCR.command`: a JSON line a page, `no page 3`, usage and unreadable files as exit codes 2 and 3.
+67. `[swift]` `FoldOCR.command`: a JSON line a page with each line's words, `no page 3`, usage and unreadable files as exit codes 2 and 3.
+68. `[node]` Two pages of a scan, columns with no gutter, rows Vision read across both, a margin column on the left then the right: every word in reading order, left column, right, margin; the bold heading a section. `readingOrder` the same on one page; one column with indents has none; `ocrColumns` the same in both copies.
+69. `[node]` On a scan, a body line Vision sized 1.25 times the body, a bold pull quote and a figure's one-word bold labels are no headings; a pull quote is no candidate.
+70. `[node]` JSTOR: the cover sheet, the stamp on each page and running heads at 11% of the page are not in the doc; both runners leave the cover out of the note's pages (labels from the item's range, or the PDF's one on) and take the stamp off.
 
 ## Appendix A: the texts ported from TextFold
 

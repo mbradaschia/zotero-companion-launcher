@@ -99,3 +99,17 @@ test("reading order: one column with indented paragraphs and a ragged right edge
   assert.ok(out.startsWith("Indented start"))
   assert.ok(!out.includes("\n\n\n"))
 })
+
+test("ocrColumns is the same in the runner and the reader (FoldMake.js)", async () => {
+  const fs = require("node:fs")
+  const path = require("node:path")
+  const body = (file) => {
+    const s = fs.readFileSync(path.join(__dirname, file), "utf8")
+    const a = s.search(/^ *(?:export )?function ocrColumns/m)
+    const lines = s.slice(a).split("\n")
+    const ind = lines[0].match(/^ */)[0].length
+    const end = lines.findIndex((l, i) => i > 0 && l === " ".repeat(ind) + "}")
+    return lines.slice(0, end + 1).map((l) => l.slice(ind)).join("\n").replace(/^export /, "")
+  }
+  assert.equal(body("../../runner/lib/vision.mjs"), body("../../ZoteroLauncher/Reader/FoldMake.js"))
+})

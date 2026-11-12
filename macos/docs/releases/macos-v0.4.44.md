@@ -22,8 +22,17 @@ and the PDF stay linked as with any other paper, and a heading set in bold still
 While it reads (about a second a page, up to 80 pages) the text says `Reading the scan by OCR…`; afterwards the byline
 says `Read by OCR`, with an icon. OCR can misread a word: check a quote against the PDF.
 
+**Columns in order.** A scan's columns are found from where its lines start and end, so a page with no gutter
+between its columns, or with a margin column of pull quotes, reads the left column, then the right, then the margin.
+On a scan a heading needs its weight, capitals or number, so pull quotes, figure labels and lines OCR measured a
+little large don't become sections.
+
+**JSTOR files.** The reader and the full-text note leave out JSTOR's cover sheet and the stamp it puts on each page
+(`This content downloaded from …`), and the reader drops running heads a scan sets low on the page. A note saved
+before has its page numbers one low (the cover counted as a page): extract it again as above. JSTOR's scans carry
+JSTOR's own hidden OCR text, and the reader still reads that text: its words are right, its headings are weak.
+
 **The full-text note reads scans the same way.** On a Mac the AI features now use the same OCR instead of Tesseract,
 so chats and review tables grounded on a scan have its text. The note says `read by OCR (macOS Vision)`. A paper whose
 note was saved before, with only the stamp in it, needs its text extracted again: in its menu, *Text extracted*,
-Shift+Enter, *extract it again*. Settings › Setup says
-OCR is built in, and Settings › Defaults offers to read the scans skipped before.
+Shift+Enter, *extract it again*. Settings › Setup says OCR is built in, and Settings › Defaults offers to read the scans skipped before.
