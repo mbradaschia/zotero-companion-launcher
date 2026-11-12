@@ -33,10 +33,13 @@ if [[ -n "${BEFORE:-}" ]]; then
     printf 'extension FoldPDF { func outlineNow() -> [[String: Any]] { [] } }\n' > "$old/shim.swift"
     files+=("$old/shim.swift")
   fi
-  # (from extractor 5, FoldPDF reads a scan's pages with FoldOCR)
+  # (from extractor 5, FoldPDF reads a scan's pages with FoldOCR; before it, no OCR)
   if grep -q "FoldOCR" "$old/FoldPDF.swift"; then
     git -C "$macos" show "$BEFORE:macos/ZoteroLauncher/Reader/FoldOCR.swift" > "$old/FoldOCR.swift"
     files+=("$old/FoldOCR.swift")
+  else
+    printf 'extension FoldPDF { func ocrNow(_ w: [Int], into l: [[String: Any]], progress: ((Int, Int) -> Void)? = nil) -> (pages: [[String: Any]], read: [Int], error: String?) { (l, [], "no OCR before extractor 5") } }\n' > "$old/ocr-shim.swift"
+    files+=("$old/ocr-shim.swift")
   fi
   build "$old" "${files[@]}"
   "$old/foldlines" "$old/lines" "$work"/pdfs/*.pdf
