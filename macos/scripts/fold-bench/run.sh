@@ -13,9 +13,10 @@ while IFS=$'\t' read -r name url _rest; do
   curl -fsSL --retry 4 --retry-delay 3 -A "zotero-launcher-fold-bench" -o "$work/pdfs/$name.pdf" "$url" || echo "couldn't download $name" >&2
 done < "$here/papers.tsv"
 
-build() { # build DIR FOLDPDF.swift [shim.swift]
-  mkdir -p "$1"
-  swiftc -O -o "$1/foldlines" "$2" "$here/main.swift" ${3:+"$3"}
+build() { # build DIR FOLDPDF.swift [FoldOCR.swift, shim.swift…]
+  local dir=$1; shift
+  mkdir -p "$dir"
+  swiftc -O -o "$dir/foldlines" "$here/main.swift" "$@"
 }
 score() { # score LINES_DIR FOLDMAKE_DIR LABEL
   node "$here/bench.mjs" "$1" "$2" "$3"
@@ -27,15 +28,22 @@ if [[ -n "${BEFORE:-}" ]]; then
   git -C "$macos" show "$BEFORE:macos/ZoteroLauncher/Reader/FoldPDF.swift" > "$old/FoldPDF.swift"
   git -C "$macos" show "$BEFORE:macos/ZoteroLauncher/Reader/FoldMake.js" > "$old/js/FoldMake.js"
   git -C "$macos" show "$BEFORE:macos/ZoteroLauncher/Reader/FoldCore.js" > "$old/js/FoldCore.js"
+  files=("$old/FoldPDF.swift")
   if ! grep -q "func outlineNow" "$old/FoldPDF.swift"; then
     printf 'extension FoldPDF { func outlineNow() -> [[String: Any]] { [] } }\n' > "$old/shim.swift"
+    files+=("$old/shim.swift")
   fi
-  build "$old" "$old/FoldPDF.swift" "$( [[ -f "$old/shim.swift" ]] && echo "$old/shim.swift" )"
+  # (from extractor 5, FoldPDF reads a scan's pages with FoldOCR)
+  if grep -q "FoldOCR" "$old/FoldPDF.swift"; then
+    git -C "$macos" show "$BEFORE:macos/ZoteroLauncher/Reader/FoldOCR.swift" > "$old/FoldOCR.swift"
+    files+=("$old/FoldOCR.swift")
+  fi
+  build "$old" "${files[@]}"
   "$old/foldlines" "$old/lines" "$work"/pdfs/*.pdf
   score "$old/lines" "$old/js" "Before ($BEFORE)"
 fi
 
 new="$work/after"
-build "$new" "$macos/ZoteroLauncher/Reader/FoldPDF.swift"
+build "$new" "$macos/ZoteroLauncher/Reader/FoldPDF.swift" "$macos/ZoteroLauncher/Reader/FoldOCR.swift"
 "$new/foldlines" "$new/lines" "$work"/pdfs/*.pdf
 score "$new/lines" "$macos/ZoteroLauncher/Reader" "After (this checkout)"
