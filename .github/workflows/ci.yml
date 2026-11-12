@@ -40,10 +40,18 @@ jobs:
           sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools >/dev/null || true
           QMLLINT=$(command -v qmllint6 || echo /usr/lib/qt6/bin/qmllint) make lint
 
+      # Between releases a build rewrites updates.json, and that's dropped. A version with no tag yet is a release
+      # commit: release.yml will publish it from master, so its updates.json must already describe this build.
       - name: Build the .xpi
         run: |
           scripts/build-xpi.sh
-          git checkout -- zotero-bridge/updates.json # a build between releases rewrites it; releases commit it
+          v=$(scripts/check-versions.sh)
+          if [[ -n $(git ls-remote origin "refs/tags/v$v") ]]; then
+            git checkout -- zotero-bridge/updates.json
+          elif ! git diff --exit-code -- zotero-bridge/updates.json; then
+            echo "::error::v$v has no tag yet, so this is its release commit, and the rebuilt .xpi differs from updates.json: cut releases with 'make release', which commits both."
+            exit 1
+          fi
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1162,7 +1162,7 @@ add and remove the tag `oma-zotero-test` on one paper.
 | `scripts/` | build, release, rankings update and live tests |
 | `tests/` | unit tests |
 
-`PLAN.md` has the design; `spikes/` the measurements behind it.
+`docs/history/PLAN.md` has the design; `docs/history/spikes/` the measurements behind it.
 
 ## Releases and versioning
 
@@ -1173,14 +1173,15 @@ To release, add the changes under *[Unreleased]* in the changelog, then on `mast
 
 ```bash
 make release VERSION=1.2.0
-git push origin master v1.2.0
+git push origin master
 ```
 
 `make release` sets the version everywhere, dates the changelog, runs the tests, builds the `.xpi` and
-`zotero-bridge/updates.json`, commits and tags. The pushed tag runs the [release workflow](.github/workflows/release.yml),
-which rebuilds the `.xpi` from the tag, checks it is byte-identical to the one `updates.json` describes (the
-build is reproducible), and publishes the GitHub release with the `.xpi`, its SHA-256 and the changelog
-notes. Installed bridges then update themselves, and `omarchy plugin update` brings the launcher to `master`.
+`zotero-bridge/updates.json`, and commits. The new version on `master` (pushed, or merged by a pull request) runs
+the [release workflow](.github/workflows/release.yml), which rebuilds the `.xpi` from that commit, checks it is
+byte-identical to the one `updates.json` describes (the build is reproducible), tags `v1.2.0` there, and publishes
+the GitHub release with the `.xpi`, its SHA-256 and the changelog notes. Installed bridges then update themselves,
+and `omarchy plugin update` brings the launcher to `master`. No tag is pushed by hand; one that is works too.
 
 The journal lists come with the bridge: `scripts/update-rankings.sh` downloads them again.
 
@@ -1208,7 +1209,7 @@ removal), `LICENSE` and `preview.png` (the card image, resized by the marketplac
 ## Roadmap
 
 - More providers as users ask: Mistral, xAI and DeepSeek directly; Azure OpenAI, Amazon Bedrock, Google Vertex
-  ([the plan](PLAN-providers.md), phase 6).
+  ([the plan](docs/history/PLAN-providers.md), phase 6).
 - Summarize-then-answer, for papers too long for a small model's context.
 - Tag papers in Zotero with their journal rankings.
 
