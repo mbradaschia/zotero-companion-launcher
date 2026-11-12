@@ -71,7 +71,9 @@ cue (he is colour-blind), and icons are consistent across the app.
 - The role filter folds the other paragraphs into one-line stubs instead of dimming them: dimmed text falls under
   4.5:1.
 - The status and task pills use the app's icon map (flag, checklist), not ○ ◐ ●: one icon per concept everywhere.
-- System serif and sans instead of web fonts: the page's CSP loads nothing.
+- The system sans instead of web fonts: the page's CSP loads nothing. One face, the app's, for everything (from Mac
+  0.4.45: the paper's serif was dropped at Marcelo's request); the paper's words and the AI's differ by size, by the
+  toolbar's captions and by the section line, never by colour.
 - No left rail (decision 6: a later phase); the window chrome is the Mac's own.
 - While following, the PDF scrolls only when the dashed box is out of sight (TextFold's behaviour); a click always
   scrolls it. Less movement while reading.
@@ -161,14 +163,14 @@ ids are what the morph moves. `tone` is how dark the ink is; **darker ink marks 
 
 | Level | Key | Pieces | Tone `ink` (the next level keeps them) | Font |
 |---|---|---|---|---|
-| Full | 1 | every full token | tokens of the evidence sentences; others `muted` | serif |
-| Brief | 2 | the evidence sentences in order, a `…` piece between two that are not adjacent | tokens matched by the key (`m`); others `muted` | serif |
+| Full | 1 | every full token | tokens of the evidence sentences; others `muted` | sans 16 px |
+| Brief | 2 | the evidence sentences in order, a `…` piece between two that are not adjacent | tokens matched by the key (`m`); others `muted` | sans 16 px |
 | Key | 3 | the key tokens | the first `tn` (the takeaway), weight 600; the reason `muted` | sans |
 | Takeaway | 4 | key tokens `0..tn-1` | those in the topic, weight 600; others `ink` | sans |
 | Topic | 5 | one chip per unit: the topic tokens (else the takeaway's first 6 words) | n/a | sans |
 
-A unit with no evidence shows Full at Brief; a unit with no key shows its first sentence at Key and Takeaway, in
-serif (the paper's words). Citation pieces are drawn in the accent with a dotted underline; math in monospace.
+A unit with no evidence shows Full at Brief; a unit with no key shows its first sentence at Key and Takeaway, at
+the paper's 16 px (the paper's words). Citation pieces are drawn in the accent with a dotted underline; math in monospace.
 
 ### 5.4 The PDF words and pages payload (native to page)
 
@@ -320,7 +322,7 @@ Apache 2.0 text is kept at `macos/ZoteroLauncher/Reader/TEXTFOLD-LICENSE.txt`.
 FoldReader.css uses the review table's custom properties, so `ThemeStore.shared.palette.reviewCSS` themes it with no
 new Swift (`--ink`, `--muted`, `--faint`, `--line`, `--line2`, `--accent`, `--accent-soft`, `--win`, `--chrome`,
 `--head`, `--sel`, `--status`, `--tax`, `--tax-soft`, `--task`); its own `:root` adds `--paper: var(--win)`, `--hl`,
-`--hl-line`, `--f-paper: ui-serif, "New York", Georgia, serif`, `--f-ui: -apple-system, system-ui, sans-serif`
+`--hl-line`, `--f-paper: -apple-system, system-ui, sans-serif` (the app's sans, like `--f-ui`; the name kept for the paper's words' sizes), `--f-ui: -apple-system, system-ui, sans-serif`
 (no web fonts: the CSP loads nothing). Defaults (light / dark) for the reader's own: `--hl` `#fff1b8` / `#3d3410`,
 `--hl-line` `#8a6d00` / `#e0c45c`.
 
@@ -346,7 +348,7 @@ last column); every symbol named must exist (`NSImage(systemSymbolName:)`).
 
 | Element | Icon | Tooltip / label | Key | States |
 |---|---|---|---|---|
-| Title | | the paper's title (Zotero's, else the doc's), serif 19 px 600 | | wraps |
+| Title | | the paper's title (Zotero's, else the doc's), 22 px 600 (one step above a depth-1 heading; 16 px, two lines, in a narrow window) | | wraps |
 | Byline | | `Authors · year · publication · N pages` (4 authors, then `et al.`) | | parts missing are left out |
 | Status pill | concept `status` (flag) | `Status: <name>` / `No status`, `aria-haspopup="menu"` | `⌥→` `⌥←` next / previous | outlined in `--status`, 1.5 px; menu: `No status` then the statuses, the current one `aria-checked` and a `✓`; none set up: one disabled item `Set up statuses in the launcher: Settings › Paper status` |
 | Task pill | concept `task` (checklist) | `Task: <status name>` (tooltip adds the description) / `No task` | `⇧⌥→` `⇧⌥←` | outlined in `--task`; menu of the task statuses |
@@ -356,7 +358,7 @@ last column); every symbol named must exist (`NSImage(systemSymbolName:)`).
 
 | Element | Icon (SVG) | Tooltip | Key | States |
 |---|---|---|---|---|
-| Group caption over 1-2 | text `Aa` in the serif, solid underline | `The paper's words` | | |
+| Group caption over 1-2 | text `Aa`, solid underline | `The paper's words` | | |
 | Group caption over 3-5 | concept `ai` (sparkle), dashed underline | `Written by AI (<model>, <levels_made date>)`; local: `Not written by a model yet: the paper's first sentences` | | |
 | Full | four lines, the last short | `Full: every paragraph as written · 1` | `1` | `aria-pressed`; pressed: 1.5 px ink border, ink colour; a small `1` beside the icon |
 | Brief | two lines and three dots | `Brief: key sentences, verbatim · 2` | `2` | as above |
@@ -376,11 +378,11 @@ is context). Only roles the paper has get a button, in that order.
 | Element | Icon | Label | Key | States |
 |---|---|---|---|---|
 | Pane | | `role="document"`, `aria-label="Paper text"`, focusable | | focus ring 2 px accent |
-| Section heading | | `role="heading"`, `aria-level` its depth + 1. The paper's words, so the paper's serif (`--f-paper`), semibold, on the text's left edge; `num` (faint, regular) in a column of its own, so a wrapped title's second line starts under its first word. Four levels, told apart by size, slope and the space above, never by colour: depth 1 21 px with 38 px above and the only rule (1 px `--line`) under it; depth 2 18 px, 28 px above; depth 3 17 px (the text's size), 22 px above; depth 4 17 px italic medium, 18 px above. The first heading, and one straight under another, 12 px above. A heading the paper sets in capitals is shown in the case of its other headings (`FoldCore.headingCase`, R5-SPEC criterion 52), its tooltip `In the paper: <as printed>` | | |
+| Section heading | | `role="heading"`, `aria-level` its depth + 1. The paper's words (`--f-paper`, the app's sans), semibold, on the text's left edge; `num` (faint, regular) in a column of its own, so a wrapped title's second line starts under its first word. Four levels, told apart by size, slope and the space above, never by colour: depth 1 21 px with 38 px above and the only rule (1 px `--line`) under it; depth 2 18 px, 28 px above; depth 3 17 px (a step above the text's 16), 22 px above; depth 4 17 px italic medium (the text 16 px), 18 px above. The first heading, and one straight under another, 12 px above. A heading the paper sets in capitals is shown in the case of its other headings (`FoldCore.headingCase`, R5-SPEC criterion 52), its tooltip `In the paper: <as printed>` | | |
 | Section takeaway | | under the heading at Key and Takeaway, sans 14 px, muted, on the text's left edge | | |
 | Role shape | the role's shape, 12 px | button `Open this paragraph in full (<role>)`; at Full a plain `role="img"` with the role's name | `↵` on the selected paragraph | |
 | Paragraph body | | selectable text, never a button | click: select; double-click: open (below Full) | selected: `--sel` tint and a 3 px solid bar at its left; followed: a 2 px dashed tick at its left; dimmed never |
-| Opened in place | | a bordered card, the line `Opened in place`, serif at Full | | |
+| Opened in place | | a bordered card, the line `Opened in place`, Full's 16 px | | |
 | Fold back | two inward diagonal arrows (`arrow.down.right.and.arrow.up.left`) | `Fold back · esc` | `esc` | on an opened card |
 | Notes count | concept `note` and the number | `Show the margin to see the notes on this paragraph` | | only while the margin is hidden and the paragraph has marks |
 | Filter stub | the shapes of the hidden roles | `N paragraphs not shown: <roles>` and a `Show them` button (clears the filter) | | one line per run of hidden paragraphs |
@@ -409,7 +411,7 @@ icons), `role="toolbar"`, `aria-label="Selected text"`; buttons keep the selecti
 A column at the right of each paragraph (`aside`, `aria-label="Margin"`), width 220 px (160-420), its divider a
 1 px line with an 11 px hit area (`Resize the margin. ← → resize, double-click resets.`; `←` `→` 20 px, `⇧` 80 px).
 Contents per paragraph, at Key, Brief and Full: argument links (`→ supports §2.1 · <the target's topic>`, a button
-that selects and scrolls to the target), then mark cards: concept icon and kind (`Note`, `Ask`), the quote (serif,
+that selects and scrolls to the target), then mark cards: concept icon and kind (`Note`, `Ask`), the quote (
 italic, 140 characters at most), a text box (`Your note…` / `Ask about this passage…`), and remove (`✕`, label
 `Remove this note`). Removing a card with text asks inline: `Delete this note?` with `Delete it` and `Keep it`; an
 empty one goes at once. An Ask card says `Kept here: asking the chat from the reader comes in a later version`. A
@@ -575,7 +577,7 @@ Page (Playwright on the fixture)
 24. `[pw]` The page says `ready`; FR.load draws the header (title, byline, status pill with its flag icon, task pill, taxonomy group with names and pills).
 25. `[pw]` Keys 1-5 set the level, `aria-pressed` follows, a `prefs` message carries the level, the live region says it.
 26. `[pw]` A level change animates only pieces in the viewport band (`document.getAnimations()`), and none with `prefers-reduced-motion: reduce`.
-27. `[pw]` Full uses the serif for the paper's words; Key, Takeaway, Topic use the sans for AI words.
+27. `[pw]` Full sets the paper's words in the app's sans at 16 px; Key, Takeaway, Topic set the AI's words smaller (15 px, Takeaway 14.5 px).
 28. `[pw]` The role shape and a double-click open a unit at Full in place; esc folds it back.
 29. `[pw]` A click on a paragraph tints it, adds the solid bar, outlines its PDF box solid and scrolls the PDF.
 30. `[pw]` Scrolling the text moves the dashed box and the tick to the paragraph at 30%; the solid one stays on the selection.

@@ -157,13 +157,16 @@ ok((await attr('[data-level="key"]', "title")) === "Key: each paragraph's point 
 
 // 27: fonts
 const fam = (sel) => pg.$eval(sel, (e) => getComputedStyle(e).fontFamily);
-ok(/serif/.test(await fam('.u[data-u="S1.p1.1"] .body')) && !/system-ui/.test(await fam('.u[data-u="S1.p1.1"] .body')), "27 Full: the paper's words in the serif");
+const size = (sel) => pg.$eval(sel, (e) => parseFloat(getComputedStyle(e).fontSize));
+const sans = (f) => /system-ui/.test(f) && !/serif/.test(f.replace(/sans-serif/g, ""));
+ok(sans(await fam('.u[data-u="S1.p1.1"] .body')) && (await size('.u[data-u="S1.p1.1"] .body')) === 16, "27 Full: the paper's words in the app's sans, 16 px");
+ok(sans(await fam(".hd .title")) && sans(await fam(".cap.paper")), "27 the title and the Aa caption in the app's sans: no serif anywhere");
 for (const k of ["3", "4"]) {
   await levelKey(k);
-  ok(/system-ui/.test(await fam('.u[data-u="S1.p1.1"] .body')), `27 ${say[k].name}: the AI's words in the sans`);
+  ok(sans(await fam('.u[data-u="S1.p1.1"] .body')) && (await size('.u[data-u="S1.p1.1"] .body')) < 16, `27 ${say[k].name}: the AI's words in the sans, smaller than the paper's`);
 }
 await levelKey("5");
-ok(/system-ui/.test(await fam(".chip")), "27 Topic: the chips in the sans");
+ok(sans(await fam(".chip")) && sans(await fam(".tcard .tt")), "27 Topic: the chips and the card titles in the sans");
 
 // 39: the PDF at Topic
 ok(await pg.locator("#pdf").isHidden(), "39 the PDF pane is hidden at Topic");
@@ -548,10 +551,10 @@ await pg.focus("#text");
 await levelKey("3");
 const lineOf = (id) => pg.evaluate((i) => { const t = document.querySelector('.sec[data-s="' + i + '"] + .stake'); return t ? { text: t.textContent, fs: t.classList.contains("fs"), shown: !t.hidden && t.offsetParent !== null, italic: getComputedStyle(t).fontStyle } : null; }, id);
 const fontOf = (u) => pg.evaluate((i) => { const b = document.querySelector('.u[data-u="' + i + '"] .body'); return b ? [...b.classList].filter((c) => c === "paper" || c === "ui").join() + "/" + getComputedStyle(b).fontFamily : ""; }, u);
-const serif = (await fontOf("S1.p1"));
+const firstFont = (await fontOf("S1.p1"));
 let l1 = await lineOf("S1"), l2 = await lineOf("S2");
 ok(l1.text === "First sentences: not folded yet" && l1.fs && l1.shown && l1.italic === "italic" && l2.text === "First sentences: this section wasn't folded" && l2.shown, "R5-30 at Key: an unfolded section's line, a failed one's line, muted in italics");
-ok(serif.startsWith("paper/"), "R5-30 an unfolded section's words are in the serif");
+ok(firstFont.startsWith("paper/"), "R5-30 an unfolded section's words are the paper's (class paper)");
 for (const k of ["4", "5"]) {
   await levelKey(k);
   if (k === "4") { l1 = await lineOf("S1"); ok(l1.text === "First sentences: not folded yet" && l1.shown, "R5-30 at Takeaway too"); }
@@ -563,7 +566,7 @@ await levelKey("3");
 await load(payload(s1Only, null, { fold: fk({ kind: "stopped", done: 1 }) }));
 await wait(50);
 l1 = await lineOf("S1");
-ok(l1.text === "Section S1 folded" && !l1.fs && (await fontOf("S1.p1")).startsWith("ui/") && (await fontOf("S2.p1")).startsWith("paper/"), "R5-30 after FR.load with S1 folded: its line gone, its words in the sans, the others still serif");
+ok(l1.text === "Section S1 folded" && !l1.fs && (await fontOf("S1.p1")).startsWith("ui/") && (await fontOf("S2.p1")).startsWith("paper/"), "R5-30 after FR.load with S1 folded: its line gone, its words the AI's, the others still the paper's");
 ok((await attr(".cap.ai", "title")) === "Written by AI (Lab model, 6 November 2026) for 1 of 5 sections; the others show first sentences", "R5-30 the AI caption: partly folded");
 const foot = () => pg.textContent(".ft .lv");
 ok((await foot()) === "Key · written by AI for 1 of 5 sections, the others first sentences", "R5-30 the footer at Key: partly folded");
@@ -845,7 +848,9 @@ await pg.setViewportSize({ width: 1360, height: 820 });
       left: Math.round(e.getBoundingClientRect().left), top: parseFloat(c.marginTop), lines: r.getClientRects().length, nx: n ? Math.round(n.getBoundingClientRect().right) : 0, tx: Math.round(Math.min(...Array.from(r.getClientRects(), (b) => b.left))) }; }));
   const by = Object.fromEntries(heads.map((h) => [h.id, h]));
   const textLeft = await pg.$eval('#text .column .u[data-u="S1.p1.1"] .body', (e) => Math.round(e.getBoundingClientRect().left));
-  ok(heads.every((h) => h.role === "heading" && /serif/.test(h.font)), "a section's heading is a heading, in the paper's serif");
+  ok(heads.every((h) => h.role === "heading" && sans(h.font)), "a section's heading is a heading, in the app's sans");
+  const titleSize = await size(".hd .title");
+  ok(titleSize > Math.max(...heads.map((h) => h.size)), `the paper's title is larger than any heading (${titleSize} > ${Math.max(...heads.map((h) => h.size))})`);
   ok(by.S1.level === "2" && by["S2.SS1"].level === "3" && by["S2.SS1.SSS1"].level === "4" && by["S2.SS1.SSS1.SSSS1"].level === "5", "its aria-level is its depth under the paper's title");
   ok(by.S1.size > by["S2.SS1"].size && by["S2.SS1"].size > by["S2.SS1.SSS1"].size - 0.01 && by["S2.SS1"].size > by["S2.SS1.SSS1.SSSS1"].size && by["S2.SS1.SSS1"].size >= 17,
     `four levels by size, none under the text's (${heads.map((h) => h.size).join(", ")})`);

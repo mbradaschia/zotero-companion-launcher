@@ -22,7 +22,7 @@ needed, never contacted and never named in the UI. This spec replaces R1's SPEC.
 | D8 | Replies are **cached** by `sha256(JSON [system, prompt, schema, model spec, effort])`, first 24 hex digits (TextFold's `llm.call` key), in `<runnerState>/fold-reader/<libraryID>-<KEY>/replies/`. Stop keeps what came back; finishing or retrying asks only for what is missing. | Resume after a stop or a crash for nothing; a refold is an explicit new sample (`force`). |
 | D9 | A `doc.json` TextFold wrote in R1 (its `provenance.made_with` starts `TextFold`) is **kept as it is** when it has AI levels (they were paid for), linked by R1's word vote, until the user chooses Fold again; one with `provenance.local: true` is replaced by our extraction on open. Marks re-anchor by quote (SPEC 5.6). | Nothing Marcelo made in 0.4.35 is lost; no TextFold needed to read it. |
 | D10 | **English and other alphabetic languages** fold (the prompt names the text's language, as TextFold's `langs.name`); Chinese and Japanese (`zh`, `ja`) read at Full and Brief but do not fold in R5 (TextFold's CJK rules are not ported). **OCR is out**: a scan gets its own state. **Amended in 0.4.44 (his ask, 3.8):** a scan is read by Apple's Vision, on the Mac, its words with their boxes. | The CJK path is a third of `ladder.py`; the runner's Tesseract OCR gives text without boxes and needs Homebrew installs, so it would bring back an install step and lose the link map. Vision has neither cost: it comes with macOS and gives each word's box. |
-| D11 | The doc keeps R1's input format (`textfold/doc` version 0, SPEC 5.1) so FoldCore and FoldView change little; the unfolded levels are written as **no key** (FoldCore's "first sentence, in serif" path), so unfolded words always look like the paper's. | Honest by construction: sans means AI wrote it. |
+| D11 | The doc keeps R1's input format (`textfold/doc` version 0, SPEC 5.1) so FoldCore and FoldView change little; the unfolded levels are written as **no key** (FoldCore's "first sentence, in the paper's face" path), so unfolded words always look like the paper's. | Honest by construction: the paper's size (16 px) means the paper's words, the smaller one AI's. (Until Mac 0.4.45 the paper's face was a serif; Marcelo asked for the app's sans.) |
 
 ## 2. Scope
 
@@ -187,7 +187,7 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
     most 300 sentences and 3000 tokens, the ids continuing. More than 5000 units: `too-long`.
 13. **The levels before any fold** (D11): every unit `evidence: [0]`, `key: ""`, `takeaway: ""`, `topic: ""`, role
     `context`; every section `takeaway: ""`, `topic: ""`. FoldCore then shows Brief and Key as the first sentence in
-    serif and Topic as its first six words.
+    the paper's face and Topic as its first six words.
 14. **Scan.** When at least half of the pages have fewer than 40 characters of text of their own (the runner's
     `MIN_PAGE_CHARS`), or the whole document has fewer than 200: `problem: "scan"`. Fewer pages than that: those pages
     simply have no units. A page's own text (`textless`, extractor 5) leaves out the furniture of step 3 and a
@@ -621,7 +621,7 @@ paper's words.`, buttons `Fold again` (`fold`, `force: true`) and `Keep these` (
 
 **Sections not folded:** at Key, Takeaway and Topic, a section with a foldable unit and no `made` shows, in the place
 of its takeaway (and of a Topic card's), the muted line `First sentences: not folded yet`, or `First sentences: this
-section wasn't folded` when it failed. The words themselves are in the serif (D11).
+section wasn't folded` when it failed. The words themselves are in the paper's face (D11).
 
 **The AI caption** (the toolbar's group caption over 3 to 5, SPEC 7.3): `Written by AI (<model>, <levels_made
 date>)`; partly folded: `Written by AI (<model>, <date>) for <done> of <total> sections; the others show first
@@ -760,7 +760,7 @@ The page
 27. `[pw]` Every state of 6.1, sent by `FR.load`, shows its exact title, sentence and button; buttons post `retry`.
 28. `[pw]` Every fold kind of 6.2, sent by `FR.fold`, shows its exact banner (title, sentence, button, `data-act` and payload) and the Fold button's icon, text, tooltip and disabled state.
 29. `[pw]` Fold again: the confirm's title, sentence and buttons; `Keep these` has the focus; esc or Keep these posts nothing; Fold again posts `fold` with `force: true`.
-30. `[pw]` At Key, Takeaway and Topic an unfolded section shows `First sentences: not folded yet` (a failed one `First sentences: this section wasn't folded`), and its unit words in the serif; after a `FR.load` with the section folded the line is gone and its words are in the sans.
+30. `[pw]` At Key, Takeaway and Topic an unfolded section shows `First sentences: not folded yet` (a failed one `First sentences: this section wasn't folded`), and its unit words in the paper's face (class `paper`, 16 px); after a `FR.load` with the section folded the line is gone and its words are the AI's (class `ui`, 15 px).
 31. `[pw]` `FR.fold` changes the count without redrawing the text: the scroll position and the selection stay.
 32. `[pw]` Units of an apparatus kind show at Full and not at Brief, Key or Takeaway; the `bib` section's heading shows only at Full.
 33. `[pw]` In no state, banner, tooltip or keys panel does the page's text contain `TextFold`; the keys panel's ⌘R row reads `Read the paper and its PDF again`.

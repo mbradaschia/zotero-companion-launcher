@@ -30,6 +30,15 @@ bridge and the prompt runner share one version.
 - **JSTOR files read without JSTOR's pages.** The full-text note leaves out JSTOR's cover sheet (its page numbers were
   one low behind it) and takes JSTOR's stamp (`This content downloaded from …`) off every page.
 
+### The Mac app (`macos-v0.4.45`)
+
+- **The reader uses the app's font.** The fold reader set the paper's own words (its title, headings and the text at
+  Full and Brief) in a serif; everything in it is now in the app's sans, as in the rest of the app. Which words are the
+  paper's and which the AI's is still shown without colour: the toolbar's `Aa` (solid underline) over Full and Brief
+  and its sparkle (dashed) over Key, Takeaway and Topic, the line `First sentences: not folded yet` over a section the
+  AI hasn't written yet, and the AI's words a size smaller. The paper's title in the header is now one step larger
+  than a first-level heading (22 px), so it reads as the page's top line.
+
 ### The Mac app (`macos-v0.4.44`)
 
 - **Scanned papers are read.** A PDF whose pages are pictures (an older paper scanned by its publisher, often with a
