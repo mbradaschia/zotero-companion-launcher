@@ -82,3 +82,47 @@ test("a download stamp is furniture on a page of text too", () => {
   const text = read.doc.sections.map((s) => s.units.map((u) => u.sentences.join(" ")).join(" ")).join(" ")
   assert.doesNotMatch(text, /Downloaded by/)
 })
+
+// A scanned page as Vision reads it (fn "ocr"): two columns with no gutter, one row in four read across both as one
+// line, a margin column of a pull quote; the margin on the left of page 1 and the right of page 2 (facing pages).
+function ocrLine(words, x0, x1, y, opts) {
+  const o = opts || {}
+  const n = words.length, room = x1 - x0, chars = words.reduce((a, w) => a + w.length, 0)
+  const per = (room - 2.5 * (n - 1)) / chars
+  let at = x0
+  const w = words.map((t) => { const box = [t, at / 612, y / 792, (at + t.length * per) / 612, (y + 10) / 792]; at += t.length * per + 2.5; return box })
+  return { t: words.join(" "), b: [w[0][1], w[0][2], w[n - 1][3], w[n - 1][4]], s: 10, f: o.bold ? 1 : 0, lb: o.bold ? n : 0, li: 0, fn: "ocr", w }
+}
+function scanPage(n, margin) {
+  const L = margin === "left" ? [153, 361] : [37, 245], R = margin === "left" ? [361, 575] : [245, 459]
+  const M = margin === "left" ? [25, 135] : [475, 590]
+  const lines = []
+  const tok = (side, k) => side + String(n) + String(k).padStart(3, "0")
+  for (let i = 0; i < 40; i++) {
+    const y = 80 + i * 14
+    const left = [0, 1, 2, 3, 4].map((j) => tok("wl", i * 5 + j)), right = [0, 1, 2, 3, 4].map((j) => tok("wr", i * 5 + j))
+    if (n === 1 && i === 20) { lines.push(ocrLine(["Problems", "with", "Existing", "Metrics"], L[0], L[0] + 150, y, { bold: true })); lines.push(ocrLine(right, R[0], R[1], y)); continue }
+    if (i % 4 === 2) {
+      const a = ocrLine(left, L[0], L[1], y), b = ocrLine(right, R[0], R[1], y)
+      lines.push({ t: a.t + " " + b.t, b: [a.b[0], a.b[1], b.b[2], b.b[3]], s: 10, f: 0, lb: 0, li: 0, fn: "ocr", w: a.w.concat(b.w) })
+    } else { lines.push(ocrLine(right, R[0], R[1], y)); lines.push(ocrLine(left, L[0], L[1], y)) }
+  }
+  for (let i = 0; i < 4; i++) lines.push(ocrLine(["mq" + n + i + "a", "mq" + n + i + "b", "mq" + n + i + "c"], M[0], M[1], 200 + i * 14))
+  return { n, size: [612, 792], lines }
+}
+
+test("R5-68: a scan's columns with no gutter and a margin column read in order: the left column, the right, the margin's", () => {
+  const pages = [scanPage(1, "left"), scanPage(2, "right")]
+  const read = M.read(pages, Object.assign(meta(2), { ocr: [1, 2], ocr_engine: "vision" }))
+  assert.ok(read.doc, read.problem)
+  const text = read.doc.sections.map((s) => s.units.map((u) => u.sentences.join(" ")).join(" ")).join(" ")
+  const toks = text.match(/\b(?:wl|wr|mq)\d\w*/g)
+  const want = []
+  for (const n of [1, 2]) {
+    for (let k = 0; k < 200; k++) if (!(n === 1 && k >= 100 && k < 105)) want.push("wl" + n + String(k).padStart(3, "0"))
+    for (let k = 0; k < 200; k++) want.push("wr" + n + String(k).padStart(3, "0"))
+    for (let i = 0; i < 4; i++) for (const c of "abc") want.push("mq" + n + i + c)
+  }
+  assert.deepEqual(toks, want)
+  assert.ok(read.doc.sections.some((s) => s.title === "Problems with Existing Metrics"), read.doc.sections.map((s) => s.title).join(" | "))
+})

@@ -200,8 +200,8 @@ enum FoldOCR {
 
     // ---- the AI features' OCR (the runner's: macos/runner/lib/vision.mjs)
 
-    // `--ocr <pdf> <page>…` (pages from 1): one JSON object a page on stdout, {n, size: [w, h], lines: [{t, b}]}, or
-    // {n, error}. → the exit code: 0, 2 for a usage error, 3 when the PDF can't be read.
+    // `--ocr <pdf> <page>…` (pages from 1): one JSON object a page on stdout, {n, size: [w, h], lines: [{t, b, w}]} (w:
+    // its words, [text, x0, y0, x1, y1], for cutting a line Vision read across two columns), or {n, error}. → the exit code: 0, 2 for a usage error, 3 when the PDF can't be read.
     static func command(_ args: [String], out: (String) -> Void = { print($0); fflush(stdout) }, err: (String) -> Void = { FileHandle.standardError.write(Data(($0 + "\n").utf8)) }) -> Int32 {
         guard args.count >= 2 else { err("usage: ZoteroLauncher --ocr <pdf> <page>…"); return 2 }
         let url = URL(fileURLWithPath: args[0])
@@ -215,7 +215,8 @@ enum FoldOCR {
                 row["size"] = [Double(turned ? box.height : box.width), Double(turned ? box.width : box.height)]
                 do {
                     row["lines"] = try autoreleasepool { try lines(of: page) }.map { line -> [String: Any] in
-                        ["t": line.words.map { $0.text }.joined(separator: " "), "b": FoldPDF.union(line.words.map { $0.box })]
+                        ["t": line.words.map { $0.text }.joined(separator: " "), "b": FoldPDF.union(line.words.map { $0.box }),
+                         "w": line.words.map { w -> [Any] in [w.text as Any] + w.box.map { $0 as Any } }]
                     }
                 } catch {
                     row["error"] = "Vision couldn't read page \(n): \(error.localizedDescription)"

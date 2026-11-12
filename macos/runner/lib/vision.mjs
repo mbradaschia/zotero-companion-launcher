@@ -1,8 +1,8 @@
 // A scan's pages read by OCR on a Mac with Apple's Vision, through the app itself (docs/fold-reader/R5-SPEC.md 3.8):
 // nothing to install, nothing sent anywhere. The app gives its executable as ZL_OCR; `<ZL_OCR> --ocr <pdf> <page>`
 // prints the page's lines as JSON ({n, size, lines: [{t, b: [x0, y0, x1, y1]}]}, 0 to 1, origin top left, in Vision's
-// order). readingOrder puts them in the order a reader reads them (one column, or two, with what spans both between
-// them) and makes paragraphs of them. Only the spawning (visionPage) isn't pure (node-tested).
+// order, `w` its words' boxes). readingOrder puts them in the order a reader reads them (its columns found from where
+// its lines start and end) and makes paragraphs of them. Only the spawning (visionPage) isn't pure (node-tested).
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { isMac } from "./platform.mjs";
@@ -37,32 +37,123 @@ export function visionPage(exe, path, n, run = spawn, seconds = 120) {
   });
 }
 
-// Vision's lines → the page's text: top to bottom; on a page in two columns, the left column then the right, a line
-// across both (a title, a figure's caption) closing the band above it. A paragraph ends (a blank line) where the gap
-// to the next line in a column is over 1.5 times its usual one, at a band's end, and at a column's.
+// Vision's lines → the page's text: its columns found by ocrColumns (one, two, a margin's), each band of the page
+// (what lies between lines across the columns: a title, a figure's caption) read column by column, left to right, a
+// margin's column after the text's; a line Vision read across two columns cut where they meet (its words' boxes, `w`,
+// say where). A paragraph ends (a blank line) where the gap to the next line in a column is over 1.5 times its usual
+// one, and at a column's end.
 export function readingOrder(lines) {
   const ls = (Array.isArray(lines) ? lines : [])
     .filter((l) => l && typeof l.t === "string" && l.t.trim() && Array.isArray(l.b) && l.b.length === 4)
-    .map((l) => ({ t: l.t.trim(), x0: l.b[0], y0: l.b[1], x1: l.b[2], y1: l.b[3] }));
+    .map((l) => {
+      const ws = Array.isArray(l.w) ? l.w.filter((w) => Array.isArray(w) && w.length >= 5 && String(w[0]).trim()).map((w) => ({ t: String(w[0]), x0: w[1], y0: w[2], x1: w[3], y1: w[4] })) : []
+      return { t: l.t.trim(), x0: l.b[0], y0: l.b[1], x1: l.b[2], y1: l.b[3], words: ws.length ? ws : null }
+    });
   if (!ls.length) return "";
-  // (two columns: 3 or more lines a side, each within its half)
-  const left = ls.filter((l) => l.x1 <= 0.53), right = ls.filter((l) => l.x0 >= 0.47);
-  const two = left.length >= 3 && right.length >= 3;
-  const across = (l) => two && l.x0 < 0.47 && l.x1 > 0.53;
-  ls.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
-  const blocks = []; // [[line]]: a column of a band, or a line across
-  let band = { left: [], right: [] };
-  const flush = () => { if (band.left.length) blocks.push(band.left); if (band.right.length) blocks.push(band.right); band = { left: [], right: [] }; };
-  for (const l of ls) {
-    if (across(l)) { flush(); blocks.push([l]); continue; }
-    if (!two || (l.x0 + l.x1) / 2 < 0.5) band.left.push(l); else band.right.push(l);
-  }
-  flush();
+  const piece = (it, from, to) => {
+    const ws = it.words.slice(from, to);
+    return { t: ws.map((w) => w.t).join(" "), x0: Math.min(...ws.map((w) => w.x0)), x1: Math.max(...ws.map((w) => w.x1)), y0: it.y0, y1: it.y1, words: ws };
+  };
+  const { blocks } = ocrColumns(ls, 0.012, piece);
   const heights = ls.map((l) => l.y1 - l.y0).sort((a, b) => a - b);
   const high = heights[Math.floor(heights.length / 2)] || 0.01;
-  return blocks.map((b) => {
+  return blocks.map(({ items: b }) => {
     const gaps = b.slice(1).map((l, i) => l.y0 - b[i].y1).filter((g) => g > 0).sort((a, c) => a - c);
     const usual = gaps.length ? gaps[Math.floor(gaps.length / 2)] : high * 0.3;
     return b.map((l, i) => (i && l.y0 - b[i - 1].y1 > Math.max(1.5 * usual, 0.6 * high) ? "\n" : "") + l.t).join("\n");
   }).join("\n\n");
+}
+
+// ---- a scanned page's columns (R5-SPEC 3.8): from where its lines start and end, not from a gap between them,
+// as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the right starts
+// at 0.590) and a page can carry a margin column of pull quotes and notes beside its text.
+// items: [{x0, x1, y0, y1, words: [{x0, x1}] or null}] in one unit, tol: its slack (about 7 pt). A cut is where a
+// column starts: an x where 3 lines or more end before it and 3 or more start after it, and few cross it (a line
+// read across both columns, with a gap between its words there, counts on both sides); the best cut is the one with
+// the most lines on its smaller side, then each side is cut again the same way (2 lines a side do there), twice at
+// most. A column with under a third of the biggest one's text is a minor one (a margin's). → blocks in reading
+// order: [{kind: "span" | "major" | "minor", col, items}], each item whole or a piece of one cut at a column's edge
+// (piece(item, from, to) makes it).
+export function ocrColumns(items, tol, piece) {
+  var hs = items.map(function (it) { return it.y1 - it.y0 }).sort(function (a, b) { return a - b })
+  var hMed = hs.length ? hs[Math.floor(hs.length / 2)] : 0
+  var splitAt = function (it, c) {
+    var ws = it.words
+    if (!ws || ws.length < 2 || it.y1 - it.y0 > 1.3 * hMed) return -1
+    for (var i = 1; i < ws.length; i++) if (ws[i - 1].x1 <= c + tol && ws[i].x0 >= c - tol && ws[i - 1].x0 < c - tol && ws[i].x1 > c + tol) return i
+    return -1
+  }
+  var cuts = []
+  var find = function (set, depth) {
+    var minSide = depth ? 2 : 3
+    if (depth > 2 || set.length < 2 * minSide) return
+    var xs = set.map(function (it) { return it.x0 }).sort(function (a, b) { return a - b })
+    var best = null, last = -Infinity
+    xs.forEach(function (c) {
+      if (c - last < tol / 4) return
+      last = c
+      var L = 0, R = 0, X = 0
+      set.forEach(function (it) {
+        if (it.x1 <= c + tol) L++
+        else if (it.x0 >= c - tol) R++
+        else if (splitAt(it, c) > 0) { L++; R++ }
+        else X++
+      })
+      if (L < minSide || R < minSide || X > Math.max(2, 0.12 * (L + R))) return
+      var score = Math.min(L, R) - 2 * X
+      if (!best || score > best.score) best = { c: c, score: score }
+    })
+    if (!best) return
+    var c = best.c
+    cuts.push(c)
+    find(set.filter(function (it) { return it.x1 <= c + tol }), depth + 1)
+    find(set.filter(function (it) { return it.x0 >= c - tol }), depth + 1)
+  }
+  find(items.filter(function (it) { return it.x1 - it.x0 >= 3 * tol }), 0)
+  cuts.sort(function (a, b) { return a - b })
+  var colOf = function (x0, x1) {
+    for (var k = 0; k <= cuts.length; k++) {
+      if ((k === 0 || x0 >= cuts[k - 1] - tol) && (k === cuts.length || x1 <= cuts[k] + tol)) return k
+    }
+    return -1
+  }
+  // (each item whole in its column, or cut at the column edges it crosses, or across them: a span)
+  var placed = []
+  items.forEach(function (it) {
+    var k = colOf(it.x0, it.x1)
+    if (k >= 0) { placed.push({ col: k, it: it }); return }
+    var at = [], ok = true
+    cuts.forEach(function (c) {
+      if (!(it.x0 < c - tol && it.x1 > c + tol)) return
+      var i = splitAt(it, c)
+      if (i > 0) at.push(i); else ok = false
+    })
+    if (!ok || !at.length) { placed.push({ col: -1, it: it }); return }
+    at.push(0, it.words.length)
+    at.sort(function (a, b) { return a - b })
+    for (var j = 1; j < at.length; j++) {
+      if (at[j] === at[j - 1]) continue
+      var p = piece(it, at[j - 1], at[j])
+      placed.push({ col: colOf(p.x0, p.x1), it: p })
+    }
+  })
+  var chars = []
+  placed.forEach(function (p) { if (p.col >= 0) chars[p.col] = (chars[p.col] || 0) + (p.it.x1 - p.it.x0) })
+  var most = Math.max.apply(null, [0].concat(chars.filter(Boolean)))
+  var major = function (k) { return (chars[k] || 0) >= most / 3 }
+  placed.sort(function (a, b) { return a.it.y0 - b.it.y0 || a.it.x0 - b.it.x0 })
+  var blocks = [], band = {}
+  var flush = function () {
+    var ks = Object.keys(band).map(Number).sort(function (a, b) { return a - b })
+    ks.filter(major).concat(ks.filter(function (k) { return !major(k) })).forEach(function (k) {
+      blocks.push({ kind: major(k) ? "major" : "minor", col: k, items: band[k] })
+    })
+    band = {}
+  }
+  placed.forEach(function (p) {
+    if (p.col < 0) { flush(); blocks.push({ kind: "span", col: -1, items: [p.it] }); return }
+    (band[p.col] = band[p.col] || []).push(p.it)
+  })
+  flush()
+  return { cuts: cuts, blocks: blocks }
 }

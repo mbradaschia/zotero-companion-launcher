@@ -268,6 +268,158 @@ var FoldMake = (function () {
     return out
   }
 
+  // ---- a scanned page's columns (R5-SPEC 3.8): from where its lines start and end, not from a gap between them,
+  // as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the right starts
+  // at 0.590) and a page can carry a margin column of pull quotes and notes beside its text.
+  // items: [{x0, x1, y0, y1, words: [{x0, x1}] or null}] in one unit, tol: its slack (about 7 pt). A cut is where a
+  // column starts: an x where 3 lines or more end before it and 3 or more start after it, and few cross it (a line
+  // read across both columns, with a gap between its words there, counts on both sides); the best cut is the one with
+  // the most lines on its smaller side, then each side is cut again the same way (2 lines a side do there), twice at
+  // most. A column with under a third of the biggest one's text is a minor one (a margin's). → blocks in reading
+  // order: [{kind: "span" | "major" | "minor", col, items}], each item whole or a piece of one cut at a column's edge
+  // (piece(item, from, to) makes it).
+  function ocrColumns(items, tol, piece) {
+    var hs = items.map(function (it) { return it.y1 - it.y0 }).sort(function (a, b) { return a - b })
+    var hMed = hs.length ? hs[Math.floor(hs.length / 2)] : 0
+    var splitAt = function (it, c) {
+      var ws = it.words
+      if (!ws || ws.length < 2 || it.y1 - it.y0 > 1.3 * hMed) return -1
+      for (var i = 1; i < ws.length; i++) if (ws[i - 1].x1 <= c + tol && ws[i].x0 >= c - tol && ws[i - 1].x0 < c - tol && ws[i].x1 > c + tol) return i
+      return -1
+    }
+    var cuts = []
+    var find = function (set, depth) {
+      var minSide = depth ? 2 : 3
+      if (depth > 2 || set.length < 2 * minSide) return
+      var xs = set.map(function (it) { return it.x0 }).sort(function (a, b) { return a - b })
+      var best = null, last = -Infinity
+      xs.forEach(function (c) {
+        if (c - last < tol / 4) return
+        last = c
+        var L = 0, R = 0, X = 0
+        set.forEach(function (it) {
+          if (it.x1 <= c + tol) L++
+          else if (it.x0 >= c - tol) R++
+          else if (splitAt(it, c) > 0) { L++; R++ }
+          else X++
+        })
+        if (L < minSide || R < minSide || X > Math.max(2, 0.12 * (L + R))) return
+        var score = Math.min(L, R) - 2 * X
+        if (!best || score > best.score) best = { c: c, score: score }
+      })
+      if (!best) return
+      var c = best.c
+      cuts.push(c)
+      find(set.filter(function (it) { return it.x1 <= c + tol }), depth + 1)
+      find(set.filter(function (it) { return it.x0 >= c - tol }), depth + 1)
+    }
+    find(items.filter(function (it) { return it.x1 - it.x0 >= 3 * tol }), 0)
+    cuts.sort(function (a, b) { return a - b })
+    var colOf = function (x0, x1) {
+      for (var k = 0; k <= cuts.length; k++) {
+        if ((k === 0 || x0 >= cuts[k - 1] - tol) && (k === cuts.length || x1 <= cuts[k] + tol)) return k
+      }
+      return -1
+    }
+    // (each item whole in its column, or cut at the column edges it crosses, or across them: a span)
+    var placed = []
+    items.forEach(function (it) {
+      var k = colOf(it.x0, it.x1)
+      if (k >= 0) { placed.push({ col: k, it: it }); return }
+      var at = [], ok = true
+      cuts.forEach(function (c) {
+        if (!(it.x0 < c - tol && it.x1 > c + tol)) return
+        var i = splitAt(it, c)
+        if (i > 0) at.push(i); else ok = false
+      })
+      if (!ok || !at.length) { placed.push({ col: -1, it: it }); return }
+      at.push(0, it.words.length)
+      at.sort(function (a, b) { return a - b })
+      for (var j = 1; j < at.length; j++) {
+        if (at[j] === at[j - 1]) continue
+        var p = piece(it, at[j - 1], at[j])
+        placed.push({ col: colOf(p.x0, p.x1), it: p })
+      }
+    })
+    var chars = []
+    placed.forEach(function (p) { if (p.col >= 0) chars[p.col] = (chars[p.col] || 0) + (p.it.x1 - p.it.x0) })
+    var most = Math.max.apply(null, [0].concat(chars.filter(Boolean)))
+    var major = function (k) { return (chars[k] || 0) >= most / 3 }
+    placed.sort(function (a, b) { return a.it.y0 - b.it.y0 || a.it.x0 - b.it.x0 })
+    var blocks = [], band = {}
+    var flush = function () {
+      var ks = Object.keys(band).map(Number).sort(function (a, b) { return a - b })
+      ks.filter(major).concat(ks.filter(function (k) { return !major(k) })).forEach(function (k) {
+        blocks.push({ kind: major(k) ? "major" : "minor", col: k, items: band[k] })
+      })
+      band = {}
+    }
+    placed.forEach(function (p) {
+      if (p.col < 0) { flush(); blocks.push({ kind: "span", col: -1, items: [p.it] }); return }
+      (band[p.col] = band[p.col] || []).push(p.it)
+    })
+    flush()
+    return { cuts: cuts, blocks: blocks }
+  }
+
+  // A scan's pages (their lines OCR's: fn "ocr") in reading order, page by page, as ocrColumns finds their columns:
+  // flows as flowsOf makes them (a band's two text columns L and R, one alone "one", what crosses them S, a margin's
+  // column M after the text's), each with its own edges (a scan's columns stand where each page put them: a journal's
+  // facing pages mirror their margins).
+  function ocrFlows(segs) {
+    var byPage = {}, pagesSeen = []
+    segs.forEach(function (s) { if (!byPage[s.page]) { byPage[s.page] = []; pagesSeen.push(s.page) } byPage[s.page].push(s) })
+    pagesSeen.sort(function (a, b) { return a - b })
+    var flows = [], placed = []
+    pagesSeen.forEach(function (n) {
+      var ps = byPage[n], W = ps[0].W
+      var got = ocrColumns(ps, 0.012 * W, function (s, from, to) { return half(s, from, to, true) })
+      var cols = {}, span = null, run = []
+      var closeRun = function () {
+        var majors = run.filter(function (b) { return b.kind === "major" })
+        run.forEach(function (b) {
+          var side = b.kind === "minor" ? "M" : majors.length < 2 ? "one" : b === majors[0] ? "L" : "R"
+          var f = { key: n + ":" + flows.length + ":" + side, page: n, side: side, segs: b.items, col: b.col }
+          ;(cols[b.col] = cols[b.col] || []).push(f)
+          flows.push(f)
+        })
+        run = []
+      }
+      got.blocks.forEach(function (b) {
+        if (b.kind === "span") {
+          closeRun()
+          if (!span) { span = { key: n + ":" + flows.length + ":S", page: n, side: "S", segs: [] }; flows.push(span); (cols.S = cols.S || []).push(span) }
+          span.segs.push.apply(span.segs, b.items)
+        } else { span = null; run.push(b) }
+      })
+      closeRun()
+      // (each column's edges from its lines across the page; a span's from the text columns')
+      var edgesOfCol = function (list) {
+        var all = [], wide = []
+        list.forEach(function (f) { f.segs.forEach(function (s) { all.push(s); if (s.words.length >= 3) wide.push(s) }) })
+        var use = wide.length >= 3 ? wide : all
+        if (!use.length) return null
+        var xs0 = use.map(function (s) { return s.x0 }).sort(function (a, b) { return a - b })
+        var xs1 = use.map(function (s) { return s.x1 }).sort(function (a, b) { return a - b })
+        return [pct(xs0, Math.floor(xs0.length / 20)), pct(xs1, xs1.length - 1 - Math.floor(xs1.length / 20))]
+      }
+      var text = []
+      Object.keys(cols).forEach(function (k) {
+        if (k === "S") return
+        var e = edgesOfCol(cols[k])
+        cols[k].forEach(function (f) { f.edges = e; if (f.side !== "M") text.push(e) })
+      })
+      if (cols.S) {
+        var lo = Math.min.apply(null, text.map(function (e) { return e[0] })), hi = Math.max.apply(null, text.map(function (e) { return e[1] }))
+        var own = edgesOfCol(cols.S)
+        cols.S.forEach(function (f) { f.edges = text.length ? [lo, hi] : own })
+      }
+      flows.forEach(function (f) { if (f.page === n) f.segs.forEach(function (s) { s.side = f.side; placed.push(s) }) })
+    })
+    flows.forEach(function (f) { f.segs.sort(function (a, b) { return a.y0 - b.y0 || a.x0 - b.x0 }) })
+    return { flows: flows, segs: placed }
+  }
+
   // ---- 4. reading order: bands cut by what spans both columns, the left column then the right
 
   function flowsOf(segs, fr, body) {
@@ -376,7 +528,7 @@ var FoldMake = (function () {
   function blocksOf(flows, edges, body, gapMedian) {
     var blocks = [], pitch = medianPitch(flows, body)
     flows.forEach(function (f) {
-      var e = edges[f.side] || edges.one
+      var e = f.edges || edges[f.side] || edges.one
       var cur = null
       f.segs.forEach(function (s, i) {
         var indent = function (x) { return x.x0 - e[0] > 0.8 * x.size }
@@ -772,7 +924,7 @@ var FoldMake = (function () {
   // the margins repeat on three pages or more.
   function candidatesOf(flows, edges, body, fam) {
     var order = []
-    flows.forEach(function (f) { f.segs.forEach(function (s) { order.push({ s: s, e: edges[f.side] || edges.one }) }) })
+    flows.forEach(function (f) { f.segs.forEach(function (s) { order.push({ s: s, e: f.edges || edges[f.side] || edges.one }) }) })
     var margin = function (s) { return s.y0 < 0.09 * s.H || s.y1 > 0.92 * s.H }
     var key = function (t) { return t.toLowerCase().replace(/\d+/g, "#") }
     var seen = {}
@@ -1122,13 +1274,24 @@ var FoldMake = (function () {
     if (own.scan) return { problem: "scan", stats: stats }
     var segs = dropFurniture(got.segs, count)
     var body = bodySize(segs)
-    var fr = frameOf(segs, body)
+    // (a scan's pages, read by OCR, find their own columns; the frame is the printed pages')
+    var scanned = segs.filter(function (s) { return s.fn === "ocr" })
+    var printed = scanned.length ? segs.filter(function (s) { return s.fn !== "ocr" }) : segs
+    var fr = frameOf(printed, body)
     // (merged columns make the frame look like one: cut at its middle, then at the gutter the cut lines show, kept
     // when the frame is two columns then)
-    var cut = cutGutter(recut(segs, { two: true, mid: fr.mid }), { two: true, mid: fr.mid })
-    if (cut.length !== segs.length) { var fr2 = frameOf(cut, body); if (fr2.two) { segs = cut; fr = fr2 } }
-    var flows = flowsOf(segs, fr, body)
-    var edges = edgesOf(segs, fr, body)
+    var cut = cutGutter(recut(printed, { two: true, mid: fr.mid }), { two: true, mid: fr.mid })
+    if (cut.length !== printed.length) { var fr2 = frameOf(cut, body); if (fr2.two) { printed = cut; fr = fr2 } }
+    var flows = flowsOf(printed, fr, body)
+    var edges = edgesOf(printed, fr, body)
+    segs = printed
+    if (scanned.length) {
+      var ocrRead = ocrFlows(scanned)
+      var order = flows.concat(ocrRead.flows).map(function (f, i) { return { f: f, i: i } })
+      order.sort(function (a, b) { return a.f.page - b.f.page || a.i - b.i })
+      flows = order.map(function (o) { return o.f })
+      segs = printed.concat(ocrRead.segs)
+    }
     flows.forEach(dropTables)
     // (the outline pass: the candidates, and the model's headings among them when its answer came with the meta)
     var cands = candidatesOf(flows, edges, body, bodyFamily(segs))

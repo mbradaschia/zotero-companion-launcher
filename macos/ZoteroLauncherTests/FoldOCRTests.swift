@@ -137,6 +137,7 @@ final class FoldOCRTests: XCTestCase {
         let lines = first["lines"] as? [[String: Any]] ?? []
         XCTAssertTrue(lines.contains { ($0["t"] as? String ?? "").contains("Researchers read") }, "\(lines.prefix(5))")
         XCTAssertEqual((lines.first?["b"] as? [Double])?.count, 4)
+        XCTAssertEqual(((lines.first?["w"] as? [[Any]])?.first)?.count, 5, "each word: text and box")
         let missing = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(out[1].utf8)) as? [String: Any])
         XCTAssertEqual(missing["error"] as? String, "no page 3")
         XCTAssertEqual(FoldOCR.command([url.path], out: { _ in }, err: { err.append($0) }), 2)
