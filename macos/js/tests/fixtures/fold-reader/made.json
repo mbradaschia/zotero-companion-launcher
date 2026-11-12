@@ -19,7 +19,7 @@
    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
    "bytes": 123456,
    "pages": 3,
-   "extractor": 4,
+   "extractor": 5,
    "outline": "rules"
   },
   "levels": [

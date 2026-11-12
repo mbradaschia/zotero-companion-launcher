@@ -399,3 +399,8 @@ Found while building R5; each keeps its criterion's intent.
   the one request the reader sends without a click, by the owner's choice on 2026-11-12; a setting turns it off.
   Sections go four levels deep. The reader shows a heading printed in capitals in the case of the paper's other
   headings (`FoldCore.headingCase`), at draw time: the doc keeps the paper's own.
+- **A scan read by OCR (extractor 5, Mac 0.4.44, runner 0.3.5)**, asked for on 2026-11-12 after Lambert & Pohlen
+  (2001, Emerald) read as nothing: its pages are pictures behind a download stamp, the stamp's 110 characters a page
+  passing for text. A page's own text now leaves stamps and watermarks out, and a scan's pages are read by Apple's
+  Vision on the Mac, each word with its box (R5-SPEC 3.8, criteria 59 to 67); a bold heading reads from its ink. The
+  runner's full-text note reads them the same way through the app (`ZoteroLauncher --ocr`); Omarchy keeps Tesseract.

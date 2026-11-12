@@ -17,11 +17,17 @@ final class FoldMaker {
         var problem: String?
         var units = 0
         var ask: [String: Any]?
+        // a scan OCR didn't read (R5-SPEC 3.8): "long" (more pages than FoldOCR.maxPages: scanPages), "failed" (why)
+        var ocr: String?
+        var scanPages = 0
+        var why = ""
 
         // FR.load's state for a problem (R5-SPEC 6.1): a PDF with no text to fold reads as a scan.
         var state: [String: Any]? {
             guard let problem else { return nil }
             if problem == "too-long" { return ["kind": "too-long", "n": units] }
+            if ocr == "long" { return ["kind": "scan", "ocr": "long", "n": scanPages, "max": FoldOCR.maxPages] }
+            if ocr == "failed" { return ["kind": "scan", "ocr": "failed", "why": why] }
             return ["kind": "scan"]
         }
     }
@@ -69,6 +75,19 @@ final class FoldMaker {
         return Made(doc: doc, links: links, units: units, ask: out["ask"] as? [String: Any])
     }
 
+    // FoldMake.textless(pages, meta): whether the PDF is a scan, and its pages with no text of their own (R5-SPEC 3.8).
+    func textless(_ pages: [[String: Any]], meta: [String: Any]) throws -> (scan: Bool, pages: [Int]) {
+        guard let json = context.objectForKeyedSubscript("JSON"), let make = context.objectForKeyedSubscript("FoldMake") else { throw JSCoreError.noContext }
+        let p = json.invokeMethod("parse", withArguments: [try JSCore.jsonText(pages)])
+        let m = json.invokeMethod("parse", withArguments: [try JSCore.jsonText(meta)])
+        let result = make.invokeMethod("textless", withArguments: [p as Any, m as Any])
+        if let e = take() { throw JSCoreError.exception("FoldMake.textless: \(e)") }
+        guard let text = json.invokeMethod("stringify", withArguments: [result as Any])?.toString(),
+              let out = (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any]
+        else { throw JSCoreError.exception("FoldMake.textless returned nothing") }
+        return (out["scan"] as? Bool ?? false, (out["pages"] as? [NSNumber] ?? []).map(\.intValue))
+    }
+
     // The text's language (3.3): ISO 639-1 of the dominant language of the lines' first 5000 characters, when
     // NaturalLanguage is at least 80% sure of it, else en.
     static func language(of pages: [[String: Any]]) -> String {
@@ -94,23 +113,41 @@ final class FoldMaker {
     // PDF is read; its answer ({ n, headings, model }) has the same lines read again with the model's headings, and no
     // answer (nil) leaves the sections the rules found. It is not called for a PDF with a problem or no candidates.
     typealias Outline = @MainActor (_ ask: [String: Any], _ answer: @escaping @MainActor ([String: Any]?) -> Void) -> Void
+    // ocr: a scan's pages read by OCR (R5-SPEC 3.8): its progress (pages read, pages to read), on the main queue.
     static func make(_ pdf: FoldPDF, meta: [String: Any], resources: URL? = Bundle.main.resourceURL, outline: Outline? = nil,
                      progress: @escaping @MainActor (_ done: Int, _ pages: Int) -> Void,
+                     ocr: (@MainActor (_ done: Int, _ pages: Int) -> Void)? = nil,
                      done: @escaping @MainActor (Result<Made, Error>) -> Void) {
         pdf.onQueue { pdf in
-            let pages = pdf.linesNow { d, n in
+            var pages = pdf.linesNow { d, n in
                 if d == n || d % 4 == 0 { DispatchQueue.main.async { MainActor.assumeIsolated { progress(d, n) } } }
             }
             var m = meta
-            m["lang"] = FoldMaker.language(of: pages)
             m["outline"] = pdf.outlineNow()
             var identity = m["pdf"] as? [String: Any] ?? [:]
             if (identity["sha256"] as? String ?? "").isEmpty, let sha = pdf.sha256() { identity["sha256"] = sha }
             m["pdf"] = identity
-            let maker: FoldMaker, first: Made
+            let maker: FoldMaker
+            let first: Made
             do {
                 maker = try FoldMaker(resources: resources)
-                first = try maker.read(pages, meta: m)
+                // (a scan: its pages with no text of their own read by Vision, then the whole PDF read as any other)
+                let need = try maker.textless(pages, meta: m)
+                var skipped: Made?
+                if need.scan, !need.pages.isEmpty {
+                    if need.pages.count > FoldOCR.maxPages {
+                        skipped = Made(problem: "scan", ocr: "long", scanPages: need.pages.count)
+                    } else {
+                        let got = pdf.ocrNow(need.pages, into: pages) { d, n in
+                            if let ocr { DispatchQueue.main.async { MainActor.assumeIsolated { ocr(d, n) } } }
+                        }
+                        pages = got.pages
+                        if !got.read.isEmpty { m["ocr"] = got.read; m["ocr_engine"] = "vision" }
+                        else if let why = got.error { skipped = Made(problem: "scan", ocr: "failed", why: why) }
+                    }
+                }
+                m["lang"] = FoldMaker.language(of: pages)
+                first = try skipped ?? maker.read(pages, meta: m)
             } catch {
                 DispatchQueue.main.async { MainActor.assumeIsolated { done(.failure(error)) } }
                 return
@@ -119,7 +156,7 @@ final class FoldMaker {
                 DispatchQueue.main.async { MainActor.assumeIsolated { done(.success(first)) } }
                 return
             }
-            let read = m
+            let read = m, lines = pages
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
                     outline(ask) { answer in
@@ -128,7 +165,7 @@ final class FoldMaker {
                         pdf.onQueue { _ in
                             var again = read
                             again["headings"] = answer
-                            let made = (try? maker.read(pages, meta: again)).flatMap { $0.doc == nil ? nil : $0 } ?? first
+                            let made = (try? maker.read(lines, meta: again)).flatMap { $0.doc == nil ? nil : $0 } ?? first
                             DispatchQueue.main.async { MainActor.assumeIsolated { done(.success(made)) } }
                         }
                     }

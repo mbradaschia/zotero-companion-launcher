@@ -96,7 +96,8 @@ import { ensureLibs } from "../lib/libs.mjs";
 import { validate as validateArtifact, sanitize as sanitizeArtifact, extract as extractArtifact } from "../lib/formats.mjs";
 import { findBrowser, measureLayout } from "../lib/layout.mjs";
 import { loadRules, loadInstructions, instructionsPath, ensureInstructionsFile, clearInstructions, systemFor, standingText } from "../lib/system.mjs";
-import { FULLTEXT_TAG, OCR_MAX_PAGES, OCR_PAGE_SECONDS, OCR_PAPER_SECONDS, MIN_PAGE_CHARS, pdftotext, rawPages, pagesToOcr, ocrLanguages, ocrPage, tesseractHint, splitPages, pageLabels, buildNote, groundingText, skipReason, isScan, scanReason } from "../lib/extract.mjs";
+import { FULLTEXT_TAG, OCR_MAX_PAGES, OCR_PAGE_SECONDS, OCR_PAPER_SECONDS, MIN_PAGE_CHARS, pdftotext, paperPages, unstamp, pagesToOcr, ownText, ocrLanguages, ocrPage, tesseractHint, splitPages, pageLabels, buildNote, groundingText, skipReason, isScan, scanReason } from "../lib/extract.mjs";
+import { VISION, visionCommand, visionPage } from "../lib/vision.mjs";
 import { startTask, updateTask, finishTask, failTask, writeIndex, clearTasks } from "../lib/tasks.mjs";
 import { windowFor, needsCompaction, splitHistory, compactionPrompt, COMPACT_SYSTEM, fitContext, PAPER_SHARE, loadWindows, saveWindow, threadOf, threadMessages } from "../lib/context.mjs";
 import { CHAT_SYSTEM, chatsDir, newSessionId, validSessionId, titleFor, loadSession, saveSession, listSessions, deleteSession, parseMetaInput } from "../lib/chat.mjs";
@@ -227,19 +228,22 @@ async function pdfOf(bridge, details) {
   return r.path ? { key: att.key, libraryID: att.libraryID, path: r.path } : null;
 }
 
-// The PDF's pages: pdftotext's text, and the pages with no text layer read by OCR (Tesseract) when it's
-// installed and opts.ocr isn't false (a scan, or a scan behind a cover sheet). A page OCR can't read keeps
-// pdftotext's (nothing); OCR_PAPER_SECONDS bounds the whole paper. Only a PDF with no text at all, and none from
-// OCR, is an error (a scan: isScan). → { pdf, pages, ocr: [indexes OCR read], labels, source }
+// The PDF's pages (JSTOR's cover sheet left out, download stamps taken off): pdftotext's text, and the pages with no
+// text layer (or only a download stamp: pagesToOcr) read by OCR when opts.ocr isn't false (a scan, or a scan behind a
+// cover sheet): on a Mac by the app itself (Apple's Vision, ZL_OCR), else by Tesseract when it's installed. A page OCR
+// can't read keeps pdftotext's (nothing); OCR_PAPER_SECONDS bounds the whole paper. Only a PDF with no text at all, and
+// none from OCR, is an error (a scan: isScan). → { pdf, pages, ocr: [indexes OCR read], engine, labels, source }
 async function extractPages(bridge, details, onStage = () => {}, opts = {}) {
   const pdf = await pdfOf(bridge, details);
   if (!pdf) return null;
-  const pages = rawPages(await pdftotext(pdf.path));
+  const { pages, first } = paperPages(await pdftotext(pdf.path)); // (first: 1 behind JSTOR's cover sheet)
   const empty = pagesToOcr(pages);
   const ocr = [];
+  const vision = opts.ocr === false ? "" : visionCommand();
+  const engine = vision ? VISION : "Tesseract";
   if (empty.length) {
     const whole = empty.length === pages.length; // no text layer at all
-    const langs = opts.ocr === false ? "" : await ocrLanguages();
+    const langs = opts.ocr === false ? "" : vision ? "vision" : await ocrLanguages();
     if (opts.ocr === false) {
       if (whole) throw new Error("the PDF has no text layer (a scan?): its text is extracted with OCR, not read on the fly");
     } else if (!langs) {
@@ -254,13 +258,14 @@ async function extractPages(bridge, details, onStage = () => {}, opts = {}) {
         const left = Math.floor((until - Date.now()) / 1000);
         if (left < 5) { late = true; break; }
         try {
-          const text = await ocrPage(pdf.path, i + 1, langs, undefined, Math.min(OCR_PAGE_SECONDS, left));
+          const seconds = Math.min(OCR_PAGE_SECONDS, left);
+          const text = vision ? await visionPage(vision, pdf.path, i + 1 + first, undefined, seconds) : await ocrPage(pdf.path, i + 1 + first, langs, undefined, seconds);
           if (text.trim().length >= MIN_PAGE_CHARS) { pages[i] = text; ocr.push(i); }
         } catch (e) {
           failed = failed || e.message; // this page keeps pdftotext's text
-          log("ocr page failed", { key: details.item.key, page: i + 1, error: e.message });
+          log("ocr page failed", { key: details.item.key, page: i + 1 + first, error: e.message });
           if (/OCR took over/.test(e.message)) late = Date.now() >= until - 5000;
-          if (/isn't installed/.test(e.message)) break;
+          if (/isn't installed|isn't there/.test(e.message)) break;
         }
       }
       if (whole && !ocr.length) {
@@ -270,10 +275,10 @@ async function extractPages(bridge, details, onStage = () => {}, opts = {}) {
       }
     }
   }
-  const kept = splitPages(pages.join("\f"));
-  if (!kept.some((p) => p.trim().length >= MIN_PAGE_CHARS)) throw new Error("the PDF has no text layer (a scan?): nothing to extract");
+  const kept = splitPages(pages.map(unstamp).join("\f"));
+  if (!ownText(kept).some((p) => p.length >= MIN_PAGE_CHARS)) throw new Error("the PDF has no text layer (a scan?): nothing to extract");
   const paper = details.paper || {};
-  return Object.assign({ pdf, pages: kept, ocr: ocr.filter((i) => i < kept.length) }, pageLabels(kept, paper.pages));
+  return Object.assign({ pdf, pages: kept, ocr: ocr.filter((i) => i < kept.length), engine }, pageLabels(kept, paper.pages, first));
 }
 
 // The paper's text for Claude: { text, grounding: { source, label, noteKey? }, textError? }.
@@ -1058,8 +1063,8 @@ async function extractToNote(bridge, details, again, existing, opts) {
       return null;
     }
     const title = details.paper.title || details.item.title;
-    const note = buildNote({ title, pages: x.pages, labels: x.labels, source: x.source, file: basename(x.pdf.path), extractor: x.ocr.length ? "pdftotext and Tesseract OCR" : "pdftotext",
-      date: new Date().toISOString().slice(0, 10), ocr: x.ocr });
+    const note = buildNote({ title, pages: x.pages, labels: x.labels, source: x.source, file: basename(x.pdf.path), extractor: x.ocr.length ? `pdftotext and ${x.engine} OCR` : "pdftotext",
+      date: new Date().toISOString().slice(0, 10), ocr: x.ocr, engine: x.engine });
     const r = await bridge.post("/notes/create", { parentKey: key, libraryID, html: note.html, tags: [FULLTEXT_TAG] });
     // Extracting again replaces the note: the old one goes to Zotero's trash (undoable there).
     if (existing) {

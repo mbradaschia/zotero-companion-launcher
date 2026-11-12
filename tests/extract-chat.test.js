@@ -209,12 +209,28 @@ test("OCR: every page kept, the empty ones read by OCR, the languages installed,
   [true, true, true, false, false, false, false, false]); // a scan OCR gave up on isn't offered again
 });
 
+test("OCR: a page whose only text is a download stamp, a page number or a repeated watermark has no text layer", async () => {
+  const { pagesToOcr, ownText } = await X();
+  const stamp = (n) => `Downloaded from www.emerald.com/ijlm/article-pdf/12/1/${n}/898312/09574090110806190.pdf by FGV user on 12 November 2026\n${n}`;
+  const scan = Array.from({ length: 19 }, (_, i) => stamp(i + 1));
+  assert.deepEqual(pagesToOcr(scan), scan.map((_, i) => i)); // before: 19 stamps of 110 characters passed for text
+  const body = "The supply chain metric links each firm to the value it adds to its customers and to the chain as a whole.";
+  const mixed = ["Cover sheet: terms of use, with a long paragraph about what may be copied", "Licensed copy\n" + body, "Licensed copy", "Licensed copy"];
+  assert.deepEqual(pagesToOcr(mixed), [2, 3]); // the watermark alone is no text; with a page of text it stays
+  assert.equal(ownText(["Downloaded by [FGV] at 10:21 05 March 2024\n" + body])[0], body);
+  // (a page of many repeated lines is a copy of another, not a stamp: its text stays)
+  const copy = Array.from({ length: 6 }, () => "one line here\ntwo lines here\nthree lines here\nfour lines here");
+  assert.deepEqual(pagesToOcr(copy), []);
+});
+
 test("OCR: the note says which pages OCR read", async () => {
   const { buildNote } = await X();
   const n = buildNote({ title: "T", pages: ["a page of text", "scanned words"], labels: ["1", "2"], source: "pdf", file: "t.pdf", extractor: "pdftotext and Tesseract OCR", date: "2026-10-13", ocr: [1] });
   assert.match(n.html, /with pdftotext and Tesseract OCR on 2026-10-13; page numbers of the PDF; p\. 2 read by OCR \(Tesseract\)\./);
   assert.match(n.html, /<h2>p\. 2<\/h2>\n<p>scanned words<\/p>/); // the page heading as any other (quotes cite it)
   assert.doesNotMatch(buildNote({ title: "T", pages: ["x"], labels: ["1"], source: "pdf", file: "t.pdf", extractor: "pdftotext", date: "d" }).html, /OCR/);
+  const mac = buildNote({ title: "T", pages: ["scanned"], labels: ["7"], source: "pdf", file: "t.pdf", extractor: "pdftotext and macOS Vision OCR", date: "d", ocr: [0], engine: "macOS Vision" });
+  assert.match(mac.html, /every page read by OCR \(macOS Vision\)/);
 });
 
 test("OCR: pdftoppm draws the page into tesseract, one thread; no tesseract, no languages", async () => {
@@ -273,4 +289,20 @@ test("OCR: tesseract stopping early kills pdftoppm (never left blocked on a full
   made.length = 0;
   await assert.rejects(ocrPage("/x.pdf", 2, "eng", (cmd) => proc(cmd, () => {}), 0.05), /OCR took over 0.05 s on page 2/);
   assert.ok(made.every((p) => p.killed));
+});
+
+test("JSTOR: its cover sheet left out of the paper's pages (the labels the PDF's own, one on), its stamp off each page", async () => {
+  const { paperPages, unstamp, pageLabels, ownText } = await X();
+  const cover = "Ontological Shift or Ontological Drift?\nStable URL: http://www.jstor.com/stable/41318094\nYour use of the JSTOR archive indicates your acceptance of the Terms & Conditions of Use\nJSTOR is a not-for-profit service";
+  const stamp = "This content downloaded from\n\u0000\u0000\u0000191.19.228.217 on Sat, 22 Aug 2026 12:00:00 UTC\nAll use subject to https://about.jstor.org/terms";
+  const body = (n) => `Management scholars differ about the most effective way ${n}.\n${stamp}`;
+  const got = paperPages([cover, body(1), body(2)].join("\f") + "\f");
+  assert.equal(got.first, 1);
+  assert.equal(got.pages.length, 2);
+  assert.ok(!got.pages.join("").includes("\u0000"));
+  assert.equal(unstamp(got.pages[0]), "Management scholars differ about the most effective way 1.");
+  assert.deepEqual(pageLabels(got.pages, "754-755", got.first).labels, ["754", "755"]);
+  assert.deepEqual(pageLabels(got.pages, "", got.first), { labels: ["2", "3"], source: "pdf" });
+  assert.deepEqual(paperPages("A paper\fwith no cover").first, 0);
+  assert.ok(ownText(got.pages).every((p) => !/downloaded|jstor/i.test(p)));
 });

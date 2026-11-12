@@ -15,7 +15,7 @@ var FoldMake = (function () {
 
   var C = typeof FoldCore !== "undefined" ? FoldCore : require("./FoldCore.js")
 
-  var EXTRACTOR = 4
+  var EXTRACTOR = 5
   var APPARATUS = { reference: 1, footnote: 1, equation: 1 }
 
   // ---- TextFold's patterns (pdftext.py, pdfdoc.py)
@@ -28,6 +28,14 @@ var FoldMake = (function () {
   var ABSTRACT = /^\s*(?:abstract|a b s t r a c t|summary|zusammenfassung|摘要)\s*$/i
   var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[A-Z](?:\.\d+){1,3}|[IVX]+)\.?\s+[A-Z](?:[^.!?]|[.](?=\S)|[A-Z][.]){1,80}$/
   var BOILER = /^\W*\d?\s*(?:check for updates|open access|research article|article|original article|review)\W*$/i
+  // (this reader's: a publisher's download stamp, "Downloaded from www.emerald.com/… by FGV user on 12 November 2026",
+  // "Downloaded by [University] at 10:21 05 March 2024")
+  var DOWNLOADED = /^downloaded (?:from|by)\b/i
+  // (JSTOR's stamp on each page, "This content downloaded from 191.19.228.217 on Sat, 22 Aug 2026 12:00:00 UTC" and
+  // "All use subject to https://about.jstor.org/terms", a line each or the address on a line of its own; and the cover
+  // sheet it puts before the paper, two of these on it)
+  var JSTOR_STAMP = /^(?:this content downloaded from\b|all use subject to\b.*\bjstor\b|\d{1,3}(?:\.\d{1,3}){3} on (?:mon|tue|wed|thu|fri|sat|sun)\w*,? \d{1,2} \w{3,9},? \d{4}\b)/i
+  var JSTOR_COVER = [/\bJSTOR is a not-for-profit service\b/i, /\bYour use of the JSTOR archive indicates\b/i, /\bStable URL:\s*https?:\/\/(?:www\.)?jstor\.(?:org|com)\/stable\//i]
   var FRONT = /^(?:<sup>|\d+\s*[A-Z][a-z]+ (?:of|for)\b|(?:received|accepted|published|revised|correspondence|e-?mail|keywords?)\b)|@/i
   var DEPTH = /^\s*((?:\d+|[A-Z]|[IVX]+)(?:[.\-]\d+)*)[.)]?\s+\S/
   // (this reader's)
@@ -54,7 +62,7 @@ var FoldMake = (function () {
   var MIN_PAGE_CHARS = 40
 
   function clean(t) {
-    return String(t == null ? "" : t).replace(/[ﬀ-ﬆ]/g, function (ch) { return LIGATURES[ch] || ch }).replace(/­/g, "").replace(/\s+/g, "")
+    return String(t == null ? "" : t).replace(/[ﬀ-ﬆ]/g, function (ch) { return LIGATURES[ch] || ch }).replace(/[­\u0000]/g, "").replace(/\s+/g, "")
   }
   function r6(v) { return Math.round(v * 1e6) / 1e6 }
   function clamp01(v) { return Math.max(0, Math.min(1, v)) }
@@ -136,8 +144,22 @@ var FoldMake = (function () {
     if (text.split(" ").length > 20) return null
     return text.toLowerCase().replace(/\d+/g, "#")
   }
+  function stamp(s) { return STAMP.test(s.text) || DOWNLOADED.test(s.text) || JSTOR_STAMP.test(s.text) }
   function dropFurniture(segs, pageCount) {
-    var inBand = function (s) { var m = (s.y0 + s.y1) / 2; return m < 0.07 * s.H || m > 0.93 * s.H }
+    segs = segs.filter(function (s) { return !stamp(s) })
+    // (a head or foot: in the page's top or bottom 7%, or its top or bottom line with words in it (not a list's item, a
+    // reference's label, an axis's numbers), as a scan's sit further in: AMR's "762 Academy of Management Review
+    // October" at 11% of a JSTOR page)
+    var top = {}, bottom = {}
+    segs.forEach(function (s) {
+      if (!(s.page in top) || s.y0 < top[s.page]) top[s.page] = s.y0
+      if (!(s.page in bottom) || s.y1 > bottom[s.page]) bottom[s.page] = s.y1
+    })
+    var inBand = function (s) {
+      var m = (s.y0 + s.y1) / 2
+      return m < 0.07 * s.H || m > 0.93 * s.H || ((s.y0 <= top[s.page] + 0.5 * s.size || s.y1 >= bottom[s.page] - 0.5 * s.size) &&
+        /\p{L}{3}/u.test(s.text) && !LIST.test(s.text) && !REF_START.test(s.text))
+    }
     var pagesOf = {}
     segs.forEach(function (s) {
       if (!inBand(s)) return
@@ -163,7 +185,6 @@ var FoldMake = (function () {
         var k = headKey(s.text)
         if (k !== null && running(k)) return false
       }
-      if (STAMP.test(s.text)) return false
       if (s.y1 - s.y0 > 3 * (s.x1 - s.x0) && s.chars >= 10) return false
       if (BOILER.test(s.text)) return false
       return true
@@ -263,6 +284,202 @@ var FoldMake = (function () {
       out.push(half(s, at.i, s.words.length))
     })
     return out
+  }
+
+  // ---- a scanned page's columns (R5-SPEC 3.8): from where its lines start and end, not from a gap between them,
+  // as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the right starts
+  // at 0.590) and a page can carry a margin column of pull quotes and notes beside its text.
+  // items: [{x0, x1, y0, y1, words: [{x0, x1}] or null}] in one unit, tol: its slack (about 7 pt). A cut is where a
+  // column starts: an x where lines end before it and start after it (3 or more a side, 2 when a side is cut again),
+  // and few cross it (above or below all of those lines doesn't count). A line past it by 4 tol at most, mostly on one side, is on that side (a label, a line Vision boxed
+  // a little wide); a line read across both columns, with a gap between its words there, counts half. The best cut has
+  // the most lines on its smaller side, and the most lines starting at it; each side is then cut again, twice at most,
+  // no column under 8 tol wide. A column with under a third of the biggest one's text is a minor one (a margin's).
+  // → { cuts, blocks in reading order: [{kind: "span" | "major" | "minor", col, items}] }, each item whole or a piece
+  // of one cut at a column's edge when a piece fills its column (piece(item, from, to) makes it).
+  function ocrColumns(items, tol, piece) {
+    var hs = items.map(function (it) { return it.y1 - it.y0 }).sort(function (a, b) { return a - b })
+    var hMed = hs.length ? hs[Math.floor(hs.length / 2)] : 0
+    var splitAt = function (it, c) {
+      var ws = it.words
+      if (!ws || ws.length < 2 || it.y1 - it.y0 > 1.3 * hMed) return -1
+      for (var i = 1; i < ws.length; i++) if (ws[i - 1].x1 <= c + tol && ws[i].x0 >= c - tol && ws[i - 1].x0 < c - tol && ws[i].x1 > c + tol) return i
+      return -1
+    }
+    // (which side of x = c a line lies: within tol of it, or past it by 4 tol at most and mostly on one side, as a
+    // label or a line Vision boxed a little wide sits; "X" across it)
+    var sideOf = function (it, c) {
+      if (it.x1 <= c + tol) return "L"
+      if (it.x0 >= c - tol) return "R"
+      var l = c - it.x0, r = it.x1 - c
+      if (Math.min(l, r) <= 4 * tol) return l >= r ? "L" : "R"
+      return "X"
+    }
+    var cuts = []
+    var find = function (set, depth) {
+      var minSide = depth ? 2 : 3
+      if (depth > 2 || set.length < 2 * minSide) return
+      var xs = set.map(function (it) { return it.x0 }).sort(function (a, b) { return a - b })
+      var lo = xs[0], hi = Math.max.apply(null, set.map(function (it) { return it.x1 }))
+      var best = null, last = -Infinity
+      xs.forEach(function (c) {
+        if (c - last < tol / 4) return
+        last = c
+        if (c - lo < 8 * tol || hi - c < 8 * tol) return // (a column 8 tol wide at least: a tenth of the page)
+        var L = 0, R = 0, X = 0, at = 0, across = [], lTop = Infinity, lBot = -Infinity, rTop = Infinity, rBot = -Infinity
+        set.forEach(function (it) {
+          var w = sideOf(it, c)
+          if (Math.abs(it.x0 - c) <= tol) at++
+          if (w === "L") { L++; lTop = Math.min(lTop, it.y0); lBot = Math.max(lBot, it.y1) }
+          else if (w === "R") { R++; rTop = Math.min(rTop, it.y0); rBot = Math.max(rBot, it.y1) }
+          else across.push(it)
+        })
+        // (what crosses it above or below every line of both sides doesn't count: a title, an abstract over the columns)
+        across.forEach(function (it) {
+          var m = (it.y0 + it.y1) / 2
+          if (m > Math.min(lTop, rTop) && m < Math.max(lBot, rBot)) X += splitAt(it, c) > 0 ? 0.5 : 1
+        })
+        if (L < minSide || R < minSide || X > Math.max(2, 0.12 * (L + R))) return
+        var score = Math.min(L, R) - 2 * X + at // (a column starts where lines start)
+        if (!best || score > best.score) best = { c: c, score: score }
+      })
+      if (!best) return
+      var c = best.c
+      cuts.push(c)
+      find(set.filter(function (it) { return sideOf(it, c) === "L" }), depth + 1)
+      find(set.filter(function (it) { return sideOf(it, c) === "R" }), depth + 1)
+    }
+    find(items.filter(function (it) { return it.x1 - it.x0 >= 3 * tol }), 0)
+    cuts.sort(function (a, b) { return a - b })
+    var colOf = function (it) {
+      for (var k = 0; k <= cuts.length; k++) {
+        if ((k === 0 || sideOf(it, cuts[k - 1]) === "R") && (k === cuts.length || sideOf(it, cuts[k]) === "L")) return k
+      }
+      return -1
+    }
+    // (each item whole in its column, or cut at the column edges it crosses when a piece fills its column there, as
+    // two columns' lines read as one do, or across them: a span)
+    var placed = [], crossing = []
+    items.forEach(function (it) {
+      var k = colOf(it)
+      if (k >= 0) placed.push({ col: k, it: it }); else crossing.push(it)
+    })
+    var edges = []
+    for (var k = 0; k <= cuts.length; k++) {
+      var mine = placed.filter(function (p) { return p.col === k && p.it.x1 - p.it.x0 >= 3 * tol })
+      var x0s = mine.map(function (p) { return p.it.x0 }).sort(function (a, b) { return a - b })
+      var x1s = mine.map(function (p) { return p.it.x1 }).sort(function (a, b) { return a - b })
+      edges.push(mine.length ? [x0s[Math.floor(x0s.length / 10)], x1s[x1s.length - 1 - Math.floor(x1s.length / 10)]] : null)
+    }
+    crossing.forEach(function (it) {
+      var at = [], ok = true
+      cuts.forEach(function (c) {
+        if (sideOf(it, c) !== "X") return
+        var i = splitAt(it, c)
+        if (i > 0) at.push(i); else ok = false
+      })
+      if (!ok || !at.length) { placed.push({ col: -1, it: it }); return }
+      at.push(0, it.words.length)
+      at.sort(function (a, b) { return a - b })
+      var pieces = []
+      for (var j = 1; j < at.length; j++) {
+        if (at[j] === at[j - 1]) continue
+        var p = piece(it, at[j - 1], at[j])
+        pieces.push({ col: colOf(p), it: p })
+      }
+      // (at each cut, one of the two pieces fills its column, edge to edge: a column's line and the other's, or its
+      // last line, read as one; a figure's title across them doesn't)
+      var full = function (q) { var e = q.col >= 0 && edges[q.col]; return !!e && Math.abs(q.it.x0 - e[0]) <= 2 * tol && Math.abs(q.it.x1 - e[1]) <= 2 * tol }
+      for (var q = 1; q < pieces.length; q++) if (!(full(pieces[q - 1]) || full(pieces[q]))) ok = false
+      if (!ok) { placed.push({ col: -1, it: it }); return }
+      placed.push.apply(placed, pieces)
+    })
+    var chars = []
+    placed.forEach(function (p) { if (p.col >= 0) chars[p.col] = (chars[p.col] || 0) + (p.it.x1 - p.it.x0) })
+    var most = Math.max.apply(null, [0].concat(chars.filter(Boolean)))
+    var major = function (k) { return (chars[k] || 0) >= most / 3 }
+    placed.sort(function (a, b) { return a.it.y0 - b.it.y0 || a.it.x0 - b.it.x0 })
+    var blocks = [], band = {}
+    var flush = function () {
+      var ks = Object.keys(band).map(Number).sort(function (a, b) { return a - b })
+      ks.filter(major).concat(ks.filter(function (k) { return !major(k) })).forEach(function (k) {
+        blocks.push({ kind: major(k) ? "major" : "minor", col: k, items: band[k] })
+      })
+      band = {}
+    }
+    placed.forEach(function (p) {
+      if (p.col < 0) { flush(); blocks.push({ kind: "span", col: -1, items: [p.it] }); return }
+      (band[p.col] = band[p.col] || []).push(p.it)
+    })
+    flush()
+    // (within a block, a row Vision read in pieces, their tops a little apart, left to right)
+    blocks.forEach(function (b) {
+      var rows = [], row = null
+      b.items.forEach(function (it) {
+        var h = it.y1 - it.y0
+        if (row && it.y0 - row.top < 0.5 * Math.min(h, row.h)) row.items.push(it)
+        else { row = { top: it.y0, h: h, items: [it] }; rows.push(row) }
+      })
+      b.items = [].concat.apply([], rows.map(function (r) { return r.items.sort(function (a, c) { return a.x0 - c.x0 }) }))
+    })
+    return { cuts: cuts, blocks: blocks }
+  }
+
+  // A scan's pages (their lines OCR's: fn "ocr") in reading order, page by page, as ocrColumns finds their columns:
+  // flows as flowsOf makes them (a band's two text columns L and R, one alone "one", what crosses them S, a margin's
+  // column M after the text's), each with its own edges (a scan's columns stand where each page put them: a journal's
+  // facing pages mirror their margins).
+  function ocrFlows(segs) {
+    var byPage = {}, pagesSeen = []
+    segs.forEach(function (s) { if (!byPage[s.page]) { byPage[s.page] = []; pagesSeen.push(s.page) } byPage[s.page].push(s) })
+    pagesSeen.sort(function (a, b) { return a - b })
+    var flows = [], placed = []
+    pagesSeen.forEach(function (n) {
+      var ps = byPage[n], W = ps[0].W
+      var got = ocrColumns(ps, 0.012 * W, function (s, from, to) { return half(s, from, to, true) })
+      var cols = {}, span = null, run = []
+      var closeRun = function () {
+        var majors = run.filter(function (b) { return b.kind === "major" })
+        run.forEach(function (b) {
+          var side = b.kind === "minor" ? "M" : majors.length < 2 ? "one" : b === majors[0] ? "L" : "R"
+          var f = { key: n + ":" + flows.length + ":" + side, page: n, side: side, segs: b.items, col: b.col }
+          ;(cols[b.col] = cols[b.col] || []).push(f)
+          flows.push(f)
+        })
+        run = []
+      }
+      got.blocks.forEach(function (b) {
+        if (b.kind === "span") {
+          closeRun()
+          if (!span) { span = { key: n + ":" + flows.length + ":S", page: n, side: "S", segs: [] }; flows.push(span); (cols.S = cols.S || []).push(span) }
+          span.segs.push.apply(span.segs, b.items)
+        } else { span = null; run.push(b) }
+      })
+      closeRun()
+      // (each column's edges from its lines across the page; a span's from the text columns')
+      var edgesOfCol = function (list) {
+        var all = [], wide = []
+        list.forEach(function (f) { f.segs.forEach(function (s) { all.push(s); if (s.words.length >= 3) wide.push(s) }) })
+        var use = wide.length >= 3 ? wide : all
+        if (!use.length) return null
+        var xs0 = use.map(function (s) { return s.x0 }).sort(function (a, b) { return a - b })
+        var xs1 = use.map(function (s) { return s.x1 }).sort(function (a, b) { return a - b })
+        return [pct(xs0, Math.floor(xs0.length / 20)), pct(xs1, xs1.length - 1 - Math.floor(xs1.length / 20))]
+      }
+      var text = []
+      Object.keys(cols).forEach(function (k) {
+        if (k === "S") return
+        var e = edgesOfCol(cols[k])
+        cols[k].forEach(function (f) { f.edges = e; if (f.side !== "M") text.push(e) })
+      })
+      if (cols.S) {
+        var lo = Math.min.apply(null, text.map(function (e) { return e[0] })), hi = Math.max.apply(null, text.map(function (e) { return e[1] }))
+        var own = edgesOfCol(cols.S)
+        cols.S.forEach(function (f) { f.edges = text.length ? [lo, hi] : own })
+      }
+      flows.forEach(function (f) { if (f.page === n) f.segs.forEach(function (s) { s.side = f.side; placed.push(s) }) })
+    })
+    return { flows: flows, segs: placed }
   }
 
   // ---- 4. reading order: bands cut by what spans both columns, the left column then the right
@@ -373,7 +590,7 @@ var FoldMake = (function () {
   function blocksOf(flows, edges, body, gapMedian) {
     var blocks = [], pitch = medianPitch(flows, body)
     flows.forEach(function (f) {
-      var e = edges[f.side] || edges.one
+      var e = f.edges || edges[f.side] || edges.one
       var cur = null
       f.segs.forEach(function (s, i) {
         var indent = function (x) { return x.x0 - e[0] > 0.8 * x.size }
@@ -398,7 +615,9 @@ var FoldMake = (function () {
               // (a bold heading wrapped to a second bold line, centred under it, stays whole: AMR's "TOWARD A
               // CONCEPTUALIZATION OF WORK" over "TEAM RESILIENCE"; a sub-section's title in bold title case right under
               // it is its own)
-              (!(fullyBold(p) && fullyBold(s) && !NUMBERED.test(s.text) && capsOnly(p.text) === capsOnly(s.text)) && (headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)))
+              (!(fullyBold(p) && fullyBold(s) && !NUMBERED.test(s.text) && capsOnly(p.text) === capsOnly(s.text)) &&
+                !(s.fn === "ocr" && p.fn === "ocr" && capsOnly(p.text) && capsOnly(s.text) && s.y0 - p.y1 <= 0.6 * s.size) &&
+                (headLine(p, e, f.segs[i - 2], s, pitch) || headLine(s, e, p, f.segs[i + 1], pitch)))
             // (a numbered heading's title wrapped to a second, short line at the same size and weight, at the column's
             // edge or under the title's first word: "A.4 Comparison of BERT, ELMo, and" over "OpenAI GPT"; the paragraph
             // starts after it)
@@ -510,10 +729,37 @@ var FoldMake = (function () {
     if (!rest.length) return null
     return { title: lead(k), rest: rest }
   }
+  // An OCR line's size is its words' height, which a scan's tilt and a line's letters (with descenders or without)
+  // move by a quarter either way: a line within 0.75 to 1.35 of the scan's body size (the median over lines of 3 words
+  // or more, by characters) is set at it, so a heading on a scan is one by its weight, its capitals or its number, or
+  // a size well over the body's (a title), and where it stands (ocrHeadable).
+  function steadySizes(segs) {
+    var sized = segs.filter(function (s) { return s.words.length >= 3 }).map(function (s) { return [s.size, s.chars] }).sort(function (a, b) { return a[0] - b[0] })
+    var half = sized.reduce(function (a, x) { return a + x[1] }, 0) / 2, seen = 0, B = 0
+    for (var i = 0; i < sized.length; i++) { seen += sized[i][1]; if (seen >= half) { B = sized[i][0]; break } }
+    if (!B) return
+    segs.forEach(function (s) { if (s.size >= 0.75 * B && s.size <= 1.35 * B) s.size = B })
+  }
+  // A block on a scan that can be a heading: not in a margin's column (a pull quote), more than one word unless it
+  // is one of a paper's one-word headings (a figure's label is one word), and with a line of text under it that runs
+  // most of its column's width (a table's cells and a figure's labels have none).
+  var ONE_WORD_HEAD = /^(?:introduction|conclusions?|discussion|results|methods?|methodology|background|limitations|acknowledge?ments?|notes|references|bibliography|abstract|summary|implications|appendix|findings|hypotheses|theory)$/i
+  function ocrHeadable(b) {
+    if (b.flow.side === "M") return false
+    if (b.words.length < 2 && !ONE_WORD_HEAD.test(b.text.replace(/\W+$/, ""))) return false
+    var fs = b.flow.segs, e = b.edges, below = fs[fs.indexOf(b.segs[b.segs.length - 1]) + 1]
+    return !!below && below.x1 - below.x0 >= 0.55 * (e[1] - e[0])
+  }
+  function nextText(b) { var fs = b.flow.segs, n = fs[fs.indexOf(b.segs[b.segs.length - 1]) + 1]; return n ? n.text : "" }
   function headingOf(b, body, ctx, inRefs) {
     var words = b.words.length, t = b.text
-    if (words <= 10 && NUMBERED.test(t) && b.size >= body - 0.3) return t
     if (ABSTRACT.test(t) || REFS.test(t)) return t
+    var ocr = b.segs[0].fn === "ocr"
+    if (ocr && !ocrHeadable(b)) return null
+    // (on a scan, a table's numbered rows and a figure's legend are none: a row with the next one numbered under it, a
+    // line with an arrow or a sign in it)
+    if (ocr && NUMBERED.test(t) && (/[→←↔⇒=+<>]/.test(t) || /^\d/.test(nextText(b)))) return null
+    if (words <= 10 && NUMBERED.test(t) && b.size >= body - 0.3) return t
     // (IEEE: small capitals bring the line's size under the body's)
     if (words <= 12 && b.lines <= 2 && b.size >= body - 3 && (ROMAN_HEAD.test(t) || CAPS_HEAD.test(t))) return t
     if (ctx && ctx.roman && words <= 12 && b.lines <= 2 && LETTER_HEAD.test(t) && !SENTENCE_END.test(t) && b.size >= body - 0.5 &&
@@ -769,7 +1015,8 @@ var FoldMake = (function () {
   // the margins repeat on three pages or more.
   function candidatesOf(flows, edges, body, fam) {
     var order = []
-    flows.forEach(function (f) { f.segs.forEach(function (s) { order.push({ s: s, e: edges[f.side] || edges.one }) }) })
+    // (a scan's margin column, its pull quotes and notes, has none)
+    flows.forEach(function (f) { f.segs.forEach(function (s) { if (!(f.side === "M" && s.fn === "ocr")) order.push({ s: s, e: f.edges || edges[f.side] || edges.one }) }) })
     var margin = function (s) { return s.y0 < 0.09 * s.H || s.y1 > 0.92 * s.H }
     var key = function (t) { return t.toLowerCase().replace(/\d+/g, "#") }
     var seen = {}
@@ -1071,25 +1318,80 @@ var FoldMake = (function () {
     }) }
   }
 
-  // ---- read: FoldPDF.lines' pages and Zotero's meta to { doc, links, stats } or { problem, stats }
+  // ---- 0. the pages with no text of their own (R5-SPEC 3.8): a scan, even one behind a download stamp
 
-  function read(pages, meta) {
+  // What each page says of its own, in characters: its words less the furniture (page numbers, running heads, stamps,
+  // words up the margin) and, on a page with at most 3 of them, less the lines repeated on half the pages or more,
+  // wherever they stand (a watermark). (A page of many repeated lines is a copy of another, not a stamp.)
+  function ownChars(pages, count) {
+    var segs = dropFurniture(segmentsOf(pages).segs, count)
+    var pagesOf = {}
+    segs.forEach(function (s) { var k = headKey(s.text); if (k !== null) (pagesOf[k] = pagesOf[k] || {})[s.page] = true })
+    var need = Math.max(2, Math.ceil(count / 2))
+    var repeated = function (s) { var k = headKey(s.text); return k !== null && Object.keys(pagesOf[k]).length >= need }
+    var per = {}, rep = {}, repChars = {}
+    segs.forEach(function (s) {
+      per[s.page] = (per[s.page] || 0) + s.chars
+      if (repeated(s)) { rep[s.page] = (rep[s.page] || 0) + 1; repChars[s.page] = (repChars[s.page] || 0) + s.chars }
+    })
+    return pages.map(function (p, i) {
+      var n = p && p.n >= 1 ? p.n : i + 1
+      return (per[n] || 0) - ((rep[n] || 0) <= 3 ? repChars[n] || 0 : 0)
+    })
+  }
+
+  // The pages OCR reads, and whether the PDF is a scan: { scan, pages: [n] (each with fewer than MIN_PAGE_CHARS of its
+  // own), chars }. A scan: fewer than 200 characters of its own in all, or at least half its pages without text. A PDF
+  // that isn't a scan keeps its few empty pages as they are (a full-page figure): OCR reads only a scan's.
+  function textless(pages, meta) {
     var m = meta || {}
     var ps = Array.isArray(pages) ? pages : []
+    var count = Math.max(ps.length, m.pdf && m.pdf.pages || 0)
+    var per = ownChars(ps, count)
+    var empty = [], chars = 0
+    ps.forEach(function (p, i) { chars += per[i]; if (per[i] < MIN_PAGE_CHARS) empty.push(p && p.n >= 1 ? p.n : i + 1) })
+    var textPages = ps.length - empty.length
+    return { scan: chars < 200 || (count - textPages) * 2 >= count, pages: empty, chars: chars, textPages: textPages }
+  }
+
+  // ---- read: FoldPDF.lines' pages and Zotero's meta to { doc, links, stats } or { problem, stats }
+
+  // JSTOR's cover sheet: the first page, of two or more, with two of its sentences on it.
+  function jstorCover(pages) {
+    if (pages.length < 2) return false
+    var t = ((pages[0] && pages[0].lines) || []).map(function (l) { return String(l && l.t || "") }).join(" ")
+    return JSTOR_COVER.filter(function (re) { return re.test(t) }).length >= 2
+  }
+  function read(pages, meta) {
+    var m = meta || {}
+    var all = Array.isArray(pages) ? pages : []
+    var ps = jstorCover(all) ? all.slice(1) : all
     var got = segmentsOf(ps)
     var count = Math.max(ps.length, m.pdf && m.pdf.pages || 0)
-    var textPages = got.perPage.filter(function (c) { return c >= MIN_PAGE_CHARS }).length
-    var stats = { pages: count, lines: got.lines, units: 0, chars: got.chars, textPages: textPages }
-    if (got.chars < 200 || (count - textPages) * 2 >= count) return { problem: "scan", stats: stats }
+    var own = textless(ps, m)
+    var stats = { pages: count, lines: got.lines, units: 0, chars: got.chars, textPages: own.textPages }
+    if (own.scan) return { problem: "scan", stats: stats }
     var segs = dropFurniture(got.segs, count)
+    // (a scan's pages, read by OCR, find their own columns; the frame is the printed pages')
+    var scanned = segs.filter(function (s) { return s.fn === "ocr" })
+    steadySizes(scanned)
     var body = bodySize(segs)
-    var fr = frameOf(segs, body)
+    var printed = scanned.length ? segs.filter(function (s) { return s.fn !== "ocr" }) : segs
+    var fr = frameOf(printed, body)
     // (merged columns make the frame look like one: cut at its middle, then at the gutter the cut lines show, kept
     // when the frame is two columns then)
-    var cut = cutGutter(recut(segs, { two: true, mid: fr.mid }), { two: true, mid: fr.mid })
-    if (cut.length !== segs.length) { var fr2 = frameOf(cut, body); if (fr2.two) { segs = cut; fr = fr2 } }
-    var flows = flowsOf(segs, fr, body)
-    var edges = edgesOf(segs, fr, body)
+    var cut = cutGutter(recut(printed, { two: true, mid: fr.mid }), { two: true, mid: fr.mid })
+    if (cut.length !== printed.length) { var fr2 = frameOf(cut, body); if (fr2.two) { printed = cut; fr = fr2 } }
+    var flows = flowsOf(printed, fr, body)
+    var edges = edgesOf(printed, fr, body)
+    segs = printed
+    if (scanned.length) {
+      var ocrRead = ocrFlows(scanned)
+      var order = flows.concat(ocrRead.flows).map(function (f, i) { return { f: f, i: i } })
+      order.sort(function (a, b) { return a.f.page - b.f.page || a.i - b.i })
+      flows = order.map(function (o) { return o.f })
+      segs = printed.concat(ocrRead.segs)
+    }
     flows.forEach(dropTables)
     // (the outline pass: the candidates, and the model's headings among them when its answer came with the meta)
     var cands = candidatesOf(flows, edges, body, bodyFamily(segs))
@@ -1145,6 +1447,9 @@ var FoldMake = (function () {
     }
     // (who set the sections: the model, with its name; the PDF's bookmarks; the rules. tried: a model answered)
     doc.source.outline = by
+    // (the pages Apple's Vision read, on this Mac: a scan's, R5-SPEC 3.8)
+    var ocr = (Array.isArray(m.ocr) ? m.ocr : []).map(Number).filter(function (n) { return n >= 1 })
+    if (ocr.length) { doc.source.ocr = ocr; doc.source.ocr_engine = String(m.ocr_engine || "vision") }
     if (picked) doc.source.outline_model = String(m.headings.model || "")
     if (m.headings && typeof m.headings === "object") doc.source.outline_tried = true
     var crops = C.crops(ps.map(function (p, i) {
@@ -1315,7 +1620,7 @@ var FoldMake = (function () {
   }
 
   return {
-    EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, relink: relink,
+    EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, textless: textless, relink: relink,
     foldInput: foldInput, foldMerge: foldMerge, foldView: foldView, costText: costText, STOP_KINDS: STOP_KINDS,
     _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, recut: recut, cutGutter: cutGutter, dropFurniture: dropFurniture, sentencesOf: sentencesOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
   }

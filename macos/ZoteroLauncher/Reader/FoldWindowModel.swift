@@ -266,6 +266,11 @@ final class FoldWindowModel: ObservableObject {
             guard let self, !self.closed, at == self.opening, self.doc == nil, self.outlineAnswer == nil else { return }
             self.state = ["kind": "reading", "done": done, "pages": pages]
             self.page?.state(self.state)
+        }, ocr: { [weak self] done, pages in
+            // (a scan's pages read by OCR, R5-SPEC 3.8)
+            guard let self, !self.closed, at == self.opening, self.doc == nil, self.outlineAnswer == nil else { return }
+            self.state = ["kind": "reading", "done": done, "pages": pages, "ocr": true]
+            self.page?.state(self.state)
         }, done: { [weak self] result in
             guard let self, !self.closed, at == self.opening else { return }
             switch result {

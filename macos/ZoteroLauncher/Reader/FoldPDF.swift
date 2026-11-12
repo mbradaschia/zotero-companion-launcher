@@ -16,6 +16,7 @@ final class FoldPDF: @unchecked Sendable {
     private var document: PDFDocument? // (only on queue)
     private var images: [String: Data] = [:] // "n@w" → PNG (only on queue)
     private var recent: [String] = []
+    private var ocrLines: [Int: [[String: Any]]] = [:] // a scan's pages OCR read, by number (only on queue): read once a window
 
     static let widths = [600, 900, 1200, 1800, 2400]
     static let maxWords = 20000 // a page's
@@ -328,6 +329,34 @@ final class FoldPDF: @unchecked Sendable {
             progress?(i + 1, doc.pageCount)
         }
         return out
+    }
+
+    // A scan's pages (from 1) read by OCR (FoldOCR, R5-SPEC 3.8) in place of their lines (on the queue, or a test's
+    // thread); progress(pages read, pages to read) after each. → the pages, the ones OCR read (it found words on them),
+    // and Vision's first error when it read none.
+    func ocrNow(_ wanted: [Int], into lines: [[String: Any]], progress: ((Int, Int) -> Void)? = nil) -> (pages: [[String: Any]], read: [Int], error: String?) {
+        if document == nil { _ = openNow() }
+        guard let doc = document else { return (lines, [], "the PDF couldn't be opened") }
+        var pages = lines, read: [Int] = [], error: String?
+        for (k, n) in wanted.enumerated() {
+            autoreleasepool {
+                guard let page = doc.page(at: n - 1), let at = pages.firstIndex(where: { ($0["n"] as? Int) == n }) else { return }
+                if let kept = ocrLines[n] { pages[at]["lines"] = kept; read.append(n); return }
+                do {
+                    let found = try FoldOCR.lines(of: page)
+                    if !found.isEmpty {
+                        let payload = FoldOCR.payload(found, size: pages[at]["size"] as? [Double] ?? [612, 792])
+                        ocrLines[n] = payload
+                        pages[at]["lines"] = payload
+                        read.append(n)
+                    }
+                } catch let e {
+                    error = error ?? e.localizedDescription
+                }
+            }
+            progress?(k + 1, wanted.count)
+        }
+        return (pages, read, read.isEmpty ? error : nil)
     }
 
     // The PDF's own outline (its bookmarks), in order: [{t: label, l: level from 1, p: page from 1, 0 with none}]; [] with

@@ -350,7 +350,7 @@ final class FoldReaderTests: XCTestCase {
         let pages = pdf.linesNow()
         XCTAssertEqual(FoldMaker.language(of: pages), "en")
         let maker = try FoldMaker()
-        XCTAssertEqual(maker.extractor, 4)
+        XCTAssertEqual(maker.extractor, 5)
         let made = try maker.read(pages, meta: paperMeta(url, pages: info.pages, sizes: info.sizes).merging(["lang": "en"]) { $1 })
         XCTAssertNil(made.problem)
         let doc = try XCTUnwrap(made.doc)
@@ -454,12 +454,12 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-07T08:00:00Z", extractor: 1, sha256: same), .touched, "touched: the same bytes")
         XCTAssertEqual(asked, 1)
         XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes + 10, modified: "2026-11-07T08:00:00Z", extractor: 1) { String(repeating: "f", count: 64) }, .changed, "another file")
-        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 5, sha256: same), .stale, "an older reading, nothing folded")
+        XCTAssertEqual(FoldMaker.cached(doc, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 6, sha256: same), .stale, "an older reading, nothing folded")
         var folded = doc
         var sections = doc["sections"] as? [[String: Any]] ?? []
         sections[1]["made"] = "ai"
         folded["sections"] = sections
-        XCTAssertEqual(FoldMaker.cached(folded, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 5, sha256: same), .use, "an older reading with folds stays until Fold again")
+        XCTAssertEqual(FoldMaker.cached(folded, links: links, bytes: bytes, modified: "2026-11-06T10:00:00Z", extractor: 6, sha256: same), .use, "an older reading with folds stays until Fold again")
         XCTAssertEqual(FoldMaker.cached(nil, links: nil, bytes: bytes, modified: "", extractor: 1, sha256: same), .read)
         // R1's docs (D9): kept with AI levels, read again with local ones
         let r1: [String: Any] = ["format": "textfold/doc", "version": 0, "id": "pdf-abc", "provenance": ["made_with": "TextFold 0.9", "ai_generated": true, "local": false], "sections": [Any]()]

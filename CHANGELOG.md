@@ -20,6 +20,34 @@ bridge and the prompt runner share one version.
 - The plans of finished work (`PLAN.md`, `PLAN-providers.md`, `PLAN-macos.md`, `spikes/`, `BACKLOG.md`) moved to
   `docs/history/`.
 
+### Fixed
+
+- **A scan behind a download stamp is a scan.** Publishers stamp a downloaded PDF's pages with a line (`Downloaded
+  from www.emerald.com/… by … on …`); on a scanned paper that line was all the text there was, and it passed for a
+  text layer, so the full-text note held 19 copies of the stamp and nothing else. A page's own text now leaves out page
+  numbers, download stamps and a watermark repeated on most pages, so such a page is read by OCR (Tesseract, when it's
+  installed) or the paper is left alone as a scan.
+- **JSTOR files read without JSTOR's pages.** The full-text note leaves out JSTOR's cover sheet (its page numbers were
+  one low behind it) and takes JSTOR's stamp (`This content downloaded from …`) off every page.
+
+### The Mac app (`macos-v0.4.44`)
+
+- **Scanned papers are read.** A PDF whose pages are pictures (an older paper scanned by its publisher, often with a
+  download stamp as its only text) now opens in the reader with its words: macOS reads them with its own OCR (Apple's
+  Vision), on this Mac, nothing to install and nothing sent anywhere. Each word keeps its place on the page, so the
+  text and the PDF stay linked, and a heading set in bold reads as one from its ink. The text says `Reading the scan by
+  OCR…` while it reads (about a second a page), and the byline says `Read by OCR` with an icon: check a quote against
+  the PDF. Up to 80 pages. The full-text note, and the chats and review tables that read it, use the same OCR on a Mac
+  instead of Tesseract, and the note says `read by OCR (macOS Vision)`. A paper whose note was saved before (with only
+  the stamp in it) needs its text extracted again: in its menu, *Text extracted*, Shift+Enter, *extract it again*.
+- **Scanned columns in order.** A scan's columns are found from where its lines start and end, so two columns with no
+  gutter between them (Emerald's 2001 pages), rows OCR read across both, and a margin column of pull quotes read in
+  order: the left column, the right, then the margin. On a scan a heading needs its weight, capitals or number, so a
+  line OCR measured a little large, a pull quote or a figure's label no longer becomes a section.
+- **JSTOR files.** The reader and the full-text note leave out JSTOR's cover sheet and its stamp on each page, and the
+  reader drops running heads that a scan sets lower on the page (`762 Academy of Management Review October`). JSTOR's
+  scans carry JSTOR's own hidden OCR text, which the reader still reads: its words are right but its headings are weak.
+
 ### The Mac app (`macos-v0.4.43`)
 
 - **The reader's sections are the paper's.** When the reader first opens a paper, your Fold with AI model reads the

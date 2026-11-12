@@ -21,7 +21,7 @@ needed, never contacted and never named in the UI. This spec replaces R1's SPEC.
 | D7 | The model is the **prompts default** (`resolveModel("default", settings, "prompts")`, Settings › Defaults, Prompts › Model), the one the AI columns use unless a column names its own; effort `low` (as `review-run`); the fallback model applies as everywhere. **No new setting.** The banner and the button's tooltip name the model and say Settings › Defaults changes it. **Amended after 0.4.36 (his ask):** Settings › Defaults › Fold with AI picks a model (`defaults.fold.model`, "" = the prompts') and an effort (`defaults.fold.effort`, default `low`); the app sends both in the input, runner 0.3.1 asks and caches at that effort. | One model setting for paper-wide AI work. |
 | D8 | Replies are **cached** by `sha256(JSON [system, prompt, schema, model spec, effort])`, first 24 hex digits (TextFold's `llm.call` key), in `<runnerState>/fold-reader/<libraryID>-<KEY>/replies/`. Stop keeps what came back; finishing or retrying asks only for what is missing. | Resume after a stop or a crash for nothing; a refold is an explicit new sample (`force`). |
 | D9 | A `doc.json` TextFold wrote in R1 (its `provenance.made_with` starts `TextFold`) is **kept as it is** when it has AI levels (they were paid for), linked by R1's word vote, until the user chooses Fold again; one with `provenance.local: true` is replaced by our extraction on open. Marks re-anchor by quote (SPEC 5.6). | Nothing Marcelo made in 0.4.35 is lost; no TextFold needed to read it. |
-| D10 | **English and other alphabetic languages** fold (the prompt names the text's language, as TextFold's `langs.name`); Chinese and Japanese (`zh`, `ja`) read at Full and Brief but do not fold in R5 (TextFold's CJK rules are not ported). **OCR is out**: a scan gets its own state. | The CJK path is a third of `ladder.py`; the runner's Tesseract OCR gives text without boxes and needs Homebrew installs, so it would bring back an install step and lose the link map. |
+| D10 | **English and other alphabetic languages** fold (the prompt names the text's language, as TextFold's `langs.name`); Chinese and Japanese (`zh`, `ja`) read at Full and Brief but do not fold in R5 (TextFold's CJK rules are not ported). **OCR is out**: a scan gets its own state. **Amended in 0.4.44 (his ask, 3.8):** a scan is read by Apple's Vision, on the Mac, its words with their boxes. | The CJK path is a third of `ladder.py`; the runner's Tesseract OCR gives text without boxes and needs Homebrew installs, so it would bring back an install step and lose the link map. Vision has neither cost: it comes with macOS and gives each word's box. |
 | D11 | The doc keeps R1's input format (`textfold/doc` version 0, SPEC 5.1) so FoldCore and FoldView change little; the unfolded levels are written as **no key** (FoldCore's "first sentence, in serif" path), so unfolded words always look like the paper's. | Honest by construction: sans means AI wrote it. |
 
 ## 2. Scope
@@ -29,7 +29,7 @@ needed, never contacted and never named in the UI. This spec replaces R1's SPEC.
 **In R5:** the PDF read into the doc (section 3); the fold (section 4); stop, finish, retry, refold; every state and
 its copy (section 6); the attribution (section 9); node, Playwright and XCTest coverage (section 11).
 
-**Not in R5:** OCR of scans; CJK folding; tables kept as tables (their text is dropped, their captions stay); argument
+**Not in R5:** OCR of scans (until 0.4.44: 3.8); CJK folding; tables kept as tables (their text is dropped, their captions stay); argument
 links (`links[]` stays empty: the margin shows marks only); TextFold's `fold_background`, `dress` and `is_apparatus`
 CJK rules; formulas as LaTeX (a display equation is kept as its text, at Full only); a reader-specific model setting;
 anything in R2 to R7 not named here. `daemon/` and the Omarchy launcher are untouched.
@@ -188,16 +188,20 @@ real PDFs keeps every criterion of section 11 green and is recorded in PLAN.md's
 13. **The levels before any fold** (D11): every unit `evidence: [0]`, `key: ""`, `takeaway: ""`, `topic: ""`, role
     `context`; every section `takeaway: ""`, `topic: ""`. FoldCore then shows Brief and Key as the first sentence in
     serif and Topic as its first six words.
-14. **Scan.** When at least half of the pages have fewer than 40 characters of text (the runner's `MIN_PAGE_CHARS`),
-    or the whole document has fewer than 200: `problem: "scan"`. Fewer pages than that: those pages simply have no
-    units.
+14. **Scan.** When at least half of the pages have fewer than 40 characters of text of their own (the runner's
+    `MIN_PAGE_CHARS`), or the whole document has fewer than 200: `problem: "scan"`. Fewer pages than that: those pages
+    simply have no units. A page's own text (`textless`, extractor 5) leaves out the furniture of step 3 and a
+    publisher's download stamp (`Downloaded from …`, `Downloaded by …`, also dropped as furniture everywhere) and, on a
+    page with at most three of them, the lines repeated on half the pages or more wherever they stand (a watermark). A
+    scan is read by OCR before this step (3.8).
 
 ### 3.3 The doc written
 
 ```
 {format: "textfold/doc", version: 0, id: "pdf-<first 16 hex of the PDF's SHA-256>", lang, title (Zotero's, else the
  title block's), authors (Zotero's), date (Zotero's), source: {kind: "pdf", url: "", label: "Zotero · <cite>",
- snapshot: "", license: "", sha256, bytes, pages, extractor: 4, outline, outline_model?, outline_tried?},
+ snapshot: "", license: "", sha256, bytes, pages, extractor: 5, outline, outline_model?, outline_tried?, ocr?: [page],
+ ocr_engine?: "vision"},
  levels: ["topic", "takeaway", "key", "brief", "full"], written: ["topic", "takeaway", "key"],
  provenance: {made_with: "Zotero Launcher <app version>", exported: <ISO>, ai_generated: false, model: "",
               levels_made: "", local: true},
@@ -292,6 +296,69 @@ answer stands, with the flash `Sections checked by AI`. A paper already folded k
 **Shown.** The byline ends with who set the sections, an icon and words (never colour alone): a sparkle and
 `Sections checked by AI` (its tooltip the model's name), a bookmark and `Sections from the PDF's bookmarks`, the
 Full level's icon and `Sections found by the reader`.
+
+### 3.8 A scan read by OCR (extractor 5, Mac 0.4.44)
+
+A scan's pages are pictures: no text layer, or only a line the publisher stamps on each page when it is downloaded
+(Emerald's older papers: `Downloaded from www.emerald.com/… by <institution> on <date>`). Before 0.4.44 the stamp's
+110 characters a page passed for text, and such a paper read as nothing. Now:
+
+**Which pages.** After `FoldPDF.lines`, `FoldMaker.make` asks `FoldMake.textless(pages, meta)`: `{scan, pages, chars,
+textPages}`, the scan rule of 3.2 step 14 on each page's own text. When the PDF is a scan, its pages with no text of
+their own are read by OCR; a PDF that isn't a scan keeps its few empty pages as they are (a full-page figure is not
+read). More than 80 such pages (`FoldOCR.maxPages`, the runner's `OCR_MAX_PAGES`): not read, the state `scan` with
+`ocr: "long"`.
+
+**How.** `FoldOCR` (Swift): the page drawn in grey at 300 dpi (its longer side at most 4200 pixels), as it shows (crop
+box, rotation), white behind it; Vision's `VNRecognizeTextRequest`, accurate, with language correction and its own
+language detection, on this Mac, nothing sent. Each recognized line is a line of the payload of 3.1: its words (runs
+of non-space characters) with Vision's box for each range, turned to the reader's (0 to 1, origin top left); when
+Vision gives every word the line's whole box, the words are spread along it by their characters. `s` is 0.8 of the
+words' median height in points (3.1's rule for a line with no font), `fn` is `ocr`, `f` is 1 (and `lb` every word)
+when the line's strokes are 1.3 times as dark as the median of the page's lines of about its height (within a
+quarter, five or more of them): a scan keeps no fonts, but a bold heading's ink shows. The page's own lines (the stamp)
+are replaced. The pages read are kept for the window (`FoldPDF.ocrNow`), so the outline pass's second read doesn't
+read them again. Then the PDF is read as any other (3.2 to 3.7) with `meta.ocr` (the pages read) and `ocr_engine`;
+the doc keeps both in `source`. Vision reading no page (an error): the state `scan` with `ocr: "failed"` and why.
+
+**Columns and headings on a scan.** A scan's pages (lines with `fn` `ocr`) skip the frame of 3.2 (the printed
+pages keep it): `ocrColumns`, page by page, finds where columns start from where lines start and end, not from a gap
+between them, as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the
+right starts at 0.590) and facing pages carry a margin column of pull quotes on alternate sides. A cut is an x with 3
+lines or more ending before it and starting after it and few crossing it; a line past it by 4 tol at most (tol 0.012
+of the page) is on its side, a line Vision read across both columns is cut at its words there when a piece fills its
+column edge to edge (a figure's title across them stays whole); the best cut has the
+most lines on its smaller side and the most lines starting at it; each side is cut again (2 lines a side), twice at
+most, no column under a tenth of the page. A column with under a third of the biggest one's text is a margin's (`M`),
+read after the text's columns of its band and never a heading. Each column has its own edges. Vision's sizes move with
+a scan's tilt and a line's letters, so a line within 0.75 to 1.35 of the scan's body size is set at it, and a heading
+on a scan needs its weight, capitals or number, more than one word unless it is a paper's
+one-word heading, and a line of text under it running most of its column; a numbered line with the next one
+numbered under it (a table's rows) or with an arrow or a sign in it (a figure's legend) is none. Two lines in capitals, tight, are one
+heading. The runner's `readingOrder` uses the same `ocrColumns` (a parity test keeps the two copies the same), and
+`--ocr` gives each line's words (`w`).
+
+**JSTOR.** A JSTOR file's first page is its cover sheet (two of `JSTOR is a not-for-profit service`, `Your use of the
+JSTOR archive indicates`, `Stable URL: …jstor…/stable/`): left out of the reading and of the full-text note (whose page
+numbers were one low behind it). Its stamp on each page (`This content downloaded from <address> on <date>`, `All use
+subject to …jstor…`) is furniture, NULs and all. A running head is also caught as the page's top or bottom line (not a
+list's item) when it repeats, as a scan sets it lower than 7% (AMR's `762 Academy of Management Review October` at 11%).
+JSTOR's own OCR layer behind its scans (font Code2000) is read as a text layer: its letters are right, its boxes and
+sizes are not, so its headings are weak (still open).
+
+**Shown.** While it reads, the text pane says `Reading the scan by OCR…` and `<done> of <pages> pages. Its pages are
+pictures: macOS reads their words on this Mac.` The byline then says `Read by OCR` (or `<n> pages read by OCR`) with
+the OCR icon (a page in a scanner's frame), before who set the sections; its tooltip says to check a quote against the
+PDF.
+
+**The AI features too.** The runner's full-text note (and so chats and review tables grounded on it) reads a scan's
+pages the same way on a Mac: the app gives its executable as `ZL_OCR`, and `ZL_OCR --ocr <pdf> <page>…` (`Main`,
+`FoldOCR.command`) prints one JSON line a page, `{n, size, lines: [{t, b}]}` or `{n, error}`; `vision.mjs` puts the
+lines in reading order (one column, or two with what spans both between bands) and makes paragraphs where the gap
+widens. Tesseract stays the OCR on Omarchy. Both runners' `pagesToOcr` count a page's own text (`ownText`: no page
+numbers, no download stamps, no line repeated on half the pages on a page with at most three of them), so a stamped
+scan is read by OCR, or left alone as a scan when there is none, instead of saved as a note of stamps. The note says
+`read by OCR (macOS Vision)`. Settings › Setup says `Read scans by OCR`, `Built in: macOS reads scanned PDFs…`.
 
 ## 4. The fold: the runner's `fold` command
 
@@ -503,7 +570,10 @@ Page`). Never colour alone: every state is words, and a button has its text besi
 | `no-pdf` | `This paper has no PDF` | `The reader folds a paper from its PDF: attach one in Zotero, then press ⌘R.` | `Try again` (`retry`) |
 | `missing` | `The PDF file is missing from disk` | `Zotero lists it, but the file isn't there: sync or relink it in Zotero, then press ⌘R.` | `Try again` (`retry`) |
 | `unreadable` | `Couldn't open the PDF` | `<why>` | `Try again` (`retry`) |
-| `scan` | `This PDF is a scan` | `It has no text layer, so there are no words to fold. The PDF still shows.` | |
+| `reading` with `ocr` | `Reading the scan by OCR…` | `<done> of <pages> pages. Its pages are pictures: macOS reads their words on this Mac.` | |
+| `scan` | `This PDF is a scan` | `It has no text layer, and OCR found no words in its pages, so there is nothing to fold. The PDF still shows.` | |
+| `scan` with `ocr: "long"` | `This PDF is a scan` | `It has no text layer, and its <n> pages are more than the <max> that OCR reads. The PDF still shows.` | |
+| `scan` with `ocr: "failed"` | `This PDF is a scan` | `It has no text layer, and OCR couldn't read it (<why>). The PDF still shows.` | |
 | `too-long` | `This PDF is too long to fold` | `It has <n> paragraphs; the reader takes up to 5000.` | |
 | `group-library` | `Your own library's papers only, for now` | `Papers in group libraries come in a later version.` | |
 
@@ -728,6 +798,21 @@ The outline pass (3.7, 4.9; `fold-outline.test.js`)
 56. `[node]` The cache: `outline-` and 24 hex; a second run asks nothing; another model, effort or candidate list asks again; `pruneOutlines` keeps the one in use and every fold reply.
 57. `[node]` `outline --quiet` end to end against a fake endpoint: one request, its own system prompt, the file in the state folder and the sync folder, a second machine asking nothing, the log without a candidate's text, no model a `setup` error.
 58. `[swift]` `lines` gives `li` for a line opening in italics; `FoldMaker.make` with an outline answer gives `ai` and the model's name, without one `rules` and owed; `FoldWindowModel.outlineProblem`'s sentences.
+
+A scan read by OCR (3.8):
+
+59. `[node]` 19 pages whose only text is a download stamp: `textless` gives a scan, every page to read; `read` gives `scan`.
+60. `[node]` A watermark repeated mid-page, a few lines a page, is no text; the fixture paper's repeated list lines are.
+61. `[node]` A scan behind a cover sheet: the cover keeps its text, the pages behind it go to OCR.
+62. `[node]` A born-digital paper with one page of figure is no scan: the page stays as it is and the doc is read.
+63. `[node]` `meta.ocr` gives `source.ocr` and `ocr_engine`; the byline says so with the OCR icon (Playwright); a download stamp on a page of text is furniture.
+64. `[swift]` The fixture paper drawn as pictures with a stamp in real text: `textless` gives a scan, pages 1 and 2.
+65. `[swift]` Vision reads the fixture's first page, `Researchers` within 0.02 of its box in the text layer; the payload's `fn` and size.
+66. `[swift]` `FoldMaker.make` on the scan: OCR's progress page by page, a doc with the paper's words from both pages (the turned one too), `S1`, no stamp, `source.ocr` [1, 2].
+67. `[swift]` `FoldOCR.command`: a JSON line a page with each line's words, `no page 3`, usage and unreadable files as exit codes 2 and 3.
+68. `[node]` Two pages of a scan, columns with no gutter, rows Vision read across both, a margin column on the left then the right: every word in reading order, left column, right, margin; the bold heading a section. `readingOrder` the same on one page; one column with indents has none; `ocrColumns` the same in both copies.
+69. `[node]` On a scan, a body line Vision sized 1.25 times the body, a bold pull quote and a figure's one-word bold labels are no headings; a pull quote is no candidate.
+70. `[node]` JSTOR: the cover sheet, the stamp on each page and running heads at 11% of the page are not in the doc; both runners leave the cover out of the note's pages (labels from the item's range, or the PDF's one on) and take the stamp off.
 
 ## Appendix A: the texts ported from TextFold
 

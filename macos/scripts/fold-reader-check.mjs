@@ -421,7 +421,9 @@ const STATES = [
   ["no-pdf", "This paper has no PDF", "The reader folds a paper from its PDF: attach one in Zotero, then press ⌘R.", ["Try again", "retry"]],
   ["missing", "The PDF file is missing from disk", "Zotero lists it, but the file isn't there: sync or relink it in Zotero, then press ⌘R.", ["Try again", "retry"]],
   [{ kind: "unreadable", why: "It is encrypted with a password" }, "Couldn't open the PDF", "It is encrypted with a password", ["Try again", "retry"]],
-  ["scan", "This PDF is a scan", "It has no text layer, so there are no words to fold. The PDF still shows.", null],
+  [{ kind: "reading", done: 4, pages: 19, ocr: true }, "Reading the scan by OCR…", "4 of 19 pages. Its pages are pictures: macOS reads their words on this Mac.", null],
+  ["scan", "This PDF is a scan", "It has no text layer, and OCR found no words in its pages, so there is nothing to fold. The PDF still shows.", null],
+  [{ kind: "scan", ocr: "long", n: 240, max: 80 }, "This PDF is a scan", "It has no text layer, and its 240 pages are more than the 80 that OCR reads. The PDF still shows.", null],
   [{ kind: "too-long", n: 6200 }, "This PDF is too long to fold", "It has 6200 paragraphs; the reader takes up to 5000.", null],
   ["group-library", "Your own library's papers only, for now", "Papers in group libraries come in a later version.", null]
 ];
@@ -858,6 +860,13 @@ await pg.setViewportSize({ width: 1360, height: 820 });
   await load(payload(d, null));
   await wait(100);
   ok((await pg.textContent(".hd .byline .oby")) === "Sections found by the reader", "and the reader's own rules when no model did (the same PDF read again shows its new sections)");
+  // (R5-SPEC 3.8: a scan's pages read by OCR, an icon and words before who set the sections)
+  d.source.ocr = [1, 2];
+  d.source.ocr_engine = "vision";
+  await load(payload(d, null));
+  await wait(100);
+  const ocr = await pg.$eval(".hd .byline [data-ocr]", (e) => ({ text: e.textContent, tip: e.title, icon: !!e.querySelector("svg.ic-ocr"), next: e.nextElementSibling && e.nextElementSibling.dataset.outline }));
+  ok(/^(Read by OCR|2 pages read by OCR)$/.test(ocr.text) && ocr.icon && /Check a quote against the PDF/.test(ocr.tip) && ocr.next === "rules", "R5-63 the byline says a scan was read by OCR, an icon and words: " + ocr.text);
 }
 
 // narrow, 42

@@ -146,7 +146,7 @@ final class NotesAndScansTests: XCTestCase {
         model.openSettings("defaults")
         let row = try XCTUnwrap(model.listRows.first { $0.rowId == "set-extract-scans" })
         XCTAssertEqual(row.label, "Read the 2 skipped scans by OCR") // not the ones OCR gave up on (too long, blank)
-        XCTAssertTrue(try XCTUnwrap(model.listRows.first { $0.value == "defaults.extractMaxMB" }).detail.hasSuffix("scans (no text layer) are read by OCR (Tesseract), up to 80 pages"))
+        XCTAssertTrue(try XCTUnwrap(model.listRows.first { $0.value == "defaults.extractMaxMB" }).detail.hasSuffix("scans (no text layer) are read by OCR (macOS), up to 80 pages"))
         model.store.selectedIndex = try XCTUnwrap(model.listRows.firstIndex { $0.rowId == "set-extract-scans" })
         runner.hold = ["extract-batch"]
         model.execute(.activate)
@@ -157,11 +157,14 @@ final class NotesAndScansTests: XCTestCase {
         XCTAssertEqual(model.flash, "Reading the 2 skipped scans by OCR, a few at a time: it's in Processes (\(model.keyName(".")))")
     }
 
-    func testWithoutTesseractScansSayWhatReadsThem() throws {
+    // (the Mac reads scans itself, Apple's Vision through the app: no Tesseract to install, R5-SPEC 3.8)
+    func testWithoutTesseractTheMacReadsScansItself() throws {
         try open(extract: ["skipped": ["1:SCAN0001": "a scan, with no text layer"]])
         model.openSettings("defaults")
-        XCTAssertNil(model.listRows.first { $0.rowId == "set-extract-scans" })
-        XCTAssertTrue(try XCTUnwrap(model.listRows.first { $0.value == "defaults.extractMaxMB" }).detail.contains("scans (no text layer) are skipped: Tesseract reads them (Settings › Setup › Read scans by OCR)"))
-        XCTAssertTrue(try XCTUnwrap(model.listRows.first { $0.rowId == "set-extract-retry" }).detail.hasSuffix("; 1 of them is a scan: Tesseract reads them (Settings › Setup › Read scans by OCR)"))
+        let scans = try XCTUnwrap(model.listRows.first { $0.rowId == "set-extract-scans" })
+        XCTAssertEqual(scans.label, "Read the 1 skipped scan by OCR")
+        XCTAssertTrue(scans.detail.hasPrefix("OCR is built in now: Enter reads it"))
+        XCTAssertTrue(try XCTUnwrap(model.listRows.first { $0.value == "defaults.extractMaxMB" }).detail.hasSuffix("scans (no text layer) are read by OCR (macOS), up to 80 pages"))
+        XCTAssertFalse(try XCTUnwrap(model.listRows.first { $0.rowId == "set-extract-retry" }).detail.contains("Tesseract"))
     }
 }
