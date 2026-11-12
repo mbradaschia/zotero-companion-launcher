@@ -1,6 +1,6 @@
 # Lists panel: plan
 
-Status: approved 2026-11-06 (launcher first, review window after). L1 in progress. Mockup: https://claude.ai/artifact/CFWn5xVGZRfLRZDL5mW3mU (private to the owner).
+Status: approved 2026-11-06 (launcher first, review window after). L1, L1b and L2 shipped that day in Mac 0.4.33 and bridge 0.2.7; L3 to L5 wait for two weeks of usage counts (section 6). Mockup: https://claude.ai/artifact/CFWn5xVGZRfLRZDL5mW3mU (private to the owner).
 
 ## 1. What it is
 
