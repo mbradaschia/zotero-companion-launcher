@@ -114,6 +114,7 @@ final class FixtureRunner: Runner {
         case "extract":
             return ["ok": true, "noteKey": "FIXTEXT1"]
         case "fold": return FixtureMode.json(dir, "fold-plan") ?? [:] // (fold --plan: a fold itself streams)
+        case "outline": return ["error": "no AI model is set up", "kind": "setup"] // (the outline pass: the rules' sections stand)
         case "catchup-plan": // one paper tagged by an older Methods, none from an older prompt, one recent paper to tag
             let job: [String: Any] = ["id": "1:P3NM4G92", "op": "classify", "title": "Doe (2016)"]
             return ["taxonomies": ["jobs": [job.merging(["only": ["methods"]]) { a, _ in a }], "papers": 1], "prompts": ["jobs": [], "papers": 0, "unknown": 0],

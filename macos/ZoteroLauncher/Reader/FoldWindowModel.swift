@@ -44,6 +44,13 @@ final class FoldWindowModel: ObservableObject {
     private var loadSoon = false
     var folding: Bool { stream != nil }
 
+    // the outline pass (R5-SPEC 3.7)
+    private var outlineAnswer: (@MainActor ([String: Any]?) -> Void)? // the reading that waits on the model's answer
+    private var outlineAsks = 0 // each ask its own: a skipped one's answer is dropped
+    private var outlineNote: String? // why the sections weren't checked, said once the paper shows
+    private var outlineHere = false // asked in this window: a paper still owed the pass isn't read again and again
+    private var refreshing = false // the pass owed to a paper already showing, made behind it
+
     init(paper: PaperRef, launcher: LauncherModel) {
         self.paper = paper
         self.launcher = launcher
@@ -225,7 +232,7 @@ final class FoldWindowModel: ObservableObject {
             doc = old
             state = ["kind": "ready"]
             send()
-            askPlan()
+            askPlan(thenOutline: true)
         case .touched:
             doc = old
             if var l = links, let p = pdfIdentity {
@@ -234,7 +241,7 @@ final class FoldWindowModel: ObservableObject {
             }
             state = ["kind": "ready"]
             send()
-            askPlan()
+            askPlan(thenOutline: true)
         case .changed:
             pdfChanged = true
             read()
@@ -243,17 +250,20 @@ final class FoldWindowModel: ObservableObject {
         }
     }
 
-    // The PDF read into the doc (lines, FoldMaker), the state `reading` meanwhile; then doc.json and links.json.
+    // The PDF read into the doc (lines, FoldMaker), the state `reading` meanwhile; then doc.json and links.json. With
+    // the outline pass on (Settings › Defaults › Fold with AI), the model is asked which lines are the headings before
+    // the paper shows (the state says so, with Skip), and the lines are read again with its answer.
     private func read() {
         guard let pdf, let info = pdfInfo, info["problem"] == nil else { return }
         let at = opening
         doc = nil
         state = ["kind": "reading", "done": 0, "pages": info["pages"] ?? 0]
         send()
+        outlineNote = nil
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         let meta = Self.readMeta(paperInfo ?? [:], title: paper.title, cite: cite, pdf: info, version: version, now: Date())
-        FoldMaker.make(pdf, meta: meta, progress: { [weak self] done, pages in
-            guard let self, !self.closed, at == self.opening, self.doc == nil else { return }
+        FoldMaker.make(pdf, meta: meta, outline: outlineAsker(at, shown: true), progress: { [weak self] done, pages in
+            guard let self, !self.closed, at == self.opening, self.doc == nil, self.outlineAnswer == nil else { return }
             self.state = ["kind": "reading", "done": done, "pages": pages]
             self.page?.state(self.state)
         }, done: { [weak self] result in
@@ -271,6 +281,7 @@ final class FoldWindowModel: ObservableObject {
                 if let l = made.links { try? self.store?.writeJSON(FoldStore.links, l) }
                 self.state = ["kind": "ready"]
                 self.send()
+                if let note = self.outlineNote { self.outlineNote = nil; self.page?.flash(note) }
                 if self.foldAfterReading {
                     self.foldAfterReading = false
                     self.startFold(force: true, only: nil)
@@ -283,6 +294,99 @@ final class FoldWindowModel: ObservableObject {
                 self.state = ["kind": "unreadable", "why": "Its text couldn't be read, so there are no words to fold."]
                 self.send()
             }
+        })
+    }
+
+    // ---- the outline pass (R5-SPEC 3.7): the model says which lines are the headings, once per paper
+
+    // FoldMaker's outline step for this reading, or none with the pass off. shown: the paper waits on it (the state
+    // tells, Skip ends the wait); else it runs behind a paper already showing.
+    private func outlineAsker(_ at: Int, shown: Bool) -> FoldMaker.Outline? {
+        guard launcher.foldOutline else { return nil }
+        outlineHere = true
+        return { [weak self] ask, answer in
+            guard let self, !self.closed, at == self.opening else { return answer(nil) }
+            self.askOutline(ask, at: at, shown: shown, answer)
+        }
+    }
+
+    // The runner's `outline`: the candidates and the bookmarks in, the headings out ({ n, headings, model }); no
+    // answer (the AI features away or older than the app, no model, offline, a reply of no use) leaves the rules'.
+    private func askOutline(_ ask: [String: Any], at: Int, shown: Bool, _ answer: @escaping @MainActor ([String: Any]?) -> Void) {
+        var input = ask
+        input["paper"] = paperId
+        input["model"] = defaultModel
+        input["effort"] = effort
+        guard let text = try? JSCore.jsonText(input) else { return answer(nil) }
+        outlineAsks += 1
+        let this = outlineAsks
+        outlineAnswer = answer
+        if shown {
+            state = ["kind": "reading", "done": pdfInfo?["pages"] ?? 0, "pages": pdfInfo?["pages"] ?? 0, "outline": true]
+            page?.state(state)
+        }
+        launcher.runRunner(["outline"], stdin: text, timeout: 150) { [weak self] r in
+            guard let self, this == self.outlineAsks, let answer = self.outlineAnswer else { return } // (skipped)
+            self.outlineAnswer = nil
+            guard !self.closed, at == self.opening else { return answer(nil) }
+            let o = r.ok ? r.json as? [String: Any] : nil
+            if let o, let headings = o["headings"] as? [Any] {
+                UsageLog.shared.count("fold:outline")
+                let name = (o["name"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? o["model"] as? String ?? ""
+                return answer(["n": o["n"] ?? 0, "headings": headings, "model": name])
+            }
+            self.outlineNote = Self.outlineProblem(r, o)
+            answer(nil)
+        }
+    }
+
+    // Why the sections weren't checked, for the flash; nil when the fold's own banner says it (no runner, no model).
+    static func outlineProblem(_ r: RunnerResult, _ answer: [String: Any]?) -> String? {
+        let kind = runnerKind(r)
+        if kind == "missing" { return nil }
+        if kind == "old" { return "Sections not checked by AI: the AI features are older than the app (Settings › Setup › Install the AI features)" }
+        if r.timedOut { return "Sections not checked by AI: the model took too long" }
+        if let answer {
+            if answer["kind"] as? String == "setup" { return nil }
+            let e = (answer["error"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            return "Sections not checked by AI" + (e.isEmpty ? "" : ": " + String(e.prefix(120)))
+        }
+        return "Sections not checked by AI: " + String(r.problem.prefix(120))
+    }
+
+    // The page's Skip: the paper shows now, with the sections the reader found on its own. (The request goes on: its
+    // answer is kept, and the next time the paper opens its sections follow it.)
+    func skipOutline() {
+        guard let answer = outlineAnswer else { return }
+        outlineAnswer = nil
+        outlineAsks += 1
+        answer(nil)
+    }
+
+    // A paper already showing that is still owed the pass (read offline, with the AI features away or older, or with
+    // the pass off) and has nothing folded: once the plan says a model is there, its PDF is read again behind it and
+    // the model asked; the doc is replaced only when an answer came. Once per window (⌘R asks again).
+    private func outlineIfOwed() {
+        guard launcher.foldOutline, !outlineHere, !refreshing, !folding, !closed, runner == "ok", let plan, plan["error"] == nil,
+              let pdf, let info = pdfInfo, info["problem"] == nil, state["kind"] as? String == "ready",
+              let doc, FoldMaker.outlineOwed(doc), !FoldMaker.folded(doc) else { return }
+        let at = opening
+        let id = doc["id"] as? String
+        refreshing = true
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let meta = Self.readMeta(paperInfo ?? [:], title: paper.title, cite: cite, pdf: info, version: version, now: Date())
+        FoldMaker.make(pdf, meta: meta, outline: outlineAsker(at, shown: false), progress: { _, _ in }, done: { [weak self] result in
+            guard let self else { return }
+            self.refreshing = false
+            self.outlineNote = nil
+            guard !self.closed, at == self.opening, !self.folding, self.doc?["id"] as? String == id, !FoldMaker.folded(self.doc),
+                  case .success(let made) = result, let d = made.doc, !FoldMaker.outlineOwed(d) else { return }
+            self.doc = d
+            try? self.store?.writeJSON(FoldStore.doc, d)
+            if let l = made.links { try? self.store?.writeJSON(FoldStore.links, l) }
+            self.send()
+            if FoldMaker.outlineBy(d) == "ai" { self.page?.flash("Sections checked by AI") }
+            self.askPlan()
         })
     }
 
@@ -339,7 +443,8 @@ final class FoldWindowModel: ObservableObject {
     }
 
     // fold --plan: how many requests, the model, the price; asked when the runner is there and nothing folds.
-    func askPlan() {
+    // thenOutline: for a doc kept from before, the outline pass it may still be owed follows the plan's answer.
+    func askPlan(thenOutline: Bool = false) {
         guard let doc, !folding, !closed else { return pushFold() }
         let all = notFolded
         let again = all.isEmpty
@@ -353,6 +458,7 @@ final class FoldWindowModel: ObservableObject {
             self.runner = Self.runnerKind(r)
             self.plan = r.ok ? r.json as? [String: Any] : nil
             self.pushFold()
+            if thenOutline { self.outlineIfOwed() }
         }
     }
 
@@ -366,11 +472,13 @@ final class FoldWindowModel: ObservableObject {
     // The page's fold message: {force?, only?}; ignored while a run goes.
     func fold(_ m: [String: Any] = [:]) {
         guard !folding, doc != nil else { return }
+        if refreshing { page?.flash("Checking the sections with AI first: fold in a moment"); return }
         let force = m["force"] as? Bool == true
         let only = (m["only"] as? [Any])?.compactMap { $0 as? String }
-        // Fold again on R1's doc (D9), or one an older FoldMake read: the PDF read again first, then folded
+        // Fold again on R1's doc (D9), one an older FoldMake read, or one still owed the outline pass: the PDF read
+        // again first, then folded
         let source = doc?["source"] as? [String: Any] ?? [:]
-        if force, pdf != nil, !FoldMaker.ours(doc) || ((source["extractor"] as? NSNumber)?.intValue ?? 0) < extractor {
+        if force, pdf != nil, !FoldMaker.ours(doc) || ((source["extractor"] as? NSNumber)?.intValue ?? 0) < extractor || (launcher.foldOutline && FoldMaker.outlineOwed(doc)) {
             foldAfterReading = true
             return read()
         }
@@ -525,7 +633,9 @@ final class FoldWindowModel: ObservableObject {
 
     // ⌘R and Try again: the paper and its PDF read again (R5-SPEC 3.5); a run going on goes on.
     func retry() {
-        guard !folding else { return }
+        guard !folding, !refreshing else { return }
+        skipOutline()
+        outlineHere = false
         pdf = nil
         pdfInfo = nil
         doc = nil
@@ -662,6 +772,7 @@ final class FoldWindowModel: ObservableObject {
         case "fold": fold(m)
         case "zoom": stepZoom(max(-1, min(1, (m["step"] as? NSNumber)?.intValue ?? 0))) // (the toolbar's text size buttons)
         case "stop": stop()
+        case "skip": skipOutline()
         case "retry": retry()
         default: break
         }
@@ -671,6 +782,7 @@ final class FoldWindowModel: ObservableObject {
     func windowClosing() {
         closed = true
         stream?.stop()
+        skipOutline()
     }
 
     // ⌘W closes; ⌘- ⌘+ ⌘0 the text size; ⌘R the paper and its PDF read again; the editing keys for the page's text

@@ -188,6 +188,14 @@ final class FoldReaderTests: XCTestCase {
         XCTAssertEqual(FoldPDF.style(Array(words.prefix(2))).flags, 1)
         XCTAssertEqual(FoldPDF.charStyles(a, length: 5), [], "another length: its fonts aren't matched to the words")
         XCTAssertEqual(FoldPDF.style([[], []]), FoldPDF.LineStyle(), "no fonts: no size, nothing bold")
+        // (extractor 4) the italic words at its start: a run-in heading set in italics
+        let slanted = NSFont(name: "Helvetica-Oblique", size: 10) ?? NSFontManager.shared.convert(plain, toHaveTrait: .italicFontMask)
+        let i = NSMutableAttributedString(string: "Capacity. ", attributes: [.font: slanted])
+        i.append(NSAttributedString(string: "body text", attributes: [.font: plain]))
+        let slants = FoldPDF.charStyles(i, length: i.length)
+        let lead = FoldPDF.style([0..<9, 10..<14, 15..<19].map { Array(slants[$0]) })
+        XCTAssertEqual([lead.leadItalic, lead.leadBold, lead.flags], [1, 0, 0])
+        XCTAssertEqual(style.leadItalic, 0)
         XCTAssertEqual(style.family, "Helvetica", "the family most of its characters are set in")
     }
 
@@ -340,7 +348,7 @@ final class FoldReaderTests: XCTestCase {
         let pages = pdf.linesNow()
         XCTAssertEqual(FoldMaker.language(of: pages), "en")
         let maker = try FoldMaker()
-        XCTAssertEqual(maker.extractor, 3)
+        XCTAssertEqual(maker.extractor, 4)
         let made = try maker.read(pages, meta: paperMeta(url, pages: info.pages, sizes: info.sizes).merging(["lang": "en"]) { $1 })
         XCTAssertNil(made.problem)
         let doc = try XCTUnwrap(made.doc)
@@ -382,6 +390,44 @@ final class FoldReaderTests: XCTestCase {
         }
         wait(for: [ran], timeout: 10)
         XCTAssertEqual(steps.last, 2, "progress to the last page")
+
+        // (extractor 4) the outline pass: what it asks the model about, and the model's answer read back
+        XCTAssertEqual(FoldMaker.outlineBy(doc), "rules")
+        XCTAssertTrue(FoldMaker.outlineOwed(doc), "no model has answered for it yet")
+        let cands = made.ask?["candidates"] as? [[String: Any]] ?? []
+        let texts = cands.map { $0["text"] as? String ?? "" }
+        XCTAssertEqual(made.ask?["n"] as? Int, cands.count)
+        let intro = try XCTUnwrap(cands.first { $0["text"] as? String == "1 Introduction" }?["id"] as? Int, "the candidates: \(texts)")
+        let method = try XCTUnwrap(cands.first { $0["text"] as? String == "2 Method" }?["id"] as? Int, "the candidates: \(texts)")
+        let answered = expectation(description: "asked, then made again")
+        FoldMaker.make(pdf, meta: paperMeta(url, pages: info.pages, sizes: info.sizes), outline: { ask, answer in
+            XCTAssertEqual(ask["n"] as? Int, cands.count)
+            answer(["n": cands.count, "headings": [["ids": [intro], "level": 1], ["ids": [method], "level": 2]], "model": "Lab model"])
+        }, progress: { _, _ in }, done: { result in
+            if case .success(let m) = result, let d = m.doc {
+                XCTAssertEqual(FoldMaker.outlineBy(d), "ai")
+                XCTAssertFalse(FoldMaker.outlineOwed(d))
+                XCTAssertEqual((d["source"] as? [String: Any])?["outline_model"] as? String, "Lab model")
+                XCTAssertEqual((d["sections"] as? [[String: Any]] ?? []).map { $0["id"] as? String ?? "" }, ["abstract", "S1", "S1.SS1", "Sx"], "Method under Introduction, as the answer said")
+            } else { XCTFail("not made") }
+            answered.fulfill()
+        })
+        wait(for: [answered], timeout: 10)
+        let unanswered = expectation(description: "no answer: the rules' sections")
+        FoldMaker.make(pdf, meta: paperMeta(url, pages: info.pages, sizes: info.sizes), outline: { _, answer in answer(nil) }, progress: { _, _ in }, done: { result in
+            if case .success(let m) = result {
+                XCTAssertEqual(FoldMaker.outlineBy(m.doc), "rules")
+                XCTAssertTrue(FoldMaker.outlineOwed(m.doc))
+            } else { XCTFail("not made") }
+            unanswered.fulfill()
+        })
+        wait(for: [unanswered], timeout: 10)
+        // why the sections weren't checked: said, unless the fold's own banner says it
+        XCTAssertNil(FoldWindowModel.outlineProblem(RunnerResult(status: 127, missing: true), nil))
+        XCTAssertEqual(FoldWindowModel.outlineProblem(RunnerResult(status: 2, stderr: "usage: oma-zotero-prompt list"), nil),
+                       "Sections not checked by AI: the AI features are older than the app (Settings › Setup › Install the AI features)")
+        XCTAssertNil(FoldWindowModel.outlineProblem(RunnerResult(), ["error": "no AI model is set up", "kind": "setup"]))
+        XCTAssertEqual(FoldWindowModel.outlineProblem(RunnerResult(), ["error": "fetch failed", "kind": "network"]), "Sections not checked by AI: fetch failed")
     }
 
     // R5-37: the doc's identity; a touched file keeps it, another file is read again; a damaged doc.json kept aside

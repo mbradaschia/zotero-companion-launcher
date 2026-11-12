@@ -10,11 +10,13 @@ final class FoldMaker {
     static let files = ["FoldCore", "FoldMake"]
 
     // What FoldMake.read gave: the doc and its links.json, or a problem (scan, too-long, no-text) with the units seen.
+    // ask: what the outline pass sends the model (the candidate lines, the PDF's bookmarks), when there is any.
     struct Made {
         var doc: [String: Any]?
         var links: [String: Any]?
         var problem: String?
         var units = 0
+        var ask: [String: Any]?
 
         // FR.load's state for a problem (R5-SPEC 6.1): a PDF with no text to fold reads as a scan.
         var state: [String: Any]? {
@@ -64,7 +66,7 @@ final class FoldMaker {
         let units = ((out["stats"] as? [String: Any])?["units"] as? NSNumber)?.intValue ?? 0
         if let problem = out["problem"] as? String { return Made(problem: problem, units: units) }
         guard let doc = out["doc"] as? [String: Any], let links = out["links"] as? [String: Any] else { throw JSCoreError.exception("FoldMake.read gave no doc") }
-        return Made(doc: doc, links: links, units: units)
+        return Made(doc: doc, links: links, units: units, ask: out["ask"] as? [String: Any])
     }
 
     // The text's language (3.3): ISO 639-1 of the dominant language of the lines' first 5000 characters, when
@@ -88,7 +90,11 @@ final class FoldMaker {
 
     // The PDF read into the doc on its own queue: the lines (progress after each page, on the main queue), the
     // language, FoldMake.read. meta: Zotero's title, authors, date, cite, the pdf's identity, made_with, exported.
-    static func make(_ pdf: FoldPDF, meta: [String: Any], resources: URL? = Bundle.main.resourceURL,
+    // outline (the outline pass, R5-SPEC 3.7): called on the main queue with what to ask the model (Made.ask) once the
+    // PDF is read; its answer ({ n, headings, model }) has the same lines read again with the model's headings, and no
+    // answer (nil) leaves the sections the rules found. It is not called for a PDF with a problem or no candidates.
+    typealias Outline = @MainActor (_ ask: [String: Any], _ answer: @escaping @MainActor ([String: Any]?) -> Void) -> Void
+    static func make(_ pdf: FoldPDF, meta: [String: Any], resources: URL? = Bundle.main.resourceURL, outline: Outline? = nil,
                      progress: @escaping @MainActor (_ done: Int, _ pages: Int) -> Void,
                      done: @escaping @MainActor (Result<Made, Error>) -> Void) {
         pdf.onQueue { pdf in
@@ -101,15 +107,44 @@ final class FoldMaker {
             var identity = m["pdf"] as? [String: Any] ?? [:]
             if (identity["sha256"] as? String ?? "").isEmpty, let sha = pdf.sha256() { identity["sha256"] = sha }
             m["pdf"] = identity
-            let result: Result<Made, Error>
+            let maker: FoldMaker, first: Made
             do {
-                let maker = try FoldMaker(resources: resources)
-                result = .success(try maker.read(pages, meta: m))
+                maker = try FoldMaker(resources: resources)
+                first = try maker.read(pages, meta: m)
             } catch {
-                result = .failure(error)
+                DispatchQueue.main.async { MainActor.assumeIsolated { done(.failure(error)) } }
+                return
             }
-            DispatchQueue.main.async { MainActor.assumeIsolated { done(result) } }
+            guard let outline, first.problem == nil, let ask = first.ask else {
+                DispatchQueue.main.async { MainActor.assumeIsolated { done(.success(first)) } }
+                return
+            }
+            let read = m
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    outline(ask) { answer in
+                        guard let answer else { return done(.success(first)) }
+                        // (the same lines, with the model's headings; a reading that fails keeps the first)
+                        pdf.onQueue { _ in
+                            var again = read
+                            again["headings"] = answer
+                            let made = (try? maker.read(pages, meta: again)).flatMap { $0.doc == nil ? nil : $0 } ?? first
+                            DispatchQueue.main.async { MainActor.assumeIsolated { done(.success(made)) } }
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    // Who set a doc's sections (doc.source.outline): "ai", "bookmarks" or "rules"; "" for a doc read before extractor 4.
+    static func outlineBy(_ doc: [String: Any]?) -> String { (doc?["source"] as? [String: Any])?["outline"] as? String ?? "" }
+
+    // A doc of ours whose sections no model has answered for yet (it was read offline, with the AI features away or
+    // older than the app, or with the outline pass off): the pass is still owed.
+    static func outlineOwed(_ doc: [String: Any]?) -> Bool {
+        guard ours(doc), let source = doc?["source"] as? [String: Any] else { return false }
+        return source["outline"] as? String != "ai" && source["outline_tried"] as? Bool != true
     }
 
     // ---- a cached doc.json and the file (3.5)

@@ -47,6 +47,7 @@ extension LauncherModel {
         extra["openAsWindow"] = openAsWindow
         extra["dock"] = showInDock
         extra["lists"] = listsEnabled
+        extra["foldOutline"] = foldOutline
         extra["theme"] = themeSettings
         if let review = tax.review { extra["review"] = review }
         return try core.glue("settingsPage", [settingsPageName, settingsJSON, settingsContext, extra], as: [ListRow].self)
@@ -126,6 +127,11 @@ extension LauncherModel {
         if path == "mac.listsPanel" {
             listsEnabled.toggle()
             flashMessage(listsEnabled ? "On: the Lists panel beside the results; ⌃⌘S folds it to its icons" : "Off: the badges above the results instead")
+            return
+        }
+        if path == "mac.foldOutline" {
+            foldOutline.toggle()
+            flashMessage(foldOutline ? "On: a paper's sections are checked by AI when the reader first opens it" : "Off: sections from the PDF's bookmarks and the reader's rules")
             return
         }
         if path == "mac.safeColours" {

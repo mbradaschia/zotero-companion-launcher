@@ -64,7 +64,7 @@ export function parseInput(raw) {
       units.push({ id: String(u.id), kind: String(u.kind || "paragraph"), label: u.label ? String(u.label) : "", sentences });
     }
     if (!units.length) continue;
-    sections.push({ id: String(s.id), num: String(s.num == null ? "" : s.num), title: String(s.title == null ? "" : s.title), depth: s.depth === 2 || s.depth === 3 ? s.depth : 1, units });
+    sections.push({ id: String(s.id), num: String(s.num == null ? "" : s.num), title: String(s.title == null ? "" : s.title), depth: s.depth === 2 || s.depth === 3 || s.depth === 4 ? s.depth : 1, units });
   }
   const only = Array.isArray(o.only) ? o.only.map(String).filter((x) => ID.test(x)) : null;
   // (effort: Settings › Defaults › Fold with AI's, "" the model's own; low when not given, as before 0.3.1)
@@ -368,10 +368,10 @@ export function concurrencyFor(kind) {
 }
 
 // The command's ask: one generate() call as review-run's, at the fold's effort (low unless Settings › Defaults ›
-// Fold with AI picks another), SYSTEM alone as the system prompt.
-export function makeAsk({ generate, costOf, settings, ctx, target, onFallback, effort = "low" }) {
+// Fold with AI picks another), SYSTEM alone as the system prompt (the outline pass gives its own).
+export function makeAsk({ generate, costOf, settings, ctx, target, onFallback, effort = "low", system = SYSTEM }) {
   return async ({ messages, signal }) => {
-    const r = await generate({ settings, ctx, target, effort, system: SYSTEM, messages, signal, onFallback });
+    const r = await generate({ settings, ctx, target, effort, system, messages, signal, onFallback });
     return { text: r.text, spec: r.spec || target.spec, costUsd: costOf(r) };
   };
 }

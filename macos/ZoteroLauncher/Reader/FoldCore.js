@@ -259,6 +259,97 @@ var FoldCore = (function () {
     }
   }
 
+  // ---- a heading set all in capitals, shown in the case of the paper's other headings
+  // (SPEC 7.4: capitals shout beside the headings set in mixed case, and a page of them is slower to scan. The
+  // doc keeps the heading as printed; this is how the reader shows it. Each word takes the form the paper's own text
+  // gives it, so an acronym stays one; a word the text never uses is lowered, unless it reads as an acronym.)
+  var SMALL = {}
+  ;"a an the and but or nor for so yet as at by in of on to up via per vs with from into over".split(" ").forEach(function (w) { SMALL[w] = true })
+  var ROMAN = /^[IVX]{2,}$/
+  function allCaps(t) { return /\p{Lu}[^\p{L}]*\p{Lu}/u.test(t) && !/\p{Ll}/u.test(t) }
+  function capital(w) { return w.replace(/\p{L}/u, function (c) { return c.toUpperCase() }) }
+  // How the paper's mixed-case headings are set: "sentence" (only the first word and names capitalised) or "title".
+  // Without one to go by: a title's case in English, a sentence's in the other languages.
+  function headingStyle(titles, lang) {
+    var lower = 0, upper = 0
+    titles.forEach(function (t) {
+      if (allCaps(t)) return
+      String(t).split(/[\s\-\/]+/).slice(1).forEach(function (w) {
+        var core = w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, "")
+        if (core.length < 4 || SMALL[core.toLowerCase()]) return
+        if (/^\p{Ll}/u.test(core)) lower++; else if (/^\p{Lu}\p{Ll}/u.test(core)) upper++
+      })
+    })
+    if (lower || upper) return lower > upper ? "sentence" : "title"
+    return !lang || /^en\b/i.test(lang) ? "title" : "sentence"
+  }
+  // The forms the text writes each word in: { lowercased: { form: count } }. A sentence's first word is left out (its
+  // capital says nothing) unless it has a capital past its first letter, and so are the references, the citations and
+  // the maths.
+  function wordForms(sections, units) {
+    var forms = {}
+    var count = function (w) {
+      if (!/\p{L}/u.test(w)) return
+      var k = w.toLowerCase(), f = forms[k] || (forms[k] = {})
+      f[w] = (f[w] || 0) + 1
+    }
+    sections.forEach(function (s) {
+      if (s.back) return
+      s.units.forEach(function (id) {
+        var u = units[id]
+        if (!u || apparatus(u)) return
+        u.sents.forEach(function (r) {
+          for (var i = r[0]; i < r[1]; i++) {
+            var tk = u.toks[i]
+            if (tk.k || !WORDCHAR.test(tk.t) || (i === r[0] && !/\p{Lu}/u.test(tk.t.slice(1)))) continue
+            count(tk.t)
+            if (tk.t.indexOf("-") > 0) tk.t.split("-").forEach(count)
+          }
+        })
+      })
+    })
+    return forms
+  }
+  function formOf(forms, word) {
+    var f = forms && own(forms, word.toLowerCase()) ? forms[word.toLowerCase()] : null
+    if (!f) return ""
+    return Object.keys(f).sort(function (a, b) { return f[b] - f[a] || (a < b ? 1 : a > b ? -1 : 0) })[0]
+  }
+  // title: the heading as printed; style: "title" or "sentence"; forms: wordForms' (optional). A heading with a
+  // lowercase letter in it comes back as it is.
+  function headingCase(title, style, forms) {
+    var t = String(title == null ? "" : title)
+    if (!allCaps(t)) return t
+    var parts = t.split(/([\s\-\/]+)/), words = [], start = true
+    for (var i = 0; i < parts.length; i += 2) if (parts[i]) words.push(i)
+    words.forEach(function (i, n) {
+      var m = /^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u.exec(parts[i]), core = m[2]
+      var last = n === words.length - 1 || /[:?!]$/.test(m[3])
+      var out = core
+      if (!/\p{L}/u.test(core) || /[\p{N}&]/u.test(core)) out = core
+      // (a lone letter names something, "Appendix A", but for the words of one letter: a, e, o, y)
+      else if (core.length === 1) out = /[AEOY]/.test(core) && !last && !start ? core.toLowerCase() : core
+      else {
+        var ap = /^(.+?)(['’]\p{L}{1,2})$/u.exec(core), head = ap && !formOf(forms, core) ? ap[1] : core, tail = head === core ? "" : ap[2].toLowerCase()
+        var form = formOf(forms, head)
+        if (!form && (ROMAN.test(head) || !/[AEIOUYÀ-ÖØ-Þ]/u.test(head))) out = head + tail
+        else {
+          var named = !!form && /\p{Lu}/u.test(form.slice(1)) || (!!form && form.length > 1 && !/\p{Ll}/u.test(form))
+          var w = named ? form : (form || head).toLowerCase()
+          var name = !!form && !named && /^\p{Lu}/u.test(form)
+          if (named) out = w
+          else if (start || name) out = capital(w)
+          else if (style === "title" && (last || !SMALL[w])) out = capital(w)
+          else out = w
+          out += tail
+        }
+      }
+      parts[i] = m[1] + out + m[3]
+      start = /[:?!]$/.test(m[3])
+    })
+    return parts.join("")
+  }
+
   var BACK_ID = /^(A\d|Sx|bib)/
   var BACK_TITLE = /^(Appendix|Appendices|Acknowledg|References|Bibliography|Supplementary)/i
 
@@ -271,7 +362,7 @@ var FoldCore = (function () {
       var s = doc.sections[i]
       back = back || BACK_ID.test(s.id) || BACK_TITLE.test(str(s.title).trim())
       var take = tokenize(str(s.takeaway))
-      var sec = { id: s.id, num: str(s.num), title: str(s.title), depth: s.depth === 2 || s.depth === 3 ? s.depth : 1, takeaway: str(s.takeaway),
+      var sec = { id: s.id, num: str(s.num), title: str(s.title), depth: s.depth === 2 || s.depth === 3 || s.depth === 4 ? s.depth : 1, takeaway: str(s.takeaway),
         takeToks: take, topic: str(s.topic), topicK: locateTopic(str(s.topic), take), back: back, made: s.made === "ai", model: str(s.model), units: [] }
       var us = Array.isArray(s.units) ? s.units : []
       for (var j = 0; j < us.length; j++) {
@@ -283,7 +374,17 @@ var FoldCore = (function () {
       }
       sections.push(sec)
     }
+    // (a heading in capitals: shown in the case of the paper's others, `printed` the paper's own)
+    if (sections.some(function (x) { return allCaps(x.title) })) {
+      var style = headingStyle(sections.filter(function (x) { return !x.back && x.id !== "abstract" }).map(function (x) { return x.title }), str(doc.lang))
+      var forms = wordForms(sections, units)
+      sections.forEach(function (x) {
+        var shown = headingCase(x.title, style, forms)
+        if (shown !== x.title) { x.printed = x.title; x.title = shown }
+      })
+    }
     var p = doc.provenance && typeof doc.provenance === "object" ? doc.provenance : {}
+    var src = doc.source && typeof doc.source === "object" ? doc.source : {}
     var links = (Array.isArray(doc.links) ? doc.links : []).filter(function (l) {
       return l && units[l.from] && units[l.to] && typeof l.rel === "string" && l.rel !== "ref"
     }).map(function (l) { return { from: l.from, to: l.to, rel: l.rel } })
@@ -293,6 +394,8 @@ var FoldCore = (function () {
       id: str(doc.id), lang: str(doc.lang), title: str(doc.title), date: str(doc.date),
       authors: (Array.isArray(doc.authors) ? doc.authors : []).map(str),
       provenance: { ai: p.ai_generated !== false, model: str(p.model), levelsMade: str(p.levels_made), local: p.local === true },
+      // (who set the sections: "ai" (the outline pass, with the model's name), "bookmarks", "rules"; "" not known)
+      outline: { by: src.outline === "ai" || src.outline === "bookmarks" || src.outline === "rules" ? src.outline : "", model: str(src.outline_model) },
       sections: sections, units: units, order: order, index: index, links: links
     }
   }
@@ -837,7 +940,7 @@ var FoldCore = (function () {
   return {
     LEVELS: LEVELS, ROLES: ROLES, SHAPES: SHAPES, LIMITS: LIMITS, ID: ID, APPARATUS: APPARATUS, apparatus: apparatus, level: level, role: role,
     tokenize: tokenize, norm: norm, lcsPairs: lcsPairs, splitSentences: splitSentences, locateTopic: locateTopic, headWords: headWords,
-    check: check, model: model, pieces: pieces, font: font, plainText: plainText, byline: byline, topicText: topicText,
+    check: check, model: model, headingCase: headingCase, headingStyle: headingStyle, pieces: pieces, font: font, plainText: plainText, byline: byline, topicText: topicText,
     topicCards: topicCards, filterRuns: filterRuns, rolesOf: rolesOf, linksOf: linksOf,
     pdfNorm: pdfNorm, indexWords: indexWords, unitWords: unitWords, locateUnit: locateUnit, crops: crops, linkMap: linkMap,
     coverageText: coverageText, linksFile: linksFile, linksValid: linksValid,

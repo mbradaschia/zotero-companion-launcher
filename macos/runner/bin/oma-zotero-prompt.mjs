@@ -63,6 +63,10 @@
 //                                       columns filled paper by paper (one task; each paper's cells written as made)
 //   oma-zotero-prompt review-draft      stdin { kind, request, current }: an AI column written by your prompts model
 //                                       from what you describe (Write it with AI), nothing saved
+//   oma-zotero-prompt outline --quiet   stdin { paper, model, effort, title, candidates, bookmarks }: which of a paper's
+//                                       lines are its section headings, and their levels (lib/outline.mjs): one
+//                                       JSON object, { n, headings: [{ ids, level }], model, name, cached, costUsd }
+//                                       or { error, kind }; asked once per paper, the reply kept with the fold's
 //   oma-zotero-prompt fold [--plan] --quiet   stdin { paper, model, effort, force, only, doc }: the fold reader's paper folded
 //                                       by your prompts model, JSON lines out, its replies kept in
 //                                       fold-reader/<lib>-<KEY>/replies (lib/fold.mjs); --plan: what it would ask
@@ -110,7 +114,8 @@ import { sameModel } from "../lib/modelspec.mjs";
 import { toolPath, notify as desktopNotify, openInEditor } from "../lib/platform.mjs";
 import { checkQuotes, quoteCheckLine, groundingText as quoteSources } from "../lib/quotes.mjs";
 import { LIST_CHAT_SYSTEM, LIST_SHARE, listChatsDir, parseListInput, fitList, listContext } from "../lib/listchat.mjs";
-import { replyStore, sharedRepliesDir, shareEarlier } from "../lib/fold-replies.mjs";
+import { replyStore, sharedRepliesDir, shareEarlier, pruneOutlines } from "../lib/fold-replies.mjs";
+import { parseInput as parseOutlineInput, runOutline, SYSTEM as OUTLINE_SYSTEM, TIMEOUT_MS as OUTLINE_TIMEOUT_MS } from "../lib/outline.mjs";
 import { parseInput as parseFoldInput, planFold, runFold, repliesDir as foldRepliesDir, concurrencyFor as foldConcurrency, makeAsk as foldAsk, TIMEOUT_MS as FOLD_TIMEOUT_MS } from "../lib/fold.mjs";
 import { parseJob as parseReviewJob, runReview, cellsPath, writeCell, readCell, DRAFT_SYSTEM as COLUMN_DRAFT_SYSTEM, draftMessage as columnDraftMessage, parseColumnDraft } from "../lib/reviews.mjs";
 
@@ -572,6 +577,55 @@ async function foldCommand(flags) {
   if (!r.folded && (r.failed || r.stopped)) failTask(currentTask, r.stopped ? "stopped: " + r.stopped : r.failed + " sections failed");
   else finishTask(currentTask, { stage: "", detail: plural(r.folded, "section", "sections") + " folded" + (r.failed ? ", " + r.failed + " failed" : ""), model: r.models.join(", "), costUsd: r.costUsd });
   currentTask = null;
+}
+
+// ---------------------------------------------------------------- the fold reader's outline pass
+
+// stdin (lib/outline.mjs parseInput) → one JSON object: { n, headings, model, name, cached, costUsd }, or { error,
+// kind } (kind "setup": no AI model is set up; a fatal kind as the fold's; "": the reply was of no use). Asked once
+// per paper: the reply is kept with the fold's, on this machine and, when syncing, in the sync folder. The candidates
+// go only to the model, in the request: the log gets counts and the model.
+async function outlineCommand() {
+  let raw;
+  try {
+    const text = readFileSync(0, "utf8");
+    if (Buffer.byteLength(text) > 4 * 1024 * 1024) throw new Error("larger than 4 MB");
+    raw = JSON.parse(text);
+  } catch (e) { throw new Error("not JSON: " + e.message); }
+  const input = parseOutlineInput(raw);
+  const out = (o) => process.stdout.write(JSON.stringify(o) + "\n");
+  const dir = foldRepliesDir(STATE_DIR, input.paper);
+  const store = replyStore(dir, sharedRepliesDir(paths(), input.paper));
+  const settings = loadSettings();
+  const ctx = providerCtx();
+  let target, provider, info;
+  try {
+    target = resolveModel(input.model, settings, "prompts");
+    provider = providerById(target.provider, settings);
+    if (!provider) throw new Error(`no provider "${target.provider}": no AI model is set up`);
+    info = await findModelInfo(settings, ctx, target.provider, target.model);
+  } catch (e) {
+    const kind = fatalKind(e.message) || "setup";
+    log("outline", { paper: input.paper, error: e.message, kind });
+    return out({ error: e.message.slice(0, 200), kind });
+  }
+  const model = { spec: target.spec, name: (info && (info.name || info.displayName)) || target.model };
+  try {
+    const r = await runOutline(input, {
+      model,
+      ask: foldAsk({ generate, costOf, settings, ctx, target, effort: input.effort, system: OUTLINE_SYSTEM, onFallback: (t) => log("fallback", { outline: true, note: t }) }),
+      readCache: store.read,
+      writeCache: store.write,
+      timeoutMs: Number(process.env.OMA_FOLD_TIMEOUT_MS) > 0 ? Number(process.env.OMA_FOLD_TIMEOUT_MS) : OUTLINE_TIMEOUT_MS,
+    });
+    pruneOutlines(dir, r.key);
+    log("outline", { paper: input.paper, candidates: r.n, headings: r.headings.length, model: r.model, cached: r.cached, costUsd: r.costUsd });
+    out({ n: r.n, headings: r.headings, model: r.model, name: r.name, cached: r.cached, costUsd: r.costUsd });
+  } catch (e) {
+    const kind = e.local ? "" : fatalKind(e.message);
+    log("outline", { paper: input.paper, candidates: input.candidates.length, error: e.message, kind });
+    out({ error: String(e.message || "failed").slice(0, 200), kind });
+  }
 }
 
 // + Column › An AI column › Write it with AI: stdin { kind, request, current } → { column, notes, by } or { error },
@@ -1637,6 +1691,9 @@ async function main() {
     case "fold":
       quiet = true; // the reader's window shows what happened
       return foldCommand(flags);
+    case "outline":
+      quiet = true; // (as the fold: the reader says what it did)
+      return outlineCommand();
     case "classify-show": {
       // one paper's result, label by label (its menu › Audit the taxonomies)
       const id = String(flags.item || "");

@@ -34,6 +34,8 @@ both launchers must reproduce exactly (`contracts/tests/paths.test.js`).
   (`foldReplies`). Each file is named by the hash of its question, model and effort, so two
   machines that ask the same thing write the same file and nothing is merged. Each runner reads
   its own copy first, then this one, and writes both; it prunes only its own, never this folder.
+  Beside them, `outline-<24 hex>.json`: the model's answer on which lines are the paper's section
+  headings, one per paper, model and effort, kept and read the same way.
 - **Never synced:** the machine settings file, `extract.json`, the runner's `tasks/`, its state
   and caches (`prompt-versions.json`, `key-tests.json`, `models.json`), `sync-backups/`, and API
   keys (each machine's own secret store).

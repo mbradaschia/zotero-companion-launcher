@@ -1,0 +1,23 @@
+1 Introduction
+1 Literature review
+2 Patient satisfaction studies
+2 Patient satisfaction in India
+2 Online Doctor-Patient Consultation/Interaction
+2 Patient satisfaction with online consulting
+2 Underpinning theories
+3 Information integration theory
+3 Signaling theory
+3 Social support theory
+2 Sentiment analysis
+1 Methodology and data collection
+1 Results and findings
+2 Microsoft excel outcomes using azure machine learning
+2 Sentence and word level analysis with R
+3 Overall analysis
+4 Words analysis into sentiments
+4 Aspect identified
+2 Phrase level analysis using JMP pro
+1 Discussion
+1 Conclusion and limitations of the study
+1 CRediT authorship contribution statement
+1 Declaration of Competing Interest

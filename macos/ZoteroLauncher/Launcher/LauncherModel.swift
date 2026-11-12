@@ -50,6 +50,16 @@ final class LauncherModel: ObservableObject {
             if opened && store.view == "settings-general" { store.followTop = false; rebuildList() }
         }
     }
+    // Settings › Defaults › Fold with AI › Check the sections with AI (this Mac's): on (the default), the fold reader
+    // asks the model which lines of a paper are its headings when it first reads it (the outline pass, R5-SPEC 3.7);
+    // off, the sections come from the PDF's bookmarks and the reader's own rules. (Under the tests: off.)
+    @Published var foldOutline: Bool = LauncherModel.underTests ? false : (UserDefaults.standard.object(forKey: "ZLFoldOutline") as? Bool ?? true) {
+        didSet {
+            if !Self.underTests { UserDefaults.standard.set(foldOutline, forKey: "ZLFoldOutline") }
+            runnerState.index = nil
+            if opened && store.view == "settings-defaults" { store.followTop = false; rebuildList() }
+        }
+    }
     // Settings › General › Lists panel (this Mac's): on (the default), the lists beside the results (LauncherModel+Lists),
     // open or folded to the icon rail; off, the badges above the results instead. Open or folded: the window's and the
     // overlay's each their own (the window open, the overlay the rail, at first); its width this Mac's, 180 to 320.

@@ -35,7 +35,7 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
    *Tools → Plugins → ⚙ → Install Plugin From File…*.
 2. **The app**, in Terminal:
    ```bash
-   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.42/install.sh | bash
+   curl -fsSL https://github.com/mbradaschia/zotero-companion-launcher/releases/download/macos-v0.4.43/install.sh | bash
    ```
    It downloads that release (or, with `macos-nightly` in the URL, the
    [nightly build](https://github.com/mbradaschia/zotero-companion-launcher/releases/tag/macos-nightly), rebuilt on
@@ -101,6 +101,12 @@ pick others), through the AI features: the banner says how many requests it take
 lists one, before anything is sent. The levels are kept for the next time, and the model's replies also go to the sync
 folder (`shared/fold-replies/`), so the same paper folds on your other Mac without asking the model again; nothing
 in Zotero changes.
+
+When a paper first opens, the same model is asked one thing without a click: which of the lines that could be
+headings (not the paragraphs) are the paper's sections, and how they nest. It is one request of a few cents at most,
+its answer kept and shared the same way; the byline then says *Sections checked by AI*. *Settings › Defaults › Fold
+with AI › Check the sections with AI* turns it off, and without it, or without a model, the reader finds the sections
+itself from the PDF's bookmarks and how the page is set.
 
 ## The menu bar
 

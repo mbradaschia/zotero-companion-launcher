@@ -20,10 +20,27 @@ bridge and the prompt runner share one version.
 - The plans of finished work (`PLAN.md`, `PLAN-providers.md`, `PLAN-macos.md`, `spikes/`, `BACKLOG.md`) moved to
   `docs/history/`.
 
-### The Mac app (next)
+### The Mac app (`macos-v0.4.43`)
 
-- **The AI features' packages are up to date.** The same seven advisories, in the Mac app's runner: none left.
-  Runner 0.3.3, installed by the app after the next update.
+- **The reader's sections are the paper's.** When the reader first opens a paper, your Fold with AI model reads the
+  lines that could be headings (not the paragraphs) and says which are the paper's sections and how they nest: one
+  request a paper, a few cents at most, its answer kept and shared through the sync folder like the fold's replies.
+  Run-in headings (a bold or italic phrase that opens a paragraph) become sections, letterspaced headings read as
+  words, and sections go four levels deep. On 20 open-access management papers (their lines read by a stand-in for the
+  Mac's PDF engine) the reader's own rules found 71% of the headings and nested 62% right; with the check, 97% and
+  94%. The text says `Checking the sections with AI…` with a *Skip* button while it waits, and the byline says
+  afterwards who set the sections: a sparkle and *Sections checked by AI*, a bookmark and *Sections from the PDF's
+  bookmarks*, or *Sections found by the reader*. Settings › Defaults › Fold with AI › *Check the sections with AI*
+  turns it off on this Mac; without it, or without a model, the reader works as before. A paper already folded keeps
+  its sections until *Fold again*.
+- **Headings that read like the paper.** A section's heading is set in the paper's serif, on the text's left edge,
+  its number beside it so a long title wraps under its own first word. The four levels differ by size, slope and the
+  space above them (never by colour), and only the first carries a rule. A heading the paper prints in capitals is
+  shown in the case of its other headings, each word as the paper's own text writes it (an acronym stays one);
+  hovering it shows it as printed. Headings are headings to VoiceOver.
+- **The AI features' packages are up to date.** `npm audit` listed seven advisories in packages the runner's
+  packages depend on: none left.
+- Runner 0.3.4: *Settings › Setup › Install the AI features* on each Mac.
 
 ### The Mac app (`macos-v0.4.42`)
 

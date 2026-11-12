@@ -235,22 +235,28 @@ function GlueSettings(V, C, T, P, S) {
 
   // Defaults with the Mac's rows: When the app opens after Bring papers up to date, Processes last.
   // Settings › Defaults › Fold with AI (the Mac's fold reader): its model (the prompts' unless one is picked) and effort
-  // (low unless one is picked: a fold is many short requests), right under Chat.
-  function foldRows(state, L) {
+  // (low unless one is picked: a fold is many short requests), right under Chat; and, this Mac's own (x.foldOutline,
+  // none when it isn't given), whether the model checks a paper's sections when the reader first opens it.
+  function foldRows(state, L, x) {
     var d = state.settings.defaults || {}
     var cur = d.fold || {}
     var prompts = (d.prompts && d.prompts.model) || (state.defaults.prompts ? state.defaults.prompts + " (automatic)" : "")
+    var on = x && x.foldOutline
+    var outline = !x || typeof x.foldOutline !== "boolean" ? [] : [L({ section: "Fold with AI", rowId: "set-toggle", value: "mac.foldOutline", icon: on ? S.ICON.on : S.ICON.off, checked: on, available: true,
+      label: "Check the sections with AI", badge: x.machineOnly ? "this machine" : "",
+      detail: on ? "On · when the reader first opens a paper, the model above reads its headings once and sets the sections and their levels; a request of a few cents at most, its answer kept"
+        : "Off · a paper's sections come from the PDF's bookmarks and the reader's own rules" })]
     return [L({ section: "Fold with AI", rowId: "set-models", value: "defaults.fold.model", icon: S.ICON.model, label: "Model",
       detail: cur.model || (prompts ? "The prompts' model, now " + prompts : "The prompts' model: none yet, turn a provider on first"), available: true, submenu: true }),
     L({ section: "Fold with AI", rowId: "set-choice", value: "defaults.fold.effort", icon: S.ICON.defaults, label: "Effort",
-      detail: S.effortText(cur.effort === undefined ? "low" : cur.effort) + " · the reader's Fold with AI asks a section at a time; low keeps it quick", available: true, submenu: true })]
+      detail: S.effortText(cur.effort === undefined ? "low" : cur.effort) + " · the reader's Fold with AI asks a section at a time; low keeps it quick", available: true, submenu: true })].concat(outline)
   }
 
-  function defaultsRows(state, L) {
+  function defaultsRows(state, L, x) {
     var rows = S.buildDefaults(state, L)
     var chat = -1
     rows.forEach(function (r, i) { if (r.section === "Chat") chat = i })
-    if (chat >= 0) rows = rows.slice(0, chat + 1).concat(foldRows(state, L), rows.slice(chat + 1))
+    if (chat >= 0) rows = rows.slice(0, chat + 1).concat(foldRows(state, L, x), rows.slice(chat + 1))
     var after = -1
     rows.forEach(function (r, i) { if (r.section === "Bring papers up to date") after = i })
     var mine = launchRows(state, L)
@@ -333,7 +339,7 @@ function GlueSettings(V, C, T, P, S) {
     if (name === "providers") return S.buildProviders(state, L)
     if (name === "provider") return S.buildProvider(state, x.provider, L)
     if (name === "models") return S.buildModelPicker(state, x.modelsPath, L, x.only || "")
-    if (name === "defaults") return defaultsRows(state, L)
+    if (name === "defaults") return defaultsRows(state, L, x)
     if (name === "launch-catchup") return launchPage(state, L)
     if (name === "auto-prompts") return S.buildAutoPrompts(state, L)
     if (name === "rules") {

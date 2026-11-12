@@ -6,8 +6,9 @@ passing, a UX consistency review (`.claude/agents/ux-consistency-reviewer.md`) a
 
 Status (2026-11-12): R1 shipped in Mac 0.4.35 and R5 in 0.4.36. Since then, outside these phases: Fold with AI's own
 model and effort (0.4.37), the PDF pane's width and the text size buttons (0.4.38), headings found more often (0.4.39,
-0.4.41), and the model's replies shared through the sync folder (0.4.42; R3's marks are still per Mac). R2, R3, R4, R6
-and R7 are not started.
+0.4.41), the model's replies shared through the sync folder (0.4.42; R3's marks are still per Mac), and the sections
+checked by AI on first open with the headings set in the paper's face (0.4.43, R5-SPEC 3.7). R2, R3, R4, R6 and R7
+are not started.
 
 ## Phases
 
@@ -393,3 +394,8 @@ Found while building R5; each keeps its criterion's intent.
 - **The layout tests' papers** (`js/tests/fixtures/fold-reader/layouts/`) are drawn by `make/gen.py` from a short
   made-up vocabulary and read by `make/extract.py`, the lines FoldPDF gives, rounded to 5 decimals.
 - **Swift is still not compiled here**: R5-35 to R5-40 (`FoldReaderTests.swift`) first run on macOS CI.
+- **The outline pass (extractor 4, Mac 0.4.43, runner 0.3.4)** came after R5: the model names the headings among the
+  candidate lines once per paper (R5-SPEC 3.7, 4.9, criteria 46 to 58), the rules staying as the offline path. It is
+  the one request the reader sends without a click, by the owner's choice on 2026-11-12; a setting turns it off.
+  Sections go four levels deep. The reader shows a heading printed in capitals in the case of the paper's other
+  headings (`FoldCore.headingCase`), at draw time: the doc keeps the paper's own.

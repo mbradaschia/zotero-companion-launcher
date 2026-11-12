@@ -376,8 +376,8 @@ is context). Only roles the paper has get a button, in that order.
 | Element | Icon | Label | Key | States |
 |---|---|---|---|---|
 | Pane | | `role="document"`, `aria-label="Paper text"`, focusable | | focus ring 2 px accent |
-| Section heading | | `num` (faint) and title; depth 1: 18 px, depth 2: 15 px; 1 px rule under it | | |
-| Section takeaway | | under the heading at Key and Takeaway, sans 14 px, muted | | |
+| Section heading | | `role="heading"`, `aria-level` its depth + 1. The paper's words, so the paper's serif (`--f-paper`), semibold, on the text's left edge; `num` (faint, regular) in a column of its own, so a wrapped title's second line starts under its first word. Four levels, told apart by size, slope and the space above, never by colour: depth 1 21 px with 38 px above and the only rule (1 px `--line`) under it; depth 2 18 px, 28 px above; depth 3 17 px (the text's size), 22 px above; depth 4 17 px italic medium, 18 px above. The first heading, and one straight under another, 12 px above. A heading the paper sets in capitals is shown in the case of its other headings (`FoldCore.headingCase`, R5-SPEC criterion 52), its tooltip `In the paper: <as printed>` | | |
+| Section takeaway | | under the heading at Key and Takeaway, sans 14 px, muted, on the text's left edge | | |
 | Role shape | the role's shape, 12 px | button `Open this paragraph in full (<role>)`; at Full a plain `role="img"` with the role's name | `↵` on the selected paragraph | |
 | Paragraph body | | selectable text, never a button | click: select; double-click: open (below Full) | selected: `--sel` tint and a 3 px solid bar at its left; followed: a 2 px dashed tick at its left; dimmed never |
 | Opened in place | | a bordered card, the line `Opened in place`, serif at Full | | |
