@@ -11,6 +11,11 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request stops the run of the push before it; a run on master is never stopped.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-24.04
@@ -46,8 +51,9 @@ jobs:
           path: dist/*.xpi*
           retention-days: 14
 
-  # The bridge and the prompt runner are shared with the macOS app (PLAN-macos.md): their unit
-  # tests run on macOS too. The QML launcher, the lint and the .xpi stay on Linux.
+  # The bridge is shared with the macOS app: the unit tests run on macOS too. (The prompt runner here is the
+  # Omarchy launcher's; the Mac app has a copy of its own, tested by macos.yml.) The QML launcher, the lint
+  # and the .xpi stay on Linux.
   test-macos:
     runs-on: macos-latest
     steps:

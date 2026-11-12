@@ -9,6 +9,8 @@ Everything the Omarchy launcher does, all ten phases of [the plan](PLAN.md) (its
 open a paper in Zotero or select it in the library; its menu, notes (in the launcher or a window), tags, files and
 citations; tasks, saved searches, Settings, prompts, Processes and the background automation; chat with a paper (a
 window per paper, its artifacts); taxonomies; sync between machines; the keys view; Open at login; VoiceOver labels.
+And what only the Mac app has so far ([below](#only-on-the-mac)): review tables with AI columns and a docked chat, the
+Lists panel, reading with folds, the iPad's reading companion, themes, and dragging anything out to another app.
 
 ## How it fits together
 
@@ -38,7 +40,7 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
    It downloads that release (or, with `macos-nightly` in the URL, the
    [nightly build](https://github.com/mbradaschia/zotero-companion-launcher/releases/tag/macos-nightly), rebuilt on
    every push to `master` that touches the app), checks it's whole and runs on this Mac, puts it
-   in `/Applications`, clears the quarantine (it's signed ad hoc, not notarized) and opens it. Run it again
+   in `/Applications`, clears the quarantine (it's signed with the app's own certificate, not notarized) and opens it. Run it again
    to update, or let the app do it: once a day it looks at the releases, and the menu bar offers a newer one.
    An update replaces the app (and *Install the AI features* the runner's own folder); your settings, prompts,
    taxonomies, saved searches, API keys (Keychain) and hotkey stay as they are. With a `ZoteroLauncher.zip` you downloaded yourself: `bash macos/scripts/install.sh ~/Downloads/ZoteroLauncher.zip`.
@@ -65,20 +67,46 @@ You need macOS 14 (Sonoma) or newer, on an Apple silicon or Intel Mac, and [Zote
 | `⇧↵` | the highlighted row's other action (select a paper in Zotero's library) |
 | `esc` | back, then close |
 
+## Only on the Mac
+
+What the Mac app has that the Omarchy launcher doesn't yet (the [changelog](../CHANGELOG.md) has each in full):
+
+- **Review tables.** ⌘T in the results opens what they list (a query, a collection, a tag, a saved search) as a table
+  in its own window: Zotero's and the launcher's attributes, a column per taxonomy, columns of your own, and **AI
+  columns** that read each paper (run a cell, a row or a column; the plan and its cost shown first). The right pane
+  has the paper's *Info* and a **docked chat** about the paper or the whole list (*Ask each* turns a question into a
+  column). ⌘E exports CSV. Tables, columns and values live in the sync folder (`reviews/`).
+- **The Lists panel** (⌃⌘S folds it to a rail of icons, ⌘L gives it the keys): Favorites, Saved searches, Quick lists,
+  Reading status, Tasks, Taxonomies, Collections, Tags and Review tables, each with its count. The collection tree
+  needs the bridge 0.2.7 or newer.
+- **Reading with folds** and **the reading companion** for the iPad (their sections below).
+- **Themes** (Settings › General › Appearance): the Mac's own colours, or Catppuccin, Solarized, Gruvbox, Nord,
+  Dracula, Tokyo Night, One, GitHub or Rosé Pine, light or dark. Pills keep colour-blind safe colours and a symbol
+  per kind, so colour is never the only sign.
+- **Sort and order**: Group, Sort and Order apart in the results, a sort before you type, and *Sort › Manual* (⇧↑↓ or
+  drag) for a list in your own order.
+- **Drag anything out** to another app, carrying its text: a paper's reference line, a note, a citation, a chat's
+  answer, a review table's cell.
+- **A count of the features you use**, kept for you only in the sync folder's `usage/<this Mac>.json` (never what you
+  type or read; *Hotkey and Login… › Count which features I use* turns it off): `node macos/scripts/usage-report.mjs
+  <the usage folder> --days 30` adds it up.
+
 ## Reading with folds
 
 A paper's menu has *Read with folds* (or `v` on it): its own window reads the paper from its PDF and shows it at five
 levels, from every word to one line per section, beside the PDF, with highlights and notes kept on this Mac. The
 short levels (Key, Takeaway, Topic) show each paragraph's first sentence until you press *Fold with AI*, which writes
-them with the model you set up for prompts (Settings › Defaults), through the AI features: the banner says how many
-requests it takes, and the price when the provider lists one, before anything is sent. The levels are kept for the
-next time; nothing in Zotero changes.
+them with the model and effort of *Settings › Defaults › Fold with AI* (the prompts' model at low effort unless you
+pick others), through the AI features: the banner says how many requests it takes, and the price when the provider
+lists one, before anything is sent. The levels are kept for the next time, and the model's replies also go to the sync
+folder (`shared/fold-replies/`), so the same paper folds on your other Mac without asking the model again; nothing
+in Zotero changes.
 
 ## The menu bar
 
 *Open the Launcher* (its hotkey shown), *Review Tables*, *Chats…*, *Processes…*, *Settings…* (the launcher's own),
 *Sync Zotero*, *Reading Companion* (below), *Open at Login*, *Hotkey and Login…* (the app's window: the hotkey and the login item), *Check for Updates…*
-(and *Update to 0.3.2…* once a newer `macos-v*` release is out: it runs that release's `install.sh`), *Quit*. When macOS
+(and *Update to <version>…* once a newer `macos-v*` release is out: it runs that release's `install.sh`), *Quit*. When macOS
 wants your OK for the login item, the app opens *System Settings › General › Login Items*.
 
 ## The reading companion (iPad)
@@ -141,7 +169,7 @@ between a chat answer's lines), `ZL_FIXTURES_NO_RUNNER=1` (as if the AI features
 
 The Xcode project is generated from `project.yml` and not committed. CI
 (`.github/workflows/macos.yml` at the repository root) runs both on every change under `macos/` or
-`contracts/`, and builds an ad-hoc signed app.
+`contracts/`, and builds the app, signed with the app's own certificate (ad hoc without the secret).
 
 ## License
 

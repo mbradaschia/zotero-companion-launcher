@@ -4,7 +4,8 @@
 #   1. checks: clean tree on master, the tag is new, the CHANGELOG's [Unreleased] has entries
 #   2. sets the version in manifest.json, zotero-bridge/manifest.in.json, daemon/package.json
 #      (+ its lockfile)
-#   3. dates the CHANGELOG: [Unreleased] → [1.2.3] - YYYY-MM-DD, with its compare link
+#   3. dates the CHANGELOG: [Unreleased] → [1.2.3] - YYYY-MM-DD, with its compare link (the Mac app's
+#      sections stay under [Unreleased]: scripts/release-changelog.js)
 #   4. runs the tests, builds dist/zotero-companion-bridge-1.2.3.xpi and zotero-bridge/updates.json
 #   5. commits "Release v1.2.3" and tags v1.2.3 (annotated)
 #
@@ -35,9 +36,10 @@ if [[ $VERSION == "$current" ]] && git tag -l 'v*' | grep -q .; then
   fail "$VERSION is already the current version: pick the next one"
 fi
 
-# The [Unreleased] section must say what changed.
-notes=$(awk '/^## \[Unreleased\]/{f=1; next} /^## \[/{f=0} f' CHANGELOG.md | grep -v '^\s*$' || true)
-[[ -n $notes ]] || fail "CHANGELOG.md: [Unreleased] is empty; list the changes first"
+# The [Unreleased] section must say what changed (the Mac app's sections aside: they stay under
+# [Unreleased], scripts/release-changelog.js).
+notes=$(node scripts/release-changelog.js pending | grep -v '^\s*$' || true)
+[[ -n $notes ]] || fail "CHANGELOG.md: [Unreleased] has nothing but the Mac app's sections; list the changes first"
 
 echo "== version $current → $VERSION"
 tmp=$(mktemp)
@@ -52,16 +54,7 @@ scripts/bridge-manifest.sh # the dev-linked bridge gets the new version too
 echo "== CHANGELOG"
 today=$(date -u +%Y-%m-%d)
 prev=$(git tag -l 'v*' --sort=-v:refname | head -1)
-node - "$VERSION" "$today" "$prev" "$REPO_URL" <<'JS'
-const fs = require("fs");
-const [v, date, prev, repo] = process.argv.slice(2);
-let s = fs.readFileSync("CHANGELOG.md", "utf8");
-s = s.replace(/^## \[Unreleased\][ \t]*$/m, `## [Unreleased]\n\n## [${v}] - ${date}`);
-s = s.replace(/^\[Unreleased\]: .*$/m, `[Unreleased]: ${repo}/compare/v${v}...HEAD`);
-const link = prev ? `${repo}/compare/${prev}...v${v}` : `${repo}/releases/tag/v${v}`;
-s = s.replace(/^(\[Unreleased\]: .*)$/m, `$1\n[${v}]: ${link}`);
-fs.writeFileSync("CHANGELOG.md", s);
-JS
+node scripts/release-changelog.js cut "$VERSION" "$today" "$prev" "$REPO_URL"
 
 echo "== tests"
 make -s test >/dev/null || fail "the tests fail"

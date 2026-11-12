@@ -7,7 +7,7 @@
 #
 # Downloads ZoteroLauncher.zip (the repository is public: no sign-in), checks it is a
 # whole zip of an app this Mac can run, replaces /Applications/ZoteroLauncher.app with it, clears
-# the download quarantine (the app is signed ad hoc, not notarized) and opens it. DEST=~/Applications
+# the download quarantine (the app is signed with its own certificate, not notarized) and opens it. DEST=~/Applications
 # installs it there instead; NO_OPEN=1 doesn't open it (CI).
 set -euo pipefail
 

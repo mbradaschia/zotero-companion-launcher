@@ -5,8 +5,6 @@ import Foundation
 // typed on Settings' typing page (settings-edit: the Mac has no fields in place), checked by Settings.taxonomyValue,
 // saved by the runner. Taxonomies are synced: no write while the sync folder is away.
 extension LauncherModel {
-    static let taxonomyViews: Set<String> = ["settings-taxonomies", "settings-taxonomy", "settings-tax-label", "settings-tax-ai", "settings-tax-review"]
-
     // ---- the runner
 
     func refreshTaxonomies() {

@@ -4,6 +4,11 @@ What gets built in which phase, and R1's and R5's tasks in order. The behaviour 
 [R5-SPEC.md](R5-SPEC.md) (R5, which replaces SPEC's TextFold sections), the test data in [FIXTURE.md](FIXTURE.md). Each phase ends with its tests green, `scripts/check-boundaries.sh` and `macos/scripts/parity.sh`
 passing, a UX consistency review (`.claude/agents/ux-consistency-reviewer.md`) and Marcelo's look.
 
+Status (2026-11-12): R1 shipped in Mac 0.4.35 and R5 in 0.4.36. Since then, outside these phases: Fold with AI's own
+model and effort (0.4.37), the PDF pane's width and the text size buttons (0.4.38), headings found more often (0.4.39,
+0.4.41), and the model's replies shared through the sync folder (0.4.42; R3's marks are still per Mac). R2, R3, R4, R6
+and R7 are not started.
+
 ## Phases
 
 | Phase | Adds | Needs first |
