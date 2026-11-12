@@ -6,7 +6,7 @@ their own since. Only `contracts/` and the bridge's HTTP API are shared, read in
 
 | Here | From the root | Changed in the copy |
 |---|---|---|
-| `js/lib/` | `lib/*.js` (Client, Fuzzy, Settings, Sidebar, Todos, Views) | nothing |
+| `js/lib/` | `lib/*.js` (Client, Fuzzy, Settings, Sidebar, Todos, Views) | nothing: the two are edited together, and `scripts/check-boundaries.sh` (in both workflows) fails when a file differs |
 | `runner/` | `daemon/` (without `node_modules`) | `lib/paths.mjs` loads `../../../contracts/Paths.js` in a checkout. The Mac's own since: review tables (`lib/reviews.mjs`), the list chat (`lib/listchat.mjs`), the fold reader (`lib/fold.mjs`, `lib/fold-replies.mjs`), and what they need in `bin/oma-zotero-prompt.mjs`, `lib/chat.mjs`, `lib/generate.mjs` and `lib/providers/api.mjs`; a version of its own (`package.json`: the app offers *Install the AI features* when it grows) |
 | `scripts/install-runner.sh`, `safe-dest.sh`, `copy-shared-paths.sh` | `scripts/` | install `runner/`; copy `../contracts/Paths.js` |
 | `js/tests/` | 43 files of `tests/` | paths to `../../runner/`, `macos/`, `../contracts/`; the bridge's tests left out of `collections`, `paper-status`, `sync`; the two `dev-sync.sh` tests left out of `safe-dest` (the Omarchy plugin's script) |

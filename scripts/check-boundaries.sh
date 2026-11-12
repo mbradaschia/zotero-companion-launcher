@@ -2,6 +2,8 @@
 # The two launchers in this repository share only contracts/ (and the bridge, over HTTP): macos/
 # reads nothing of the Omarchy launcher's (lib/, daemon/, scripts/, tests/, its QML), and the Omarchy
 # launcher reads nothing under macos/. Prints each crossing as file:line, exits 1 on any.
+# One folder is a copy kept identical by hand, the view logic (lib/*.js = macos/js/lib/*.js): a file that
+# differs, or is in one folder only, is printed and fails the check too.
 #   check-boundaries.sh [ROOT]
 set -euo pipefail
 ROOT=$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd)
@@ -45,5 +47,22 @@ for (const file of files(root)) {
   fs.readFileSync(file, "utf8").split("\n").forEach((line, i) => { if (/(^|[^\w-])macos\//.test(line)) report(file, i, line); });
 }
 for (const b of bad) console.log(b);
-if (bad.length) { console.log(`check-boundaries: ${bad.length} crossing(s) between the launchers`); process.exit(1); }
+// The view logic's two copies: the same files, byte for byte (edit both together).
+const drift = [];
+const ours = path.join(root, "lib");
+const theirs = path.join(macos, "js", "lib");
+if (fs.existsSync(ours) && fs.existsSync(theirs)) {
+  const js = (dir) => fs.readdirSync(dir).filter((f) => f.endsWith(".js"));
+  for (const f of [...new Set([...js(ours), ...js(theirs)])].sort()) {
+    const a = path.join(ours, f);
+    const b = path.join(theirs, f);
+    if (!fs.existsSync(a)) drift.push(`lib/${f}: missing (macos/js/lib/${f} has no twin)`);
+    else if (!fs.existsSync(b)) drift.push(`macos/js/lib/${f}: missing (lib/${f} has no twin)`);
+    else if (!fs.readFileSync(a).equals(fs.readFileSync(b))) drift.push(`lib/${f} and macos/js/lib/${f} differ`);
+  }
+}
+for (const d of drift) console.log(d);
+if (bad.length) console.log(`check-boundaries: ${bad.length} crossing(s) between the launchers`);
+if (drift.length) console.log(`check-boundaries: ${drift.length} file(s) of the view logic differ between lib/ and macos/js/lib/: make the same edit in both`);
+if (bad.length || drift.length) process.exit(1);
 NODE
