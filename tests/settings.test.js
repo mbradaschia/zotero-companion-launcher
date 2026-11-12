@@ -1,6 +1,6 @@
 // The Settings view (lib/Settings.js) and the sectioned settings file (lib/Client.js):
 // migration from the flat file, edits, validation, and the rows of each page, onboarding
-// included (PLAN-providers.md §3, §5).
+// included (docs/history/PLAN-providers.md §3, §5).
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const S = require("../lib/Settings.js");

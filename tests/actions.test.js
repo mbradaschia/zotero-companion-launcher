@@ -1,4 +1,4 @@
-// OmaActions.plan(): the pure "Enter" decision (PLAN.md §5.6).
+// OmaActions.plan(): the pure "Enter" decision (docs/history/PLAN.md §5.6).
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const A = require("../zotero-bridge/lib/actions.js");

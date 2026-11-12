@@ -1,4 +1,4 @@
-// The providers behind one interface (PLAN-providers.md §4.1):
+// The providers behind one interface (docs/history/PLAN-providers.md §4.1):
 //
 //   provider.detect(ctx)                 → { available, signedIn, detail }, without configuration
 //   provider.status(config, ctx)         → { ok, detail, models? }: the Test connection

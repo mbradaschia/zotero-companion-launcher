@@ -1,4 +1,4 @@
-/* "Enter" semantics (PLAN.md §5.6): decide with the pure `plan()`, act with
+/* "Enter" semantics (docs/history/PLAN.md §5.6): decide with the pure `plan()`, act with
  * `execute()`. describe() turns a Zotero item into plain data so that plan()
  * can be unit-tested without Zotero. */
 /* global Zotero, OmaTabs, omaHttpError */

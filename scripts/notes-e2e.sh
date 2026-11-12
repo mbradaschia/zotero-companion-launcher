@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end test of notes (PLAN.md phase 4) in the live shell + Zotero: how real
+# End-to-end test of notes (docs/history/PLAN.md phase 4) in the live shell + Zotero: how real
 # notes come out of the bridge (tables, images, citations, note links, web links,
 # long notes), the Notes action and Alt+N, the notes list (filter, dates), the
 # reader (scrolling, back), Ctrl+C, opening a note in Zotero, and real keys.

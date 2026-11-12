@@ -282,7 +282,7 @@ The design is in `docs/superpowers/specs/2026-10-13-monorepo-design.md` at the r
   launcher's code, or the other way round. A later Omarchy feature reaches the Mac only when
   ported by hand.
 
-**`PLAN-macos.md` at the repository root is superseded by this file** (a banner there says so).
+**`docs/history/PLAN-macos.md` (once at the repository root) is superseded by this file** (a banner there says so).
 
 ## Phases
 

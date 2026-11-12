@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end test of the Settings view (PLAN-providers.md §5, §8) in the live shell: its pages
+# End-to-end test of the Settings view (docs/history/PLAN-providers.md §5, §8) in the live shell: its pages
 # over IPC, a General setting changed and saved (and changed back), an OpenAI-compatible
 # endpoint added and removed, a provider page's Test connection, and the launcher picking up
 # where it was left. The settings file is put back exactly as it was. Needs the prompt runner.

@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end test of the tag editor (PLAN.md phase 5) in the live shell + Zotero.
+# End-to-end test of the tag editor (docs/history/PLAN.md phase 5) in the live shell + Zotero.
 #
 #   scripts/tags-e2e.sh                          read-only: the tag list and its order, request
 #                                                validation, the read-only-library refusal, the editor
