@@ -113,6 +113,11 @@ test("Settings pages: the root with the setup checklist; General from the schema
     ["Install pdftotext", "term:omarchy pkg add poppler", false], ["Read scans by OCR (optional)", "term:omarchy pkg add tesseract tesseract-data-eng", false]]);
   const ocr = S.buildRoot(state(Object.assign({}, ready, { reqs: Object.assign({}, ready.reqs, { tesseract: true }) })), row).find((r) => r.label === "Read scans by OCR (optional)");
   assert.deepEqual([ocr.checked, ocr.available, ocr.badge], [true, false, ""]); // optional: never a "missing" badge
+  // (the Mac app's built-in OCR, Apple's Vision: nothing to install, and the rows name it)
+  const mac = state(Object.assign({}, ready, { reqs: Object.assign({}, ready.reqs, { ocr: "vision" }) }))
+  const built = S.buildRoot(mac, row).find((r) => r.label === "Read scans by OCR")
+  assert.deepEqual([built.checked, built.available, built.badge], [true, false, ""])
+  assert.match(built.detail, /^Built in: macOS reads scanned PDFs/)
   const g = S.buildGeneral(state(), row);
   assert.equal(g.length, S.GENERAL.length - 1); // one row per setting (Automation runs on: in Defaults › New papers); choices open a page
   assert.ok(!g.some((r) => r.value === "general.automationHost"));

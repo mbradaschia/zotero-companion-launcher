@@ -34,7 +34,9 @@ var FoldView = (function () {
     textsmaller: [["M2 14.5L5.75 4.5l3.75 10M3.4 11h4.7 M11.5 9.5h5"]],
     textlarger: [["M2 14.5L5.75 4.5l3.75 10M3.4 11h4.7 M11.5 9.5h5M14 7v5"]],
     fit: [["M2.5 9h13M5 6.5L2.5 9 5 11.5M13 6.5l2.5 2.5-2.5 2.5"]],
-    bookmark: [["M5 2.5h8v13l-4-3.2-4 3.2z"]]
+    bookmark: [["M5 2.5h8v13l-4-3.2-4 3.2z"]],
+    // (a page in a scanner's frame: text read from a picture, by OCR)
+    ocr: [["M2.5 6V3.5a1 1 0 0 1 1-1H6 M12 2.5h2.5a1 1 0 0 1 1 1V6 M15.5 12v2.5a1 1 0 0 1-1 1H12 M6 15.5H3.5a1 1 0 0 1-1-1V12 M6 7h6M6 9.5h6M6 12h3.5"]]
   }
   function icon(name, small) {
     var svg = document.createElementNS(NS, "svg")
@@ -85,7 +87,7 @@ var FoldView = (function () {
     "no-pdf": ["This paper has no PDF", "The reader folds a paper from its PDF: attach one in Zotero, then press ⌘R.", ["Try again", "retry"]],
     missing: ["The PDF file is missing from disk", "Zotero lists it, but the file isn't there: sync or relink it in Zotero, then press ⌘R.", ["Try again", "retry"]],
     unreadable: ["Couldn't open the PDF", "", ["Try again", "retry"]],
-    scan: ["This PDF is a scan", "It has no text layer, so there are no words to fold. The PDF still shows.", null],
+    scan: ["This PDF is a scan", "It has no text layer, and OCR found no words in its pages, so there is nothing to fold. The PDF still shows.", null],
     "too-long": ["This PDF is too long to fold", "", null],
     "group-library": ["Your own library's papers only, for now", "Papers in group libraries come in a later version.", null],
     // (a doc.json the reader can't read: the app reads the PDF again, so the page meets it only for a moment)
@@ -95,6 +97,10 @@ var FoldView = (function () {
     var c = STATES[s.kind] || STATES.loading
     var sentence = c[1]
     if (s.kind === "reading") sentence = s.pages ? (s.done || 0) + " of " + s.pages + " pages." : ""
+    // (a scan's pages read by OCR, on this Mac, R5-SPEC 3.8)
+    if (s.kind === "reading" && s.ocr) return { title: "Reading the scan by OCR…", sentence: (s.done || 0) + " of " + (s.pages || 0) + " pages. Its pages are pictures: macOS reads their words on this Mac.", action: null }
+    if (s.kind === "scan" && s.ocr === "long") sentence = "It has no text layer, and its " + (s.n || 0) + " pages are more than the " + (s.max || 80) + " that OCR reads. The PDF still shows."
+    if (s.kind === "scan" && s.ocr === "failed") sentence = "It has no text layer, and OCR couldn't read it" + (s.why ? " (" + String(s.why).slice(0, 120) + ")" : "") + ". The PDF still shows."
     // (the outline pass, R5-SPEC 3.6: the PDF is read, the model is asked which lines are its headings)
     if (s.kind === "reading" && s.outline) return { title: "Checking the sections with AI…", sentence: "The model reads this paper's headings, once. Skip shows the paper now, with the sections the reader found itself.", action: ["Skip", "skip"] }
     if (s.kind === "unreadable") sentence = String(s.why || s.error || "").slice(0, 300)
@@ -269,11 +275,23 @@ var FoldView = (function () {
       var tip = o.by === "ai" ? (o.model || "The model") + " read this paper's headings and set its sections (Settings › Defaults › Fold with AI)" : c[2]
       return el("span", { class: "oby", title: tip, "data-outline": o.by }, [icon(c[0], true), el("span", { text: c[1] })])
     }
+    // The pages OCR read (a scan's), as an icon and words after the byline: its words may differ from the page's.
+    function ocrNote() {
+      var n = S.m && S.m.ocr
+      if (!n) return null
+      var all = S.d && S.d.pdf && S.d.pdf.pages
+      var words = all && n >= all ? "Read by OCR" : n + (n === 1 ? " page" : " pages") + " read by OCR"
+      return el("span", { class: "oby", title: "A scan: macOS read the words from the pages' pictures, on this Mac. Check a quote against the PDF.", "data-ocr": String(n) },
+        [icon("ocr", true), el("span", { text: words })])
+    }
     function drawHeader() {
       titleEl.textContent = paperTitle()
       byline.textContent = bylineText()
-      var by = outlineNote()
-      if (by) { if (byline.textContent) byline.appendChild(document.createTextNode(" · ")); byline.appendChild(by) }
+      ;[ocrNote(), outlineNote()].forEach(function (by) {
+        if (!by) return
+        if (byline.textContent) byline.appendChild(document.createTextNode(" · "))
+        byline.appendChild(by)
+      })
       clear(pills)
       var st = (S.d && S.d.status) || { current: "", options: [] }
       var cur = statusName(st.current)
@@ -1524,7 +1542,7 @@ var FoldView = (function () {
       var m = null, st = d.state || { kind: d.doc ? "ready" : "loading" }
       if (d.doc) { var mm = C.model(d.doc); if (mm.problem) st = mm.problem; else m = mm }
       // (the same PDF read again with the model's outline is another doc: its sections are other ones)
-      var heads = function (x) { return x.outline.by + "\n" + x.sections.map(function (s) { return s.id + " " + s.depth + " " + s.title }).join("\n") }
+      var heads = function (x) { return x.outline.by + " " + x.ocr + "\n" + x.sections.map(function (s) { return s.id + " " + s.depth + " " + s.title }).join("\n") }
       var prevM = S.m, sameDoc = same && !!prevM && !!m && prevM.id === m.id && prevM.lang === m.lang && prevM.provenance.levelsMade === m.provenance.levelsMade &&
         prevM.provenance.local === m.provenance.local && prevM.order.length === m.order.length && heads(prevM) === heads(m)
       var pdfSame = same && JSON.stringify((S.d && S.d.pdf) || null) === JSON.stringify(d.pdf || null)

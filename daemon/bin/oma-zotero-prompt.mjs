@@ -79,7 +79,7 @@ import { ensureLibs } from "../lib/libs.mjs";
 import { validate as validateArtifact, sanitize as sanitizeArtifact, extract as extractArtifact } from "../lib/formats.mjs";
 import { findBrowser, measureLayout } from "../lib/layout.mjs";
 import { loadRules, loadInstructions, instructionsPath, ensureInstructionsFile, clearInstructions, systemFor, standingText } from "../lib/system.mjs";
-import { FULLTEXT_TAG, OCR_MAX_PAGES, OCR_PAGE_SECONDS, OCR_PAPER_SECONDS, MIN_PAGE_CHARS, pdftotext, rawPages, pagesToOcr, ocrLanguages, ocrPage, tesseractHint, splitPages, pageLabels, buildNote, groundingText, skipReason, isScan, scanReason } from "../lib/extract.mjs";
+import { FULLTEXT_TAG, OCR_MAX_PAGES, OCR_PAGE_SECONDS, OCR_PAPER_SECONDS, MIN_PAGE_CHARS, pdftotext, rawPages, pagesToOcr, ownText, ocrLanguages, ocrPage, tesseractHint, splitPages, pageLabels, buildNote, groundingText, skipReason, isScan, scanReason } from "../lib/extract.mjs";
 import { startTask, updateTask, finishTask, failTask, writeIndex, clearTasks } from "../lib/tasks.mjs";
 import { windowFor, needsCompaction, splitHistory, compactionPrompt, COMPACT_SYSTEM, fitContext, PAPER_SHARE, loadWindows, saveWindow, threadOf, threadMessages } from "../lib/context.mjs";
 import { CHAT_SYSTEM, chatsDir, newSessionId, validSessionId, titleFor, loadSession, saveSession, listSessions, deleteSession } from "../lib/chat.mjs";
@@ -244,7 +244,7 @@ async function extractPages(bridge, details, onStage = () => {}, opts = {}) {
     }
   }
   const kept = splitPages(pages.join("\f"));
-  if (!kept.some((p) => p.trim().length >= MIN_PAGE_CHARS)) throw new Error("the PDF has no text layer (a scan?): nothing to extract");
+  if (!ownText(kept).some((p) => p.length >= MIN_PAGE_CHARS)) throw new Error("the PDF has no text layer (a scan?): nothing to extract");
   const paper = details.paper || {};
   return Object.assign({ pdf, pages: kept, ocr: ocr.filter((i) => i < kept.length) }, pageLabels(kept, paper.pages));
 }

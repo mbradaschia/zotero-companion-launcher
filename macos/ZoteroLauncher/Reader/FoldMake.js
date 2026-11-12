@@ -15,7 +15,7 @@ var FoldMake = (function () {
 
   var C = typeof FoldCore !== "undefined" ? FoldCore : require("./FoldCore.js")
 
-  var EXTRACTOR = 4
+  var EXTRACTOR = 5
   var APPARATUS = { reference: 1, footnote: 1, equation: 1 }
 
   // ---- TextFold's patterns (pdftext.py, pdfdoc.py)
@@ -28,6 +28,9 @@ var FoldMake = (function () {
   var ABSTRACT = /^\s*(?:abstract|a b s t r a c t|summary|zusammenfassung|摘要)\s*$/i
   var NUMBERED = /^(?:[1-9]\d*(?:\.\d+){0,3}|[A-Z](?:\.\d+){1,3}|[IVX]+)\.?\s+[A-Z](?:[^.!?]|[.](?=\S)|[A-Z][.]){1,80}$/
   var BOILER = /^\W*\d?\s*(?:check for updates|open access|research article|article|original article|review)\W*$/i
+  // (this reader's: a publisher's download stamp, "Downloaded from www.emerald.com/… by FGV user on 12 November 2026",
+  // "Downloaded by [University] at 10:21 05 March 2024")
+  var DOWNLOADED = /^downloaded (?:from|by)\b/i
   var FRONT = /^(?:<sup>|\d+\s*[A-Z][a-z]+ (?:of|for)\b|(?:received|accepted|published|revised|correspondence|e-?mail|keywords?)\b)|@/i
   var DEPTH = /^\s*((?:\d+|[A-Z]|[IVX]+)(?:[.\-]\d+)*)[.)]?\s+\S/
   // (this reader's)
@@ -163,7 +166,7 @@ var FoldMake = (function () {
         var k = headKey(s.text)
         if (k !== null && running(k)) return false
       }
-      if (STAMP.test(s.text)) return false
+      if (STAMP.test(s.text) || DOWNLOADED.test(s.text)) return false
       if (s.y1 - s.y0 > 3 * (s.x1 - s.x0) && s.chars >= 10) return false
       if (BOILER.test(s.text)) return false
       return true
@@ -1071,6 +1074,42 @@ var FoldMake = (function () {
     }) }
   }
 
+  // ---- 0. the pages with no text of their own (R5-SPEC 3.8): a scan, even one behind a download stamp
+
+  // What each page says of its own, in characters: its words less the furniture (page numbers, running heads, stamps,
+  // words up the margin) and, on a page with at most 3 of them, less the lines repeated on half the pages or more,
+  // wherever they stand (a watermark). (A page of many repeated lines is a copy of another, not a stamp.)
+  function ownChars(pages, count) {
+    var segs = dropFurniture(segmentsOf(pages).segs, count)
+    var pagesOf = {}
+    segs.forEach(function (s) { var k = headKey(s.text); if (k !== null) (pagesOf[k] = pagesOf[k] || {})[s.page] = true })
+    var need = Math.max(2, Math.ceil(count / 2))
+    var repeated = function (s) { var k = headKey(s.text); return k !== null && Object.keys(pagesOf[k]).length >= need }
+    var per = {}, rep = {}, repChars = {}
+    segs.forEach(function (s) {
+      per[s.page] = (per[s.page] || 0) + s.chars
+      if (repeated(s)) { rep[s.page] = (rep[s.page] || 0) + 1; repChars[s.page] = (repChars[s.page] || 0) + s.chars }
+    })
+    return pages.map(function (p, i) {
+      var n = p && p.n >= 1 ? p.n : i + 1
+      return (per[n] || 0) - ((rep[n] || 0) <= 3 ? repChars[n] || 0 : 0)
+    })
+  }
+
+  // The pages OCR reads, and whether the PDF is a scan: { scan, pages: [n] (each with fewer than MIN_PAGE_CHARS of its
+  // own), chars }. A scan: fewer than 200 characters of its own in all, or at least half its pages without text. A PDF
+  // that isn't a scan keeps its few empty pages as they are (a full-page figure): OCR reads only a scan's.
+  function textless(pages, meta) {
+    var m = meta || {}
+    var ps = Array.isArray(pages) ? pages : []
+    var count = Math.max(ps.length, m.pdf && m.pdf.pages || 0)
+    var per = ownChars(ps, count)
+    var empty = [], chars = 0
+    ps.forEach(function (p, i) { chars += per[i]; if (per[i] < MIN_PAGE_CHARS) empty.push(p && p.n >= 1 ? p.n : i + 1) })
+    var textPages = ps.length - empty.length
+    return { scan: chars < 200 || (count - textPages) * 2 >= count, pages: empty, chars: chars, textPages: textPages }
+  }
+
   // ---- read: FoldPDF.lines' pages and Zotero's meta to { doc, links, stats } or { problem, stats }
 
   function read(pages, meta) {
@@ -1078,9 +1117,9 @@ var FoldMake = (function () {
     var ps = Array.isArray(pages) ? pages : []
     var got = segmentsOf(ps)
     var count = Math.max(ps.length, m.pdf && m.pdf.pages || 0)
-    var textPages = got.perPage.filter(function (c) { return c >= MIN_PAGE_CHARS }).length
-    var stats = { pages: count, lines: got.lines, units: 0, chars: got.chars, textPages: textPages }
-    if (got.chars < 200 || (count - textPages) * 2 >= count) return { problem: "scan", stats: stats }
+    var own = textless(ps, m)
+    var stats = { pages: count, lines: got.lines, units: 0, chars: got.chars, textPages: own.textPages }
+    if (own.scan) return { problem: "scan", stats: stats }
     var segs = dropFurniture(got.segs, count)
     var body = bodySize(segs)
     var fr = frameOf(segs, body)
@@ -1145,6 +1184,9 @@ var FoldMake = (function () {
     }
     // (who set the sections: the model, with its name; the PDF's bookmarks; the rules. tried: a model answered)
     doc.source.outline = by
+    // (the pages Apple's Vision read, on this Mac: a scan's, R5-SPEC 3.8)
+    var ocr = (Array.isArray(m.ocr) ? m.ocr : []).map(Number).filter(function (n) { return n >= 1 })
+    if (ocr.length) { doc.source.ocr = ocr; doc.source.ocr_engine = String(m.ocr_engine || "vision") }
     if (picked) doc.source.outline_model = String(m.headings.model || "")
     if (m.headings && typeof m.headings === "object") doc.source.outline_tried = true
     var crops = C.crops(ps.map(function (p, i) {
@@ -1315,7 +1357,7 @@ var FoldMake = (function () {
   }
 
   return {
-    EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, relink: relink,
+    EXTRACTOR: EXTRACTOR, APPARATUS: APPARATUS, read: read, textless: textless, relink: relink,
     foldInput: foldInput, foldMerge: foldMerge, foldView: foldView, costText: costText, STOP_KINDS: STOP_KINDS,
     _: { clean: clean, segmentsOf: segmentsOf, bodySize: bodySize, frameOf: frameOf, recut: recut, cutGutter: cutGutter, dropFurniture: dropFurniture, sentencesOf: sentencesOf, depthOf: depthOf, captionLabel: captionLabel, joinWords: joinWords }
   }

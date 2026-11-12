@@ -158,7 +158,16 @@ final class ProcessRunner: Runner, @unchecked Sendable {
         var env = base
         env["PATH"] = path()
         if env["LANG"] == nil { env["LANG"] = "en_US.UTF-8" }
+        // (the app's executable reads a scan's pages by OCR, Apple's Vision: `ZL_OCR --ocr <pdf> <page>`, R5-SPEC 3.8)
+        if let exe = Self.ocrCommand { env["ZL_OCR"] = exe }
         return env
+    }
+
+    // This app's executable, which answers `--ocr` (Main, FoldOCR.command); nil when it isn't one (a test without a host).
+    static var ocrCommand: String? {
+        guard let exe = Bundle.main.executablePath, Bundle.main.bundleIdentifier?.hasPrefix("io.github.mbradaschia.zotero-launcher") == true,
+              FileManager.default.isExecutableFile(atPath: exe) else { return nil }
+        return exe
     }
 
     // The command's file: a path as given, else found in PATH.

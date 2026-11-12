@@ -350,7 +350,7 @@ final class FoldReaderTests: XCTestCase {
         let pages = pdf.linesNow()
         XCTAssertEqual(FoldMaker.language(of: pages), "en")
         let maker = try FoldMaker()
-        XCTAssertEqual(maker.extractor, 4)
+        XCTAssertEqual(maker.extractor, 5)
         let made = try maker.read(pages, meta: paperMeta(url, pages: info.pages, sizes: info.sizes).merging(["lang": "en"]) { $1 })
         XCTAssertNil(made.problem)
         let doc = try XCTUnwrap(made.doc)

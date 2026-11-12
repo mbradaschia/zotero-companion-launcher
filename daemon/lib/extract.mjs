@@ -79,9 +79,29 @@ export function rawPages(text) {
   return pages;
 }
 
-// The pages with no text layer (fewer than MIN_PAGE_CHARS characters): the ones OCR reads. → [index]
+// The pages with no text layer (fewer than MIN_PAGE_CHARS characters of their own, ownText): the ones OCR reads. A
+// scan behind a publisher's download stamp ("Downloaded from www.emerald.com/… by … on 12 November 2026", one line a
+// page) has no text layer either. → [index]
 export function pagesToOcr(pages, min = MIN_PAGE_CHARS) {
-  return pages.map((p, i) => (String(p || "").trim().length < min ? i : -1)).filter((i) => i >= 0);
+  return ownText(pages).map((p, i) => (p.length < min ? i : -1)).filter((i) => i >= 0);
+}
+
+const DOWNLOADED = /^downloaded (?:from|by)\b/i;
+const PAGE_NO = /^\W*\d{1,4}\W*$/;
+
+// What each page says of its own: its text less page numbers, download stamps and, on a page with at most 3 of them,
+// the lines repeated on half the pages or more (a stamp, a watermark, a running head; a page of many repeated lines is
+// a copy, not a stamp). → [text]
+export function ownText(pages) {
+  const key = (l) => l.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ");
+  const lines = pages.map((p) => String(p || "").split("\n").map((l) => l.trim()).filter(Boolean));
+  const seen = new Map();
+  for (const ls of lines) for (const k of new Set(ls.map(key))) seen.set(k, (seen.get(k) || 0) + 1);
+  const need = Math.max(2, Math.ceil(pages.length / 2));
+  return lines.map((ls) => {
+    const repeated = ls.filter((l) => seen.get(key(l)) >= need).length;
+    return ls.filter((l) => !PAGE_NO.test(l) && !DOWNLOADED.test(l) && (repeated > 3 || seen.get(key(l)) < need)).join("\n");
+  });
 }
 
 // The language of your system (LANG, LC_ALL: "pt_BR.UTF-8") as Tesseract names it ("por"), "" when unknown.
@@ -102,10 +122,10 @@ export function pickLanguages(listed, mine = "") {
   return out.join("+");
 }
 
-// The note's provenance for the pages OCR read: "p. 3–12 read by OCR (Tesseract)".
-export function ocrLine(labels, ocr) {
+// The note's provenance for the pages OCR read: "p. 3–12 read by OCR (Tesseract)". engine: who read them.
+export function ocrLine(labels, ocr, engine = "Tesseract") {
   if (!ocr || !ocr.length) return "";
-  if (ocr.length === labels.length) return "every page read by OCR (Tesseract)";
+  if (ocr.length === labels.length) return `every page read by OCR (${engine})`;
   const ranges = [];
   let start = ocr[0], prev = ocr[0];
   for (const i of ocr.slice(1).concat([-2])) {
@@ -113,7 +133,7 @@ export function ocrLine(labels, ocr) {
     ranges.push(start === prev ? labels[start] : labels[start] + "–" + labels[prev]);
     start = prev = i;
   }
-  return "p. " + ranges.join(", ") + " read by OCR (Tesseract)";
+  return "p. " + ranges.join(", ") + ` read by OCR (${engine})`;
 }
 
 // The installed languages to OCR with (pickLanguages), "" when tesseract isn't there (or doesn't answer in
@@ -233,12 +253,12 @@ export function paragraphs(page) {
 
 // The note: a title, where the text came from, then one "p. N" section per page. Cut (with
 // a line saying so) to stay under Zotero's note size.
-// ocr: the pages OCR read (indexes), said in the provenance line.
-export function buildNote({ title, pages, labels, source, file, extractor, date, ocr }) {
+// ocr: the pages OCR read (indexes), said in the provenance line; engine: who read them ("Tesseract" when not said).
+export function buildNote({ title, pages, labels, source, file, extractor, date, ocr, engine }) {
   const how = source === "printed" ? "page numbers as printed in the paper"
     : source === "range" ? "page numbers from the item's page range"
       : "page numbers of the PDF";
-  const read = ocrLine(labels, ocr);
+  const read = ocrLine(labels, ocr, engine);
   let html = `<h1>${esc(fitTitle("Full text: ", title))}</h1>\n<p><em>Extracted from ${esc(file)} with ${esc(extractor)} on ${esc(date)}; ${how}${read ? "; " + esc(read) : ""}. ` +
     `Generated text: check quotes against the PDF.</em></p>\n`;
   let cut = false;

@@ -396,6 +396,8 @@ var FoldCore = (function () {
       provenance: { ai: p.ai_generated !== false, model: str(p.model), levelsMade: str(p.levels_made), local: p.local === true },
       // (who set the sections: "ai" (the outline pass, with the model's name), "bookmarks", "rules"; "" not known)
       outline: { by: src.outline === "ai" || src.outline === "bookmarks" || src.outline === "rules" ? src.outline : "", model: str(src.outline_model) },
+      // (the pages OCR read, a scan's: how many, R5-SPEC 3.8)
+      ocr: (Array.isArray(src.ocr) ? src.ocr : []).filter(function (n) { return typeof n === "number" && n >= 1 }).length,
       sections: sections, units: units, order: order, index: index, links: links
     }
   }

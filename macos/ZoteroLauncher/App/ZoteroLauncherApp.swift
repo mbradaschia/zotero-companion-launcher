@@ -8,6 +8,17 @@ extension KeyboardShortcuts.Name {
 }
 
 @main
+enum Main {
+    // `ZoteroLauncher --ocr <pdf> <page>…`: a scan's pages read by Apple's Vision for the runner (FoldOCR.command),
+    // printed and gone, no window, no menu bar item; anything else starts the app.
+    static func main() {
+        let args = CommandLine.arguments
+        if args.count > 1, args[1] == "--ocr" { exit(FoldOCR.command(Array(args.dropFirst(2)))) }
+        ZoteroLauncherApp.main()
+    }
+}
+
+// (started by Main, above: the executable is also the AI features' OCR)
 struct ZoteroLauncherApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
