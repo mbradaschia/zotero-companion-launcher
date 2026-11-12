@@ -88,6 +88,24 @@ export function pagesToOcr(pages, min = MIN_PAGE_CHARS) {
 
 const DOWNLOADED = /^downloaded (?:from|by)\b/i;
 const PAGE_NO = /^\W*\d{1,4}\W*$/;
+// JSTOR's stamp on each page ("This content downloaded from 191.19.228.217 on Sat, 22 Aug 2026 12:00:00 UTC", "All
+// use subject to https://about.jstor.org/terms") and the cover sheet it puts before the paper (two of these on it).
+const JSTOR_STAMP = /^(?:this content downloaded from\b|all use subject to\b.*\bjstor\b|\d{1,3}(?:\.\d{1,3}){3} on (?:mon|tue|wed|thu|fri|sat|sun)\w*,? \d{1,2} \w{3,9},? \d{4}\b)/i;
+const JSTOR_COVER = [/\bJSTOR is a not-for-profit service\b/i, /\bYour use of the JSTOR archive indicates\b/i, /\bStable URL:\s*https?:\/\/(?:www\.)?jstor\.(?:org|com)\/stable\//i];
+const stamped = (l) => DOWNLOADED.test(l) || JSTOR_STAMP.test(l);
+
+// pdftotext's text → the paper's pages: NULs gone (JSTOR's stamp has a dozen), JSTOR's cover sheet left out. first:
+// the PDF page the first of them is, less one (1 behind a cover). → { pages, first }
+export function paperPages(text) {
+  const pages = rawPages(String(text || "").replace(/\u0000/g, ""));
+  const cover = pages.length >= 2 && JSTOR_COVER.filter((re) => re.test(pages[0].replace(/\s+/g, " "))).length >= 2;
+  return cover ? { pages: pages.slice(1), first: 1 } : { pages, first: 0 };
+}
+
+// A page without its download stamps (a publisher's, JSTOR's): what a note keeps of it.
+export function unstamp(page) {
+  return String(page || "").split("\n").filter((l) => !stamped(l.trim())).join("\n");
+}
 
 // What each page says of its own: its text less page numbers, download stamps and, on a page with at most 3 of them,
 // the lines repeated on half the pages or more (a stamp, a watermark, a running head; a page of many repeated lines is
@@ -100,7 +118,7 @@ export function ownText(pages) {
   const need = Math.max(2, Math.ceil(pages.length / 2));
   return lines.map((ls) => {
     const repeated = ls.filter((l) => seen.get(key(l)) >= need).length;
-    return ls.filter((l) => !PAGE_NO.test(l) && !DOWNLOADED.test(l) && (repeated > 3 || seen.get(key(l)) < need)).join("\n");
+    return ls.filter((l) => !PAGE_NO.test(l) && !stamped(l) && (repeated > 3 || seen.get(key(l)) < need)).join("\n");
   });
 }
 
@@ -210,8 +228,9 @@ export function splitPages(text) {
 // The number printed on each page, if the journal prints them: a line holding only a
 // number near the top or bottom of the page. Taken when one offset (printed − position)
 // fits at least 40% of the pages; else from the item's page range ("273-292") when its
-// length matches; else the PDF's own page numbers. → { labels: ["273", …], source }
-export function pageLabels(pages, pagesField) {
+// length matches; else the PDF's own page numbers (first: the pages before them left out, a cover sheet). → { labels:
+// ["273", …], source }
+export function pageLabels(pages, pagesField, first = 0) {
   const n = pages.length;
   const votes = new Map();
   pages.forEach((page, i) => {
@@ -237,7 +256,7 @@ export function pageLabels(pages, pagesField) {
     const count = Number(m[2]) - start + 1;
     if (count > 0 && Math.abs(count - n) <= 1) return { labels: pages.map((_, i) => String(start + i)), source: "range" };
   }
-  return { labels: pages.map((_, i) => String(i + 1)), source: "pdf" };
+  return { labels: pages.map((_, i) => String(i + 1 + first)), source: "pdf" };
 }
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

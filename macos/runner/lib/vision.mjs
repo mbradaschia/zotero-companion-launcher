@@ -68,12 +68,13 @@ export function readingOrder(lines) {
 // as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the right starts
 // at 0.590) and a page can carry a margin column of pull quotes and notes beside its text.
 // items: [{x0, x1, y0, y1, words: [{x0, x1}] or null}] in one unit, tol: its slack (about 7 pt). A cut is where a
-// column starts: an x where 3 lines or more end before it and 3 or more start after it, and few cross it (a line
-// read across both columns, with a gap between its words there, counts on both sides); the best cut is the one with
-// the most lines on its smaller side, then each side is cut again the same way (2 lines a side do there), twice at
-// most. A column with under a third of the biggest one's text is a minor one (a margin's). → blocks in reading
-// order: [{kind: "span" | "major" | "minor", col, items}], each item whole or a piece of one cut at a column's edge
-// (piece(item, from, to) makes it).
+// column starts: an x where lines end before it and start after it (3 or more a side, 2 when a side is cut again),
+// and few cross it. A line past it by 4 tol at most, mostly on one side, is on that side (a label, a line Vision boxed
+// a little wide); a line read across both columns, with a gap between its words there, is on both. The best cut has
+// the most lines on its smaller side, and the most lines starting at it; each side is then cut again, twice at most,
+// no column under 8 tol wide. A column with under a third of the biggest one's text is a minor one (a margin's).
+// → { cuts, blocks in reading order: [{kind: "span" | "major" | "minor", col, items}] }, each item whole or a piece
+// of one cut at a column's edge (piece(item, from, to) makes it).
 export function ocrColumns(items, tol, piece) {
   var hs = items.map(function (it) { return it.y1 - it.y0 }).sort(function (a, b) { return a - b })
   var hMed = hs.length ? hs[Math.floor(hs.length / 2)] : 0
@@ -83,48 +84,61 @@ export function ocrColumns(items, tol, piece) {
     for (var i = 1; i < ws.length; i++) if (ws[i - 1].x1 <= c + tol && ws[i].x0 >= c - tol && ws[i - 1].x0 < c - tol && ws[i].x1 > c + tol) return i
     return -1
   }
+  // (which side of x = c a line lies: within tol of it, or past it by 4 tol at most and mostly on one side, as a
+  // label or a line Vision boxed a little wide sits; "X" across it)
+  var sideOf = function (it, c) {
+    if (it.x1 <= c + tol) return "L"
+    if (it.x0 >= c - tol) return "R"
+    var l = c - it.x0, r = it.x1 - c
+    if (Math.min(l, r) <= 4 * tol) return l >= r ? "L" : "R"
+    return "X"
+  }
   var cuts = []
   var find = function (set, depth) {
     var minSide = depth ? 2 : 3
     if (depth > 2 || set.length < 2 * minSide) return
     var xs = set.map(function (it) { return it.x0 }).sort(function (a, b) { return a - b })
+    var lo = xs[0], hi = Math.max.apply(null, set.map(function (it) { return it.x1 }))
     var best = null, last = -Infinity
     xs.forEach(function (c) {
       if (c - last < tol / 4) return
       last = c
-      var L = 0, R = 0, X = 0
+      if (c - lo < 8 * tol || hi - c < 8 * tol) return // (a column 8 tol wide at least: a tenth of the page)
+      var L = 0, R = 0, X = 0, at = 0
       set.forEach(function (it) {
-        if (it.x1 <= c + tol) L++
-        else if (it.x0 >= c - tol) R++
+        var w = sideOf(it, c)
+        if (Math.abs(it.x0 - c) <= tol) at++
+        if (w === "L") L++
+        else if (w === "R") R++
         else if (splitAt(it, c) > 0) { L++; R++ }
         else X++
       })
       if (L < minSide || R < minSide || X > Math.max(2, 0.12 * (L + R))) return
-      var score = Math.min(L, R) - 2 * X
+      var score = Math.min(L, R) - 2 * X + at // (a column starts where lines start)
       if (!best || score > best.score) best = { c: c, score: score }
     })
     if (!best) return
     var c = best.c
     cuts.push(c)
-    find(set.filter(function (it) { return it.x1 <= c + tol }), depth + 1)
-    find(set.filter(function (it) { return it.x0 >= c - tol }), depth + 1)
+    find(set.filter(function (it) { return sideOf(it, c) === "L" }), depth + 1)
+    find(set.filter(function (it) { return sideOf(it, c) === "R" }), depth + 1)
   }
   find(items.filter(function (it) { return it.x1 - it.x0 >= 3 * tol }), 0)
   cuts.sort(function (a, b) { return a - b })
-  var colOf = function (x0, x1) {
+  var colOf = function (it) {
     for (var k = 0; k <= cuts.length; k++) {
-      if ((k === 0 || x0 >= cuts[k - 1] - tol) && (k === cuts.length || x1 <= cuts[k] + tol)) return k
+      if ((k === 0 || sideOf(it, cuts[k - 1]) === "R") && (k === cuts.length || sideOf(it, cuts[k]) === "L")) return k
     }
     return -1
   }
   // (each item whole in its column, or cut at the column edges it crosses, or across them: a span)
   var placed = []
   items.forEach(function (it) {
-    var k = colOf(it.x0, it.x1)
+    var k = colOf(it)
     if (k >= 0) { placed.push({ col: k, it: it }); return }
     var at = [], ok = true
     cuts.forEach(function (c) {
-      if (!(it.x0 < c - tol && it.x1 > c + tol)) return
+      if (sideOf(it, c) !== "X") return
       var i = splitAt(it, c)
       if (i > 0) at.push(i); else ok = false
     })
@@ -134,7 +148,7 @@ export function ocrColumns(items, tol, piece) {
     for (var j = 1; j < at.length; j++) {
       if (at[j] === at[j - 1]) continue
       var p = piece(it, at[j - 1], at[j])
-      placed.push({ col: colOf(p.x0, p.x1), it: p })
+      placed.push({ col: colOf(p), it: p })
     }
   })
   var chars = []

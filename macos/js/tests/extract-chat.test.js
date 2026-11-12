@@ -308,3 +308,19 @@ test("a paper's chat on its metadata: its abstract and the table's columns, no f
   assert.match(m, /don't have the paper's full text/);
   assert.doesNotMatch(m, /<paper>|# The paper's text/);
 });
+
+test("JSTOR: its cover sheet left out of the paper's pages (the labels the PDF's own, one on), its stamp off each page", async () => {
+  const { paperPages, unstamp, pageLabels, ownText } = await X();
+  const cover = "Ontological Shift or Ontological Drift?\nStable URL: http://www.jstor.com/stable/41318094\nYour use of the JSTOR archive indicates your acceptance of the Terms & Conditions of Use\nJSTOR is a not-for-profit service";
+  const stamp = "This content downloaded from\n\u0000\u0000\u0000191.19.228.217 on Sat, 22 Aug 2026 12:00:00 UTC\nAll use subject to https://about.jstor.org/terms";
+  const body = (n) => `Management scholars differ about the most effective way ${n}.\n${stamp}`;
+  const got = paperPages([cover, body(1), body(2)].join("\f") + "\f");
+  assert.equal(got.first, 1);
+  assert.equal(got.pages.length, 2);
+  assert.ok(!got.pages.join("").includes("\u0000"));
+  assert.equal(unstamp(got.pages[0]), "Management scholars differ about the most effective way 1.");
+  assert.deepEqual(pageLabels(got.pages, "754-755", got.first).labels, ["754", "755"]);
+  assert.deepEqual(pageLabels(got.pages, "", got.first), { labels: ["2", "3"], source: "pdf" });
+  assert.deepEqual(paperPages("A paper\fwith no cover").first, 0);
+  assert.ok(ownText(got.pages).every((p) => !/downloaded|jstor/i.test(p)));
+});
