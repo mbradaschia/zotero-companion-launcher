@@ -175,3 +175,15 @@ test("a running head is the page's top or bottom line with words: a reference's 
   assert.match(text, /\[200\] A\. Author/)
   assert.match(text, /20 20/)
 })
+
+test("on a scan a table's numbered rows and a figure's legend are no headings", () => {
+  const pages = [scanPage(1, "left"), scanPage(2, "right")]
+  const p = pages[1].lines
+  const L = [37, 245]
+  // (two numbered rows across the left column, as Vision reads a table's rows, and a legend line with an arrow)
+  p.push(ocrLine(["9", "Endothermy", "pattern"], L[0], L[0] + 120, 640), ocrLine(["10", "Reduced", "fourth", "digits", "here", "too"], L[0], L[1], 662))
+  p.push(ocrLine(["34", "→", "11", "Ontological", "drift"], L[0], L[0] + 150, 690), ocrLine(["a", "line", "of", "text", "under", "the", "legend", "runs", "wide"], L[0], L[1], 712))
+  const read = M.read(pages, Object.assign(meta(2), { ocr: [1, 2], ocr_engine: "vision" }))
+  const titles = read.doc.sections.map((s) => s.title).filter(Boolean)
+  assert.deepEqual(titles, ["Problems with Existing Metrics"])
+})

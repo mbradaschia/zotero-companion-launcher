@@ -76,8 +76,10 @@ test("reading order: columns with no gutter between them and a margin column of 
   for (let i = 0; i < 12; i++) {
     const y = 0.1 + i * 0.02
     if (i === 3 || i === 7) {
-      const w = [["left" + i, 0.25, y, 0.5899, y + 0.012], ["right" + i, 0.5897, y, 0.94, y + 0.012]]
-      lines.push({ t: "left" + i + " right" + i, b: [0.25, y, 0.94, y + 0.012], w })
+      // (row 3's right part is its paragraph's short last line)
+      const end = i === 3 ? 0.75 : 0.94
+      const w = [["left" + i, 0.25, y, 0.5899, y + 0.012], ["right" + i, 0.5897, y, end, y + 0.012]]
+      lines.push({ t: "left" + i + " right" + i, b: [0.25, y, end, y + 0.012], w })
     } else {
       lines.push({ t: "right" + i, b: [0.5897, y, 0.94, y + 0.012], w: [["right" + i, 0.5897, y, 0.94, y + 0.012]] })
       lines.push({ t: "left" + i, b: [0.25, y, 0.5899, y + 0.012], w: [["left" + i, 0.25, y, 0.5899, y + 0.012]] })

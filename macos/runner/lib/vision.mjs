@@ -74,7 +74,7 @@ export function readingOrder(lines) {
 // the most lines on its smaller side, and the most lines starting at it; each side is then cut again, twice at most,
 // no column under 8 tol wide. A column with under a third of the biggest one's text is a minor one (a margin's).
 // → { cuts, blocks in reading order: [{kind: "span" | "major" | "minor", col, items}] }, each item whole or a piece
-// of one cut at a column's edge when it runs edge to edge across them (piece(item, from, to) makes it).
+// of one cut at a column's edge when a piece fills its column (piece(item, from, to) makes it).
 export function ocrColumns(items, tol, piece) {
   var hs = items.map(function (it) { return it.y1 - it.y0 }).sort(function (a, b) { return a - b })
   var hMed = hs.length ? hs[Math.floor(hs.length / 2)] : 0
@@ -135,8 +135,8 @@ export function ocrColumns(items, tol, piece) {
     }
     return -1
   }
-  // (each item whole in its column, or cut at the column edges it crosses when it runs from the first one's left
-  // edge to the last one's right edge, as two columns' lines read as one do, or across them: a span)
+  // (each item whole in its column, or cut at the column edges it crosses when a piece fills its column there, as
+  // two columns' lines read as one do, or across them: a span)
   var placed = [], crossing = []
   items.forEach(function (it) {
     var k = colOf(it)
@@ -149,11 +149,9 @@ export function ocrColumns(items, tol, piece) {
     var x1s = mine.map(function (p) { return p.it.x1 }).sort(function (a, b) { return a - b })
     edges.push(mine.length ? [x0s[Math.floor(x0s.length / 10)], x1s[x1s.length - 1 - Math.floor(x1s.length / 10)]] : null)
   }
-  var colAt = function (x) { var k = 0; while (k < cuts.length && x >= cuts[k]) k++; return k }
   crossing.forEach(function (it) {
-    var first = edges[colAt(it.x0 + tol)], last = edges[colAt(it.x1 - tol)]
-    var at = [], ok = !!first && !!last && it.x0 <= first[0] + 2 * tol && it.x1 >= last[1] - 2 * tol
-    if (ok) cuts.forEach(function (c) {
+    var at = [], ok = true
+    cuts.forEach(function (c) {
       if (sideOf(it, c) !== "X") return
       var i = splitAt(it, c)
       if (i > 0) at.push(i); else ok = false
@@ -161,11 +159,18 @@ export function ocrColumns(items, tol, piece) {
     if (!ok || !at.length) { placed.push({ col: -1, it: it }); return }
     at.push(0, it.words.length)
     at.sort(function (a, b) { return a - b })
+    var pieces = []
     for (var j = 1; j < at.length; j++) {
       if (at[j] === at[j - 1]) continue
       var p = piece(it, at[j - 1], at[j])
-      placed.push({ col: colOf(p), it: p })
+      pieces.push({ col: colOf(p), it: p })
     }
+    // (at each cut, one of the two pieces fills its column, edge to edge: a column's line and the other's, or its
+    // last line, read as one; a figure's title across them doesn't)
+    var full = function (q) { var e = q.col >= 0 && edges[q.col]; return !!e && Math.abs(q.it.x0 - e[0]) <= 2 * tol && Math.abs(q.it.x1 - e[1]) <= 2 * tol }
+    for (var q = 1; q < pieces.length; q++) if (!(full(pieces[q - 1]) || full(pieces[q]))) ok = false
+    if (!ok) { placed.push({ col: -1, it: it }); return }
+    placed.push.apply(placed, pieces)
   })
   var chars = []
   placed.forEach(function (p) { if (p.col >= 0) chars[p.col] = (chars[p.col] || 0) + (p.it.x1 - p.it.x0) })

@@ -326,13 +326,15 @@ pages keep it): `ocrColumns`, page by page, finds where columns start from where
 between them, as a scan's gutter can be nil (Emerald's 2001 pages: the left column ends at 0.590 of the page, the
 right starts at 0.590) and facing pages carry a margin column of pull quotes on alternate sides. A cut is an x with 3
 lines or more ending before it and starting after it and few crossing it; a line past it by 4 tol at most (tol 0.012
-of the page) is on its side, a line Vision read across both columns is cut at its words there; the best cut has the
+of the page) is on its side, a line Vision read across both columns is cut at its words there when a piece fills its
+column edge to edge (a figure's title across them stays whole); the best cut has the
 most lines on its smaller side and the most lines starting at it; each side is cut again (2 lines a side), twice at
 most, no column under a tenth of the page. A column with under a third of the biggest one's text is a margin's (`M`),
 read after the text's columns of its band and never a heading. Each column has its own edges. Vision's sizes move with
 a scan's tilt and a line's letters, so a line within 0.75 to 1.35 of the scan's body size is set at it, and a heading
 on a scan needs its weight, capitals or number, more than one word unless it is a paper's
-one-word heading, and a line of text under it running most of its column. Two lines in capitals, tight, are one
+one-word heading, and a line of text under it running most of its column; a numbered line with the next one
+numbered under it (a table's rows) or with an arrow or a sign in it (a figure's legend) is none. Two lines in capitals, tight, are one
 heading. The runner's `readingOrder` uses the same `ocrColumns` (a parity test keeps the two copies the same), and
 `--ocr` gives each line's words (`w`).
 
