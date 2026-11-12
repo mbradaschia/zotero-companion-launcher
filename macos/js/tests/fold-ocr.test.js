@@ -161,3 +161,17 @@ test("R5-70: JSTOR: its cover sheet, its stamp on each page and a running head a
   assert.doesNotMatch(text, /JSTOR|content downloaded|Academy of Management Review October|Thompson 7/)
   assert.match(text, /claim number 200 here/)
 })
+
+test("a running head is the page's top or bottom line with words: a reference's label or an axis's numbers there is kept", () => {
+  const page = (n) => {
+    const lines = []
+    for (let i = 0; i < 30; i++) lines.push(line("[" + (n * 100 + i) + "] A. Author and B. Writer. A study of reading here.", 90, 80 + i * 20, 10))
+    lines.push(line("20 20", 300, 700, 10))
+    return { n, size: [612, 792], lines }
+  }
+  const pages = [page(1), page(2), page(3), page(4)]
+  const read = M.read(pages, meta(4))
+  const text = read.doc.sections.map((s) => s.title + " " + s.units.map((u) => u.sentences.join(" ")).join(" ")).join(" ")
+  assert.match(text, /\[200\] A\. Author/)
+  assert.match(text, /20 20/)
+})

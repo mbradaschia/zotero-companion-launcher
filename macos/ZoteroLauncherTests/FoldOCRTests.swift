@@ -114,8 +114,9 @@ final class FoldOCRTests: XCTestCase {
         let source = m.doc?["source"] as? [String: Any] ?? [:]
         XCTAssertEqual(source["ocr"] as? [Int], [1, 2])
         XCTAssertEqual(source["ocr_engine"] as? String, "vision")
+        let titles = (m.doc?["sections"] as? [[String: Any]] ?? []).compactMap { $0["title"] as? String }
         let text = allText(m.doc)
-        XCTAssertTrue(text.contains("Most of that reading is skimming for the main claim"), "page 1: \(text)")
+        XCTAssertTrue(text.contains("Most of that reading is skimming for the main claim"), "page 1: \(text) (sections: \(titles))")
         XCTAssertTrue(text.contains("matched by runs of three words"), "page 2 (turned): \(text)")
         XCTAssertFalse(text.contains("Downloaded from"), "the stamp is furniture")
         let ids = (m.doc?["sections"] as? [[String: Any]] ?? []).compactMap { $0["id"] as? String }

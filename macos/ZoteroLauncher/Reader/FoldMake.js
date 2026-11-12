@@ -147,8 +147,9 @@ var FoldMake = (function () {
   function stamp(s) { return STAMP.test(s.text) || DOWNLOADED.test(s.text) || JSTOR_STAMP.test(s.text) }
   function dropFurniture(segs, pageCount) {
     segs = segs.filter(function (s) { return !stamp(s) })
-    // (a head or foot: in the page's top or bottom 7%, or its top or bottom line (not a list's item), as a scan's sit
-    // further in: AMR's "762 Academy of Management Review October" at 11% of a JSTOR page)
+    // (a head or foot: in the page's top or bottom 7%, or its top or bottom line with words in it (not a list's item, a
+    // reference's label, an axis's numbers), as a scan's sit further in: AMR's "762 Academy of Management Review
+    // October" at 11% of a JSTOR page)
     var top = {}, bottom = {}
     segs.forEach(function (s) {
       if (!(s.page in top) || s.y0 < top[s.page]) top[s.page] = s.y0
@@ -156,7 +157,8 @@ var FoldMake = (function () {
     })
     var inBand = function (s) {
       var m = (s.y0 + s.y1) / 2
-      return m < 0.07 * s.H || m > 0.93 * s.H || ((s.y0 <= top[s.page] + 0.5 * s.size || s.y1 >= bottom[s.page] - 0.5 * s.size) && !LIST.test(s.text))
+      return m < 0.07 * s.H || m > 0.93 * s.H || ((s.y0 <= top[s.page] + 0.5 * s.size || s.y1 >= bottom[s.page] - 0.5 * s.size) &&
+        /\p{L}{3}/u.test(s.text) && !LIST.test(s.text) && !REF_START.test(s.text))
     }
     var pagesOf = {}
     segs.forEach(function (s) {
@@ -289,12 +291,12 @@ var FoldMake = (function () {
   // at 0.590) and a page can carry a margin column of pull quotes and notes beside its text.
   // items: [{x0, x1, y0, y1, words: [{x0, x1}] or null}] in one unit, tol: its slack (about 7 pt). A cut is where a
   // column starts: an x where lines end before it and start after it (3 or more a side, 2 when a side is cut again),
-  // and few cross it. A line past it by 4 tol at most, mostly on one side, is on that side (a label, a line Vision boxed
-  // a little wide); a line read across both columns, with a gap between its words there, is on both. The best cut has
+  // and few cross it (above or below all of those lines doesn't count). A line past it by 4 tol at most, mostly on one side, is on that side (a label, a line Vision boxed
+  // a little wide); a line read across both columns, with a gap between its words there, counts half. The best cut has
   // the most lines on its smaller side, and the most lines starting at it; each side is then cut again, twice at most,
   // no column under 8 tol wide. A column with under a third of the biggest one's text is a minor one (a margin's).
   // → { cuts, blocks in reading order: [{kind: "span" | "major" | "minor", col, items}] }, each item whole or a piece
-  // of one cut at a column's edge (piece(item, from, to) makes it).
+  // of one cut at a column's edge when it runs edge to edge across them (piece(item, from, to) makes it).
   function ocrColumns(items, tol, piece) {
     var hs = items.map(function (it) { return it.y1 - it.y0 }).sort(function (a, b) { return a - b })
     var hMed = hs.length ? hs[Math.floor(hs.length / 2)] : 0
@@ -324,14 +326,18 @@ var FoldMake = (function () {
         if (c - last < tol / 4) return
         last = c
         if (c - lo < 8 * tol || hi - c < 8 * tol) return // (a column 8 tol wide at least: a tenth of the page)
-        var L = 0, R = 0, X = 0, at = 0
+        var L = 0, R = 0, X = 0, at = 0, across = [], lTop = Infinity, lBot = -Infinity, rTop = Infinity, rBot = -Infinity
         set.forEach(function (it) {
           var w = sideOf(it, c)
           if (Math.abs(it.x0 - c) <= tol) at++
-          if (w === "L") L++
-          else if (w === "R") R++
-          else if (splitAt(it, c) > 0) { L++; R++ }
-          else X++
+          if (w === "L") { L++; lTop = Math.min(lTop, it.y0); lBot = Math.max(lBot, it.y1) }
+          else if (w === "R") { R++; rTop = Math.min(rTop, it.y0); rBot = Math.max(rBot, it.y1) }
+          else across.push(it)
+        })
+        // (what crosses it above or below every line of both sides doesn't count: a title, an abstract over the columns)
+        across.forEach(function (it) {
+          var m = (it.y0 + it.y1) / 2
+          if (m > Math.min(lTop, rTop) && m < Math.max(lBot, rBot)) X += splitAt(it, c) > 0 ? 0.5 : 1
         })
         if (L < minSide || R < minSide || X > Math.max(2, 0.12 * (L + R))) return
         var score = Math.min(L, R) - 2 * X + at // (a column starts where lines start)
@@ -351,13 +357,25 @@ var FoldMake = (function () {
       }
       return -1
     }
-    // (each item whole in its column, or cut at the column edges it crosses, or across them: a span)
-    var placed = []
+    // (each item whole in its column, or cut at the column edges it crosses when it runs from the first one's left
+    // edge to the last one's right edge, as two columns' lines read as one do, or across them: a span)
+    var placed = [], crossing = []
     items.forEach(function (it) {
       var k = colOf(it)
-      if (k >= 0) { placed.push({ col: k, it: it }); return }
-      var at = [], ok = true
-      cuts.forEach(function (c) {
+      if (k >= 0) placed.push({ col: k, it: it }); else crossing.push(it)
+    })
+    var edges = []
+    for (var k = 0; k <= cuts.length; k++) {
+      var mine = placed.filter(function (p) { return p.col === k && p.it.x1 - p.it.x0 >= 3 * tol })
+      var x0s = mine.map(function (p) { return p.it.x0 }).sort(function (a, b) { return a - b })
+      var x1s = mine.map(function (p) { return p.it.x1 }).sort(function (a, b) { return a - b })
+      edges.push(mine.length ? [x0s[Math.floor(x0s.length / 10)], x1s[x1s.length - 1 - Math.floor(x1s.length / 10)]] : null)
+    }
+    var colAt = function (x) { var k = 0; while (k < cuts.length && x >= cuts[k]) k++; return k }
+    crossing.forEach(function (it) {
+      var first = edges[colAt(it.x0 + tol)], last = edges[colAt(it.x1 - tol)]
+      var at = [], ok = !!first && !!last && it.x0 <= first[0] + 2 * tol && it.x1 >= last[1] - 2 * tol
+      if (ok) cuts.forEach(function (c) {
         if (sideOf(it, c) !== "X") return
         var i = splitAt(it, c)
         if (i > 0) at.push(i); else ok = false
@@ -389,6 +407,16 @@ var FoldMake = (function () {
       (band[p.col] = band[p.col] || []).push(p.it)
     })
     flush()
+    // (within a block, a row Vision read in pieces, their tops a little apart, left to right)
+    blocks.forEach(function (b) {
+      var rows = [], row = null
+      b.items.forEach(function (it) {
+        var h = it.y1 - it.y0
+        if (row && it.y0 - row.top < 0.5 * Math.min(h, row.h)) row.items.push(it)
+        else { row = { top: it.y0, h: h, items: [it] }; rows.push(row) }
+      })
+      b.items = [].concat.apply([], rows.map(function (r) { return r.items.sort(function (a, c) { return a.x0 - c.x0 }) }))
+    })
     return { cuts: cuts, blocks: blocks }
   }
 
@@ -446,7 +474,6 @@ var FoldMake = (function () {
       }
       flows.forEach(function (f) { if (f.page === n) f.segs.forEach(function (s) { s.side = f.side; placed.push(s) }) })
     })
-    flows.forEach(function (f) { f.segs.sort(function (a, b) { return a.y0 - b.y0 || a.x0 - b.x0 }) })
     return { flows: flows, segs: placed }
   }
 
@@ -700,7 +727,7 @@ var FoldMake = (function () {
   // An OCR line's size is its words' height, which a scan's tilt and a line's letters (with descenders or without)
   // move by a quarter either way: a line within 0.75 to 1.35 of the scan's body size (the median over lines of 3 words
   // or more, by characters) is set at it, so a heading on a scan is one by its weight, its capitals or its number, or
-  // a size well over the body's (a title).
+  // a size well over the body's (a title), and where it stands (ocrHeadable).
   function steadySizes(segs) {
     var sized = segs.filter(function (s) { return s.words.length >= 3 }).map(function (s) { return [s.size, s.chars] }).sort(function (a, b) { return a[0] - b[0] })
     var half = sized.reduce(function (a, x) { return a + x[1] }, 0) / 2, seen = 0, B = 0
@@ -723,7 +750,7 @@ var FoldMake = (function () {
     if (ABSTRACT.test(t) || REFS.test(t)) return t
     var ocr = b.segs[0].fn === "ocr"
     if (ocr && !ocrHeadable(b)) return null
-    if (words <= 10 && NUMBERED.test(t) && b.size >= body - 0.3 && (!ocr || b.segs.every(fullyBold) || capsOnly(t))) return t
+    if (words <= 10 && NUMBERED.test(t) && b.size >= body - 0.3) return t
     // (IEEE: small capitals bring the line's size under the body's)
     if (words <= 12 && b.lines <= 2 && b.size >= body - 3 && (ROMAN_HEAD.test(t) || CAPS_HEAD.test(t))) return t
     if (ctx && ctx.roman && words <= 12 && b.lines <= 2 && LETTER_HEAD.test(t) && !SENTENCE_END.test(t) && b.size >= body - 0.5 &&

@@ -113,3 +113,18 @@ test("ocrColumns is the same in the runner and the reader (FoldMake.js)", async 
   }
   assert.equal(body("../../runner/lib/vision.mjs"), body("../../ZoteroLauncher/Reader/FoldMake.js"))
 })
+
+test("reading order: an abstract across the page over two columns: the abstract, the left column, the right (it doesn't hide the cut)", async () => {
+  const { readingOrder } = await V()
+  // (as the fixture paper's page 1: 7 lines of abstract across, then 11 lines a column)
+  const lines = []
+  for (let i = 0; i < 7; i++) lines.push(W("abstract line words that run on across the whole width " + "abcdefg"[i], 54 / 612, 0.2 + i * 0.015))
+  for (let i = 0; i < 11; i++) {
+    lines.push(W("left words of column " + "abcdefghijk"[i], 54 / 612, 0.33 + i * 0.015))
+    lines.push(W("right words of column " + "abcdefghijk"[i], 315 / 612, 0.33 + i * 0.015))
+  }
+  const out = readingOrder(lines).split("\n").filter(Boolean)
+  assert.ok(out.slice(0, 7).every((l) => l.startsWith("abstract")))
+  assert.ok(out.slice(7, 18).every((l) => l.startsWith("left")), out.slice(7, 18).join(" | "))
+  assert.ok(out.slice(18).every((l) => l.startsWith("right")))
+})

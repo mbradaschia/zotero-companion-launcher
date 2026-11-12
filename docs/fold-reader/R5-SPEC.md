@@ -331,7 +331,7 @@ most lines on its smaller side and the most lines starting at it; each side is c
 most, no column under a tenth of the page. A column with under a third of the biggest one's text is a margin's (`M`),
 read after the text's columns of its band and never a heading. Each column has its own edges. Vision's sizes move with
 a scan's tilt and a line's letters, so a line within 0.75 to 1.35 of the scan's body size is set at it, and a heading
-on a scan needs its weight, capitals or number (a numbered one too), more than one word unless it is a paper's
+on a scan needs its weight, capitals or number, more than one word unless it is a paper's
 one-word heading, and a line of text under it running most of its column. Two lines in capitals, tight, are one
 heading. The runner's `readingOrder` uses the same `ocrColumns` (a parity test keeps the two copies the same), and
 `--ocr` gives each line's words (`w`).
