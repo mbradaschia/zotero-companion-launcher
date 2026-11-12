@@ -61,7 +61,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           v="${GITHUB_REF_NAME#v}"
-          mac=$(gh release list --limit 50 --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[].tagName | select(test("^macos-v[0-9]"))][0] // ""')
+          mac=$(gh release list --limit 1000 --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[].tagName | select(test("^macos-v[0-9]"))][0] // ""')
           extra=()
           if [ -n "$mac" ]; then
             gh release download "$mac" --pattern ZoteroLauncher.zip --pattern install.sh --dir mac

@@ -48,7 +48,6 @@ struct TaskState {
     var field = "" // todo-text's: description, due, notes
     var lastDeleted: (todo: Any, index: Int)?
     var calDate = "" // the calendar's highlighted day (YYYY-MM-DD)
-    var fieldDraft: (id: String, field: String, text: String)? // the description or notes typed in place
     var statusEdit: [String: Any]? // { kind ("paper", "action", or a task status), mode, group, id, name }
     var tagsSynced = false // every paper's t/ tags set from scratch: once a session, and again each time Zotero is back
     var missedTaskTags: [[String: Any]] = [] // t/ tag changes made while Zotero was away: sent when it's back
@@ -126,7 +125,6 @@ struct AIState {
     var extractFetching = false
     var extractClaimed: Set<String> = [] // "lib:key"
     var taskFilter = "" // Processes' pill: "" every state, else running, pending, done or error (R15)
-    var extractRunning: Bool { extractInFlight > 0 || extractFetching }
     var rules: [Any] = [] // rules.json's
     var rulesJSON = RawJSON(text: "[]")
     var rulesMissing = "" // the rules.json that isn't there (shown with ~)
@@ -145,7 +143,6 @@ struct SchedulerState {
     var promptClaimed: Set<String> = [] // "promptId|lib:key" running
     var plan: [String: Any]? // `catchup-plan`'s; nil while counted
     var planProblem = ""
-    var catchUpRunning: Bool { !catchUpClaimed.isEmpty }
     var catchUpClaimed: [String] = [] // the catch-up's jobs running now (their keys: id|op|prompt), up to Processes at once
     var checking = false // a catch-up asking the runner what needs it, before it starts
     // the catch-up's question when the app opens: off (the app didn't say it started: the tests), waiting (for Zotero),

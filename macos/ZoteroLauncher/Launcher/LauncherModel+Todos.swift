@@ -327,19 +327,6 @@ extension LauncherModel {
         selectRow { $0.rowId == "todo-edit" && $0.value == field }
     }
 
-    // What was typed in the description or notes on the task's page, kept (leaving the row, Enter,
-    // going back, closing).
-    func commitField() {
-        guard let d = tasks.fieldDraft else { return }
-        tasks.fieldDraft = nil
-        guard let t = todoList.compactMap({ $0 as? [String: Any] }).first(where: { $0["id"] as? String == d.id }) else { return }
-        let value = d.field == "description" ? d.text.split(whereSeparator: \.isWhitespace).joined(separator: " ") : d.text.replacingOccurrences(of: "\\s+$", with: "", options: .regularExpression)
-        if d.field == "description" && value.isEmpty { flashMessage("A task needs a description: kept the old one"); rebuildList(); return }
-        if "\(t[d.field] ?? "")" == value { return }
-        let now = nowMs
-        saveTodos { list in try glueChange("updateTodo", [list, d.id, [d.field: value], now]) }
-    }
-
     // Picking the paper a task is about (its page's Pick a paper…): back to the task.
     func pickTodoItem(_ row: SearchRow) {
         let parts = row.subtitle.components(separatedBy: " · ")

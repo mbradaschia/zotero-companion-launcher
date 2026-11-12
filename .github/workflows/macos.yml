@@ -12,6 +12,12 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request stops the run of the push before it. A run on master or on a tag is never stopped:
+# it may be publishing a release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 # bash -eo pipefail: a failing xcodebuild fails the step even when piped into xcbeautify.
 defaults:
   run:
@@ -164,7 +170,7 @@ jobs:
         run: |
           gh release delete macos-nightly --yes --cleanup-tag || true
           gh release create macos-nightly ZoteroLauncher.zip scripts/install.sh --prerelease --target "$GITHUB_SHA" \
-            --title "macOS app: nightly" --notes "The Mac app, built from ${GITHUB_SHA::7}, the latest commit on master that touched it. Signed ad hoc, not notarized: install it with install.sh (macos/README.md)."
+            --title "macOS app: nightly" --notes "The Mac app, built from ${GITHUB_SHA::7}, the latest commit on master that touched it. Not notarized: install it with install.sh (macos/README.md)."
 
       # A release: a new version on master (MARKETING_VERSION in project.yml, its notes in docs/releases/macos-v<version>.md),
       # tagged macos-v<version> on that commit, or a macos-v tag pushed by hand. A version already released is skipped.
@@ -193,7 +199,8 @@ jobs:
           sed -e "s|^TAG=\${ZL_TAG:-macos-nightly}|TAG=\${ZL_TAG:-$tag}|" -e "s|releases/download/macos-nightly/|releases/download/$tag/|" \
             scripts/install.sh > "$out/install.sh"
           grep -q "^TAG=\${ZL_TAG:-$tag}" "$out/install.sh"
-          bridge=$(gh release list --limit 50 --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[].tagName | select(test("^v[0-9]"))][0] // ""')
+          # (every release looked at, not the newest 50: the Mac app has many between two of the bridge's)
+          bridge=$(gh release list --limit 1000 --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[].tagName | select(test("^v[0-9]"))][0] // ""')
           [[ -n $bridge ]] || { echo "no bridge release (vX.Y.Z) to attach" >&2; exit 1; }
           # (v0.2.2 carries the file under its old name too: the current name only, when it's there)
           gh release download "$bridge" --pattern 'zotero-companion-bridge-*' --dir "$out/bridge" ||
