@@ -3,7 +3,7 @@
 // plain data in/out so node can test it.
 
 // Zotero drops requests whose User-Agent starts with "Mozilla/" (Qt's default)
-// unless they carry this header (PLAN.md §2).
+// unless they carry this header (docs/history/PLAN.md §2).
 var ALLOWED_HEADER = "Zotero-Allowed-Request"
 
 function baseUrl(bridge) {
@@ -157,7 +157,7 @@ function fileName(title) {
 // ~/.config/omarchy/oma-zotero-launcher.json → { settings, problems }. Every setting is
 // optional; an invalid one falls back to its default and is reported (the overlay
 // shows the first problem in its footer, the shell log all of them). The file has sections
-// (general, providers, defaults: PLAN-providers.md §5.1); a flat file from before them is read
+// (general, providers, defaults: docs/history/PLAN-providers.md §5.1); a flat file from before them is read
 // as its general section. `settings` is flat for the general keys, plus `providers`,
 // `endpoints`, `defaults` and `configured` (the file has a providers section).
 var DEFAULT_SETTINGS = {

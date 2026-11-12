@@ -68,7 +68,7 @@ $WATCH || exit 0
 echo "watching $ROOT (Ctrl+C to stop)…"
 # Excluded below the checkout only (a worktree itself lives under .claude/).
 inotifywait -m -r -q -e close_write,create,delete,move \
-  --exclude "^$(printf '%s' "$ROOT" | sed 's/[.[\*^$()+?{|]/\\&/g')/(\.git|\.claude|zotero-bridge|tests|scripts|spikes|node_modules)(/|$)" \
+  --exclude "^$(printf '%s' "$ROOT" | sed 's/[.[\*^$()+?{|]/\\&/g')/(\.git|\.claude|zotero-bridge|tests|scripts|docs|node_modules)(/|$)" \
   --format '%w%f' "$ROOT" | while read -r _; do
   # Coalesce bursts (editors write several events per save).
   while read -r -t 0.3 _; do :; done

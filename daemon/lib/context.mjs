@@ -96,7 +96,7 @@ export function fitPaper(text, window, share = PAPER_SHARE) {
   return { text: text.slice(0, max) + "\n\n[… the text is cut here to fit this model's context window]", cut: true };
 }
 
-// Fit everything the model gets about the paper (PLAN-providers.md §4.4): instructions,
+// Fit everything the model gets about the paper (docs/history/PLAN-providers.md §4.4): instructions,
 // highlights, notes and text within `share` of the window; the notes go first (the newest kept),
 // then the text is cut from the end, with a line saying so. → { ctx, cut: { notes, text } }
 export const INSTRUCTIONS_TOKENS = 2500; // the system prompt, the metadata and the prompt itself

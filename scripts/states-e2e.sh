@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end test of the overlay's states and settings (PLAN.md phase 6) in the live
+# End-to-end test of the overlay's states and settings (docs/history/PLAN.md phase 6) in the live
 # shell + Zotero: no matches, a search that times out, a rejected token, and each
 # setting in ~/.config/omarchy/oma-zotero-launcher.json (accelerators, emptyQuery, maxResults,
 # enterAction), including invalid values, which are reported in the footer.

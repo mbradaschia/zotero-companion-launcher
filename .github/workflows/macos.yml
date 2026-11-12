@@ -46,7 +46,7 @@ jobs:
       - name: The sync contract it reads
         working-directory: .
         run: node --test contracts/tests/*.test.js
-      - name: The two launchers stay apart
+      - name: The two launchers stay apart, and the view logic's two copies (lib/, macos/js/lib/) are identical
         working-directory: .
         run: scripts/check-boundaries.sh
 

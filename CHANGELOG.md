@@ -7,6 +7,24 @@ bridge and the prompt runner share one version.
 
 ## [Unreleased]
 
+### Changed
+
+- **The prompt runner's packages are up to date.** `npm audit` listed seven advisories (four high) in packages its
+  packages depend on (`@modelcontextprotocol/sdk`, `body-parser`, `fast-uri`, `ip-address`, `qs`, `undici`, `zod`):
+  each moves to its fixed version, and the audit is clean.
+- **Releases need no tag pushed by hand.** A new version on `master` (`make release`, pushed or merged by a pull
+  request) is tagged and published by CI, as the Mac app's are. A pull request that sets a new version is checked
+  first: its `updates.json` must describe the `.xpi` built from it.
+- **The view logic's two copies can't drift.** `lib/` and the Mac app's copy are edited together; `make lint` and
+  the Mac app's checks now fail when a file differs.
+- The plans of finished work (`PLAN.md`, `PLAN-providers.md`, `PLAN-macos.md`, `spikes/`, `BACKLOG.md`) moved to
+  `docs/history/`.
+
+### The Mac app (next)
+
+- **The AI features' packages are up to date.** The same seven advisories, in the Mac app's runner: none left.
+  Runner 0.3.3, installed by the app after the next update.
+
 ### The Mac app (`macos-v0.4.42`)
 
 - **A paper folded with AI on one Mac folds on the other without asking the model again.** When your Macs share a

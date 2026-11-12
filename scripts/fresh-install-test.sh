@@ -1,5 +1,5 @@
 #!/bin/bash
-# "A fresh install following the README works end-to-end" (PLAN.md phase 6), both halves:
+# "A fresh install following the README works end-to-end" (docs/history/PLAN.md phase 6), both halves:
 #
 #  A. Zotero: the release .xpi (make xpi) in a brand-new Zotero profile, run headless with
 #     its own data directory, port (23129) and runtime directory, so your Zotero, library

@@ -24,7 +24,7 @@ install:         ## install this checkout's shell plugin and enable it (then add
 version:         ## print the version (the plugin, the bridge and the runner share it)
 	@scripts/check-versions.sh
 
-release:         ## cut a release: make release VERSION=X.Y.Z (bump, CHANGELOG, build, commit, tag)
+release:         ## cut a release: make release VERSION=X.Y.Z (bump, CHANGELOG, build, commit; CI tags and publishes it from master)
 	@scripts/release.sh "$(VERSION)"
 
 # The runner goes outside the plugin folder: omarchy plugin validate refuses the symlinks

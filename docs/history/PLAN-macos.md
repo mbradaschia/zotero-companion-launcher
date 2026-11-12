@@ -1,4 +1,4 @@
-> **Superseded.** The macOS app's plan is [`macos/PLAN.md`](macos/PLAN.md). This file is kept for
+> **Superseded.** The macOS app's plan is [`macos/PLAN.md`](../../macos/PLAN.md). This file is kept for
 > its history.
 
 # macOS port: a native app

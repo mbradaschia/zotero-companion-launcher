@@ -1,5 +1,5 @@
 #!/bin/bash
-# Live smoke test of the model providers (PLAN-providers.md §8), opt-in: for each model in
+# Live smoke test of the model providers (docs/history/PLAN-providers.md §8), opt-in: for each model in
 # OMA_LIVE_PROVIDERS, one chat question on a paper, grounded in its text, and a check that the
 # answer quotes it with a page number. For maintainers and contributors with the accounts or
 # keys; never in CI. Your settings aren't touched: each run uses a throwaway settings file.

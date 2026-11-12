@@ -1,13 +1,22 @@
 name: Release
 
-# Pushing a tag vX.Y.Z (scripts/release.sh makes it) publishes the GitHub release:
-# the .xpi rebuilt from the tag, its checksum, and the CHANGELOG section.
+# The bridge's release (vX.Y.Z). It is published when a new version reaches master: a release commit sets the version
+# in manifest.json (scripts/release.sh, or the same steps in a pull request), and this workflow tags vX.Y.Z on that
+# commit. A tag vX.Y.Z pushed by hand does the same. A version already released is skipped. The release carries the
+# .xpi rebuilt from that commit, its checksum, and the CHANGELOG section.
 on:
   push:
-    tags: ["v*.*.*"]
+    branches: [master]
+    tags: ["v*.*.*"] # (paths aren't checked for tags)
+    paths: ["manifest.json"]
 
 permissions:
   contents: write
+
+# One at a time: a release commit and its tag pushed together start two runs, and the second finds the release made.
+concurrency:
+  group: release-bridge
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -19,21 +28,51 @@ jobs:
         with:
           node-version: 22
 
-      - name: The tag matches the manifests
-        run: scripts/check-versions.sh "${GITHUB_REF_NAME#v}"
+      # On master: the manifests' version. On a tag: the tag's, which must be the manifests'.
+      - name: The version, and whether it's released already
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            v="${GITHUB_REF_NAME#v}"
+            scripts/check-versions.sh "$v" >/dev/null
+          else
+            v=$(scripts/check-versions.sh)
+          fi
+          echo "version=$v" >>"$GITHUB_OUTPUT"
+          if gh release view "v$v" >/dev/null 2>&1; then
+            echo "v$v is already released: nothing to do"
+            echo "new=0" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # On master, a tag of this name pushed by hand must be on this commit (the release would land on the tag's).
+          if [[ $GITHUB_REF != refs/tags/* ]]; then
+            at=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
+            if [[ -n $at && $at != "$GITHUB_SHA" ]]; then
+              echo "::error::The tag v$v exists on another commit ($at), with no release: delete the tag or bump the version."
+              exit 1
+            fi
+          fi
+          echo "new=1" >>"$GITHUB_OUTPUT"
 
       - name: The prompt runner's packages (the provider tests use the AI SDK's mock model)
+        if: steps.version.outputs.new == '1'
         run: npm ci --prefix daemon --no-audit --no-fund
 
       - name: Unit tests
+        if: steps.version.outputs.new == '1'
         run: make test
 
       - name: Build the .xpi
+        if: steps.version.outputs.new == '1'
         run: scripts/build-xpi.sh
 
       # Zotero checks update_hash in updates.json (committed with the release) against the
       # file it downloads, so the release asset must be exactly the build that hash describes.
       - name: The .xpi matches the committed updates.json
+        if: steps.version.outputs.new == '1'
         run: |
           if ! git diff --exit-code -- zotero-bridge/updates.json; then
             echo "::error::The rebuilt .xpi differs from updates.json: cut releases with 'make release', which commits both."
@@ -41,8 +80,10 @@ jobs:
           fi
 
       - name: Release notes from CHANGELOG.md
+        if: steps.version.outputs.new == '1'
+        env:
+          v: ${{ steps.version.outputs.version }}
         run: |
-          v="${GITHUB_REF_NAME#v}"
           awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md >notes.md
           [ -s notes.md ] || { echo "::error::CHANGELOG.md has no section for $v"; exit 1; }
           cat >>notes.md <<NOTES
@@ -56,11 +97,14 @@ jobs:
 
       # With the newest Mac app (its zip and install.sh, copied from its macos-v release), so both are found in one place.
       - name: Publish
+        if: steps.version.outputs.new == '1'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          v="${GITHUB_REF_NAME#v}"
+          v="${{ steps.version.outputs.version }}"
+          # A tag pushed by hand is used as it is; from master, the tag is made on this commit.
+          if [[ $GITHUB_REF == refs/tags/* ]]; then where=(--verify-tag); else where=(--target "$GITHUB_SHA"); fi
           mac=$(gh release list --limit 1000 --exclude-drafts --exclude-pre-releases --json tagName --jq '[.[].tagName | select(test("^macos-v[0-9]"))][0] // ""')
           extra=()
           if [ -n "$mac" ]; then
@@ -68,6 +112,6 @@ jobs:
             extra=(mac/ZoteroLauncher.zip mac/install.sh)
             printf '\n- **The Mac app** (%s) is attached too: run its `install.sh` (macos/README.md), or update from the menu bar.\n' "$mac" >>notes.md
           fi
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "v$v" \
             "dist/zotero-companion-bridge-$v.xpi" "dist/zotero-companion-bridge-$v.xpi.sha256" "${extra[@]}" \
-            --title "v$v" --notes-file notes.md --verify-tag
+            --title "v$v" --notes-file notes.md "${where[@]}"

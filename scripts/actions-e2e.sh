@@ -1,5 +1,5 @@
 #!/bin/bash
-# End-to-end test of the Tab actions (PLAN.md phase 3) in the live shell + Zotero:
+# End-to-end test of the Tab actions (docs/history/PLAN.md phase 3) in the live shell + Zotero:
 # the actions view for items with 0, 1 and several PDFs, standalone PDFs,
 # snapshots and missing files; the file picker; opening in the external viewer
 # and in a new Zotero window; Show in library; Alt accelerators; real keys.

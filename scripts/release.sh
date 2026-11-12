@@ -7,13 +7,14 @@
 #   3. dates the CHANGELOG: [Unreleased] → [1.2.3] - YYYY-MM-DD, with its compare link (the Mac app's
 #      sections stay under [Unreleased]: scripts/release-changelog.js)
 #   4. runs the tests, builds dist/zotero-companion-bridge-1.2.3.xpi and zotero-bridge/updates.json
-#   5. commits "Release v1.2.3" and tags v1.2.3 (annotated)
+#   5. commits "Release v1.2.3"
 #
-# Nothing is pushed: check the commit, then `git push origin master v1.2.3`. The tag starts
-# .github/workflows/release.yml, which rebuilds the .xpi, checks it byte for byte against
-# updates.json, and publishes the GitHub release with it. Zotero updates installed bridges
-# from updates.json on master (manifest.json's update_url); `omarchy plugin update` pulls
-# the shell plugin from master.
+# Nothing is pushed: check the commit, then `git push origin master` (or merge it by a pull
+# request). The new version on master starts .github/workflows/release.yml, which rebuilds the
+# .xpi, checks it byte for byte against updates.json, tags v1.2.3 on that commit and publishes
+# the GitHub release with it. Zotero updates installed bridges from updates.json on master
+# (manifest.json's update_url); `omarchy plugin update` pulls the shell plugin from master.
+# From another branch (RELEASE_BRANCH=…), push a tag v1.2.3 yourself: the workflow takes that too.
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -27,6 +28,8 @@ fail() { echo "release: $*" >&2; exit 1; }
 [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "usage: make release VERSION=X.Y.Z (semver)"
 [[ -z $(git status --porcelain) ]] || fail "the working tree has changes: commit or stash them first"
 [[ $(git branch --show-current) == "$BRANCH" ]] || fail "releases are cut from $BRANCH (RELEASE_BRANCH=… to override)"
+# CI makes the release tags on the remote: fetch them, for the checks below and the CHANGELOG's compare link.
+git fetch -q --tags origin 2>/dev/null || echo "release: couldn't fetch the tags from origin: going by the local ones" >&2
 git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null && fail "tag v$VERSION already exists"
 
 current=$(scripts/check-versions.sh)
@@ -64,7 +67,10 @@ scripts/build-xpi.sh
 
 git add -A
 git commit -q -m "Release v$VERSION"
-git tag -a "v$VERSION" -m "v$VERSION"
 echo
-echo "Tagged v$VERSION. Check it (git show), then publish:"
-echo "  git push origin $BRANCH v$VERSION"
+echo "Committed the release of v$VERSION. Check it (git show), then publish:"
+if [[ $BRANCH == master ]]; then
+  echo "  git push origin master    (CI tags v$VERSION on it and publishes the release)"
+else
+  echo "  git push origin $BRANCH && git tag v$VERSION && git push origin v$VERSION"
+fi

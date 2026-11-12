@@ -55,3 +55,21 @@ test("a worktree or tool folder inside the repository (.claude/, .serena/) isn't
   const r = run(tree({ ".claude/worktrees/w/Service.qml": 'import "macos/js/lib/Views.js" as V', ".serena/cache/x.json": '"macos/"' }));
   assert.equal(r.status, 0, r.stdout);
 });
+
+test("the view logic's two copies (lib/ and macos/js/lib/): identical passes; a changed, missing or extra file is named", () => {
+  const same = { "lib/Views.js": "var a = 1;\n", "lib/Fuzzy.js": "var f;\n", "macos/js/lib/Views.js": "var a = 1;\n", "macos/js/lib/Fuzzy.js": "var f;\n" };
+  assert.equal(run(tree(same)).status, 0);
+
+  let r = run(tree(Object.assign({}, same, { "macos/js/lib/Views.js": "var a = 2;\n" })));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /lib\/Views\.js and macos\/js\/lib\/Views\.js differ/);
+  assert.doesNotMatch(r.stdout, /Fuzzy/);
+
+  r = run(tree(Object.assign({}, same, { "lib/Todos.js": "" })));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /macos\/js\/lib\/Todos\.js: missing/);
+
+  r = run(tree(Object.assign({}, same, { "macos/js/lib/Extra.js": "" })));
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /lib\/Extra\.js: missing/);
+});

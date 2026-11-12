@@ -1,7 +1,7 @@
 // Model providers (daemon/lib/providers/, modelspec, settings, secrets, generate, quotes):
 // model names, the settings file, keys in a (fake) keyring, and one contract every provider
 // passes against fakes: deltas in order, the whole text, usage, errors, cancellation. No keys,
-// no network (PLAN-providers.md §8).
+// no network (docs/history/PLAN-providers.md §8).
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");

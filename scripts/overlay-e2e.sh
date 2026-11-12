@@ -1,6 +1,6 @@
 #!/bin/bash
 # End-to-end test of the overlay inside the running Omarchy shell + Zotero
-# (PLAN.md phase 2 acceptance: SUPER+SHIFT+Z → type → Shift+Enter lands on the right
+# (docs/history/PLAN.md phase 2 acceptance: SUPER+SHIFT+Z → type → Shift+Enter lands on the right
 # Zotero tab, focused; an empty query lists the open items).
 #
 # Real input: the keybinding is pressed through a kernel uinput keyboard
