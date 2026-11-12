@@ -368,9 +368,10 @@ final class FoldPDF: @unchecked Sendable {
         return ["n": n, "size": [Double(turned ? box.height : box.width), Double(turned ? box.width : box.height)], "lines": lines(of: page)]
     }
 
-    // A page's lines, in PDFKit's order: [{t, b, s, f, lb, w}] (R5-SPEC 3.1). w: the line's words as words(of:) gives
-    // them; t: the words joined by one space; b: their boxes' union; s: the font size in points; f: 1 bold, 2 italic,
-    // for most of its characters; lb: how many words at its start are bold (a run-in heading). A line with no words is
+    // A page's lines, in PDFKit's order: [{t, b, s, f, lb, li, fn, w}] (R5-SPEC 3.1). w: the line's words as words(of:)
+    // gives them; t: the words joined by one space; b: their boxes' union; s: the font size in points; f: 1 bold, 2
+    // italic, for most of its characters; lb, li: how many words at its start are bold, italic (a run-in heading);
+    // fn: the font family most of its characters are set in. A line with no words is
     // left out; at most 20000 words a page. A PDFKit line that runs across a gap wider than 1.5 times its height (two
     // columns' lines on one baseline) is given as one line a side, each with its own fonts; so is one across the page's
     // middle (cutAtMiddle) or, on a page in two columns, across its gutter (cutAtGutter).
@@ -425,7 +426,7 @@ final class FoldPDF: @unchecked Sendable {
             if let pt = style.size, height > 0, pt >= 0.5 * height, pt <= 1.6 * height { size = pt }
             let rows: [[Any]] = run.map { w in [w.word.text as Any] + w.box.map { $0 as Any } }
             out.append(["t": run.map { $0.word.text }.joined(separator: " "), "b": b, "s": (size * 2).rounded() / 2, "f": style.flags, "lb": style.leadBold,
-                        "fn": style.family, "w": rows])
+                        "li": style.leadItalic, "fn": style.family, "w": rows])
         }
         return out
     }
@@ -505,6 +506,7 @@ final class FoldPDF: @unchecked Sendable {
         var size: Double? // the character-weighted mean point size of its fonts, nil with none
         var flags = 0 // 1 bold, 2 italic: most of its characters'
         var leadBold = 0 // the words at its start bold in 80% of their characters
+        var leadItalic = 0 // the words at its start italic in 80% of theirs (a run-in heading in italics)
         var family = "" // the font family most of its characters are set in
     }
 
@@ -818,7 +820,7 @@ final class FoldPDF: @unchecked Sendable {
     }
 
     // A run of words' fonts (each word's characters'): the mean size, bold and italic for most of the characters, and
-    // the words at its start bold in 80% of theirs.
+    // the words at its start bold, and those italic, in 80% of theirs.
     static func style(_ words: [[CharStyle]]) -> LineStyle {
         let all = words.flatMap { $0 }
         var style = LineStyle()
@@ -831,6 +833,10 @@ final class FoldPDF: @unchecked Sendable {
         for w in words {
             guard !w.isEmpty, Double(w.filter { $0.bold }.count) >= 0.8 * Double(w.count) else { break }
             style.leadBold += 1
+        }
+        for w in words {
+            guard !w.isEmpty, Double(w.filter { $0.italic }.count) >= 0.8 * Double(w.count) else { break }
+            style.leadItalic += 1
         }
         var families: [String: Int] = [:]
         for c in all { if let f = c.family, !f.isEmpty { families[f, default: 0] += 1 } }

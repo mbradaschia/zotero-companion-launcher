@@ -40,6 +40,18 @@ test("Defaults: Fold with AI's model and effort, right under Chat", () => {
   assert.match(none.detail, /none yet/);
 });
 
+test("Defaults: Check the sections with AI, this Mac's, under Fold with AI's effort; no row when the app doesn't give it", () => {
+  const rows = (x) => Glue.settingsPage("defaults", settings(), { defaults: { prompts: "claude:opus", chat: "" } }, x).filter((r) => r.section === "Fold with AI");
+  assert.equal(rows({}).length, 2);
+  const on = rows({ foldOutline: true, machineOnly: true });
+  assert.deepEqual(on.map((r) => r.value), ["defaults.fold.model", "defaults.fold.effort", "mac.foldOutline"]);
+  assert.deepEqual([on[2].rowId, on[2].label, on[2].checked, on[2].badge], ["set-toggle", "Check the sections with AI", true, "this machine"]);
+  assert.match(on[2].detail, /^On · when the reader first opens a paper, the model above reads its headings once/);
+  const off = rows({ foldOutline: false })[2];
+  assert.deepEqual([off.checked, off.badge, off.detail], [false, "", "Off · a paper's sections come from the PDF's bookmarks and the reader's own rules"]);
+  assert.notEqual(on[2].icon, off.icon, "the icon says it too, not only the word");
+});
+
 test("the effort's page checks low by default; the model's page offers the prompts' model first", () => {
   const choice = Glue.settingsPage("choice", settings(), {}, { choice: "defaults.fold.effort" });
   assert.deepEqual(choice.filter((r) => r.checked).map((r) => r.tag), ["low"]);

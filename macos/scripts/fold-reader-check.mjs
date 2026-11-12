@@ -417,6 +417,7 @@ const FM = require("../ZoteroLauncher/Reader/FoldMake.js");
 const STATES = [
   ["loading", "Opening the paper…", "", null],
   [{ kind: "reading", done: 3, pages: 12 }, "Reading the PDF…", "3 of 12 pages.", null],
+  [{ kind: "reading", done: 12, pages: 12, outline: true }, "Checking the sections with AI…", "The model reads this paper's headings, once. Skip shows the paper now, with the sections the reader found itself.", ["Skip", "skip"]],
   ["no-pdf", "This paper has no PDF", "The reader folds a paper from its PDF: attach one in Zotero, then press ⌘R.", ["Try again", "retry"]],
   ["missing", "The PDF file is missing from disk", "Zotero lists it, but the file isn't there: sync or relink it in Zotero, then press ⌘R.", ["Try again", "retry"]],
   [{ kind: "unreadable", why: "It is encrypted with a password" }, "Couldn't open the PDF", "It is encrypted with a password", ["Try again", "retry"]],
@@ -441,7 +442,7 @@ for (const [s, title, sentence, button] of STATES) {
   ok(!got.hidden && got.h === title && got.p === sentence && got.b.join() === (button ? button.join("/") : "") && pressed, `R5-27 ${st.kind}: its title, sentence${button ? ", and " + button[0] + " posting " + button[1] : ""}`);
 }
 await load(payload(null, fw, { state: { kind: "scan" } }));
-ok((await pg.isVisible("#bFold")) && (await pg.isDisabled("#bFold")) && (await attr("#bFold", "title")) === STATES[5][2], "R5-28 a scan: the Fold button disabled, its tooltip the state's sentence");
+ok((await pg.isVisible("#bFold")) && (await pg.isDisabled("#bFold")) && (await attr("#bFold", "title")) === STATES.find((x) => x[0] === "scan")[2], "R5-28 a scan: the Fold button disabled, its tooltip the state's sentence");
 await load(payload(null, fw, { state: { kind: "reading", done: 1, pages: 2 } }));
 ok(await pg.isVisible("#pdf"), "R5-27 the PDF pane shows the PDF meanwhile");
 
@@ -823,6 +824,41 @@ await wait(150);
 const heights = await pg.evaluate(() => ({ tools: document.querySelector(".tools").offsetHeight, text: document.getElementById("text").offsetHeight }));
 ok(heights.tools <= 70 && heights.text >= 290, `at 760 × 480 the toolbar keeps one row (${heights.tools} px) and the text ${heights.text} px of the height`);
 await pg.setViewportSize({ width: 1360, height: 820 });
+
+// the sections' headings (SPEC 7.4) and who set them (R5-SPEC 3.7): a doc with four levels, one heading in capitals
+await pg.setViewportSize({ width: 1360, height: 820 });
+{
+  const d = F.doc();
+  const body = d.sections.find((s) => s.id === "S1");
+  const sec = (id, num, title, depth, units) => ({ id, num, title, depth, takeaway: "", topic: "", units: units || [] });
+  const unit = (id) => Object.assign(JSON.parse(JSON.stringify(body.units[0])), { id });
+  d.source = Object.assign({}, d.source, { outline: "ai", outline_model: "Lab model" });
+  d.sections = [d.sections[0], body, sec("S2", "2", "METHOD AND THE READER", 1), sec("S2.SS1", "2.1", "A sub-section whose title is long enough to wrap onto a second line in the column however wide the window is made", 2, [unit("S2.SS1.p1")]),
+    sec("S2.SS1.SSS1", "2.1.1", "Sample", 3, [unit("S2.SS1.SSS1.p1")]), sec("S2.SS1.SSS1.SSSS1", "", "Reading capacity", 4, [unit("S2.SS1.SSS1.SSSS1.p1")])];
+  d.links = [];
+  await load(payload(d, null));
+  await wait(150);
+  const heads = await pg.$$eval("#text .column .sec", (l) => l.map((e) => { const c = getComputedStyle(e), n = e.querySelector(".n"), r = document.createRange(); r.selectNodeContents(e.lastChild);
+    return { id: e.dataset.s, text: e.lastChild.textContent, role: e.getAttribute("role"), level: e.getAttribute("aria-level"), tip: e.title, font: c.fontFamily, size: parseFloat(c.fontSize), style: c.fontStyle, rule: parseFloat(c.borderBottomWidth),
+      left: Math.round(e.getBoundingClientRect().left), top: parseFloat(c.marginTop), lines: r.getClientRects().length, nx: n ? Math.round(n.getBoundingClientRect().right) : 0, tx: Math.round(Math.min(...Array.from(r.getClientRects(), (b) => b.left))) }; }));
+  const by = Object.fromEntries(heads.map((h) => [h.id, h]));
+  const textLeft = await pg.$eval('#text .column .u[data-u="S1.p1.1"] .body', (e) => Math.round(e.getBoundingClientRect().left));
+  ok(heads.every((h) => h.role === "heading" && /serif/.test(h.font)), "a section's heading is a heading, in the paper's serif");
+  ok(by.S1.level === "2" && by["S2.SS1"].level === "3" && by["S2.SS1.SSS1"].level === "4" && by["S2.SS1.SSS1.SSSS1"].level === "5", "its aria-level is its depth under the paper's title");
+  ok(by.S1.size > by["S2.SS1"].size && by["S2.SS1"].size > by["S2.SS1.SSS1"].size - 0.01 && by["S2.SS1"].size > by["S2.SS1.SSS1.SSSS1"].size && by["S2.SS1.SSS1"].size >= 17,
+    `four levels by size, none under the text's (${heads.map((h) => h.size).join(", ")})`);
+  ok(by.S1.rule === 1 && by["S2.SS1"].rule === 0 && by["S2.SS1.SSS1"].rule === 0 && by["S2.SS1.SSS1.SSSS1"].style === "italic" && by["S2.SS1.SSS1"].style === "normal", "only the first level has a rule; the fourth is in italics");
+  ok(heads.every((h) => Math.abs(h.left - textLeft) <= 1), `headings start on the text's left edge (${textLeft}: ${heads.map((h) => h.left).join(", ")})`);
+  ok(by["S2.SS1"].lines >= 2 && by["S2.SS1"].tx > by["S2.SS1"].nx, "a wrapped heading's lines all start after its number");
+  ok(by["S2.SS1"].top < by.S2.top && by["S2.SS1"].top <= 12, "a heading straight under another keeps close to it");
+  ok(by.S2.text === "Method and the reader" && by.S2.tip === "In the paper: METHOD AND THE READER" && by.S1.tip === "", "a heading in capitals is shown in the case of the others, its tooltip the paper's own: " + by.S2.text);
+  const oby = await pg.$eval(".hd .byline .oby", (e) => ({ text: e.textContent, tip: e.title, icon: !!e.querySelector("svg"), by: e.dataset.outline }));
+  ok(oby.text === "Sections checked by AI" && oby.icon && oby.by === "ai" && /^Lab model read this paper's headings/.test(oby.tip), "the byline says who set the sections, an icon and words: " + oby.text);
+  d.source.outline = "rules";
+  await load(payload(d, null));
+  await wait(100);
+  ok((await pg.textContent(".hd .byline .oby")) === "Sections found by the reader", "and the reader's own rules when no model did (the same PDF read again shows its new sections)");
+}
 
 // narrow, 42
 await pg.setViewportSize({ width: 760, height: 480 });

@@ -46,6 +46,7 @@ button:disabled { cursor: default; opacity: .5; }
 .titles { flex: 1 1 420px; min-width: 0; }
 .title { font: 600 19px/1.25 var(--f-paper); margin: 0; overflow-wrap: anywhere; }
 .byline { color: var(--muted); margin-top: 3px; }
+.byline .oby { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; vertical-align: bottom; }
 @media (max-width: 900px) {
   .hd { padding: 8px 14px 6px; gap: 4px 12px; }
   .title { font-size: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -98,10 +99,18 @@ button:disabled { cursor: default; opacity: .5; }
 #text:focus-visible { outline: none; }
 .kbd #text:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
 .column { position: relative; margin: 0 auto; padding: 22px 28px max(160px, 60vh); }
-.sec { font-weight: 600; font-size: 18px; margin: 22px var(--mgw, 0px) 10px 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line2); }
-.sec.d2, .sec.d3 { font-size: 15px; }
-.sec .n { color: var(--faint); margin-right: 8px; font-weight: 500; }
-.stake { color: var(--muted); font-size: 14px; line-height: 1.5; margin: -4px var(--mgw, 0px) 12px 42px; font-family: var(--f-ui); }
+/* A section's heading: the paper's own words, so in the paper's face (the sans is the reader's own and the AI's). Its
+   four levels are told apart by size, slope and the space above, never by colour; only the first carries a rule. It
+   starts on the text's left edge (a row's 14 px of bars, its box's 7 and its shape's 28). */
+.sec { display: flex; align-items: baseline; gap: 9px; font: 600 21px/1.25 var(--f-paper); margin: 38px var(--mgw, 0px) 12px 49px; padding-bottom: 7px; border-bottom: 1px solid var(--line); text-wrap: balance; overflow-wrap: anywhere; }
+.sec.d2 { font-size: 18px; margin-top: 28px; margin-bottom: 8px; padding-bottom: 0; border-bottom: 0; }
+.sec.d3, .sec.d4 { font-size: 17px; margin-top: 22px; margin-bottom: 6px; padding-bottom: 0; border-bottom: 0; }
+.sec.d4 { font-style: italic; font-weight: 500; margin-top: 18px; }
+/* (the first heading of the text, and one straight under another: no more room than a paragraph's) */
+.lostgroup + .sec, .units:empty + .sec { margin-top: 12px; }
+/* (its number: lighter, and a column of its own, so a long heading's second line starts under its first word) */
+.sec .n { color: var(--faint); font-weight: 400; font-style: normal; flex-shrink: 0; }
+.stake { color: var(--muted); font-size: 14px; line-height: 1.5; margin: -2px var(--mgw, 0px) 12px 49px; font-family: var(--f-ui); }
 /* (a row's left 14 px hold its bars: the solid one of the selection, the dashed tick of the paragraph followed) */
 .u { display: flex; gap: 24px; margin-bottom: 12px; padding-left: 14px; }
 .u.nomargin { gap: 10px; }

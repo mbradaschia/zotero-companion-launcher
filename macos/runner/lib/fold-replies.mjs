@@ -67,6 +67,13 @@ export function replyStore(local, shared, write = writeAtomic) {
   };
 }
 
+// The outline pass's reply (lib/outline.mjs) is kept beside the fold's as outline-<key>.json: not a fold reply's name,
+// so a fold's pruning leaves it. This machine keeps the one in use; the shared folder is only added to.
+const OUTLINE = /^outline-[0-9a-f]{24}\.json$/;
+export function pruneOutlines(local, key) {
+  try { for (const f of readdirSync(local)) if (OUTLINE.test(f) && f !== key + ".json") unlinkSync(join(local, f)); } catch { /* none */ }
+}
+
 // Every paper's replies folded on this machine before syncing (or before 0.3.2) that the shared
 // folder lacks, copied there once: the other machine then folds those papers without asking.
 // Returns how many were copied.

@@ -1,0 +1,15 @@
+1 Introduction
+1 Data and methodology
+2 Measuring policy uncertainty
+2 Share repurchase data
+1 Results
+2 Policy uncertainty and share repurchases
+2 Robustness checks: dealing with endogeneity
+2 Policy uncertainty and share repurchases: market reactions
+2 Policy uncertainty and the completion rate of share repurchases
+2 Policy uncertainty and repurchase techniques
+2 Policy uncertainty and share repurchases: misvaluation
+2 The COVID‐19 crisis and share repurchases
+1 Further tests and discussion: US market versus European market
+1 Conclusion
+1 Supporting information

@@ -15,7 +15,7 @@ var FoldMake = (function () {
 
   var C = typeof FoldCore !== "undefined" ? FoldCore : require("./FoldCore.js")
 
-  var EXTRACTOR = 3
+  var EXTRACTOR = 4
   var APPARATUS = { reference: 1, footnote: 1, equation: 1 }
 
   // ---- TextFold's patterns (pdftext.py, pdfdoc.py)
@@ -96,7 +96,7 @@ var FoldMake = (function () {
         var cuts = [0]
         ws.forEach(function (w, i) { if (i && w.x0 - ws[i - 1].x1 > 1.5 * sz) cuts.push(i) })
         cuts.push(ws.length)
-        var whole = segment(ws, n, W, H, sz, Number(l.f) || 0, Math.min(Number(l.lb) || 0, ws.length), String(l.fn || ""))
+        var whole = segment(ws, n, W, H, sz, Number(l.f) || 0, Math.min(Number(l.lb) || 0, ws.length), String(l.fn || ""), Math.min(Number(l.li) || 0, ws.length))
         if (cuts.length === 2) segs.push(whole)
         else {
           var few = false
@@ -119,8 +119,8 @@ var FoldMake = (function () {
       ws.splice(i, 2, { t: a.t + b.t, x0: a.x0, y0: Math.min(a.y0, b.y0), x1: b.x1, y1: Math.max(a.y1, b.y1), page: a.page, W: a.W, H: a.H })
     }
   }
-  function segment(words, page, W, H, sz, f, lb, fn) {
-    var s = { page: page, W: W, H: H, words: words, size: sz, f: f, lb: lb, fn: fn || "", x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, chars: 0 }
+  function segment(words, page, W, H, sz, f, lb, fn, li) {
+    var s = { page: page, W: W, H: H, words: words, size: sz, f: f, lb: lb, li: li || 0, fn: fn || "", x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, chars: 0 }
     words.forEach(function (w) {
       s.x0 = Math.min(s.x0, w.x0); s.y0 = Math.min(s.y0, w.y0); s.x1 = Math.max(s.x1, w.x1); s.y1 = Math.max(s.y1, w.y1)
       s.chars += w.t.length
@@ -224,7 +224,7 @@ var FoldMake = (function () {
     if (!keepSize && chars && sum > 0 && own > 0) size = Math.round(s.size * own / (sum / chars) * 2) / 2
     var bold = Math.max(0, Math.min(s.lb, to) - from)
     var f = (s.f & ~1) | (bold * 2 > ws.length ? 1 : 0)
-    return segment(ws, s.page, s.W, s.H, size, f, from === 0 ? Math.min(s.lb, to) : 0, s.fn)
+    return segment(ws, s.page, s.W, s.H, size, f, from === 0 ? Math.min(s.lb, to) : 0, s.fn, from === 0 ? Math.min(s.li, to) : 0)
   }
 
   // A line still across the middle of a page whose other lines show two columns (5 or more of 4 words or more each
@@ -380,8 +380,15 @@ var FoldMake = (function () {
         var brk = !cur
         if (cur) {
           var p = cur.segs[cur.segs.length - 1]
-          if (sameRow(p, s)) brk = Math.abs(s.size - p.size) > 0.6 || boldAll(s) !== boldAll(p)
-          else {
+          if (sameRow(p, s)) {
+            brk = Math.abs(s.size - p.size) > 0.6 || boldAll(s) !== boldAll(p)
+            // (a heading the model named, cut from its number by a wide gap: "2" and "Theory" are one block, a heading)
+            if (!brk && s.ai && !cur.ai) cur.ai = s.ai
+          } else if (cur.ai || s.ai || s.aiRun) {
+            // (the outline pass: a heading the model named is a block of its own, its wrapped lines with it; a run-in
+            // one starts its paragraph's block)
+            brk = !(cur.ai && s.ai && cur.ai.g === s.ai.g)
+          } else {
             brk = s.y0 - p.y1 > Math.max(0.6 * s.size, 1.5 * gapMedian) ||
               Math.abs(s.size - p.size) > 0.6 ||
               boldAll(s) !== boldAll(p) ||
@@ -400,7 +407,7 @@ var FoldMake = (function () {
           }
         }
         if (brk) {
-          cur = { flow: f, segs: [], list: LIST.test(s.text), edges: e, head: s.words.length <= 10 && NUMBERED.test(s.text) }
+          cur = { flow: f, segs: [], list: LIST.test(s.text), edges: e, head: s.words.length <= 10 && NUMBERED.test(s.text), ai: s.ai || null, aiRun: s.ai ? null : s.aiRun || null }
           blocks.push(cur)
         }
         cur.segs.push(s)
@@ -568,15 +575,36 @@ var FoldMake = (function () {
       // (a caption's label on a line of its own, its title on the next in bold: AMR's "FIGURE 1" over "Theoretical
       // Model of ..."; the title is the caption's, not a heading)
       var last = items[items.length - 1]
-      if (head !== null && last && last.type === "unit" && last.kind === "caption" && last.labelOnly && last.flow === b.flow) {
+      if (head !== null && !b.ai && last && last.type === "unit" && last.kind === "caption" && last.labelOnly && last.flow === b.flow) {
         last.words = joinTo(last.words, b.words)
         last.labelOnly = false
         return
       }
+      // (the outline pass, 6c: the headings are the model's, at its levels; the rules keep only what names the
+      // abstract and the references)
+      var level = 0
+      if (ctx && ctx.ai) {
+        var named = function (t) { return ABSTRACT.test(t) || REFS.test(t) }
+        if (b.ai) { head = headText(b, ctx.outline); ri = null; level = b.ai.level }
+        else if (b.aiRun && aiRunIn(b)) { head = null; ri = aiRunIn(b); level = b.aiRun.level }
+        else if (b.aiRun) { head = headText(b, ctx.outline); ri = null; level = b.aiRun.level }
+        else { if (head !== null && !named(head)) head = null; if (head === null) { ri = runIn(b, early); if (ri && !named(ri.title)) ri = null } else ri = null }
+      }
       if (head !== null || ri) {
         flushRefs()
         var title = head !== null ? head : ri.title
+        // (the rules' own heading in letterspaced capitals reads as its words too)
+        if (head !== null && !level) {
+          var plain = b.segs.map(function (s) { return s.text }).join(" "), whole = b.segs.map(despace).join(" ")
+          if (whole !== plain && head === plain) title = whole
+        }
         var prev = items[items.length - 1]
+        // (the model's heading, the page or the column broke: one)
+        if (b.ai && prev && prev.type === "heading" && prev.g === b.ai.g) {
+          prev.text = prev.text + " " + title
+          prev.words = joinTo(prev.words, b.words)
+          return
+        }
         // (a heading the page broke over two lines is one: pdftext._joined_headings; in one look: AMR's sub-section
         // in bold right under its section's title in bold capitals is its own)
         if (head !== null && prev && prev.type === "heading" && prev.joinable && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) &&
@@ -587,8 +615,9 @@ var FoldMake = (function () {
           return
         }
         var h = { type: "heading", text: title, size: b.size, refs: REFS.test(title), abstract: ABSTRACT.test(title), flow: b.flow,
-          joinable: head !== null && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) && !ri,
+          joinable: !level && head !== null && !NUMBERED.test(title) && !ABSTRACT.test(title) && !REFS.test(title) && !ri,
           block: b, words: ri ? [] : b.words, runIn: !!ri, style: styleOf(b) }
+        if (level) { h.depth = level; h.outlined = true; h.g = b.ai ? b.ai.g : -1 }
         items.push(h)
         if (!h.abstract) early = false
         inRefs = h.refs
@@ -701,6 +730,141 @@ var FoldMake = (function () {
     })
   }
 
+  // ---- 6c. the outline pass: the lines a model is asked about, and its answer (meta.headings) read back
+  //
+  // A paper's headings follow its journal's design, and no rule of sizes and weights reads every journal's. So the
+  // reader asks once per paper: every line that isn't plainly body text mid-paragraph goes to the model as a candidate
+  // (its text, how it is set against the body, what follows it), with the PDF's bookmarks as a hint, and the model
+  // answers which candidates are the headings and at what levels. The answer comes back as meta.headings: { n (the
+  // candidates it was asked about), headings: [{ ids, level }], model }. An answer for other candidates, or one that
+  // names fewer than two headings, is left aside and the rules above decide, as they do before any answer.
+
+  var CAND_NUM = /^\s*(?:\d+(?:\.\d+)*|[IVX]+|[A-Z])[.)|]?\s+\S/
+  var CAND_MAX = 1500
+  function capsLine(t) { return !/\p{Ll}/u.test(t) && (t.match(/\p{Lu}/gu) || []).length >= 3 }
+  // The face most of the text is set in ("" when the lines name none).
+  function bodyFamily(segs) {
+    var n = {}, best = "", most = 0
+    segs.forEach(function (s) { if (s.fn) n[s.fn] = (n[s.fn] || 0) + s.chars })
+    Object.keys(n).sort().forEach(function (k) { if (n[k] > most) { most = n[k]; best = k } })
+    return best
+  }
+  // A line's text with letterspaced words made whole ("I N T R O D U C T I O N", "M E T H O D S  A N D  D A T A"): when
+  // most of its words are one or two letters, the letters are joined, a new word where the gap is 1.7 times the usual.
+  function despace(seg) {
+    var ws = seg.words
+    if (ws.length < 4 || ws.filter(function (w) { return w.t.length <= 2 }).length < 0.75 * ws.length) return seg.text
+    var gaps = []
+    for (var i = 1; i < ws.length; i++) gaps.push(Math.max(0, ws[i].x0 - ws[i - 1].x1))
+    var sorted = gaps.slice().sort(function (a, b) { return a - b }), usual = sorted[Math.floor(sorted.length / 2)]
+    if (usual > 0.22 * seg.size) return seg.text
+    var out = ws[0].t
+    for (var k = 1; k < ws.length; k++) out += (gaps[k - 1] > 1.7 * usual && gaps[k - 1] > 0.15 * seg.size ? " " : "") + ws[k].t
+    return out
+  }
+  // The candidates, in reading order: [{ id, p, text, tags, next, seg, lead }]. A line is one when it is short and set
+  // unlike the body (larger, bold, italic, capitals, another face), when it is short and numbered, or when it opens
+  // with bold or italic words that end in a full stop or a colon (a run-in heading: lead words, the text its lead).
+  // Never a line set well under the body's size (a figure's labels, a table's cells, footnotes), nor a head or foot
+  // the margins repeat on three pages or more.
+  function candidatesOf(flows, edges, body, fam) {
+    var order = []
+    flows.forEach(function (f) { f.segs.forEach(function (s) { order.push({ s: s, e: edges[f.side] || edges.one }) }) })
+    var margin = function (s) { return s.y0 < 0.09 * s.H || s.y1 > 0.92 * s.H }
+    var key = function (t) { return t.toLowerCase().replace(/\d+/g, "#") }
+    var seen = {}
+    order.forEach(function (o) { if (margin(o.s)) (seen[key(o.s.text)] = seen[key(o.s.text)] || {})[o.s.page] = true })
+    var out = []
+    order.forEach(function (o, i) {
+      var s = o.s, t = s.text, whole = despace(s), n = whole === t ? s.words.length : whole.split(" ").length
+      if (!/\p{L}{2}/u.test(t.replace(/\s+/g, "")) || s.size < body - 1.6) return
+      if (margin(s) && size(seen[key(t)] || {}) >= 3) return
+      var bold = boldAll(s), ital = (s.f & 2) === 2 || (s.li > 0 && s.li >= s.words.length)
+      var other = !!s.fn && !!fam && s.fn !== fam
+      var differs = s.size >= body + 0.4 || bold || ital || capsLine(t) || (other && s.size >= body - 0.6)
+      var short = n <= 18
+      var lead = Math.max(s.lb, s.li)
+      var opens = whole === t && lead > 0 && lead < n && lead <= 12
+      if (!((differs && short) || opens || (short && n <= 12 && CAND_NUM.test(t) && s.size >= body - 0.6))) return
+      var leadText = opens ? s.words.slice(0, lead).map(function (w) { return w.t }).join(" ") : ""
+      var run = opens && /[.:?!]$/.test(leadText)
+      // (an emphasised word that opens a sentence is no heading)
+      if (opens && !run && !(differs && short)) return
+      var text = run ? leadText : whole
+      var tags = [], d = Math.round((s.size - body) * 10) / 10
+      if (d) tags.push((d > 0 ? "+" : "") + d + "pt")
+      if (run ? s.lb >= lead : bold) tags.push("bold")
+      if (run ? s.li >= lead : ital) tags.push("italic")
+      if (capsLine(text)) tags.push("caps")
+      if (other) tags.push("font2")
+      var w = o.e[1] - o.e[0]
+      if (s.x0 - o.e[0] > 2 * s.size && Math.abs((s.x0 + s.x1) / 2 - (o.e[0] + o.e[1]) / 2) <= 0.05 * w) tags.push("centred")
+      if (run) tags.push("run-in: paragraph continues on the same line")
+      var next = run ? s.words.slice(lead, lead + 8).map(function (x) { return x.t }).join(" ") : i + 1 < order.length ? order[i + 1].s.text.slice(0, 60) : ""
+      out.push({ id: out.length, p: s.page, text: text.slice(0, 160), tags: tags, next: next, seg: s, lead: run ? lead : 0 })
+    })
+    return out
+  }
+  // The model's answer checked against the candidates: its headings in reading order, [{ ids, level }] with levels
+  // from 1 to 4, or null (none given, given for other candidates, or fewer than two that stand). A heading's ids are
+  // one line, or a wrapped heading's lines one after another (four at most); the paper's own title is no section.
+  function pickHeadings(cands, given, meta) {
+    if (!given || typeof given !== "object" || !Array.isArray(given.headings) || Number(given.n) !== cands.length) return null
+    var title = wordSet(meta.title), out = [], used = {}
+    given.headings.forEach(function (h) {
+      if (!h || typeof h !== "object") return
+      var ids = (Array.isArray(h.ids) ? h.ids : [h.id]).filter(function (x) { return typeof x === "number" && x % 1 === 0 && x >= 0 && x < cands.length })
+      var level = Number(h.level)
+      if (!ids.length || !(level >= 1 && level <= 9) || level % 1 !== 0) return
+      var run = [ids[0]]
+      for (var i = 1; i < ids.length && run.length < 4; i++) {
+        var a = run[run.length - 1], b = ids[i]
+        if (!(b > a && b - a <= 2) || cands[b].lead || cands[a].lead || cands[b].p - cands[a].p > 1) break
+        run.push(b)
+      }
+      if (run.some(function (id) { return used[id] })) return
+      var text = run.map(function (id) { return cands[id].text }).join(" ")
+      if (cands[run[0]].p <= 2 && size(title) >= 3 && jaccard(wordSet(text), title) >= 0.8) return
+      run.forEach(function (id) { used[id] = true })
+      out.push({ ids: run, level: level })
+    })
+    if (out.length < 2) return null
+    out.sort(function (a, b) { return a.ids[0] - b.ids[0] })
+    var low = Math.min.apply(null, out.map(function (h) { return h.level }))
+    out.forEach(function (h) { h.level = Math.min(4, h.level - low + 1) })
+    return out
+  }
+  // The headings marked on their lines, for blocksOf and itemsOf: ai { level, g (the heading's number) } on each line
+  // of a heading that stands on its own, aiRun { level, lead } on a line a run-in one opens.
+  function markHeadings(cands, picked) {
+    picked.forEach(function (h, g) {
+      var first = cands[h.ids[0]]
+      if (h.ids.length === 1 && first.lead) first.seg.aiRun = { level: h.level, lead: first.lead }
+      else h.ids.forEach(function (id) { cands[id].seg.ai = { level: h.level, g: g } })
+    })
+  }
+  // A heading block's title: its letterspaced words made whole, no full stop or colon at its end, and, set in
+  // capitals, the PDF's bookmark for it when that has it in mixed case.
+  function headText(b, outline) {
+    var rows = []
+    b.segs.forEach(function (s, i) { if (i && sameRow(b.segs[i - 1], s)) rows[rows.length - 1] += " " + despace(s); else rows.push(despace(s)) })
+    var t = rows.reduce(function (a, r) { return !a ? r : /[a-z]-$/.test(a) && /^[a-z]/.test(r) ? a.slice(0, -1) + r : a + " " + r }, "")
+    if (/\p{L}{2}[.:]$/u.test(t) && !/\.\.\.$/.test(t)) t = t.slice(0, -1)
+    if (capsOnly(t) || capsLine(t)) {
+      var key = outlineKey(t)
+      var e = (Array.isArray(outline) ? outline : []).filter(function (x) { return x && /\p{Ll}/u.test(String(x.t || "")) && keysMeet(outlineKey(x.t), key) })[0]
+      if (e) { var num = NUMBERING.exec(t); t = (num ? num[0].trim() + " " : "") + String(e.t).replace(NUMBERING, "").trim() }
+    }
+    return t
+  }
+  // A run-in heading the model named: its lead words the title, the rest its paragraph; null when the lead is all of it.
+  function aiRunIn(b) {
+    var first = b.segs[0], k = Math.min(b.aiRun.lead, first.words.length)
+    var rest = joinWords(b.segs, k)
+    if (!rest.length || k < 1) return null
+    return { title: first.words.slice(0, k).map(function (w) { return w.t }).join(" ").replace(/[.:—–-]+$/, ""), rest: rest }
+  }
+
   // ---- 7. a paragraph the column or the page broke, made whole
 
   function joinBreaks(items) {
@@ -736,7 +900,7 @@ var FoldMake = (function () {
     var stop = -1
     for (var i = 0; i < page1.length; i++) {
       var b = page1[i], t = b.text
-      if (ABSTRACT.test(t) || REFS.test(t) || (NUMBERED.test(t) && b.words.length <= 10) || runIn(b, true) ||
+      if (b.ai || b.aiRun || ABSTRACT.test(t) || REFS.test(t) || (NUMBERED.test(t) && b.words.length <= 10) || runIn(b, true) ||
           (Math.abs(b.size - body) < 0.6 && b.words.length >= 25)) { stop = i; break }
     }
     var out = {}, title = null, abstract = null
@@ -764,7 +928,7 @@ var FoldMake = (function () {
   }
   function sectionsOf(items, meta, frontAbstract) {
     var sections = [], cur = null, pending = [], notes = []
-    var s1 = 0, ss = 0, sss = 0, a = 0, ass = 0, afterRefs = false, appendix = false, seenHeading = false
+    var s1 = 0, ss = 0, sss = 0, s4 = 0, a = 0, ass = 0, afterRefs = false, appendix = false, seenHeading = false
     var maxH = 0, numbered = false
     var roman = items.some(function (it) { return it.type === "heading" && ROMAN_HEAD.test(it.text) })
     items.forEach(function (it) {
@@ -815,7 +979,7 @@ var FoldMake = (function () {
         // (in an IEEE paper a lone letter I, V or X in mixed case is a sub-section's, not a Roman numeral)
         if (roman && hm && /^[IVX]+$/.test(hm[1]) && !ROMAN_HEAD.test(it.text)) hm = null
         var num = hm ? hm[1] : lm && !APPENDIX.test(it.text) ? lm[1] : ""
-        var title = hm ? hm[2] : num ? lm[2] : it.text
+        var title = (hm ? hm[2] : num ? lm[2] : it.text).replace(/^[|│]\s*(?=\S)/, "")
         if (it.refs) { afterRefs = true; open(uniqueId("bib", sections), num, title, 1); return }
         var depth = it.depth ? it.depth : roman && lm && !hm && !afterRefs && !appendix ? 2 : num ? depthOf(it.text) :
           !numbered && rank[it.style] ? rank[it.style] : it.size >= maxH - 0.25 ? 1 : 2
@@ -825,8 +989,11 @@ var FoldMake = (function () {
           return
         }
         if (depth >= 2 && s1 === 0) depth = 1
-        if (depth === 3 && ss === 0) depth = 2
-        if (depth === 1) { s1++; ss = 0; sss = 0; open("S" + s1, num, title, 1) } else if (depth === 2) { ss++; sss = 0; open("S" + s1 + ".SS" + ss, num, title, 2) } else { sss++; open("S" + s1 + ".SS" + ss + ".SSS" + sss, num, title, 3) }
+        if (depth >= 3 && ss === 0) depth = 2
+        if (depth >= 4 && sss === 0) depth = 3
+        // (a fourth level only from the outline pass: the rules and the bookmarks stop at three)
+        if (depth === 1) { s1++; ss = 0; sss = 0; s4 = 0; open("S" + s1, num, title, 1) } else if (depth === 2) { ss++; sss = 0; s4 = 0; open("S" + s1 + ".SS" + ss, num, title, 2) }
+        else if (depth === 3) { sss++; s4 = 0; open("S" + s1 + ".SS" + ss + ".SSS" + sss, num, title, 3) } else { s4++; open("S" + s1 + ".SS" + ss + ".SSS" + sss + ".SSSS" + s4, num, title, 4) }
         return
       }
       if (it.kind === "footnote") { notes.push(it); return }
@@ -924,12 +1091,18 @@ var FoldMake = (function () {
     var flows = flowsOf(segs, fr, body)
     var edges = edgesOf(segs, fr, body)
     flows.forEach(dropTables)
+    // (the outline pass: the candidates, and the model's headings among them when its answer came with the meta)
+    var cands = candidatesOf(flows, edges, body, bodyFamily(segs))
+    var picked = pickHeadings(cands, m.headings, m)
+    if (picked) markHeadings(cands, picked)
     var blocks = blocksOf(flows, edges, body, medianGap(flows, body))
     if (!blocks.length) return { problem: "no-text", stats: stats }
     var front = frontOf(blocks, body, m)
-    var ctx = { roman: blocks.filter(function (b) { return b.words.length <= 12 && ROMAN_HEAD.test(b.text) }).length >= 2 }
+    var ctx = { roman: blocks.filter(function (b) { return b.words.length <= 12 && ROMAN_HEAD.test(b.text) }).length >= 2, ai: !!picked, outline: m.outline }
     var items = itemsOf(blocks, body, front.abstract ? withKey(front.drop, front.abstract.index) : front.drop, ctx)
-    items = joinBreaks(applyOutline(items, m.outline, body))
+    var by = "ai"
+    if (!picked) { var outlined = applyOutline(items, m.outline, body); by = outlined === items ? "rules" : "bookmarks"; items = outlined }
+    items = joinBreaks(items)
     var secs = sectionsOf(items, m, front.abstract)
     var sections = [], map = {}, n = 0, tooLong = false
     secs.forEach(function (s) {
@@ -970,6 +1143,10 @@ var FoldMake = (function () {
       provenance: { made_with: String(m.made_with || ""), exported: String(m.exported || ""), ai_generated: false, model: "", levels_made: "", local: true },
       sections: sections, links: []
     }
+    // (who set the sections: the model, with its name; the PDF's bookmarks; the rules. tried: a model answered)
+    doc.source.outline = by
+    if (picked) doc.source.outline_model = String(m.headings.model || "")
+    if (m.headings && typeof m.headings === "object") doc.source.outline_tried = true
     var crops = C.crops(ps.map(function (p, i) {
       var words = []
       ;((p && p.lines) || []).forEach(function (l) { (l && Array.isArray(l.w) ? l.w : []).forEach(function (w) { words.push(w) }) })
@@ -980,7 +1157,14 @@ var FoldMake = (function () {
       pdf: { bytes: pdf.bytes || 0, modified: String(pdf.modified || ""), pages: count },
       coverage: { linked: n, total: n }, crops: crops, map: map
     }
-    return { doc: doc, links: links, stats: stats }
+    var out = { doc: doc, links: links, stats: stats }
+    // (what the outline request is made of; none for a paper with no candidate, or too many to be a paper's)
+    if (cands.length && cands.length <= CAND_MAX) out.ask = {
+      n: cands.length, title: doc.title,
+      candidates: cands.map(function (c) { return { id: c.id, p: c.p, text: c.text, tags: c.tags, next: c.next } }),
+      bookmarks: (Array.isArray(m.outline) ? m.outline : []).slice(0, 120).map(function (e) { return { t: String(e && e.t || "").slice(0, 160), l: Number(e && e.l) || 1 } })
+    }
+    return out
   }
   function withKey(o, k) { var x = {}; for (var key in o) x[key] = o[key]; x[k] = true; return x }
 
@@ -1021,7 +1205,7 @@ var FoldMake = (function () {
     ;(Array.isArray(d.sections) ? d.sections : []).forEach(function (s) {
       var us = foldable(s)
       if (!us.length) return
-      sections.push({ id: String(s.id), num: String(s.num == null ? "" : s.num), title: String(s.title == null ? "" : s.title), depth: s.depth === 2 || s.depth === 3 ? s.depth : 1,
+      sections.push({ id: String(s.id), num: String(s.num == null ? "" : s.num), title: String(s.title == null ? "" : s.title), depth: s.depth === 2 || s.depth === 3 || s.depth === 4 ? s.depth : 1,
         units: us.map(function (u) {
           var x = { id: String(u.id), kind: String(u.kind || "paragraph") }
           if (u.label) x.label = String(u.label)

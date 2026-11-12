@@ -283,6 +283,16 @@ says so.
   paper to the model; its banner says the model, the number of requests and the price when the provider lists one,
   before anything is sent. *Fold again…* asks first, with `Keep these` focused. *Stop folding* keeps what came back.
   No key starts a fold.
+- **The one thing sent without a click** is the sections' check: on a paper's first open its title, its PDF's
+  bookmarks and its candidate heading lines (not its paragraphs) go to the same model, once, about 2 cents, so the
+  sections and their levels are the paper's. The text pane says `Checking the sections with AI…` with a `Skip`
+  button, the byline says afterwards who set the sections (a sparkle and `Sections checked by AI`, a bookmark and
+  `Sections from the PDF's bookmarks`, or `Sections found by the reader`), and Settings › Defaults › Fold with AI ›
+  *Check the sections with AI* turns it off (this Mac's). Without it, or without a model, the reader finds the
+  sections itself.
+- **A section's heading is the paper's**, so it is set in the paper's serif, never the sans of the reader's own
+  words and the AI's. Its levels differ by size, slope and space, the first alone with a rule. A heading the paper
+  prints in capitals is shown in the case of its other headings; hovering it shows it as printed.
 - **Keys:** `1` to `5` a level, `-` and `=` coarser and finer, ⌘ scroll over the text a level, `j` `k` a paragraph,
   `↵` open it in place, esc fold back (then hide the bar), `⌥⌘P` the PDF, `⌥⌘M` the margin, `?` the keys; the
   window's own, as the review table's: ⌘W close, ⌘- ⌘+ ⌘0 text size, ⌘R read the paper and its PDF again. esc never

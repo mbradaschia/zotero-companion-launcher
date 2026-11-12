@@ -33,7 +33,8 @@ var FoldView = (function () {
     zoomin: [["M7.5 2.5a5 5 0 1 0 .01 0z M11.2 11.2l4.3 4.3M5.5 7.5h4M7.5 5.5v4"]],
     textsmaller: [["M2 14.5L5.75 4.5l3.75 10M3.4 11h4.7 M11.5 9.5h5"]],
     textlarger: [["M2 14.5L5.75 4.5l3.75 10M3.4 11h4.7 M11.5 9.5h5M14 7v5"]],
-    fit: [["M2.5 9h13M5 6.5L2.5 9 5 11.5M13 6.5l2.5 2.5-2.5 2.5"]]
+    fit: [["M2.5 9h13M5 6.5L2.5 9 5 11.5M13 6.5l2.5 2.5-2.5 2.5"]],
+    bookmark: [["M5 2.5h8v13l-4-3.2-4 3.2z"]]
   }
   function icon(name, small) {
     var svg = document.createElementNS(NS, "svg")
@@ -94,9 +95,18 @@ var FoldView = (function () {
     var c = STATES[s.kind] || STATES.loading
     var sentence = c[1]
     if (s.kind === "reading") sentence = s.pages ? (s.done || 0) + " of " + s.pages + " pages." : ""
+    // (the outline pass, R5-SPEC 3.6: the PDF is read, the model is asked which lines are its headings)
+    if (s.kind === "reading" && s.outline) return { title: "Checking the sections with AI…", sentence: "The model reads this paper's headings, once. Skip shows the paper now, with the sections the reader found itself.", action: ["Skip", "skip"] }
     if (s.kind === "unreadable") sentence = String(s.why || s.error || "").slice(0, 300)
     if (s.kind === "too-long") sentence = "It has " + (s.n || s.units || 0) + " paragraphs; the reader takes up to 5000."
     return { title: c[0], sentence: sentence, action: c[2] }
+  }
+
+  // Who set the paper's sections (the doc's source.outline), beside its byline: [icon, words, tip].
+  var OUTLINE_BY = {
+    ai: ["ai", "Sections checked by AI", ""],
+    bookmarks: ["bookmark", "Sections from the PDF's bookmarks", "The PDF's own bookmarks name these sections; no model checked them"],
+    rules: ["full", "Sections found by the reader", "The reader's own rules found these sections from how the page is set; no model checked them"]
   }
 
   // The fold over the text (R5-SPEC 6.2): FR.fold's kind to its banner. f: the fold object (FoldMake.foldView);
@@ -252,9 +262,18 @@ var FoldView = (function () {
     }
     function statusName(tag) { return String(tag || "").replace(/^s\//, "") }
     function statusNames() { return ((S.d && S.d.status && S.d.status.options) || []).slice() }
+    // Who set the sections, as an icon and words after the byline; none for a doc that doesn't say.
+    function outlineNote() {
+      var o = S.m && S.m.outline, c = o && OUTLINE_BY[o.by]
+      if (!c) return null
+      var tip = o.by === "ai" ? (o.model || "The model") + " read this paper's headings and set its sections (Settings › Defaults › Fold with AI)" : c[2]
+      return el("span", { class: "oby", title: tip, "data-outline": o.by }, [icon(c[0], true), el("span", { text: c[1] })])
+    }
     function drawHeader() {
       titleEl.textContent = paperTitle()
       byline.textContent = bylineText()
+      var by = outlineNote()
+      if (by) { if (byline.textContent) byline.appendChild(document.createTextNode(" · ")); byline.appendChild(by) }
       clear(pills)
       var st = (S.d && S.d.status) || { current: "", options: [] }
       var cur = statusName(st.current)
@@ -578,7 +597,9 @@ var FoldView = (function () {
       column.appendChild(mg)
       column.appendChild(el("div", { class: "lostgroup", hidden: true }))
       S.m.sections.forEach(function (s) {
-        var head = el("div", { class: "sec d" + s.depth, "data-s": s.id }, [s.num ? el("span", { class: "n", text: s.num }) : null, s.title])
+        // (a heading to VoiceOver too; one the paper sets in capitals says so on hover: the reader changed its case)
+        var head = el("div", { class: "sec d" + s.depth, "data-s": s.id, role: "heading", "aria-level": String(s.depth + 1) }, [s.num ? el("span", { class: "n", text: s.num }) : null, s.title])
+        if (s.printed) head.title = "In the paper: " + s.printed
         var take = el("div", { class: "stake", text: s.takeaway, hidden: true })
         var list = el("div", { class: "units", "data-s": s.id })
         column.appendChild(head); column.appendChild(take); column.appendChild(list)
@@ -1502,8 +1523,10 @@ var FoldView = (function () {
       var same = !!S.d && S.paperId === pid
       var m = null, st = d.state || { kind: d.doc ? "ready" : "loading" }
       if (d.doc) { var mm = C.model(d.doc); if (mm.problem) st = mm.problem; else m = mm }
+      // (the same PDF read again with the model's outline is another doc: its sections are other ones)
+      var heads = function (x) { return x.outline.by + "\n" + x.sections.map(function (s) { return s.id + " " + s.depth + " " + s.title }).join("\n") }
       var prevM = S.m, sameDoc = same && !!prevM && !!m && prevM.id === m.id && prevM.lang === m.lang && prevM.provenance.levelsMade === m.provenance.levelsMade &&
-        prevM.provenance.local === m.provenance.local && prevM.order.length === m.order.length
+        prevM.provenance.local === m.provenance.local && prevM.order.length === m.order.length && heads(prevM) === heads(m)
       var pdfSame = same && JSON.stringify((S.d && S.d.pdf) || null) === JSON.stringify(d.pdf || null)
       var keep = same && !!prevM && !column.hidden ? readingAnchor(text.getBoundingClientRect()) : null
       var mine = same && S.storeOwn ? S.store : null
