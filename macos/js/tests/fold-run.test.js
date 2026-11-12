@@ -572,9 +572,9 @@ test("0.3.2: fold end to end on two machines: the second asks nothing and costs 
   }
 })
 
-test("R5-44: the runner is 0.3.2 (0.3.0 brought fold) and its usage header lists fold; the licence is beside it", () => {
+test("R5-44: the runner is 0.3.3 (0.3.0 brought fold) and its usage header lists fold; the licence is beside it", () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "../../runner/package.json"), "utf8"))
-  assert.equal(pkg.version, "0.3.2")
+  assert.equal(pkg.version, "0.3.3")
   assert.match(fs.readFileSync(RUNNER, "utf8"), /^\/\/ {3}oma-zotero-prompt fold \[--plan\] --quiet/m)
   const lic = fs.readFileSync(path.join(__dirname, "../../runner/TEXTFOLD-LICENSE.txt"), "utf8")
   assert.equal(lic, fs.readFileSync(path.join(__dirname, "../../ZoteroLauncher/Reader/TEXTFOLD-LICENSE.txt"), "utf8"))
