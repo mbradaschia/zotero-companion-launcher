@@ -495,7 +495,7 @@ var FoldCore = (function () {
   }
   function lastNoSpace(p, i, all) { if (i === all.length - 1) p.sp = ""; return p }
 
-  // The font a unit's words take at a level: "paper" (the author's words, serif) or "ui" (AI words, sans).
+  // The font a unit's words take at a level: "paper" (the author's words, 16 px) or "ui" (AI words, smaller); both the app's sans.
   function font(u, lv) {
     var L = level(lv)
     if (!L) return "paper"

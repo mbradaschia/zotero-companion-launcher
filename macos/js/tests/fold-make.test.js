@@ -127,7 +127,7 @@ test("R5-9: sentences: section 1's exactly, et al. inside one, the fillers one e
   }
 })
 
-test("R5-10: before a fold: evidence [0], no key, takeaway or topic; local provenance; FoldCore reads it, Key shows the first sentence in the serif", () => {
+test("R5-10: before a fold: evidence [0], no key, takeaway or topic; local provenance; FoldCore reads it, Key shows the first sentence in the paper's face", () => {
   for (const u of units(made.doc)) assert.deepEqual([u.evidence, u.key, u.takeaway, u.topic, u.role], [[0], "", "", "", "context"], u.id)
   for (const s of made.doc.sections) assert.deepEqual([s.takeaway, s.topic], ["", ""])
   assert.equal(made.doc.provenance.local, true)

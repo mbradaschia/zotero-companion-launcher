@@ -277,7 +277,7 @@ says so.
   *Brief*, *Key*, *Takeaway*, *Topic*. The reader reads the paper from its PDF itself: Full and Brief are the paper's
   own words; Key, Takeaway and Topic are written by the prompts model set up in Settings › Defaults, and marked so (a
   dashed rule and a sparkle on the dial, `Written by AI (<model>, <date>)` over them). Until a section is folded they
-  show its paragraphs' first sentences, in the serif, under `First sentences: not folded yet`. Users read "levels",
+  show its paragraphs' first sentences, at the paper's size, under `First sentences: not folded yet`. Users read "levels",
   never "zoom" for them.
 - **Spending is a click:** *Fold with AI* (the toolbar's button, or the banner's) is the only thing that sends the
   paper to the model; its banner says the model, the number of requests and the price when the provider lists one,
@@ -290,8 +290,9 @@ says so.
   `Sections from the PDF's bookmarks`, or `Sections found by the reader`), and Settings › Defaults › Fold with AI ›
   *Check the sections with AI* turns it off (this Mac's). Without it, or without a model, the reader finds the
   sections itself.
-- **A section's heading is the paper's**, so it is set in the paper's serif, never the sans of the reader's own
-  words and the AI's. Its levels differ by size, slope and space, the first alone with a rule. A heading the paper
+- **One face, the app's sans**, for the paper's words, the AI's and the reader's own (from Mac 0.4.45, Marcelo's
+  call: no serif). The paper's words are set larger (16 px) than the AI's (15 px), and the toolbar's captions (`Aa`
+  solid, sparkle dashed) and the section line say which is which; never colour alone. Its levels differ by size, slope and space, the first alone with a rule. A heading the paper
   prints in capitals is shown in the case of its other headings; hovering it shows it as printed.
 - **Keys:** `1` to `5` a level, `-` and `=` coarser and finer, ⌘ scroll over the text a level, `j` `k` a paragraph,
   `↵` open it in place, esc fold back (then hide the bar), `⌥⌘P` the PDF, `⌥⌘M` the margin, `?` the keys; the
