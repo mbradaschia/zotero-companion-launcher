@@ -122,7 +122,42 @@ final class BreadcrumbTests: XCTestCase {
         model.activateAction(i)
         settle()
         XCTAssertTrue(model.store.inNote)
-        XCTAssertNotEqual(model.headerPlaceholder(), model.breadcrumb.last)
+        XCTAssertEqual(model.headerPlaceholder(), "") // (no search box in the reader: its header has the path and the heading)
+        // the path ends on the paper (its cite), a level to go back to; the note is the heading, not a crumb
+        let path = model.notePath
+        XCTAssertEqual(path.tail.first?.level, 1)
+        XCTAssertFalse(path.tail.contains { $0.name == model.breadcrumb.last })
+        XCTAssertFalse(model.noteHeading.isEmpty)
+    }
+
+    // The reader's heading: the note's own title, without the paper the runner's titles repeat after it.
+    func testTheNoteHeadingDropsThePaper() {
+        XCTAssertEqual(NoteHeading.strip(title: "Concepts and Definitions v1: Doe et al., 2020 · Allostasis and work", cite: "Doe et al., 2020", paperTitle: "Allostasis and work"), "Concepts and Definitions v1")
+        XCTAssertEqual(NoteHeading.strip(title: "Full text: Allostasis and organizational excellence", cite: "Doe et al., 2020", paperTitle: "Allostasis and organizational excellence"), "Full text")
+        XCTAssertEqual(NoteHeading.strip(title: "Re: methods", cite: "Doe et al., 2020", paperTitle: "Allostasis and work"), "Re: methods")
+        XCTAssertEqual(NoteHeading.strip(title: "My reading notes", cite: "Doe et al., 2020", paperTitle: ""), "My reading notes")
+        XCTAssertEqual(NoteHeading.strip(title: "Summary: doe ET AL., 2020", cite: "Doe et al., 2020", paperTitle: ""), "Summary")
+        // another cite shape (the note window's), the paper's title after it
+        XCTAssertEqual(NoteHeading.strip(title: "Key ideas v2: Doe et al., 2020 · Allostasis and work", cite: "Doe et al. (2020)", paperTitle: "Allostasis and work"), "Key ideas v2")
+    }
+
+    // The reader's path: the first level, the levels between in a menu, the paper and what's under it (not the note).
+    func testTheNotePath() {
+        let fromMenu = NotePath.make(crumbs: ["#fatigue", "“work”", "Doe et al., 2020", "Notes", "Concepts v1"], views: ["search", "search", "actions", "notes"],
+                                     loosePaper: "Doe et al., 2020", paperTitle: "Allostasis and work")
+        XCTAssertEqual(fromMenu.first, NotePath.Crumb(name: "#fatigue", level: 0))
+        XCTAssertEqual(fromMenu.hidden, [NotePath.Crumb(name: "“work”", level: 1)])
+        XCTAssertEqual(fromMenu.tail, [NotePath.Crumb(name: "Doe et al., 2020", level: 2), NotePath.Crumb(name: "Notes", level: 3)])
+        XCTAssertEqual(fromMenu.paperTitle, "Allostasis and work")
+        // opened from the results: the paper isn't a level, so it closes the path without a way back
+        let fromResults = NotePath.make(crumbs: ["“work”", "Doe et al., 2020 · Concepts v1"], views: ["search"], loosePaper: "Doe et al., 2020", paperTitle: "Allostasis")
+        XCTAssertNil(fromResults.first)
+        XCTAssertEqual(fromResults.tail, [NotePath.Crumb(name: "“work”", level: 0), NotePath.Crumb(name: "Doe et al., 2020", level: nil)])
+        // a note on no paper, from the top: the results only
+        let loose = NotePath.make(crumbs: ["Results", "A note"], views: ["search"], loosePaper: nil, paperTitle: "")
+        XCTAssertEqual(loose.tail, [NotePath.Crumb(name: "Results", level: 0)])
+        XCTAssertEqual(loose.paperTitle, "")
+        XCTAssertEqual(NotePath.short("abcdefghij", max: 5), "abcd…")
     }
 
     // A paper's menu: the paper is the heading, where it was published under it; under the paper (its tags) a plain path.

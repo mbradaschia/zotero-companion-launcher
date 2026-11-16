@@ -69,7 +69,7 @@ struct ChatWebView: NSViewRepresentable {
         config.defaultWebpagePreferences.allowsContentJavaScript = false
         config.websiteDataStore = .nonPersistent()
         config.userContentController.addUserScript(WKUserScript(source: Self.dragScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
-        let view = WKWebView(frame: .zero, configuration: config)
+        let view = ChatPage(frame: .zero, configuration: config)
         view.setValue(false, forKey: "drawsBackground")
         view.allowsLinkPreview = false
         view.navigationDelegate = context.coordinator
@@ -141,12 +141,25 @@ struct ChatWebView: NSViewRepresentable {
     }
 }
 
+// The conversation's web view, by its class: the launcher gives the keys to the chat beside a note while it (or the box)
+// has them.
+final class ChatPage: WKWebView {
+    // A responder in a chat (its box, its page, or a view in them).
+    static func has(_ responder: NSResponder?) -> Bool {
+        if responder is ChatInput.InputTextView { return true }
+        guard let view = responder as? NSView else { return false }
+        return sequence(first: view, next: { $0.superview }).contains { $0 is ChatPage }
+    }
+}
+
 // The question box: ↵ sends, ⇧↵ a new line; esc goes to the window (stop, close a pop-up); it grows to 8 lines.
 struct ChatInput: NSViewRepresentable {
     @Binding var text: String
     var onSend: () -> Void
     var onEscape: () -> Void
     var focus: (@escaping () -> Void) -> Void = { _ in }
+    var fontSize: CGFloat = 14 // the chat's text size (⌘- ⌘+ ⌘0)
+    var takesKeys = true // the keys in the box as it appears (beside a note: the note keeps them until c)
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -159,7 +172,7 @@ struct ChatInput: NSViewRepresentable {
         let input = InputTextView(frame: tv.frame, textContainer: tv.textContainer)
         input.isRichText = false
         input.allowsUndo = true
-        input.font = .systemFont(ofSize: 14)
+        input.font = .systemFont(ofSize: fontSize)
         input.drawsBackground = false
         input.isAutomaticQuoteSubstitutionEnabled = false
         input.isAutomaticDashSubstitutionEnabled = false
@@ -175,12 +188,13 @@ struct ChatInput: NSViewRepresentable {
         scroll.documentView = input
         context.coordinator.input = input
         focus { [weak input] in input?.window?.makeFirstResponder(input) }
-        DispatchQueue.main.async { input.window?.makeFirstResponder(input) }
+        if takesKeys { DispatchQueue.main.async { input.window?.makeFirstResponder(input) } }
         return scroll
     }
 
     func updateNSView(_ scroll: NSScrollView, context: Context) {
         context.coordinator.parent = self
+        if let input = context.coordinator.input, input.font?.pointSize != fontSize { input.font = .systemFont(ofSize: fontSize) }
         if let input = context.coordinator.input, input.string != text {
             input.string = text
             input.setSelectedRange(NSRange(location: (text as NSString).length, length: 0))

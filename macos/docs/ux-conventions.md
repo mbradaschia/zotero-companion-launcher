@@ -12,14 +12,30 @@ says so.
   pgup, pgdn, home, ↵, ⌫, ↑↓, ←→. Examples: `⌥→← status`, `⇧⌥→← task`, `⌘V paste`, `⌘-/+ size`,
   `⌃↵ new tag`, `⌃⇧↑↓ moves the section`. The view logic's own texts ("Alt+→", "Shift+↑↓") go
   through `Glue.macKeys` before Swift shows them.
+- **⌥ and a letter is lowercase** (`⌥m`, `⌥p`) wherever a key is written; a capital means ⇧ (`⌥⇧W`). With ⌘ the
+  letter is a capital, as in the Mac's menus (`⌥⌘C`, `⌘W`). In a keys panel, alternatives are separated by two spaces
+  (`?  F1`, `⌘-  ⌘+  ⌘0`, `c  ⌥⌘C`); in a footer, two related actions by `/` (`i/r cite`) and one action both ways by a
+  space (`j k scroll`).
 - **A single key is written by `keyName`, never literally:** `t` in single-key mode, `⌥t` in Alt
   mode, a capital as `⌥⇧W` (Option+Shift and a letter reach that capital's action).
 - **Mac keys beside the QML's:** Home and End go to a list's first and last row (the box's caret takes them while
   you type there); ⌘V pastes as Ctrl+V does; ⌘S saves a search as Ctrl+S does;
   ⌥⌫ deletes a word in both modes (the QML's Alt+Backspace cleared the box: Ctrl+U does that).
-- **Hints:** the help key first (`? keys`, or `F1 keys` while typing; always `? keys` in the
-  reader; none in the keys view itself); `/ search` first only where `/` gives the box the keys; then key and a lowercase verb
-  (`↵ open`, `p pin`); the back keys last (`⌫ esc back`, `⇧esc home`; `esc close` at the top of the overlay, `⌘W close` in the window or pinned).
+- **Hints:** the help key first in every footer (the launcher's, the note window's, the reader's, a review table's): `? keys`,
+  or `F1 keys` while typing; always `? keys` in the reader; none in the keys view itself; `/ search` first only where `/` gives the box the keys; then key and a lowercase verb
+  (`↵ open`, `p pin`); the back keys last (`⌫ esc back`, `⇧esc home`, the reader too; `esc close` at the top of the overlay, `⌘W close`
+  in the window or pinned, and last in every other window: `esc ⌘W close` in the note window, where esc closes too).
+- **The help key, everywhere:** `?` shows or hides the keys, and F1 does too (F1 is the one that works where a box keeps
+  the keys: a chat's). Every keys panel writes the row `?  F1` ("Show or hide these keys"; a chat adds "(? outside the
+  box)").
+- **Text size, everywhere:** ⌘- ⌘+ (⌘= too, no ⇧ needed) ⌘0, ⌃ as well, through `TextSize.step`, wherever text is read:
+  the note (the reader and note windows: px, view.json `noteFontSize`, synced), a chat (its window and the chat beside a
+  note: px, this Mac's), the fold reader and the review tables (page zoom, this Mac's; a chat docked in a table follows
+  the table). Each keeps its own size. Every step flashes `Text 16 px` or `Text 110%`, with `(⌘0 its size)` off the
+  default. In the launcher's lists the keys say where they work instead of beeping.
+- **Chat is `c`** wherever a paper is in view: its window from the results and the menu; the chat beside the note in
+  the reader (c opens it, or gives it the keys); the docked chat in a review table. ⌥⌘C shows or hides a docked chat
+  (the reader's, a review table's). Back to the paper's menu from a window is ⌥m (the note window takes `m` too).
 - **Places in the hints** are the ones the Mac has; a place of a later phase isn't hinted (its
   key still says it isn't on the Mac yet).
 - **Which keys act where:** a paper's letters (o, w, n, #, p, l, z) act only in the paper's own
@@ -92,6 +108,14 @@ says so.
   (in full where you are: in its menu a heading on its own line under the path, no › before it, and where it was
   published under it, in italics); a tag by `#name`, a task by what it says, a chat or an artifact by its title (its paper
   first when no paper's menu is below); a page by its own title. The line under it never repeats the crumb. A click on an earlier level goes back there; past five levels it keeps the first and the last three.
+- **The reader's header** (a note read in the launcher, `NoteHeader`) has no search box (nothing is typed there; the
+  footer has the keys). One line: back, the path (its first level, a `···` menu of the levels between, the paper by its
+  cite, then its title faint, cut first as the width shrinks; then the first level folds into `···`, then the cite is
+  cut), and icons only on the right (the chat beside the note, the pin), so nothing squeezes the path. Under it the
+  note's own title is the heading (`NoteHeading.strip`: without the paper the runner's titles repeat), its date on the
+  same line; then the paper's facts in one flow. It spans the note and the chat beside it.
+- **The context bar's right side holds no pills:** a paper's ranks, status and task lead its taxonomies under the path
+  (`PaperFacts`), so the path gets the whole width; only a count (a scope's total) stays on the right.
 - **Moving between lists** slides: the new list from the right going in, from the left going back, 0.18 s; typing,
   ↑↓ and toggles don't move anything. None with Reduce Motion.
 - **A key that works in a view is hinted there** (`c chat` wherever c opens a chat).
@@ -150,7 +174,7 @@ says so.
 
 ## The keys view, the menu bar, accessibility
 
-- **The keys view** (`?`, or F1 anywhere) lists `Here · <where you are>` first, then every section, all in the Mac's
+- **The keys view** (`?`, or F1 anywhere; the row is `?  F1`) lists `Here · <where you are>` first, then every section, all in the Mac's
   notation: ⌘ for what the Mac binds to ⌘ (⌘S, ⌘V, ⌘W, ⌘-/+/0), the app's hotkey for Omarchy's, ⌃U for clearing the
   box. In the ⌥-key mode, Here writes keys as `keyName` does (`⌥t`, `⌥⇧W`). Typing finds a key by the words shown
   and the symbols' names (cmd, option, control, shift), never by Omarchy's words.
@@ -193,6 +217,11 @@ says so.
 - **A chat's window** opens at most 960 by 760 (70% of the screen's width, 85% of its height on a laptop) and keeps the
   size last given one. esc there: the keys hidden, else the answer stopped, else (nothing typed) back to the paper's
   menu in the launcher, the window closed; a question being typed stays.
+- **The chat beside a note** (the reader's right pane): the paper's chat, the same as a chat's window, docked. `c` opens
+  it with the keys in its box (open already: the keys go there); ⌥⌘C or its bar's sidebar icon hides it; esc in its
+  empty box gives the keys back to the note (the pane stays). It follows the note's paper (not while an answer comes
+  in). Shown or not and its width (dragged at its edge; the note never narrower than 280) are this Mac's. Its bar's
+  window icon moves the chat to its own window.
 - **The launcher resizes** from its edges (the overlay and the window alike), never below 560 by 360, and opens at the
   size last given it.
 - **Overlay or window**: the hotkey opens the overlay unless Settings › General › Open as a window is on; W switches
@@ -318,9 +347,10 @@ colour (status orange, priority red, rank purple, taxonomy teal, task green, els
 white on a selected row.
 
 **A paper's status and default task** show as tag pills on its result row (status over task), in the note window's
-header, and beside its rankings in the context bar on its notes (the list, the reader on one of them); there, none is
-an off pill (*no status*, *no task*), so the place to change it with ⌥→← / ⇧⌥→← is always visible. Its menu has their
-rows instead.
+header, and after its rankings at the head of its facts on its notes (the list, the reader on one of them); there, none
+is an off pill (*no status*, *no task*), so the place to change it is always visible, and each is a menu (a click
+changes it, as ⌥→← / ⇧⌥→← do; a small chevron after the text says it opens one, a shape, not a colour). Its menu has
+their rows instead.
 
 **Never colour alone** (a colour-blind eye can't tell red from green, nor orange from either): each
 kind has its symbol first, from the one icon map (`Icons.concept`: status `flag`, task `checklist`,

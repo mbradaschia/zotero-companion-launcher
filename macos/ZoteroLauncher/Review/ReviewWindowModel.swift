@@ -56,7 +56,7 @@ final class ReviewWindowModel: ObservableObject {
         let next = step == 0 ? 1 : steps[max(0, min(steps.count - 1, i + step))]
         Self.zoom = next
         zoomed(next)
-        page?.flash("Text \(Int((next * 100).rounded()))%" + (next == 1 ? "" : " (⌘0 its size)"))
+        page?.flash(TextSize.flash(zoom: next))
     }
 
     init(id: String, launcher: LauncherModel) {
@@ -533,18 +533,18 @@ final class ReviewWindowModel: ObservableObject {
         let chars = (e.charactersIgnoringModifiers ?? "").lowercased()
         if flags == .command && chars == "w" { close(); return true }
         // ⌘- ⌘+ ⌘0 (or ⌃): the tables' text smaller, larger, back to its size (every table: one setting, as the pin)
-        let zoomFlags: [NSEvent.ModifierFlags] = [.command, .control, [.command, .shift], [.control, .shift]]
-        if zoomFlags.contains(flags), let step = ["-": -1, "=": 1, "+": 1, "0": 0][chars] {
+        if let step = TextSize.step(e) { // (the same keys everywhere: TextSize)
             stepZoom(step)
             return true
         }
         if flags == .command && chars == "r" { reload(); search(); return true }
         if flags == [.command, .option] && e.keyCode == 8 { toggleChat(); return true } // ⌥⌘C: the chat, docked
+        // the docked chat has the keys (its box, its page): ? or F1 its keys, as in a chat's window (the box takes ? as text)
+        if ChatPage.has(e.window?.firstResponder), let chat = chatMode == "list" ? listChat : paperChat {
+            let inBox = e.window?.firstResponder is NSText
+            if e.keyCode == 122 || (!inBox && chars == "?") { chat.showKeys.toggle(); return true }
+        }
         // the editing keys, for the page's text fields (an app without an Edit menu doesn't send them)
-        let edits: [String: Selector] = ["c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "x": #selector(NSText.cut(_:)),
-                                         "a": #selector(NSText.selectAll(_:)), "z": Selector(("undo:"))]
-        if flags == .command, let action = edits[chars] { NSApp.sendAction(action, to: nil, from: nil); return true }
-        if flags == [.command, .shift] && chars == "z" { NSApp.sendAction(Selector(("redo:")), to: nil, from: nil); return true }
-        return false
+        return EditKeys.send(e)
     }
 }

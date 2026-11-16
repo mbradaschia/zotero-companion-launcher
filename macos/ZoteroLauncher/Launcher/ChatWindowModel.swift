@@ -41,6 +41,9 @@ final class ChatWindowModel: ObservableObject {
     var close: () -> Void = {}
     var onDone: () -> Void = {}
     var focusInput: () -> Void = {} // (ChatInput's)
+    var focusOnShow = true // the box takes the keys as it appears (beside a note: not until c)
+    var popOut: (() -> Void)? // beside a note: the chat in its own window (the bar's button)
+    var hide: (() -> Void)? // beside a note: the pane hidden (the bar's button)
     private var turn: RunnerStream?
     private var turnId = 0 // the turn a line belongs to: a late one of an ended turn is dropped
     private var resumable = "" // the session id a turn started from ("" a new chat): kept unless the runner saved one (done)
@@ -91,6 +94,12 @@ final class ChatWindowModel: ObservableObject {
         return paper?["title"] is String ? cite + " · " + paperTitle : cite
     }
     var windowTitle: String { "Chat · " + cite }
+    // A docked chat's bar: the paper (a review table's), or beside a note (whose header names the paper) the chat's title.
+    var dockedLine: String {
+        guard hide != nil else { return paperLine }
+        let title = sessions.first { $0["id"] as? String == sessionId }?["title"] as? String ?? ""
+        return sessionId.isEmpty || title.isEmpty ? "New chat" : title
+    }
     var chatDefault: String { (launcher.runnerState.models?["defaults"] as? [String: Any])?["chat"] as? String ?? "" }
 
     var artifacts: [[String: Any]] { list == nil ? launcher.artifacts(of: item) : [] }
@@ -466,10 +475,13 @@ final class ChatWindowModel: ObservableObject {
         let inBox = e.window?.firstResponder is NSText // the box, a rename field: their own keys
         if flags == .command && chars == "w" { close(); return true }
         if flags == .option && e.keyCode == 46 { backToMenu(); return true } // ⌥M
-        if e.keyCode == 122 { showKeys.toggle(); return true } // F1
-        if !inBox && chars == "?" { showKeys.toggle(); return true }
+        if let step = TextSize.step(e) { // ⌘- ⌘+ ⌘0: the text size (every chat's)
+            showFlash(ChatTextSize.shared.step(step))
+            return true
+        }
+        if e.keyCode == 122 || (!inBox && chars == "?") { showKeys.toggle(); return true } // ? or F1 (the box takes ? as text)
         if !inBox && e.keyCode == 53 { escape(); return true }
-        return false
+        return EditKeys.send(e) // (the box's ⌘V, ⌘Z…: the app has no Edit menu to send them)
     }
 
     func windowClosing() {

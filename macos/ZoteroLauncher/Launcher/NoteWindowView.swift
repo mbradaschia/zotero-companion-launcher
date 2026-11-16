@@ -15,12 +15,14 @@ struct NoteWindowView: View {
                         ForEach(model.ranks, id: \.self) { PillView(text: $0, selected: false, kind: "rank") }
                         let status = (try? model.launcher.core?.glue("statusName", [model.paperStatus], as: String.self)) ?? ""
                         if !status.isEmpty { PillView(text: status, selected: false, mode: "tag", kind: "status") }
-                        if !model.taskName.isEmpty { PillView(text: "task: " + model.taskName, selected: false, mode: "tag", kind: "task") }
+                        if !model.taskName.isEmpty { PillView(text: model.taskName, selected: false, mode: "tag", kind: "task").help("Its default task · ⇧⌥→← changes it") }
                     }
                     Text(item["title"] as? String ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 HStack(alignment: .firstTextBaseline) {
-                    Text(model.title).font(.title3.weight(.semibold)).lineLimit(2)
+                    // (the note's own title: the paper above isn't said twice, as in the launcher's reader)
+                    Text(NoteHeading.strip(title: model.title, cite: model.paperItem?["cite"] as? String ?? "", paperTitle: model.paperItem?["title"] as? String ?? ""))
+                        .font(.title3.weight(.semibold)).lineLimit(2).help(model.title)
                     Spacer(minLength: 8)
                     if model.data != nil { DragGrip(what: "the note's text") { model.dragText } }
                 }
@@ -42,7 +44,7 @@ struct NoteWindowView: View {
                          display: { model.display = $0 })
             }
             Divider()
-            Text(model.flash.isEmpty ? "? keys · m menu · z zotero · c chat · y copy .md · s save .md · ⌘⌫ delete · ⌥→← status · ⇧⌥→← task · j k scroll · ⌘-/+ size · esc close" : model.flash)
+            Text(model.flash.isEmpty ? "? keys · ⌥→← status · ⇧⌥→← task · c chat · z zotero · y copy .md · s save .md · ⌘⌫ delete · j k scroll · ⌘-/+ size · m menu · esc ⌘W close" : model.flash)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 18)

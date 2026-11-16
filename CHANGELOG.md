@@ -30,6 +30,25 @@ bridge and the prompt runner share one version.
 - **JSTOR files read without JSTOR's pages.** The full-text note leaves out JSTOR's cover sheet (its page numbers were
   one low behind it) and takes JSTOR's stamp (`This content downloaded from …`) off every page.
 
+### The Mac app (`macos-v0.4.46`)
+
+- **A compact note header.** Reading a note, the header is one line for the way back (the first level, a `···` menu
+  of the levels between, the paper by its cite and title, cut to fit), the chat toggle and the pin; the note's own
+  title as the heading (without the paper the runner's title repeats), its date beside it; then the paper's ranks,
+  status, task and taxonomies in one wrapping flow. The path no longer wraps beside the rating pills, and the empty
+  "Reading · j k scroll · esc back" row is gone. Status and task are menus (a click changes them, as ⌥→← and ⇧⌥→←).
+  In a paper's menu and its other views the pills moved under the path, which gets the whole width.
+- **The chat beside a note.** `c` in the reader opens the paper's chat on the right of the note (or gives it the
+  keys); ⌥⌘C or the header's bubble shows or hides it. Its width is dragged at its edge; it follows the note's paper
+  and stays on for the next note; its bar moves it to its own window.
+- **One set of keys.** Every keys panel writes `?  F1`; F1 works in a chat docked in a review table; `c` is the chat in
+  a review table too; ⌥ and a letter is lowercase (`⌥m`); the note window's footer follows the reader's order (`esc ⌘W
+  close` last); the reader hints `⇧esc home` and ⌥⌘C; the results and a paper's menu hint `v fold`. Chat windows take
+  the editing keys (⌘V, ⌘Z…). The scheme is in `macos/docs/ux-conventions.md`.
+- **Text size everywhere.** ⌘- ⌘+ (⌘= too) ⌘0 size a chat's text (its window and the chat beside a note), and work the
+  same in the note reader, note windows, the fold reader and review tables, each keeping its own size; every step says
+  the size. In the launcher's lists they say where they work instead of beeping.
+
 ### The Mac app (`macos-v0.4.45`)
 
 - **The reader uses the app's font.** The fold reader set the paper's own words (its title, headings and the text at

@@ -252,18 +252,23 @@ final class LauncherController: NSObject, NSWindowDelegate {
     }
 
     private func handle(_ event: NSEvent) -> Bool {
-        if let editor = current.firstResponder as? NSTextView {
-            // an input method composing (Japanese, Chinese…): every key is the composition's
-            if editor.hasMarkedText() { return false }
-            // where the caret is in the search box: → at its end opens the menu, before it moves the caret
-            model.store.caretBack = max(0, (editor.string as NSString).length - editor.selectedRange().upperBound)
-        }
         let flags = event.modifierFlags
         // ⌘W closes the launcher as its close button does, as the hotkey opens it next time (Omarchy's Super+W; the app
         // has no menu bar of its own to do it)
         if flags.intersection([.command, .shift, .control, .option]) == .command, event.charactersIgnoringModifiers?.lowercased() == "w" {
             model.dismiss()
             return true
+        }
+        // the chat beside a note has the keys (its box, its page): its own, the rest to the box as typed
+        if model.noteChatVisible, ChatPage.has(current.firstResponder) {
+            if let editor = current.firstResponder as? NSTextView, editor.hasMarkedText() { return false }
+            return model.noteChatWindowKey(event)
+        }
+        if let editor = current.firstResponder as? NSTextView {
+            // an input method composing (Japanese, Chinese…): every key is the composition's
+            if editor.hasMarkedText() { return false }
+            // where the caret is in the search box: → at its end opens the menu, before it moves the caret
+            model.store.caretBack = max(0, (editor.string as NSString).length - editor.selectedRange().upperBound)
         }
         let key = KeyEvent(keyCode: event.keyCode, characters: event.characters, ignoringModifiers: event.charactersIgnoringModifiers,
                            shift: flags.contains(.shift), control: flags.contains(.control), option: flags.contains(.option), command: flags.contains(.command))

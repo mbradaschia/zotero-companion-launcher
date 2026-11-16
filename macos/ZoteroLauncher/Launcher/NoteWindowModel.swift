@@ -201,9 +201,8 @@ final class NoteWindowModel: ObservableObject {
         let c: Character? = { if case .character(let c) = e.key { return c } else { return nil } }()
         if e.command, c == "c" { return false } // copies the selection
         if e.command, c == "w" { close(); return true }
-        if (e.control || e.command), let c, ["-", "+", "=", "0"].contains(c) {
-            launcher.stepNoteFont(c == "-" ? -1 : c == "0" ? 0 : 1)
-            showFlash("Text \(launcher.noteTextSize) px")
+        if e.control || e.command, !e.option, let c, let step = TextSize.step(String(c)) { // ⌘- ⌘+ ⌘0 (TextSize), every note's
+            showFlash(launcher.stepNoteFont(step, flash: false))
             objectWillChange.send()
             return true
         }

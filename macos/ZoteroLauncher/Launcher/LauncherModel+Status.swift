@@ -62,8 +62,21 @@ extension LauncherModel {
         guard let t = statusTarget(), let core else { return false }
         if paperStatuses.isEmpty { flashMessage("No paper statuses: add some in Settings › Paper status"); return true }
         if t.current == "\u{0}" { flashMessage("Update the Zotero Omarchy Bridge to see and change statuses (Settings › Setup)"); return true }
-        let id = "\(t.item["libraryID"] ?? 1):\(t.item["key"] ?? "")"
         let next = (try? core.glue("nextPaperStatus", [paperStatusTags, t.current, delta], as: String.self)) ?? ""
+        applyPaperStatus(next, to: t)
+        return true
+    }
+
+    // The note header's status menu: the paper's status set to `tag` ("s/reading"; "" none), as ⌥→← would.
+    func setPaperStatus(tag: String) {
+        guard let t = statusTarget(), t.current != "\u{0}" else { return }
+        applyPaperStatus(tag, to: t)
+    }
+
+    // A status shown at once, saved a second after the last change (flushStatuses), said in the footer.
+    private func applyPaperStatus(_ next: String, to t: (item: [String: Any], current: String, index: Int)) {
+        guard let core else { return }
+        let id = "\(t.item["libraryID"] ?? 1):\(t.item["key"] ?? "")"
         marks.statusShown[id] = next
         marks.statusPending[id] = (t.item, marks.statusPending[id]?.from ?? t.current, next)
         if t.index >= 0, case .search(var rows) = content, rows.indices.contains(t.index) {
@@ -79,7 +92,6 @@ extension LauncherModel {
         statusTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { [weak self] _ in MainActor.assumeIsolated { self?.flushStatuses() } }
         let name = (try? core.glue("statusName", [next], as: String.self)) ?? ""
         flashMessage("Status: " + (name.isEmpty ? "none" : name))
-        return true
     }
 
     // Each paper loses its old status tag and gets the new one (Service.qml's changePaperStatus).
@@ -154,6 +166,20 @@ extension LauncherModel {
         let current = defaultTasks[t.id]
         let next = (try? core.glue("nextDefaultStatus", [statuses, current?["id"] as? String ?? "", delta], as: String.self)) ?? ""
         if next.isEmpty { return true }
+        applyDefaultTask(next, to: t)
+        return true
+    }
+
+    // The note header's task menu: the paper's default task at the status `id` (made if it has none), as ⇧⌥→← would.
+    func setHeaderTask(_ id: String) {
+        guard let t = taskTarget(), todoStatuses.contains(where: { $0["id"] as? String == id }) else { return }
+        applyDefaultTask(id, to: t)
+    }
+
+    private func applyDefaultTask(_ next: String, to t: (item: [String: Any], id: String)) {
+        guard let core else { return }
+        let statuses = todoStatuses
+        let current = defaultTasks[t.id]
         marks.taskShown[t.id] = next
         marks.taskPending[t.id] = (t.item, next)
         refreshRowTasks()
@@ -170,7 +196,6 @@ extension LauncherModel {
             let description = (try? core.glue("defaultTaskDescription", [settingsJSON, t.item], as: String.self)) ?? ""
             flashMessage("New task, “\(description)”: \(name)")
         }
-        return true
     }
 
     // Each paper's default task made or moved, saved once; its t/ tags follow (Service.qml:305).

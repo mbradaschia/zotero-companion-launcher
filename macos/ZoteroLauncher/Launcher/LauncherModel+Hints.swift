@@ -96,7 +96,8 @@ extension LauncherModel {
         let noteKeys: [String] = ["↵ read", "⇧↵ " + K("z") + " zotero", K("w") + " window", K("y") + " copy .md", K("s") + " save .md", "⌘⌫ delete"] + slash + back
         if store.inNote {
             return (note.siblings.count > 1 ? ["⇧↑↓ other notes"] : []) + (statusTarget() != nil ? ["⌥→← status", "⇧⌥→← task"] : [])
-                + ["t task", "z zotero", "w window", "y copy .md", "s save .md", "⌘⌫ delete", "i/r cite", "c chat", "j k scroll", "⌘-/+ size", "⌫ esc back"]
+                + ["c chat", noteChatVisible ? "⌥⌘C hide chat" : "⌥⌘C chat beside", "t task", "z zotero", "w window", "y copy .md", "s save .md", "⌘⌫ delete", "i/r cite",
+                   "j k scroll", "⌘-/+ size", "⌫ esc back", "⇧esc home"]
         }
         if store.view == "notes" {
             if listRow?.rowId == "note" { return ["↵ read", "⇧↑↓ reorder", K("w") + " window", K("y") + " copy .md", K("s") + " save .md", "⇧↵ " + K("z") + " zotero", "⌘⌫ delete"] + slash + back }
@@ -176,7 +177,7 @@ extension LauncherModel {
         }
         menu.append(table)
         if cur?.section == "Pinned" || cur.map({ paperReorderable($0) }) == true { menu.append("⇧↑↓ reorder") }
-        let letters: [String] = [row, "⇧↵ " + K("z") + " zotero", K("o") + "/" + K("w") + " pdf", K("n") + " notes", K("#") + " tags", K("p") + " pin",
+        let letters: [String] = [row, "⇧↵ " + K("z") + " zotero", K("o") + "/" + K("w") + " pdf", K("v") + " fold", K("n") + " notes", K("#") + " tags", K("p") + " pin",
                                  K("l") + " library", K("i") + "/" + K("r") + " cite", K("g") + " sort"]
         return menu + letters + searchKeys + places + slash + back
     }
@@ -198,7 +199,7 @@ extension LauncherModel {
             return ["↵ read it", "⇧↵ " + K("x") + " extract again, zotero, delete"] + pinRow + [K("w") + " window", K("y") + " copy .md", "⌘⌫ delete"] + slash + back
         case "read": return noteKeys
         default:
-            let keys: [String] = ["⌥→← status", "⇧⌥→← task", row, "⇧↵ " + K("z") + " zotero", K("o") + "/" + K("w") + " pdf", K("n") + " notes", K("#") + " tags",
+            let keys: [String] = ["⌥→← status", "⇧⌥→← task", row, "⇧↵ " + K("z") + " zotero", K("o") + "/" + K("w") + " pdf", K("v") + " fold", K("n") + " notes", K("#") + " tags",
                                   K("x") + " extract", K("i") + "/" + K("r") + " cite", K("c") + " chat", K("a") + " task", K("l") + " library"]
             return ["↵ run"] + pinRow + keys + slash + back
         }

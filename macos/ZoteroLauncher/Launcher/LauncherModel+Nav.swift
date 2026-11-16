@@ -221,3 +221,72 @@ extension LauncherModel {
         try prefs.set("grouping", nil)
     }
 }
+
+// The reader's heading: the note's own title, without the paper the runner's titles repeat after it
+// ("Concepts and Definitions v1: Doe et al., 2020 · Its title" → "Concepts and Definitions v1"); the path above names
+// the paper once. A title that doesn't go on with the paper stays whole ("Re: methods", "My reading notes").
+enum NoteHeading {
+    static func strip(title: String, cite: String, paperTitle: String) -> String {
+        guard let colon = title.range(of: ": ") else { return title }
+        let head = title[..<colon.lowerBound].trimmingCharacters(in: .whitespaces)
+        let rest = String(title[colon.upperBound...]).trimmingCharacters(in: .whitespaces)
+        guard !head.isEmpty, !rest.isEmpty else { return title }
+        let opts: String.CompareOptions = [.anchored, .caseInsensitive, .diacriticInsensitive]
+        let paperStart = String(paperTitle.trimmingCharacters(in: .whitespaces).prefix(24))
+        if !cite.isEmpty && rest.range(of: cite, options: opts) != nil { return head }
+        // (the paper's title after it, at the start or after its cite: "Doe et al., 2020 · Its title")
+        if paperStart.count >= 8 && rest.range(of: paperStart, options: [.caseInsensitive, .diacriticInsensitive]) != nil { return head }
+        return title
+    }
+}
+
+// The reader's path, one line: the first level, the levels between (a ··· menu), then the paper (and Notes, when the
+// note was opened from its list); the note itself is the heading under it.
+struct NotePath: Equatable {
+    struct Crumb: Equatable {
+        let name: String
+        let level: Int? // nil: not a level you can go back to (the paper of a note opened from the results)
+    }
+    var first: Crumb?
+    var hidden: [Crumb]
+    var tail: [Crumb]
+    var paperTitle: String
+
+    static func short(_ name: String, max: Int) -> String { name.count > max ? String(name.prefix(max - 1)) + "…" : name }
+
+    // From the breadcrumb's names (the last is the note), the levels' views and the paper's cite when the note's paper
+    // isn't a level of its own.
+    static func make(crumbs: [String], views: [String], loosePaper: String?, paperTitle: String) -> NotePath {
+        let parents = Array(crumbs.dropLast())
+        guard !parents.isEmpty else { return NotePath(first: nil, hidden: [], tail: [], paperTitle: "") }
+        let last = parents.count - 1
+        let paperLevel = (0...last).last(where: { $0 < views.count && views[$0] == "actions" })
+        var tail = Array((paperLevel ?? last)...last).map { Crumb(name: parents[$0], level: $0) }
+        var title = paperLevel != nil ? paperTitle : ""
+        if paperLevel == nil, let loose = loosePaper, !loose.isEmpty {
+            tail.append(Crumb(name: loose, level: nil))
+            title = paperTitle
+        }
+        let start = tail.first?.level ?? 0
+        let first = start > 0 ? Crumb(name: parents[0], level: 0) : nil
+        let hidden = start > 1 ? (1..<start).map { Crumb(name: parents[$0], level: $0) } : []
+        return NotePath(first: first, hidden: hidden, tail: tail, paperTitle: title)
+    }
+}
+
+extension LauncherModel {
+    // The paper's title, for the reader's path and heading ("" while it loads, or for a note on no paper).
+    var notePaperTitle: String {
+        guard notePaperInView || notePaper != nil else { return "" }
+        return ((details?["paper"] as? [String: Any])?["title"] as? String) ?? actionItem?.title ?? ""
+    }
+
+    var notePath: NotePath {
+        let paper = notePaper != nil ? Self.crumbPart(paperLabel) : nil
+        return NotePath.make(crumbs: breadcrumb, views: store.stack.map(\.view), loosePaper: paper, paperTitle: notePaperTitle)
+    }
+
+    var noteHeading: String {
+        NoteHeading.strip(title: noteParts.title, cite: notePaper != nil ? Self.crumbPart(paperLabel) : "", paperTitle: notePaperTitle)
+    }
+}

@@ -8,6 +8,7 @@ protocol NoteDisplay: AnyObject {
     func scrollPage(_ pages: CGFloat)
     func scrollToTop()
     func scrollToEnd()
+    func takeKeys() // the note's page has the keys (back from the chat beside it)
 }
 
 // A paper's notes: the list, the reader, the paper's other notes, export, notes under a paper in
@@ -53,6 +54,7 @@ extension LauncherModel {
             note.data = cached
             loadNoteSiblings(cached["parent"] as? [String: Any])
             refreshPaperPills()
+            noteChatFollow()
             objectWillChange.send()
             return
         }
@@ -70,6 +72,7 @@ extension LauncherModel {
                     self.note.error = result.message
                 }
                 self.refreshPaperPills() // (the paper's pills: on its own note only)
+                self.noteChatFollow()
                 self.objectWillChange.send()
             }
         }
@@ -272,17 +275,21 @@ extension LauncherModel {
         selectRow { $0.rowId == "note" && $0.noteKey == key }
     }
 
-    // Ctrl+-/+ the notes' text size (kept for every note, here and in note windows), Ctrl+0 the theme's.
-    func stepNoteFont(_ step: Int) {
-        guard var prefs else { return }
+    // ⌘- ⌘+ (⌃ too) the notes' text size (kept for every note, here and in note windows), ⌘0 the theme's. → the flash
+    // that says it (the reader's footer, or the note window's).
+    @discardableResult
+    func stepNoteFont(_ step: Int, flash: Bool = true) -> String {
+        guard var prefs else { return "" }
         let size = noteTextSize
         let next = step == 0 ? 0 : max(8, min(40, size + step))
         saved {
             try prefs.set("noteFontSize", next == Self.themeNoteSize ? 0 : next)
             self.prefs = prefs
         }
-        flashMessage("Text \(noteTextSize) px")
+        let said = TextSize.flash(px: noteTextSize, base: Self.themeNoteSize)
+        if flash { flashMessage(said) }
         objectWillChange.send()
+        return said
     }
 
     static let themeNoteSize = 15
@@ -296,7 +303,8 @@ extension LauncherModel {
             if !(e.shift ? cycleDefaultTask(delta) : cyclePaperStatus(delta)) { flashMessage("This note isn't on a paper") }
             return
         }
-        if e.control || e.command, let c, ["-", "+", "=", "0"].contains(c) { return stepNoteFont(c == "-" ? -1 : c == "0" ? 0 : 1) }
+        if e.control || e.command, !e.option, let c, let step = TextSize.step(String(c)) { stepNoteFont(step); return }
+        if e.command && e.option && !e.control && c == "c" { return toggleNoteChat() } // ⌥⌘C: the chat beside, or not
         if e.command { return }
         if let c, c.isASCII, !e.control, !e.option { UsageLog.shared.count("reader:" + String(c)) } // (the reader's own keys: z, w, c, y, s…)
         switch (e.key, c) {
@@ -321,11 +329,7 @@ extension LauncherModel {
         case (_, "?"): openKeys()
         case (_, ";"): openSettings("")
         case (_, "t"), (_, "a"): addTodoKey() // a task about this note
-        case (_, "c"): // its paper's chat: the note's own parent (the menu left behind may be another paper's)
-            if let p = note.data?["parent"] as? [String: Any], let key = p["key"] as? String, !["note", "attachment"].contains(p["itemType"] as? String ?? "") {
-                openChatWindow(PaperRef(key: key, libraryID: p["libraryID"] as? Int ?? 1, title: p["title"] as? String ?? "", itemType: ""))
-            } else if note.data == nil, let item = actionItem, !["note", "attachment"].contains(item.itemType) { openChatWindow(item) }
-            else { flashMessage("This note isn't on a paper: nothing to chat about") }
+        case (_, "c"): noteChatKey() // its paper's chat, beside the note (LauncherModel+NoteChat)
         case (_, "."): openTasks()
         default: break
         }

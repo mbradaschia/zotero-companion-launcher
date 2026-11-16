@@ -106448,7 +106448,7 @@
     "checked": false,
     "swatch": "",
     "badge": "",
-    "trailing": "⌥P",
+    "trailing": "⌥p",
     "attKey": "",
     "attLibraryID": 1,
     "attContentType": "",
@@ -107521,7 +107521,7 @@
     "checked": false,
     "swatch": "",
     "badge": "",
-    "trailing": "⌥M (chat window)",
+    "trailing": "⌥m (chat window)",
     "attKey": "",
     "attLibraryID": 1,
     "attContentType": "",
@@ -110067,7 +110067,7 @@
     "checked": false,
     "swatch": "",
     "badge": "",
-    "trailing": "⌥P",
+    "trailing": "⌥p",
     "attKey": "",
     "attLibraryID": 1,
     "attContentType": "",
@@ -111140,7 +111140,7 @@
     "checked": false,
     "swatch": "",
     "badge": "",
-    "trailing": "⌥M (chat window)",
+    "trailing": "⌥m (chat window)",
     "attKey": "",
     "attLibraryID": 1,
     "attContentType": "",
@@ -111187,7 +111187,7 @@
     "The top / the end"
    ],
    [
-    "m",
+    "m  ⌥m",
     "Back to the launcher, on the paper's menu"
    ],
    [
@@ -111223,8 +111223,12 @@
     "Copy the selected text"
    ],
    [
-    "?  F1  esc",
+    "?  F1",
     "Show or hide these keys"
+   ],
+   [
+    "esc",
+    "Hide these keys; else close the window"
    ],
    [
     "⌘W",
@@ -111249,15 +111253,19 @@
    ],
    [
     "esc",
-    "Stop the answer, or hide these keys"
+    "Stop the answer, or hide these keys; nothing typed: back to the paper's menu (beside a note: back to the note)"
    ],
    [
-    "⌥M",
+    "⌥m",
     "Back to the launcher, on the paper's menu"
    ],
    [
-    "F1  ?",
+    "?  F1",
     "Show or hide these keys (? outside the box)"
+   ],
+   [
+    "⌘-  ⌘+  ⌘0",
+    "Text size (every chat's)"
    ],
    [
     "⌘W",

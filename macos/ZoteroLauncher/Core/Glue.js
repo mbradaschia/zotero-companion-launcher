@@ -333,6 +333,7 @@ var Glue = (function () {
   var MAC_KEY_COLUMN = [[/Super\+Shift\+Z/g, "⌃⌥Z"], [/Super\+W/g, "⌘W"], [/Alt\+Backspace/g, "⌃U"], [/\bPgUp\b/g, "pgup"], [/\bPgDn\b/g, "pgdn"],
     [/\bHome\b/g, "home"], [/\bEnd\b/g, "end"], [/Ctrl\+S\b/g, "⌘S"], [/Ctrl\+V\b/g, "⌘V"], [/Ctrl\+C\b/g, "⌘C"],
     [/Ctrl\+-/g, "⌘-"], [/Ctrl\+\+/g, "⌘+"], [/Ctrl\+0/g, "⌘0"], [/Shift\+Alt\+/g, "⇧⌥"], [/Alt\+Shift\+/g, "⇧⌥"], [/Ctrl\+Shift\+/g, "⌃⇧"],
+    [/[Aa]lt\+([A-Z])\b/g, function (m, c) { return "⌥" + c.toLowerCase() }], // (⌥ and a letter: lowercase, a capital is ⇧)
     [/[Aa]lt\+/g, "⌥"], [/Shift\+/g, "⇧"], [/[Cc]trl\+/g, "⌃"], [/\bEnter\b/g, "↵"], [/\bEsc\b/g, "esc"], [/\bBackspace\b/g, "⌫"], [/\bDelete\b/g, "⌘⌫"], // (⌘⌫ the Mac's delete in a list; ⌦ works too)
     [/\bTab\b/g, "tab"], [/\bSpace\b/g, "space"]]
   var MAC_KEY_LINES = [["(your Hyprland keybinding)", "(the app's hotkey: menu bar icon › Hotkey and Login…)"], ["Close the launcher when it's open (with the README's rebinding)", "Close the launcher"],
@@ -411,13 +412,21 @@ var Glue = (function () {
     })
   }
   // A window's keys (note-window, chat-window): [[keys, what]], and ⌘W, which closes either.
+  // One help row everywhere: ?  F1 (the Mac's keys scheme, macos/docs/ux-conventions.md); esc's own row says what it
+  // does; ⌥ with a letter is lowercase (⌥m, as the hints write it); the chat's text size is the Mac's.
+  var WINDOW_KEYS = {
+    "note-window": { "?  F1  Esc": [["?  F1", "Show or hide these keys"], ["esc", "Hide these keys; else close the window"]],
+      "m": [["m  ⌥m", "Back to the launcher, on the paper's menu"]] },
+    "chat-window": { "F1  Esc": [["?  F1", "Show or hide these keys (? outside the box)"], ["⌘-  ⌘+  ⌘0", "Text size (every chat's)"]],
+      "Esc": [["esc", "Stop the answer, or hide these keys; nothing typed: back to the paper's menu (beside a note: back to the note)"]],
+      "Alt+M": [["⌥m", "Back to the launcher, on the paper's menu"]] }
+  }
   core.windowKeys = function (group) {
     if (!V.VIEW_KEYS[group]) return []
-    return V.VIEW_KEYS[group].map(function (k) {
-      // (the chat window's box takes ? and esc as text; F1, and ? outside it, show the keys)
-      if (group === "chat-window" && k[0] === "F1  Esc") return ["F1  ?", "Show or hide these keys (? outside the box)"]
-      return [macKeyColumn(k[0]), macKeyLine(k[1])]
-    }).concat([["⌘W", "Close the window" + (group === "chat-window" ? " (a running answer stops)" : "")]])
+    var own = WINDOW_KEYS[group] || {}
+    return V.VIEW_KEYS[group].reduce(function (out, k) {
+      return out.concat(own[k[0]] || [[macKeyColumn(k[0]), macKeyLine(k[1])]])
+    }, []).concat([["⌘W", "Close the window" + (group === "chat-window" ? " (a running answer stops)" : "")]])
   }
   return core
 })()

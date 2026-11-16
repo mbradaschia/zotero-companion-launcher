@@ -40,51 +40,13 @@ struct LauncherView: View {
     // The context bar, the search box, the badges, the rows and the footer.
     private var main: some View {
         VStack(spacing: 0) {
-            if let context = model.context {
-                HStack(alignment: .top, spacing: 8) { // (the ranks and the count beside the breadcrumb's first line)
-                    BreadcrumbBar(crumbs: model.breadcrumb, venue: model.paperVenue, jump: { model.jumpToCrumb($0) })
-                    Spacer(minLength: 8)
-                    // (whole: the breadcrumb wraps in what's left, the pills never squeezed)
-                    HStack(spacing: 8) {
-                        ForEach(context.ranks, id: \.self) { PillView(text: $0, selected: false, kind: "rank") }
-                        HeaderStatusPills(status: model.headerStatus, task: model.headerTask)
-                        if !context.count.isEmpty { Text(context.count).font(.callout).foregroundStyle(.secondary) }
-                    }
-                    .fixedSize()
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+            if store.inNote {
+                // the reader: its compact header (the path, the note's title, the paper's facts); no search box
+                NoteHeader(model: model)
+            } else {
+                header
             }
-            if let (strip, items) = stripShown {
-                TaxonomyStrip(model: model, strip: strip, items: items)
-            }
-            HStack(spacing: 10) {
-                // at the top level the search's glass; below it (a collection or a tag too) the way back, as esc goes
-                if store.atRoot {
-                    Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(.secondary)
-                } else {
-                    Button { model.back() } label: {
-                        Image(systemName: "chevron.left").font(.title2).foregroundStyle(.secondary)
-                            .frame(width: 22, height: 26).contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help("Back (esc)")
-                    .accessibilityLabel("Back")
-                }
-                StyledTextField(text: store.filterText, caretBack: store.caretBack, live: store.queryLive,
-                                focused: Binding(get: { store.searchFocus }, set: { if store.searchFocus != $0 { store.searchFocus = $0 } }),
-                                placeholder: model.headerPlaceholder(), segments: { model.segments($0, caret: $1) },
-                                onEdit: { model.typed($0, caretBack: $1) }, onCaret: { store.caretBack = $0 })
-                    .id(model.shown) // each opening: the field takes the keys again if it should
-                Text(model.countText).font(.callout).foregroundStyle(.secondary)
-                if store.inSearch && store.pickFor.isEmpty { ReviewTableButton { model.openReviewHere() } } // (⌘T)
-                PinButton(pinned: model.pinnedOpen) { model.pinnedOpen.toggle() }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, model.context == nil ? 12 : 8) // (closer under the breadcrumb)
-            .padding(.bottom, 12)
-
-            if !model.badgesShown.isEmpty || !model.sortLabel.isEmpty { BadgeBar(model: model) } // (in a scope too: the sort is always shown)
+            if !store.inNote && (!model.badgesShown.isEmpty || !model.sortLabel.isEmpty) { BadgeBar(model: model) } // (in a scope too: the sort is always shown)
             if store.view == "tasks" && !model.processesAndPending.isEmpty { ProcessFilterBar(model: model) }
             Divider()
             // a new list slides in: from the right going in, from the left going back; the old one fades (its own
@@ -104,6 +66,52 @@ struct LauncherView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // The context bar, the paper's facts and the search box (everywhere but the reader).
+    @ViewBuilder private var header: some View {
+        if let context = model.context {
+            HStack(alignment: .top, spacing: 8) { // (the count beside the breadcrumb's first line)
+                BreadcrumbBar(crumbs: model.breadcrumb, venue: model.paperVenue, jump: { model.jumpToCrumb($0) })
+                Spacer(minLength: 8)
+                if !context.count.isEmpty { Text(context.count).font(.callout).foregroundStyle(.secondary).fixedSize() }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+        // the paper's ranks, status and task lead its taxonomies, under the breadcrumb (which gets the whole width)
+        if factsShown {
+            PaperFacts(model: model).padding(.horizontal, 16).padding(.top, 6)
+        }
+        HStack(spacing: 10) {
+            // at the top level the search's glass; below it (a collection or a tag too) the way back, as esc goes
+            if store.atRoot {
+                Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(.secondary)
+            } else {
+                Button { model.back() } label: {
+                    Image(systemName: "chevron.left").font(.title2).foregroundStyle(.secondary)
+                        .frame(width: 22, height: 26).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Back (esc)")
+                .accessibilityLabel("Back")
+            }
+            StyledTextField(text: store.filterText, caretBack: store.caretBack, live: store.queryLive,
+                            focused: Binding(get: { store.searchFocus }, set: { if store.searchFocus != $0 { store.searchFocus = $0 } }),
+                            placeholder: model.headerPlaceholder(), segments: { model.segments($0, caret: $1) },
+                            onEdit: { model.typed($0, caretBack: $1) }, onCaret: { store.caretBack = $0 })
+                .id(model.shown) // each opening: the field takes the keys again if it should
+            Text(model.countText).font(.callout).foregroundStyle(.secondary)
+            if store.inSearch && store.pickFor.isEmpty { ReviewTableButton { model.openReviewHere() } } // (⌘T)
+            PinButton(pinned: model.pinnedOpen) { model.pinnedOpen.toggle() }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, model.context == nil ? 12 : 8) // (closer under the breadcrumb)
+        .padding(.bottom, 12)
+    }
+
+    private var factsShown: Bool {
+        model.context != nil && (!model.menuRanks.isEmpty || model.headerStatus != nil || model.headerTask != nil || stripShown != nil)
+    }
+
     // The paper's taxonomy strip, when it has a label or a note to show.
     private var stripShown: ([String: Any], [[String: Any]])? {
         guard let strip = model.taxonomyStrip else { return nil }
@@ -116,9 +124,9 @@ struct LauncherView: View {
     private var rows: some View {
         if store.view == "todo-due" {
             CalendarView(model: model)
-        } else if store.inNote && model.note.data != nil && !model.noteBodyHTML.isEmpty {
-            NoteView(html: model.noteBodyHTML, size: model.noteTextSize, onLink: { model.openLink($0) }, display: { model.noteDisplay = $0 })
-                .overlay(alignment: .topTrailing) { DragGrip(what: "the note's text") { model.readerDragText }.padding(.top, 6).padding(.trailing, 10) }
+        } else if store.inNote && (model.noteChatVisible || (model.note.data != nil && !model.noteBodyHTML.isEmpty)) {
+            // the note, and the chat beside it when it's on (⌥⌘C); one view either way, so the note keeps its place
+            NoteWithChat(model: model) { noteText }
         } else if model.content.count == 0 {
             let empty = model.emptyState
             VStack(spacing: 6) {
@@ -132,6 +140,24 @@ struct LauncherView: View {
             .padding(.horizontal, 24)
         } else {
             list
+        }
+    }
+
+    // The note's text (the reader), or nothing while it loads (the empty state says so when there's no chat beside it).
+    @ViewBuilder private var noteText: some View {
+        if model.note.data != nil && !model.noteBodyHTML.isEmpty {
+            NoteView(html: model.noteBodyHTML, size: model.noteTextSize, onLink: { model.openLink($0) }, display: { model.noteDisplay = $0 })
+                .overlay(alignment: .topTrailing) { DragGrip(what: "the note's text") { model.readerDragText }.padding(.top, 6).padding(.trailing, 10) }
+        } else {
+            let empty = model.emptyState
+            VStack(spacing: 6) {
+                Spacer()
+                Text(empty.title).font(.title3.weight(.semibold))
+                if !empty.detail.isEmpty { Text(empty.detail).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center) }
+                Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 24)
         }
     }
 

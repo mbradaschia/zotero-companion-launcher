@@ -101,7 +101,7 @@ final class FoldWindowModel: ObservableObject {
         let next = step == 0 ? 1 : Self.zoomSteps[max(0, min(Self.zoomSteps.count - 1, i + step))]
         Self.zoom = next
         zoomed(next)
-        page?.flash("Text \(Int((next * 100).rounded()))%" + (next == 1 ? "" : " (⌘0 its size)"))
+        page?.flash(TextSize.flash(zoom: next))
     }
 
     // ---- Glue, JSON in and out
@@ -796,16 +796,11 @@ final class FoldWindowModel: ObservableObject {
         let flags = e.modifierFlags.intersection([.command, .option, .control, .shift])
         let chars = (e.charactersIgnoringModifiers ?? "").lowercased()
         if flags == .command && chars == "w" { close(); return true }
-        let zoomFlags: [NSEvent.ModifierFlags] = [.command, .control, [.command, .shift], [.control, .shift]]
-        if zoomFlags.contains(flags), let step = ["-": -1, "=": 1, "+": 1, "0": 0][chars] {
+        if let step = TextSize.step(e) { // (the same keys everywhere: TextSize)
             stepZoom(step)
             return true
         }
         if flags == .command && chars == "r" { UsageLog.shared.count("fold:retry"); retry(); return true }
-        let edits: [String: Selector] = ["c": #selector(NSText.copy(_:)), "v": #selector(NSText.paste(_:)), "x": #selector(NSText.cut(_:)),
-                                         "a": #selector(NSText.selectAll(_:)), "z": Selector(("undo:"))]
-        if flags == .command, let action = edits[chars] { NSApp.sendAction(action, to: nil, from: nil); return true }
-        if flags == [.command, .shift] && chars == "z" { NSApp.sendAction(Selector(("redo:")), to: nil, from: nil); return true }
-        return false
+        return EditKeys.send(e)
     }
 }

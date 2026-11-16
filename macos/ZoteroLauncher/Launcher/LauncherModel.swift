@@ -84,6 +84,16 @@ final class LauncherModel: ObservableObject {
         didSet { if !Self.underTests { UserDefaults.standard.set(Double(listsWidth), forKey: "ZLListsWidth") } }
     }
     @Published var lists = ListsState()
+    // The chat beside a note (LauncherModel+NoteChat): its paper's chat, docked on the reader's right. Shown or not and
+    // its width are this Mac's, kept for the next note; the chat itself lives while the app does (an answer coming in
+    // goes on while the launcher is hidden).
+    @Published var noteChat: ChatWindowModel?
+    @Published var noteChatShown: Bool = LauncherModel.underTests ? false : UserDefaults.standard.bool(forKey: "ZLNoteChat") {
+        didSet { if !Self.underTests { UserDefaults.standard.set(noteChatShown, forKey: "ZLNoteChat") } }
+    }
+    @Published var noteChatWidth: CGFloat = LauncherModel.underTests ? LauncherModel.noteChatDefaultWidth : LauncherModel.keptNoteChatWidth {
+        didSet { if !Self.underTests { UserDefaults.standard.set(Double(noteChatWidth), forKey: "ZLNoteChatWidth") } }
+    }
     static let underTests = NSClassFromString("XCTestCase") != nil
     @Published private(set) var shown = 0 // counts openings: the view focuses on each
     private(set) var opened = false // shown: answers and timers for a launcher that closed do nothing

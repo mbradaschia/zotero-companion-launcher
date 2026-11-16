@@ -176,7 +176,7 @@ extension LauncherModel {
 
     // The search box's placeholder under the bar: only what to type.
     func headerPlaceholder() -> String {
-        if store.inNote { return "Reading · j k scroll · esc back" } // (the breadcrumb names the note)
+        if store.inNote { return "" } // (the reader has no search box: NoteHeader names the note, the footer has its keys)
         guard context != nil, !store.inNote else { return placeholder() }
         if store.view == "confirm" { return "↵ chooses · esc leaves things as they are" }
         if store.view == "todo-edit" || store.view == "prompt-edit" { return "↵ on a row changes it" } // its rows are fixed: typing doesn't filter them
