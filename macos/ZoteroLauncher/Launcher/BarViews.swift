@@ -203,7 +203,8 @@ struct NotePathRow: View {
     var body: some View {
         let path: NotePath = model.notePath
         let all: [NotePath.Crumb] = [path.first].compactMap { $0 } + path.hidden + path.tail
-        let spoken: String = "Path: " + all.map { $0.name }.joined(separator: ", ")
+        let here: [String] = model.breadcrumb.last.map { [$0] } ?? [] // (the note itself: shown as the heading, said last)
+        let spoken: String = "Path: " + (all.map { $0.name } + here).joined(separator: ", ")
         HStack(spacing: 6) {
             Button { model.back() } label: {
                 Image(systemName: "chevron.left").font(.title3.weight(.medium)).foregroundStyle(.secondary)
