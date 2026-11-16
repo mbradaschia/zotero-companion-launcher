@@ -31,7 +31,7 @@ enum KeyRouter {
         let paste = (e.control || e.command) && !e.option && k == .character("v")
         // ⌘ shortcuts are the Mac's (⌘← / ⌘→ move the caret, ⌘A selects): only ⌘V is ours, in a page for typing.
         // (the note reader's text size: ⌘-/+/0 as Ctrl's)
-        let sizeKey = s.inNote && [KeyEvent.Key.character("-"), .character("+"), .character("="), .character("0")].contains(k)
+        let sizeKey = s.inNote && [KeyEvent.Key.character("-"), .character("_"), .character("+"), .character("="), .character("0")].contains(k)
         let save = s.inSearch && (e.control || e.command) && !e.option && !e.shift && k == .character("s") // ⌘S as Ctrl+S
         let table = s.inSearch && e.command && !e.option && !e.shift && !e.control && k == .character("t") // ⌘T: a review table
         // the Lists panel's: ⌃⌘S (the Mac's Show Sidebar) open or folded, ⌘L its keys (with the panel off: they say how to
@@ -41,7 +41,8 @@ enum KeyRouter {
             if !e.control && k == .character("l") { return .focusLists }
             if s.lists && !e.control && s.inSearch, case .character(let c) = k, c.isASCII, let n = c.wholeNumberValue, (1...9).contains(n) { return .favorite(n) }
         }
-        if e.command && !sizeKey && !save && !table && !(paste && (s.view == "settings-edit" || s.textEntry)) { return .pass }
+        let noteChat = s.inNote && e.command && e.option && !e.control && k == .character("c") // ⌥⌘C: the chat beside the note
+        if e.command && !sizeKey && !save && !table && !noteChat && !(paste && (s.view == "settings-edit" || s.textEntry)) { return .pass }
         if s.inNote { return .note(e) }
         if k == .delete && plain && s.tabTodo && s.filterText.isEmpty { return .deleteTask } // (with text: the field's)
         if k == .delete && plain && !e.shift && s.filterText.isEmpty && ["actions", "notes", "chats"].contains(s.view)

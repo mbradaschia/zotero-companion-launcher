@@ -9,10 +9,12 @@ struct ChatWindowView: View {
     let launcher: LauncherModel // (not observed: the model passes its changes on, at most twice a second)
     @Environment(\.palette) private var palette
     @Environment(\.chatZoom) private var zoom
+    @ObservedObject private var textSize: ChatTextSize // (a window's, or beside a note: ⌘- ⌘+ ⌘0)
 
     init(model: ChatWindowModel, launcher: LauncherModel) {
         self.model = model
         self.launcher = launcher
+        self.textSize = ChatTextSize.shared
     }
 
     var body: some View {
@@ -41,11 +43,11 @@ struct ChatWindowView: View {
 
     private var dockedBar: some View {
         HStack(spacing: 8) {
-            Text(model.flash.isEmpty ? model.paperLine : model.flash)
+            Text(model.flash.isEmpty ? model.dockedLine : model.flash)
                 .font(.callout.weight(model.flash.isEmpty ? .regular : .semibold))
                 .foregroundStyle(model.flash.isEmpty ? palette.subtext : palette.accent)
                 .lineLimit(2)
-                .help(model.paperLine)
+                .help(model.dockedLine)
             Spacer(minLength: 4)
             Menu {
                 Button("New chat") { model.newChat() }.disabled(model.busy)
@@ -78,7 +80,13 @@ struct ChatWindowView: View {
                     .disabled(model.messages.isEmpty || model.busy)
             }
             Button { model.downloadChat() } label: { Image(systemName: "arrow.down.doc") }.help("Download the whole chat as a .md file").disabled(model.messages.isEmpty)
-            Button { model.showKeys.toggle() } label: { Image(systemName: "keyboard") }.help("The chat's keys")
+            Button { model.showKeys.toggle() } label: { Image(systemName: "keyboard") }.help("The chat's keys (F1)")
+            if let popOut = model.popOut {
+                Button(action: popOut) { Image(systemName: "macwindow.on.rectangle") }.help("The chat in its own window").accessibilityLabel("Open the chat in its own window")
+            }
+            if let hide = model.hide {
+                Button(action: hide) { Image(systemName: "sidebar.trailing") }.help("Hide the chat (⌥⌘C)").accessibilityLabel("Hide the chat")
+            }
         }
         .buttonStyle(.borderless)
         .padding(.horizontal, 10)
@@ -125,7 +133,7 @@ struct ChatWindowView: View {
                 banner
                 Divider()
                 ZStack(alignment: .topTrailing) {
-                    ChatWebView(body: model.page, onLink: { model.link($0) })
+                    ChatWebView(body: model.page, onLink: { model.link($0) }, zoom: textSize.zoom)
                     if model.showKeys { keysPanel.padding(12) }
                 }
                 Divider()
@@ -282,7 +290,8 @@ struct ChatWindowView: View {
         VStack(alignment: .leading, spacing: 6) {
             ZStack(alignment: .topLeading) {
                 if model.draft.isEmpty { Text(model.list != nil ? "Ask across the papers…" : "Ask about the paper…").foregroundStyle(.tertiary).padding(.horizontal, 9).padding(.vertical, 6) }
-                ChatInput(text: $model.draft, onSend: { model.send() }, onEscape: { model.escape() }, focus: { model.focusInput = $0 })
+                ChatInput(text: $model.draft, onSend: { model.send() }, onEscape: { model.escape() }, focus: { model.focusInput = $0 },
+                          fontSize: (14 * (model.docked ? zoom : textSize.zoom)).rounded(), takesKeys: model.focusOnShow)
             }
             .frame(minHeight: 36, maxHeight: CGFloat(min(8, max(2, model.draft.split(separator: "\n", omittingEmptySubsequences: false).count + 1))) * 19 + 12)
             // the full row while it fits; narrower (a docked chat), the model's name shortens and the rest are symbols

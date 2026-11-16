@@ -29,6 +29,11 @@ extension LauncherModel {
 
     // A key from the panel. → whether the launcher took it (else the search box, or nobody, has it).
     func handle(_ event: KeyEvent, at now: Date = Date()) -> Bool {
+        // ⌘- ⌘+ ⌘0 outside a note: the launcher's lists keep their size; say where the keys work (not a beep)
+        if (event.command || event.control) && !event.option && !store.inNote, case .character(let c) = event.key, TextSize.step(String(c)) != nil {
+            flashMessage("⌘- ⌘+ ⌘0 size the text where you read: a note, a chat, the fold reader, a review table")
+            return true
+        }
         // Single keys with the search box holding them: Option types (⌥u u is ü, ⌥⌫ a word,
         // ⌥←/→ jump words), as in any Mac text field (decision 9). Esc still leaves the box.
         if singleKeys && store.searchFocus && event.option && event.key != .escape { return false }

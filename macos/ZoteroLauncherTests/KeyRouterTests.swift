@@ -42,6 +42,25 @@ final class KeyRouterTests: XCTestCase {
         XCTAssertEqual(route(char("j"), state { $0.view = "note" }), .note(char("j")))
     }
 
+    // The chat beside a note: ⌥⌘C reaches the reader (other ⌘ keys stay the Mac's), as do ⌘- ⌘+ ⌘= ⌘0 (its text size).
+    func testOptionCommandCAndTheTextSizeReachTheReader() {
+        let reading = state { $0.view = "note" }
+        XCTAssertEqual(route(char("c", option: true, command: true), reading), .note(char("c", option: true, command: true)))
+        XCTAssertEqual(route(char("c", option: true, command: true), state(notRoot)), .pass)
+        for c: Character in ["-", "+", "=", "0"] { XCTAssertEqual(route(char(c, command: true), reading), .note(char(c, command: true))) }
+        XCTAssertEqual(route(char("c", command: true), reading), .pass) // ⌘C copies the selection, as anywhere
+    }
+
+    // The text size keys, the same everywhere (TextSize): ⌘- smaller, ⌘+ or ⌘= larger, ⌘0 the default.
+    func testTextSizeSteps() {
+        XCTAssertEqual(TextSize.step("-"), -1)
+        XCTAssertEqual(TextSize.step("_"), -1)
+        XCTAssertEqual(TextSize.step("="), 1)
+        XCTAssertEqual(TextSize.step("+"), 1)
+        XCTAssertEqual(TextSize.step("0"), 0)
+        XCTAssertNil(TextSize.step("c"))
+    }
+
     // ---- Delete, Tab and the arrows with Alt, on what is highlighted
 
     // (review) ⌘⌫ is the Mac's delete in a list (Finder, Mail, Notes: a MacBook has no ⌦ without fn), with the box

@@ -813,7 +813,7 @@ var RT = (function () {
     var f = $("foot")
     if (!(finding && $("find"))) { // (the box kept as you type in it)
       clear(f)
-      f.appendChild(finding ? findBox() : el("span", { text: editing ? "⌘↵ keep · esc drop" : "↵ edit · i r cite · o pdf · / filter · ? keys" }))
+      f.appendChild(finding ? findBox() : el("span", { text: editing ? "⌘↵ keep · esc drop" : "? keys · ↵ edit · i/r cite · o pdf · c chat · / filter · ⌘W close" }))
       f.appendChild(el("span", { id: "fcount" }))
     }
     var n = rows.length
@@ -1777,13 +1777,13 @@ var RT = (function () {
     var old = $("keys")
     if (old) { old.remove(); showKeys = false; return }
     showKeys = true
-    var K = [["↑↓←→", "Move between cells"], ["home end", "The row's first and last column"], ["pgup pgdn", "A page up or down"], ["space", "Select the paper's row"],
-      ["↵", "Edit a cell of yours (text)"], ["⌘↵ esc", "Keep, or drop, what you typed"], ["⌥→ ⌥←", "The paper's status"], ["⇧⌥→ ⇧⌥←", "Its task's status"],
-      ["⌥⌘← ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["⌥⌘C", "The chat, docked on the right: the paper's, or the list's"], ["⌘- ⌘+ ⌘0", "Smaller, larger text, its size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
-      ["i r", "Copy the paper's citation, its bibliography entry"], ["o", "Open its PDF"], ["n", "Its notes, in the launcher"], ["z ⌘O", "Show the paper in Zotero"],
+    var K = [["↑↓←→", "Move between cells"], ["home  end", "The row's first and last column"], ["pgup  pgdn", "A page up or down"], ["space", "Select the paper's row"],
+      ["↵", "Edit a cell of yours (text)"], ["⌘↵  esc", "Keep, or drop, what you typed"], ["⌥→  ⌥←", "The paper's status"], ["⇧⌥→  ⇧⌥←", "Its task's status"],
+      ["⌥⌘←  ⌥⌘→", "Move the column"], ["⌥⌘I", "Show or hide the panel"], ["c  ⌥⌘C", "The chat, docked on the right: the paper's, or the list's"], ["⌘-  ⌘+  ⌘0", "Text size (⌃ too)"], ["⇧⌘R", "Run the AI columns…"],
+      ["i  r", "Copy the paper's citation, its bibliography entry"], ["o", "Open its PDF"], ["n", "Its notes, in the launcher"], ["z  ⌘O", "Show the paper in Zotero"],
       ["/", "Filter the rows (esc clears it)"], ["⌘E", "Export as CSV"], ["⌘R", "Search again"],
       ["⇧-click", "A header: add it to the sort"], ["right-click", "A cell: copy it (with its citation); an AI cell or header: run it, stop the run"],
-      ["a row's edge", "Drag: its height (a double-click: back)"], ["F1 ?", "Show or hide these keys"], ["⌘W", "Close the window"]]
+      ["a row's edge", "Drag: its height (a double-click: back)"], ["?  F1", "Show or hide these keys"], ["⌘W", "Close the window"]]
     var dl = el("dl")
     K.forEach(function (k) { dl.appendChild(el("dt", { text: k[0] })); dl.appendChild(el("dd", { text: k[1] })) })
     document.body.appendChild(el("div", { class: "keys", id: "keys", role: "dialog", "aria-label": "Keys" }, [el("h3", { text: "The review table's keys" }), dl]))
@@ -2158,6 +2158,8 @@ var RT = (function () {
     if (arrow && alt) { e.preventDefault(); return cycleStatus(r, arrow) }
     if (meta) return
     if (!alt && !e.ctrlKey && PAPER_KEYS[e.key]) { e.preventDefault(); return paperKey(r, PAPER_KEYS[e.key]) }
+    // c: the docked chat, as ⌥⌘C and the toolbar's icon (c is chat everywhere in the app)
+    if (!alt && !e.ctrlKey && e.key === "c") { e.preventDefault(); return post("chat", { toggle: true, paper: paperRef(r) }) }
     var page = Math.max(1, Math.floor($("gw").clientHeight / 40))
     var nr = ri, nc = ci
     if (e.key === "ArrowDown") nr = Math.min(rows.length - 1, ri + 1)

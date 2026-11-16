@@ -29,6 +29,12 @@ test("typing finds keys by the words shown and the symbols' names, not Omarchy's
 
 test("each window's keys end with ⌘W; the chat window's ? works outside its box", () => {
   for (const g of ["note-window", "chat-window"]) assert.equal(Glue.windowKeys(g).at(-1)[0], "⌘W");
-  assert.ok(Glue.windowKeys("chat-window").some((k) => k[0] === "F1  ?"));
+  assert.ok(Glue.windowKeys("chat-window").some((k) => k[0] === "?  F1" && /outside the box/.test(k[1])));
+  // one help row everywhere: ?  F1 (esc its own row in the note window); ⌥ and a letter lowercase; the chat's text size
+  for (const g of ["note-window", "chat-window"]) assert.ok(Glue.windowKeys(g).some((k) => k[0] === "?  F1"));
+  assert.ok(Glue.windowKeys("note-window").some((k) => k[0] === "esc"));
+  assert.ok(Glue.windowKeys("chat-window").some((k) => k[0] === "⌥m"));
+  assert.ok(Glue.windowKeys("chat-window").some((k) => k[0] === "⌘-  ⌘+  ⌘0"));
+  assert.ok(!Glue.windowKeys("note-window").concat(Glue.windowKeys("chat-window")).some((k) => /F1  \?|⌥[A-Z]/.test(k[0])));
   assert.deepEqual(Glue.windowKeys("nowhere"), []);
 });

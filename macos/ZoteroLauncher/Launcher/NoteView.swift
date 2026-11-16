@@ -90,5 +90,6 @@ struct NoteView: NSViewRepresentable {
         func scrollPage(_ pages: CGFloat) { run("window.scrollBy(0, \(pages) * (window.innerHeight - 60))") }
         func scrollToTop() { run("window.scrollTo(0, 0)") }
         func scrollToEnd() { run("window.scrollTo(0, document.body.scrollHeight)") }
+        func takeKeys() { if let view { view.window?.makeFirstResponder(view) } }
     }
 }
